@@ -1,0 +1,372 @@
+# 📄 Product Requirement Document (PRD)
+## Sistem Komunikasi Wartel Lapas Berbasis Internet
+
+---
+
+## 1. Product Overview
+
+Sistem ini merupakan platform komunikasi terkontrol berbasis internet yang memungkinkan narapidana melakukan panggilan suara dan video kepada pihak keluarga secara aman, terverifikasi, dan dapat diaudit.
+
+Sistem dirancang untuk memenuhi kebutuhan operasional lembaga pemasyarakatan dengan prinsip utama:
+
+* Kontrol akses ketat (whitelisting)
+* Inisiasi komunikasi satu arah (narapidana → keluarga)
+* Auditabilitas penuh (rekaman audio & transkrip)
+* Ketahanan terhadap kondisi jaringan terbatas
+* Kepatuhan terhadap regulasi dan pengawasan internal
+
+---
+
+## 2. Ringkasan Eksekutif (TL;DR)
+
+* Platform terdiri dari:
+  - Aplikasi Android (Narapidana & Keluarga)
+  - Dashboard Web (Admin & Petugas)
+* Komunikasi menggunakan WebRTC (LiveKit self-hosted)
+* Seluruh panggilan:
+  - Direkam (audio only)
+  - Ditranskripsi secara asynchronous
+* Sistem saldo berbasis top-up tunai melalui petugas kantin
+* Kontak bersifat tertutup dan wajib melalui proses verifikasi & persetujuan
+* Dirancang untuk keamanan tinggi dan audit penuh
+
+---
+
+## 3. Goals & Objectives
+
+### 3.1 Business Goals
+
+* Menyediakan layanan komunikasi resmi yang terkontrol di dalam lapas
+* Mengurangi praktik komunikasi ilegal/non-terpantau
+* Menciptakan sumber pendapatan melalui layanan komunikasi
+* Menyediakan visibilitas operasional lintas cabang
+
+---
+
+### 3.2 User Goals
+
+**Narapidana**
+* Dapat melakukan panggilan dengan mudah ke keluarga yang telah disetujui
+* Memahami dan memantau penggunaan saldo
+
+**Keluarga**
+* Menerima panggilan secara andal tanpa hambatan teknis
+* Mendapatkan pengalaman komunikasi yang stabil dan jelas
+
+**Admin Cabang**
+* Memverifikasi dan mengontrol akses komunikasi
+* Melakukan audit percakapan secara efisien
+
+**Petugas Kantin**
+* Melakukan transaksi top-up dengan cepat dan akurat
+* Memastikan seluruh transaksi tercatat dengan benar
+
+---
+
+### 3.3 Non-Goals
+
+* Tidak mendukung panggilan keluar dari pihak keluarga
+* Tidak menyediakan fitur pesan teks/chat
+* Tidak melakukan perekaman video
+* Tidak mengintegrasikan metode pembayaran digital pada fase awal
+
+---
+
+## 4. User Personas
+
+### Narapidana
+* Akses terbatas terhadap perangkat
+* Tingkat literasi digital bervariasi
+* Membutuhkan antarmuka sederhana dan cepat
+
+### Keluarga
+* Menggunakan perangkat pribadi
+* Mengharapkan notifikasi panggilan yang andal
+
+### Admin Cabang
+* Fokus pada pengawasan dan kepatuhan
+* Membutuhkan akses cepat ke data audit
+
+### Petugas Kantin
+* Beroperasi di lingkungan transaksi tunai
+* Membutuhkan sistem yang efisien dan minim kesalahan
+
+### Superadmin
+* Mengelola operasional lintas cabang
+* Fokus pada metrik agregat dan performa sistem
+
+---
+
+## 5. User Journey
+
+### 5.1 Alur Panggilan
+
+1. Narapidana membuka aplikasi  
+2. Memilih kontak yang telah disetujui  
+3. Menginisiasi panggilan  
+4. Backend melakukan:
+   - Validasi whitelist
+   - Validasi saldo
+   - Generate `room_id` dan `access_token`
+5. Sistem mengirim notifikasi melalui FCM ke perangkat keluarga  
+6. Perangkat keluarga menampilkan incoming call (full-screen)  
+7. Jika diterima:
+   - Kedua pihak bergabung ke room LiveKit  
+8. Selama panggilan:
+   - Saldo dipotong real-time (per detik)
+   - Audio direkam di sisi server  
+9. Setelah panggilan berakhir:
+   - Rekaman disimpan
+   - Transkripsi diproses via queue  
+
+---
+
+### 5.2 Alur Top-Up Saldo
+
+1. Narapidana melakukan pembayaran tunai ke petugas kantin  
+2. Petugas:
+   - Mencari akun berdasarkan nomor HP/ID
+   - Memasukkan nominal
+   - Mengkonfirmasi transaksi  
+3. Sistem:
+   - Menambahkan saldo
+   - Mencatat transaksi secara immutable  
+
+---
+
+## 6. Roles & Permissions
+
+### Superadmin
+* Akses penuh lintas cabang
+* Monitoring metrik global
+* Manajemen akun admin
+* Akses seluruh rekaman & transkrip
+
+### Admin Cabang
+* Verifikasi & approval kontak
+* Monitoring aktivitas komunikasi
+* Akses:
+  - Call logs
+  - Audio recording
+  - Transkrip
+* Monitoring transaksi
+
+### Petugas Kantin
+* Input transaksi top-up
+* Melihat riwayat transaksi
+* Tidak dapat edit/hapus data
+
+### Narapidana
+* Melakukan panggilan
+* Melihat saldo
+* Melihat riwayat penggunaan
+
+### Keluarga
+* Menerima panggilan
+* Melihat riwayat panggilan
+* Tidak dapat melakukan panggilan keluar
+
+---
+
+## 7. Functional Requirements
+
+### 7.1 Contact Management
+* Tambah kontak dengan verifikasi KTP
+* Approval oleh Admin Cabang
+* Status: Pending / Approved / Rejected
+
+### 7.2 Calling System
+* WebRTC via LiveKit
+* Token akses sementara
+* Auto disconnect jika saldo habis
+* Retry pada jaringan tidak stabil
+
+### 7.3 Notification System
+* Firebase Cloud Messaging (FCM)
+* Full-screen notification
+* Berfungsi saat:
+  - Background
+  - App tertutup
+  - Layar terkunci
+
+### 7.4 Recording & Transcription
+* Audio recording server-side
+* Penyimpanan di S3/MinIO
+* Transkripsi asynchronous via queue
+
+### 7.5 Balance & Transaction System
+* Ledger-based system
+* Semua perubahan saldo berbasis transaksi
+* Audit trail penuh
+
+---
+
+## 8. Non-Functional Requirements
+
+### Security
+* JWT Authentication
+* Role-Based Access Control
+* Enkripsi (DTLS/SRTP)
+* Immutable audit logs
+
+### Scalability
+* Stateless backend
+* Horizontal scaling
+* Redis untuk cache & queue
+
+### Reliability
+* Retry job gagal
+* Call reconnect mechanism
+* Graceful degradation (audio priority)
+
+### Performance
+* Call setup < 3 detik
+* Transkripsi async (delay dapat diterima)
+
+---
+
+## 9. System Architecture
+
+* Client:
+  - Android Apps (Narapidana & Keluarga)
+
+* Backend:
+  - Node.js (API & business logic)
+
+* Infrastruktur:
+  - LiveKit (media server)
+  - PostgreSQL (database)
+  - Redis (cache & queue)
+  - S3/MinIO (storage)
+
+* Worker:
+  - Transcription service
+
+---
+
+## 10. API Design
+
+### Auth
+* POST /auth/login
+
+### Contact
+* POST /contacts
+* GET /contacts
+* PATCH /contacts/{id}/approve
+
+### Call
+* POST /call/initiate
+* POST /call/end
+
+### Balance
+* GET /balance
+* GET /transactions
+* POST /topup
+
+### Recording
+* GET /recordings
+* GET /recordings/{id}
+
+---
+
+## 11. Database Design
+
+### Entities:
+* Users
+* Contacts
+* Calls
+* Transactions
+* Recordings
+
+### Relasi:
+* 1 User → banyak Contacts
+* 1 Call → 1 Recording
+* 1 User → banyak Transactions
+
+---
+
+## 12. Tech Stack
+
+* Android Native (Kotlin)
+* React.js + Tailwind CSS
+* Node.js (TypeScript)
+* PostgreSQL
+* Redis
+* LiveKit (self-hosted)
+* S3 / MinIO
+
+---
+
+## 13. Risk & Mitigation
+
+### Penyalahgunaan Komunikasi
+* Whitelist ketat
+* Monitoring penuh
+* Audit recording
+
+### Keterbatasan Jaringan
+* Adaptive bitrate
+* Prioritas audio
+
+### Fraud Transaksi
+* Ledger immutable
+* Tidak ada edit/delete
+* Rekonsiliasi harian
+
+### Keamanan Data
+* Enkripsi
+* Role-based access
+
+---
+
+## 14. Timeline (5 Minggu)
+
+### Minggu 1
+* Setup backend & DB
+* Auth & role system
+
+### Minggu 2
+* Contact management
+* Top-up system
+* Basic admin dashboard
+
+### Minggu 3
+* WebRTC integration
+* Call flow
+
+### Minggu 4
+* Audio recording
+* Transcription pipeline
+
+### Minggu 5
+* Testing
+* Performance tuning
+* Security hardening
+
+---
+
+## 15. Success Metrics
+
+### Usage
+* Calls per user
+* Avg call duration
+
+### Revenue
+* Total top-up
+* Revenue per user
+
+### System
+* Call success rate (>95%)
+* Call drop rate (<5%)
+
+### Compliance
+* % calls recorded (100%)
+* Audit retrieval time (<10s)
+
+---
+
+## 🔥 Catatan Strategis
+
+1. Kontrol perangkat belum didefinisikan (kiosk vs bebas)
+2. Audit masih bersifat reaktif → perlu roadmap detection
+3. Risiko beban operasional admin tinggi pada skala besar
