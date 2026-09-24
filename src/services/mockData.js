@@ -266,3 +266,57 @@ export const mockReportData = {
     { id: 'b4', name: 'Lapas Kelas I Sukamiskin', calls: 1, revenue: 140000, successRate: 99.0, avgDuration: '18m 45s' },
   ]
 };
+
+// -------------------------------------------------------------
+// INMATES / WARGA BINAAN (WBP) DATASET
+// -------------------------------------------------------------
+export let mockInmates = [
+  { id: 'wbp-101', wbpRegNumber: 'REG-CPN-2026-001', name: 'Ahmad Supriyadi', nik: '3175081203890001', birthPlace: 'Jakarta', birthDate: '1989-03-12', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok A / Kamar 3A', entryDate: '2024-01-15', status: 'Aktif', commStatus: 'Aktif', callBalance: 150000 },
+  { id: 'wbp-102', wbpRegNumber: 'REG-CPN-2026-002', name: 'Budi Santoso', nik: '3175081504910002', birthPlace: 'Bandung', birthDate: '1991-04-15', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok A / Kamar 1B', entryDate: '2024-03-10', status: 'Aktif', commStatus: 'Aktif', callBalance: 75000 },
+  { id: 'wbp-103', wbpRegNumber: 'REG-CPN-2026-003', name: 'Joko Widodo', nik: '3175082006880003', birthPlace: 'Solo', birthDate: '1988-06-20', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok B / Kamar 2C', entryDate: '2024-05-22', status: 'Aktif', commStatus: 'Aktif', callBalance: 200000 },
+  { id: 'wbp-104', wbpRegNumber: 'REG-CPN-2026-004', name: 'Andi Mallarangeng', nik: '3175081111850004', birthPlace: 'Makassar', birthDate: '1985-11-11', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok C / Kamar 4A', entryDate: '2023-11-05', status: 'Aktif', commStatus: 'Nonaktif', callBalance: 50000 },
+  { id: 'wbp-105', wbpRegNumber: 'REG-CPN-2026-005', name: 'Rudi Salam', nik: '3175080507920005', birthPlace: 'Surabaya', birthDate: '1992-07-05', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok A / Kamar 2B', entryDate: '2024-02-18', status: 'Aktif', commStatus: 'Aktif', callBalance: 125000 },
+  { id: 'wbp-106', wbpRegNumber: 'REG-CPN-2026-006', name: 'Tono Setiawan', nik: '3175081809900006', birthPlace: 'Semarang', birthDate: '1990-09-18', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok B / Kamar 1A', entryDate: '2024-06-01', status: 'Aktif', commStatus: 'Aktif', callBalance: 90000 },
+  { id: 'wbp-107', wbpRegNumber: 'REG-CPN-2026-007', name: 'Rahmat Hidayat', nik: '3175082512870007', birthPlace: 'Medan', birthDate: '1987-12-25', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok C / Kamar 3B', entryDate: '2023-08-14', status: 'Sudah Bebas', commStatus: 'Nonaktif', callBalance: 0 },
+  { id: 'wbp-108', wbpRegNumber: 'REG-CPN-2026-008', name: 'Kiki Fatmala', nik: '3175081402930008', birthPlace: 'Jakarta', birthDate: '1993-02-14', gender: 'Perempuan', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok Wanita / Kamar 1', entryDate: '2024-04-09', status: 'Aktif', commStatus: 'Aktif', callBalance: 60000 },
+  { id: 'wbp-109', wbpRegNumber: 'REG-CPN-2026-009', name: 'Parto Suwito', nik: '3175080101860009', birthPlace: 'Yogyakarta', birthDate: '1986-01-01', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok B / Kamar 4C', entryDate: '2023-12-20', status: 'Dipindahkan', commStatus: 'Nonaktif', callBalance: 0 },
+  { id: 'wbp-110', wbpRegNumber: 'REG-CPN-2026-010', name: 'Uya Kuya', nik: '3175080404940010', birthPlace: 'Bandung', birthDate: '1994-04-04', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok A / Kamar 5B', entryDate: '2024-07-11', status: 'Aktif', commStatus: 'Aktif', callBalance: 300000 },
+  { id: 'wbp-111', wbpRegNumber: 'REG-CPN-2026-011', name: 'Ahmad bin Jono', nik: '3175083008850011', birthPlace: 'Bogor', birthDate: '1985-08-30', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok C / Kamar 1A', entryDate: '2024-01-05', status: 'Aktif', commStatus: 'Aktif', callBalance: 70000 },
+  { id: 'wbp-112', wbpRegNumber: 'REG-CPN-2026-012', name: 'Candra Wijaya', nik: '3175080909950012', birthPlace: 'Palembang', birthDate: '1995-09-09', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok B / Kamar 3B', entryDate: '2024-08-19', status: 'Aktif', commStatus: 'Aktif', callBalance: 45000 },
+  { id: 'wbp-113', wbpRegNumber: 'REG-CPN-2026-013', name: 'Sule Sutisna', nik: '3175081511890013', birthPlace: 'Cimahi', birthDate: '1989-11-15', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok A / Kamar 4A', entryDate: '2023-09-01', status: 'Sudah Bebas', commStatus: 'Nonaktif', callBalance: 0 },
+  { id: 'wbp-114', wbpRegNumber: 'REG-CPN-2026-014', name: 'Dedi Mulyadi', nik: '3175082802880014', birthPlace: 'Purwakarta', birthDate: '1988-02-28', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok C / Kamar 2B', entryDate: '2024-03-25', status: 'Aktif', commStatus: 'Aktif', callBalance: 110000 },
+  { id: 'wbp-115', wbpRegNumber: 'REG-CPN-2026-015', name: 'Hendra Hermawan', nik: '3175081708910015', birthPlace: 'Cirebon', birthDate: '1991-08-17', gender: 'Laki-laki', branchId: 'b1', branchName: 'Lapas Kelas I Cipinang', blockRoom: 'Blok B / Kamar 5A', entryDate: '2024-05-02', status: 'Aktif', commStatus: 'Aktif', callBalance: 85000 }
+];
+
+export const getInmates = () => mockInmates;
+
+export const getInmateById = (id) => mockInmates.find(i => i.id === id);
+
+export const addInmate = (newInmate) => {
+  const id = `wbp-${Date.now()}`;
+  const inmate = {
+    id,
+    commStatus: 'Aktif',
+    callBalance: 0,
+    status: 'Aktif',
+    branchId: 'b1',
+    branchName: 'Lapas Kelas I Cipinang',
+    ...newInmate
+  };
+  mockInmates = [inmate, ...mockInmates];
+  return inmate;
+};
+
+export const updateInmate = (id, updatedFields) => {
+  mockInmates = mockInmates.map(i => i.id === id ? { ...i, ...updatedFields } : i);
+  return getInmateById(id);
+};
+
+export const toggleInmateCommStatus = (id) => {
+  const inmate = getInmateById(id);
+  if (inmate) {
+    const newStatus = inmate.commStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
+    return updateInmate(id, { commStatus: newStatus });
+  }
+  return null;
+};

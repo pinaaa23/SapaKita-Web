@@ -23,6 +23,7 @@ import { mockCalls } from '../../services/mockData';
 
 const Dashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
   
   // State khusus untuk audio preview playback (hanya diset saat tombol Play diklik)
   const [selectedRecording, setSelectedRecording] = useState(null);
@@ -53,7 +54,10 @@ const Dashboard = () => {
                           call.inmateName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           call.familyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           call.inmateId.toLowerCase().includes(searchTerm.toLowerCase());
-    return isSearchMatch;
+    const isStatusMatch = statusFilter === 'All' || 
+                          (statusFilter === 'Answered' && call.status === 'Answered') ||
+                          (statusFilter === 'Missed' && call.status !== 'Answered');
+    return isSearchMatch && isStatusMatch;
   });
 
   const handleSelectRecording = (call) => {
@@ -282,9 +286,18 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                       className="w-full sm:w-60 pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50/50"
                     />
                   </div>
-                  <button type="button" className="p-2 border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors bg-white shadow-sm cursor-pointer" title="Filter Data">
-                    <Filter className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1.5 bg-slate-50/80 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs">
+                    <Filter className="w-3.5 h-3.5 text-slate-400" />
+                    <select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                    >
+                      <option value="All">Semua Status</option>
+                      <option value="Answered">Terjawab</option>
+                      <option value="Missed">Tidak Terjawab</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 

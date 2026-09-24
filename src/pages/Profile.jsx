@@ -13,7 +13,10 @@ import {
   Lock,
   Mail,
   Phone,
-  User as UserIcon
+  User as UserIcon,
+  Building2,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import Modal from '../components/Modal';
 
@@ -25,8 +28,10 @@ const Profile = () => {
   const [accountInfo, setAccountInfo] = useState({
     name: 'Admin Pusat',
     email: 'admin.pusat@pascall.id',
-    phone: '081234567890'
+    phone: '081234567890',
+    unit: 'Direktorat Jenderal Pemasyarakatan'
   });
+  const [infoSuccess, setInfoSuccess] = useState(false);
 
   // State for Password
   const [passwords, setPasswords] = useState({
@@ -48,7 +53,8 @@ const Profile = () => {
   const handleSaveInfo = (e) => {
     e.preventDefault();
     setIsEditingInfo(false);
-    // Dummy save action
+    setInfoSuccess(true);
+    setTimeout(() => setInfoSuccess(false), 3000);
   };
 
   const handleSavePassword = (e) => {
@@ -66,7 +72,6 @@ const Profile = () => {
       return;
     }
 
-    // Dummy success
     setPasswordSuccess(true);
     setPasswords({ current: '', new: '', confirm: '' });
     setTimeout(() => setPasswordSuccess(false), 3000);
@@ -80,119 +85,175 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-800">Profil Saya</h1>
-        <p className="text-slate-500 text-sm mt-1">Kelola informasi akun dan pengaturan keamanan.</p>
+    <div className="max-w-6xl mx-auto space-y-6 pb-6">
+      {/* Overview Banner Card */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
+          {/* Avatar Container */}
+          <div className="relative group cursor-pointer shrink-0">
+            <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-md p-1 border-2 border-indigo-400/40 shadow-inner flex items-center justify-center">
+              <UserCircle className="w-full h-full text-indigo-100" />
+            </div>
+            <div className="absolute inset-0 bg-slate-950/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-6 h-6 text-white" />
+            </div>
+          </div>
+
+          {/* Identity Info */}
+          <div className="text-center md:text-left flex-1 space-y-2">
+            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+              <h2 className="text-2xl font-black text-white tracking-tight">{accountInfo.name}</h2>
+              <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-indigo-500/30 text-indigo-200 backdrop-blur-md border border-indigo-400/30">
+                <ShieldCheck className="w-3.5 h-3.5" /> Superadmin
+              </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Aktif
+              </span>
+            </div>
+            
+            <p className="text-slate-300 text-xs md:text-sm font-medium flex items-center justify-center md:justify-start gap-2">
+              <Building2 className="w-4 h-4 text-indigo-300" /> {accountInfo.unit}
+            </p>
+
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-slate-300 font-medium">
+              <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
+                <Mail className="w-3.5 h-3.5 text-indigo-400" /> {accountInfo.email}
+              </div>
+              <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
+                <Phone className="w-3.5 h-3.5 text-indigo-400" /> {accountInfo.phone}
+              </div>
+              <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
+                <span>ID Operator:</span> <strong className="text-white">ADM-HQ-001</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="shrink-0 self-center md:self-start">
+            <button 
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-sm"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Keluar Sesi
+            </button>
+          </div>
+        </div>
       </div>
 
+      {infoSuccess && (
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          Informasi profil berhasil diperbarui!
+        </div>
+      )}
+
+      {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Column: Account Info */}
+        {/* Left Column: Account Details Form */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <UserIcon className="w-5 h-5 text-primary" />
-                Informasi Akun
-              </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-slate-800">Informasi Akun</h2>
+                  <p className="text-[11px] text-slate-500">Perbarui identitas & kontak Superadmin</p>
+                </div>
+              </div>
+              
               <button 
                 onClick={() => setIsEditingInfo(!isEditingInfo)}
-                className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors ${
-                  isEditingInfo ? 'text-slate-500 hover:bg-slate-100' : 'text-primary bg-primary/10 hover:bg-primary/20'
+                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  isEditingInfo ? 'text-slate-600 bg-slate-100 hover:bg-slate-200' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
                 }`}
               >
-                {isEditingInfo ? 'Batal Edit' : 'Edit Info Akun'}
+                {isEditingInfo ? 'Batal Edit' : 'Edit Informasi'}
               </button>
             </div>
             
             <div className="p-6">
-              <div className="flex flex-col sm:flex-row gap-8">
-                {/* Avatar */}
-                <div className="flex flex-col items-center gap-3">
-                  <div className="relative group cursor-pointer">
-                    <UserCircle className="w-24 h-24 text-slate-300 bg-slate-50 rounded-full" />
-                    <div className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Camera className="w-6 h-6 text-white" />
+              <form onSubmit={handleSaveInfo} className="space-y-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap</label>
+                    {isEditingInfo ? (
+                      <input 
+                        type="text" 
+                        value={accountInfo.name}
+                        onChange={(e) => setAccountInfo({...accountInfo, name: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                        required
+                      />
+                    ) : (
+                      <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800">
+                        {accountInfo.name}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Alamat Email</label>
+                    {isEditingInfo ? (
+                      <input 
+                        type="email" 
+                        value={accountInfo.email}
+                        onChange={(e) => setAccountInfo({...accountInfo, email: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                        required
+                      />
+                    ) : (
+                      <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
+                        <Mail className="w-3.5 h-3.5 text-slate-400" />
+                        {accountInfo.email}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Nomor Handphone</label>
+                    {isEditingInfo ? (
+                      <input 
+                        type="tel" 
+                        value={accountInfo.phone}
+                        onChange={(e) => setAccountInfo({...accountInfo, phone: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                        required
+                      />
+                    ) : (
+                      <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        {accountInfo.phone}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Unit Kerja / Instansi</label>
+                    <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                      {accountInfo.unit}
                     </div>
                   </div>
-                  <button className="text-xs font-medium text-slate-500 hover:text-primary transition-colors">
-                    Ubah Foto
-                  </button>
                 </div>
 
-                {/* Info Form */}
-                <form onSubmit={handleSaveInfo} className="flex-1 space-y-4">
+                <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">Role Sistem</label>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Superadmin
+                    <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Role Sistem</label>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
+                      <ShieldCheck className="w-3.5 h-3.5" /> Superadmin Pusat
                     </span>
-                    <p className="text-xs text-slate-400 mt-1.5">Role tidak dapat diubah secara mandiri.</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Nama Lengkap</label>
-                      {isEditingInfo ? (
-                        <input 
-                          type="text" 
-                          value={accountInfo.name}
-                          onChange={(e) => setAccountInfo({...accountInfo, name: e.target.value})}
-                          className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                          required
-                        />
-                      ) : (
-                        <p className="text-slate-800 font-medium py-2">{accountInfo.name}</p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
-                      <div className="relative">
-                        {!isEditingInfo && <Mail className="absolute left-0 top-2.5 text-slate-400 w-4 h-4" />}
-                        {isEditingInfo ? (
-                          <input 
-                            type="email" 
-                            value={accountInfo.email}
-                            onChange={(e) => setAccountInfo({...accountInfo, email: e.target.value})}
-                            className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                            required
-                          />
-                        ) : (
-                          <p className="text-slate-800 font-medium py-2 pl-6">{accountInfo.email}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">Nomor HP</label>
-                      <div className="relative">
-                        {!isEditingInfo && <Phone className="absolute left-0 top-2.5 text-slate-400 w-4 h-4" />}
-                        {isEditingInfo ? (
-                          <input 
-                            type="tel" 
-                            value={accountInfo.phone}
-                            onChange={(e) => setAccountInfo({...accountInfo, phone: e.target.value})}
-                            className="w-full bg-white border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                            required
-                          />
-                        ) : (
-                          <p className="text-slate-800 font-medium py-2 pl-6">{accountInfo.phone}</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
 
                   {isEditingInfo && (
-                    <div className="pt-4 flex justify-end">
-                      <button type="submit" className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">
-                        <Save className="w-4 h-4" /> Simpan Perubahan
-                      </button>
-                    </div>
+                    <button type="submit" className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all text-xs font-bold shadow-md cursor-pointer">
+                      <Save className="w-3.5 h-3.5" /> Simpan Perubahan
+                    </button>
                   )}
-                </form>
-              </div>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -201,123 +262,125 @@ const Profile = () => {
         <div className="space-y-6">
           
           {/* Security Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                <Lock className="w-4 h-4 text-amber-500" />
-                Keamanan
-              </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-amber-500/10 text-amber-600">
+                <Lock className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Keamanan Password</h2>
+                <p className="text-[11px] text-slate-500">Perbarui kata sandi secara berkala</p>
+              </div>
             </div>
             
             <form onSubmit={handleSavePassword} className="p-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Password Saat Ini</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Password Saat Ini</label>
                 <div className="relative">
                   <input 
                     type={showPassword.current ? 'text' : 'password'} 
                     value={passwords.current}
                     onChange={(e) => setPasswords({...passwords, current: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    placeholder="••••••••"
                     required
                   />
-                  <button type="button" onClick={() => togglePasswordVisibility('current')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
-                    {showPassword.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <button type="button" onClick={() => togglePasswordVisibility('current')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                    {showPassword.current ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Password Baru</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Password Baru</label>
                 <div className="relative">
                   <input 
                     type={showPassword.new ? 'text' : 'password'} 
                     value={passwords.new}
                     onChange={(e) => setPasswords({...passwords, new: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    placeholder="Min 6 karakter"
                     required
                   />
-                  <button type="button" onClick={() => togglePasswordVisibility('new')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
-                    {showPassword.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <button type="button" onClick={() => togglePasswordVisibility('new')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                    {showPassword.new ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Konfirmasi Password</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">Konfirmasi Password Baru</label>
                 <div className="relative">
                   <input 
                     type={showPassword.confirm ? 'text' : 'password'} 
                     value={passwords.confirm}
                     onChange={(e) => setPasswords({...passwords, confirm: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
+                    placeholder="Ulangi password baru"
                     required
                   />
-                  <button type="button" onClick={() => togglePasswordVisibility('confirm')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
-                    {showPassword.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <button type="button" onClick={() => togglePasswordVisibility('confirm')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
+                    {showPassword.confirm ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
                 </div>
               </div>
 
               {passwordError && (
-                <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-xs font-medium">
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
                   {passwordError}
                 </div>
               )}
 
               {passwordSuccess && (
-                <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-green-700 text-xs font-medium">
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                   Password berhasil diperbarui!
                 </div>
               )}
 
-              <button type="submit" className="w-full py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors text-sm font-medium">
+              <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-xs font-bold shadow-md cursor-pointer">
                 Simpan Password Baru
               </button>
             </form>
           </div>
 
           {/* Activity Card */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-              <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-slate-400" />
-                Aktivitas Akun
-              </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="text-base font-bold text-slate-800">Aktivitas Sesi</h2>
+                <p className="text-[11px] text-slate-500">Log akses & verifikasi sistem</p>
+              </div>
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                  <Clock className="w-4 h-4 text-blue-500" />
+                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
+                  <Clock className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Login Terakhir</p>
-                  <p className="text-xs text-slate-500 mt-0.5">22 Sep 2026, 08:15 WIB (IP: 192.168.1.45)</p>
+                  <p className="text-xs font-bold text-slate-800">Login Terakhir</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">22 Sep 2026, 08:15 WIB</p>
+                  <span className="text-[10px] text-slate-400 font-mono">IP: 192.168.1.45 (Jakarta)</span>
                 </div>
               </div>
+
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4 text-indigo-500" />
+                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100">
+                  <Calendar className="w-4 h-4 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-slate-700">Akun Dibuat</p>
-                  <p className="text-xs text-slate-500 mt-0.5">15 Jan 2025, 10:00 WIB</p>
+                  <p className="text-xs font-bold text-slate-800">Akun Dibuat</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">15 Jan 2025, 10:00 WIB</p>
                 </div>
               </div>
             </div>
           </div>
-          
-        </div>
-      </div>
 
-      {/* Logout Action Area */}
-      <div className="flex justify-end pt-4">
-        <button 
-          onClick={() => setIsLogoutModalOpen(true)}
-          className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition-colors text-sm font-semibold shadow-sm"
-        >
-          <LogOut className="w-4 h-4" />
-          Keluar dari Akun
-        </button>
+        </div>
       </div>
 
       {/* Logout Confirmation Modal */}
@@ -327,17 +390,17 @@ const Profile = () => {
         title="Konfirmasi Keluar"
       >
         <div className="py-4">
-          <p className="text-slate-600 mb-6">Apakah Anda yakin ingin keluar dari sesi Superadmin saat ini?</p>
+          <p className="text-slate-600 text-sm mb-6 font-medium">Apakah Anda yakin ingin keluar dari sesi Superadmin saat ini?</p>
           <div className="flex justify-end gap-3">
             <button 
               onClick={() => setIsLogoutModalOpen(false)}
-              className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-lg transition-colors"
+              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
             >
               Batal
             </button>
             <button 
               onClick={() => navigate('/login')}
-              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+              className="px-5 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all shadow-md cursor-pointer"
             >
               Ya, Keluar
             </button>

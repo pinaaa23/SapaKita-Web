@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Download, Calendar, Activity, Phone, Clock, DollarSign, Target, ShieldCheck, CheckCircle2 } from 'lucide-react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { Download, Calendar, Activity, Phone, Clock, DollarSign, Target, CheckCircle2, FileSpreadsheet } from 'lucide-react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { mockReportData } from '../services/mockData';
-import StatCard from '../components/StatCard';
+import { exportToCSV } from '../utils/exportUtils';
 
 const Reports = () => {
   const [periodFilter, setPeriodFilter] = useState('30days');
   const [showCustomDate, setShowCustomDate] = useState(false);
+  const [exportToast, setExportToast] = useState('');
 
   const handleFilterChange = (e) => {
     setPeriodFilter(e.target.value);
@@ -14,7 +15,18 @@ const Reports = () => {
   };
 
   const handleExport = () => {
-    alert('Laporan sedang diexport ke format PDF/Excel. Fitur ini masih dalam tahap simulasi.');
+    const dataToExport = mockReportData.trendData.map(d => ({
+      Tanggal: d.date,
+      Revenue_Nasional_IDR: d.revenue,
+      Total_Panggilan_Nasional: d.calls,
+      Status: 'Verified National Report'
+    }));
+
+    const success = exportToCSV(dataToExport, `Laporan_Pusat_PasCall_${periodFilter}.csv`);
+    if (success !== false) {
+      setExportToast('Laporan pusat berhasil diexport (.csv)!');
+      setTimeout(() => setExportToast(''), 4000);
+    }
   };
 
   const formatCurrency = (value) => {
@@ -51,7 +63,7 @@ const Reports = () => {
               <input type="date" className="text-sm border-none focus:ring-0 text-slate-600 px-1 py-1 bg-transparent" />
               <span className="text-slate-400">-</span>
               <input type="date" className="text-sm border-none focus:ring-0 text-slate-600 px-1 py-1 bg-transparent" />
-              <button onClick={() => {setPeriodFilter('30days'); setShowCustomDate(false)}} className="text-slate-400 hover:text-red-500 ml-1">✕</button>
+              <button onClick={() => {setPeriodFilter('30days'); setShowCustomDate(false)}} className="text-slate-400 hover:text-red-500 ml-1 cursor-pointer">✕</button>
             </div>
           ) : (
             <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm w-full sm:w-auto">
@@ -59,7 +71,7 @@ const Reports = () => {
               <select 
                 value={periodFilter} 
                 onChange={handleFilterChange}
-                className="bg-transparent focus:outline-none text-sm font-medium text-slate-600 flex-1"
+                className="bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-700 cursor-pointer"
               >
                 <option value="7days">7 Hari Terakhir</option>
                 <option value="30days">30 Hari Terakhir</option>
@@ -70,47 +82,95 @@ const Reports = () => {
           )}
           
           <button 
+            type="button"
             onClick={handleExport}
-            className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-medium flex items-center justify-center gap-2 shadow-sm transition-all text-sm"
+            className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-lg font-medium flex items-center justify-center gap-2 shadow-sm transition-all text-sm cursor-pointer"
           >
-            <Download className="w-4 h-4" /> Export Laporan
+            <Download className="w-4 h-4" /> Export Data
           </button>
         </div>
       </div>
 
-      {/* Section 1: Ringkasan Umum */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Revenue" 
-          value={`Rp ${formatCompactNumber(mockReportData.summary.totalRevenue)}`} 
-          icon={DollarSign} 
-          trend={mockReportData.summary.revenueChange} 
-          trendUp={true} 
-        />
-        <StatCard 
-          title="Total Panggilan" 
-          value={new Intl.NumberFormat('id-ID').format(mockReportData.summary.totalCalls)} 
-          icon={Phone} 
-        />
-        <StatCard 
-          title="Rata-rata Durasi" 
-          value={mockReportData.summary.avgDuration} 
-          icon={Clock} 
-        />
-        <StatCard 
-          title="Call Success Rate" 
-          value={`${mockReportData.summary.successRate}%`} 
-          icon={Activity} 
-          trend="+0.5%" 
-          trendUp={true} 
-        />
+      {exportToast && (
+        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+          {exportToast}
+        </div>
+      )}
+
+      {/* Section 1: Ringkasan Utama */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Card 1: Total Revenue */}
+        <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
+              <DollarSign className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
+              +12.4%
+            </span>
+          </div>
+          <div>
+            <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Revenue</h3>
+            <p className="text-2xl font-extrabold text-white">Rp {formatCompactNumber(mockReportData.summary.totalRevenue)}</p>
+          </div>
+        </div>
+
+        {/* Card 2: Total Panggilan */}
+        <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
+              <Phone className="w-5 h-5 text-[#0B3D91]" />
+            </div>
+            <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">
+              Nasional
+            </span>
+          </div>
+          <div>
+            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Total Panggilan</h3>
+            <p className="text-2xl font-extrabold text-[#0B3D91]">{new Intl.NumberFormat('id-ID').format(mockReportData.summary.totalCalls)}</p>
+          </div>
+        </div>
+
+        {/* Card 3: Rata-rata Durasi */}
+        <div className="bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#6D28D9] text-white rounded-2xl p-5 shadow-lg shadow-purple-900/20 border border-purple-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
+              Rata-rata
+            </span>
+          </div>
+          <div>
+            <h3 className="text-purple-200 text-xs font-semibold uppercase tracking-wider mb-1">Rata-rata Durasi</h3>
+            <p className="text-2xl font-extrabold text-white">{mockReportData.summary.avgDuration}</p>
+          </div>
+        </div>
+
+        {/* Card 4: Call Success Rate */}
+        <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+          <div className="flex justify-between items-start mb-3">
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
+              <Activity className="w-5 h-5 text-white" />
+            </div>
+            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
+              +0.5%
+            </span>
+          </div>
+          <div>
+            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Call Success Rate</h3>
+            <p className="text-2xl font-extrabold text-white">{mockReportData.summary.successRate}%</p>
+          </div>
+        </div>
+
       </div>
 
       {/* Section 2: Grafik Tren */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Tren Revenue Harian</h3>
+          <h3 className="text-base font-bold text-slate-800 mb-6">Tren Revenue Harian</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mockReportData.trendData}>
@@ -133,15 +193,14 @@ const Reports = () => {
                   labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}
                   contentStyle={{borderRadius: '0.5rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                 />
-                <Line type="monotone" dataKey="revenue" stroke="#F5A623" strokeWidth={3} dot={{r: 4, fill: '#F5A623', strokeWidth: 0}} activeDot={{r: 6, fill: '#1E293B', stroke: '#F5A623', strokeWidth: 2}} />
+                <Line type="monotone" dataKey="revenue" stroke="#0D9488" strokeWidth={3} dot={{r: 4, fill: '#0D9488', strokeWidth: 0}} activeDot={{r: 6, fill: '#1E293B', stroke: '#0D9488', strokeWidth: 2}} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Calls Trend */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 mb-6">Tren Volume Panggilan</h3>
+          <h3 className="text-base font-bold text-slate-800 mb-6">Tren Volume Panggilan</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={mockReportData.trendData}>
@@ -164,74 +223,21 @@ const Reports = () => {
                   cursor={{fill: '#f8fafc'}}
                   contentStyle={{borderRadius: '0.5rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                 />
-                <Bar dataKey="calls" fill="#1E293B" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="calls" fill="#0B3D91" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Section 3: Perbandingan Antar Cabang */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-            <h3 className="text-base font-bold text-slate-800">Peringkat Performa Cabang</h3>
-            <span className="text-xs text-slate-500">Berdasarkan Total Revenue</span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-white border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wider">
-                  <th className="px-5 py-3 font-medium">Peringkat</th>
-                  <th className="px-5 py-3 font-medium">Cabang</th>
-                  <th className="px-5 py-3 font-medium text-right">Revenue</th>
-                  <th className="px-5 py-3 font-medium text-right">Panggilan</th>
-                  <th className="px-5 py-3 font-medium text-center">Sukses</th>
-                  <th className="px-5 py-3 font-medium text-center">Rata-rata Durasi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {mockReportData.branchRankings.map((branch, idx) => (
-                  <tr key={branch.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-5 py-3 text-center">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
-                        idx === 0 ? 'bg-yellow-100 text-yellow-700' : 
-                        idx === 1 ? 'bg-slate-200 text-slate-700' : 
-                        idx === 2 ? 'bg-orange-100 text-orange-700' : 'bg-slate-100 text-slate-500'
-                      }`}>
-                        {idx + 1}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 font-semibold text-slate-800">{branch.name}</td>
-                    <td className="px-5 py-3 text-right font-medium text-slate-700">{formatCurrency(branch.revenue)}</td>
-                    <td className="px-5 py-3 text-right text-slate-600">{new Intl.NumberFormat('id-ID').format(branch.calls)}</td>
-                    <td className="px-5 py-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                        branch.successRate >= 95 ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                      }`}>
-                        {branch.successRate}%
-                      </span>
-                    </td>
-                    <td className="px-5 py-3 text-center text-slate-600">{branch.avgDuration}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Section 4: Compliance & Audit Summary */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col">
-          <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="text-base font-bold text-slate-800">Kepatuhan & Audit</h3>
-          </div>
-          <div className="p-6 flex flex-col gap-8">
-            
-            {/* Keberhasilan Perekaman */}
+      
+      {/* Compliance / Audit */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col p-6">
+        <h3 className="text-base font-bold text-slate-800 mb-4">Kepatuhan Operasional & Audit</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div>
               <div className="flex justify-between items-end mb-2">
                 <div>
-                  <p className="text-sm font-semibold text-slate-800">Keberhasilan Perekaman Video</p>
+                  <p className="text-sm font-semibold text-slate-800">Keberhasilan Perekaman Suara</p>
                   <p className="text-xs text-slate-500 mt-0.5">Target: 100%</p>
                 </div>
                 <span className="text-lg font-bold text-green-600">{mockReportData.compliance.recordedRate}%</span>
@@ -245,7 +251,6 @@ const Reports = () => {
               </p>
             </div>
 
-            {/* SLA Pencarian */}
             <div>
               <div className="flex justify-between items-end mb-2">
                 <div>
@@ -259,27 +264,13 @@ const Reports = () => {
                   <Target className="w-6 h-6 text-blue-600" />
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Performa pencarian log dan transkrip sangat sehat, di bawah batas maksimal SLA 10 detik.
+                  Performa pencarian arsip sangat baik dan memenuhi SLA yang ditentukan.
                 </p>
               </div>
             </div>
-
-            {/* Pending Approvals */}
-            <div className="pt-6 border-t border-slate-100">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center shrink-0">
-                  <ShieldCheck className="w-6 h-6 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">{mockReportData.compliance.pendingApprovals}</p>
-                  <p className="text-xs font-semibold text-slate-500 uppercase mt-0.5">Kontak Pending Approval</p>
-                </div>
-              </div>
-            </div>
-
-          </div>
         </div>
       </div>
+      
     </div>
   );
 };

@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Download, Calendar, Activity, Phone, Clock, DollarSign, CheckCircle2, Target } from 'lucide-react';
+import { Download, Calendar, Activity, Phone, Clock, DollarSign, CheckCircle2, Target, FileSpreadsheet } from 'lucide-react';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import StatCard from '../../components/StatCard';
 import { mockReportData } from '../../services/mockData';
+import { exportToCSV } from '../../utils/exportUtils';
 
 const BranchReports = () => {
   const [periodFilter, setPeriodFilter] = useState('30days');
   const [showCustomDate, setShowCustomDate] = useState(false);
+  const [exportToast, setExportToast] = useState('');
 
   const handleFilterChange = (e) => {
     setPeriodFilter(e.target.value);
@@ -14,7 +15,18 @@ const BranchReports = () => {
   };
 
   const handleExport = () => {
-    alert('Laporan cabang sedang diexport ke format PDF/Excel. Fitur ini masih dalam tahap simulasi.');
+    const dataToExport = mockReportData.trendData.map(d => ({
+      Tanggal: d.date,
+      Revenue_IDR: d.revenue * 0.15,
+      Jumlah_Panggilan: Math.floor(d.calls * 0.15),
+      Kategori: 'Cabang Lapas Cipinang'
+    }));
+    
+    const success = exportToCSV(dataToExport, `Laporan_Analistik_Cabang_${periodFilter}.csv`);
+    if (success !== false) {
+      setExportToast('Laporan analistik cabang berhasil diexport (.csv)!');
+      setTimeout(() => setExportToast(''), 4000);
+    }
   };
 
   const formatCurrency = (value) => {
@@ -39,7 +51,14 @@ const BranchReports = () => {
   return (
     <div className="space-y-5">
       {/* Filter Bar Header */}
-      <div className="flex justify-end items-center">
+      <div className="flex justify-between items-center">
+        {exportToast ? (
+          <div className="p-2.5 px-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in duration-200">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            {exportToast}
+          </div>
+        ) : <div></div>}
+
         <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
           {showCustomDate ? (
             <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-xl px-2 py-1 shadow-sm w-full sm:w-auto">
@@ -65,18 +84,19 @@ const BranchReports = () => {
           )}
           
           <button 
+            type="button"
             onClick={handleExport}
-            className="w-full sm:w-auto px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all text-xs cursor-pointer"
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-xl font-bold flex items-center justify-center gap-2 shadow-sm transition-all text-xs cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" /> Export Laporan
           </button>
         </div>
       </div>
 
-      {/* Section 1: Ringkasan Utama (Vibrant Multi-Color PasCall Gradient Cards) */}
+      {/* Section 1: Ringkasan Utama */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Card 1: Total Revenue Cabang - PasCall Navy Gradient */}
+        {/* Card 1: Total Revenue Cabang */}
         <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
@@ -92,7 +112,7 @@ const BranchReports = () => {
           </div>
         </div>
 
-        {/* Card 2: Total Panggilan Lokal - Golden Amber Gradient */}
+        {/* Card 2: Total Panggilan Lokal */}
         <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
@@ -108,7 +128,7 @@ const BranchReports = () => {
           </div>
         </div>
 
-        {/* Card 3: Rata-rata Durasi - Deep Purple/Violet Gradient */}
+        {/* Card 3: Rata-rata Durasi */}
         <div className="bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#6D28D9] text-white rounded-2xl p-5 shadow-lg shadow-purple-900/20 border border-purple-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
@@ -124,7 +144,7 @@ const BranchReports = () => {
           </div>
         </div>
 
-        {/* Card 4: Call Success Rate - Emerald Green Gradient */}
+        {/* Card 4: Call Success Rate */}
         <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">

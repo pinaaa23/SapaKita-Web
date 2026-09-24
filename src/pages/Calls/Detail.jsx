@@ -20,6 +20,25 @@ const Detail = () => {
   const initialTab = queryParams.get('tab') === 'transcript' ? 'transcript' : 'video';
   const [activeTab, setActiveTab] = useState(initialTab);
 
+  const durationSeconds = call?.durationSeconds || 0;
+
+  // Simulate video playback
+  useEffect(() => {
+    let interval;
+    if (call && isPlaying && currentTime < durationSeconds) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          if (prev >= durationSeconds) {
+            setIsPlaying(false);
+            return durationSeconds;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTime, durationSeconds, call]);
+
   if (!call) {
     return (
       <div className="text-center py-20">
@@ -34,23 +53,6 @@ const Detail = () => {
     const s = Math.floor(seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
-
-  // Simulate video playback
-  useEffect(() => {
-    let interval;
-    if (isPlaying && currentTime < call.durationSeconds) {
-      interval = setInterval(() => {
-        setCurrentTime(prev => {
-          if (prev >= call.durationSeconds) {
-            setIsPlaying(false);
-            return call.durationSeconds;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTime, call.durationSeconds]);
 
   const progress = call.durationSeconds > 0 ? (currentTime / call.durationSeconds) * 100 : 0;
 

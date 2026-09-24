@@ -9,15 +9,23 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  SearchX
+  SearchX,
+  FileSpreadsheet,
+  Receipt
 } from 'lucide-react';
 import { mockTransactions, mockUsers } from '../../services/mockData';
-import StatCard from '../../components/StatCard';
+import Modal from '../../components/Modal';
+import { exportToCSV } from '../../utils/exportUtils';
 
 const Transactions = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [officerFilter, setOfficerFilter] = useState('All');
+  
+  // Interactive Modals & Toast State
+  const [selectedTrx, setSelectedTrx] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [exportToast, setExportToast] = useState('');
 
   // Filter for Branch 1
   const branchTransactions = mockTransactions.filter(t => t.branchId === 'b1');
@@ -41,12 +49,25 @@ const Transactions = () => {
     }).format(value);
   };
 
+  const handleExport = () => {
+    const success = exportToCSV(filteredTransactions, `Transaksi_Cabang_Cipinang_${statusFilter}.csv`);
+    if (success !== false) {
+      setExportToast(`Berhasil mengunduh ${filteredTransactions.length} data transaksi (.csv)!`);
+      setTimeout(() => setExportToast(''), 4000);
+    }
+  };
+
+  const handleViewDetail = (trx) => {
+    setSelectedTrx(trx);
+    setIsDetailModalOpen(true);
+  };
+
   return (
     <div className="space-y-5">
-      {/* Stats Summary - Vibrant Multi-Color Gradient Cards */}
+      {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
-        {/* Card 1: Total Transaksi - PasCall Navy Gradient */}
+        {/* Card 1: Total Transaksi */}
         <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
@@ -60,7 +81,7 @@ const Transactions = () => {
           </div>
         </div>
         
-        {/* Card 2: Total Nominal Berhasil - Golden Amber Gradient */}
+        {/* Card 2: Total Nominal Berhasil */}
         <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
@@ -74,7 +95,7 @@ const Transactions = () => {
           </div>
         </div>
 
-        {/* Card 3: Estimasi Hari Ini - Emerald Green Gradient */}
+        {/* Card 3: Estimasi Hari Ini */}
         <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
@@ -99,7 +120,7 @@ const Transactions = () => {
             placeholder="Cari ID Trx atau Nama WBP..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs bg-slate-50/50"
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs bg-slate-50/50 font-medium"
           />
         </div>
 
@@ -131,18 +152,29 @@ const Transactions = () => {
             </select>
           </div>
 
-          <button className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all text-xs cursor-pointer ml-auto md:ml-2">
+          <button 
+            type="button"
+            onClick={handleExport}
+            className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all text-xs cursor-pointer ml-auto md:ml-2"
+          >
             <Download className="w-3.5 h-3.5" /> Export Data
           </button>
         </div>
       </div>
+
+      {exportToast && (
+        <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+          {exportToast}
+        </div>
+      )}
 
       {/* Main Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wider">
+              <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wider font-bold">
                 <th className="px-6 py-4 font-semibold">ID Transaksi</th>
                 <th className="px-6 py-4 font-semibold">WBP</th>
                 <th className="px-6 py-4 font-semibold">Nominal</th>
@@ -151,40 +183,45 @@ const Transactions = () => {
                 <th className="px-6 py-4 font-semibold text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {filteredTransactions.length > 0 ? (
                 filteredTransactions.map((trx) => (
                   <tr key={trx.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-800">{trx.id}</div>
-                      <div className="text-xs text-slate-500 mt-1">{new Date(trx.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</div>
+                      <div className="font-bold text-slate-800">{trx.id}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{new Date(trx.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-slate-800">{trx.inmateName}</div>
-                      <div className="text-xs text-slate-500 mt-1">{trx.inmateId}</div>
+                      <div className="font-bold text-slate-800">{trx.inmateName}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5">{trx.inmateId}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-800">{formatCurrency(trx.amount)}</div>
-                      <div className="text-xs text-slate-500 mt-1 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
+                      <div className="font-extrabold text-slate-800">{formatCurrency(trx.amount)}</div>
+                      <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         {trx.method}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-slate-700">{trx.officerName}</div>
+                      <div className="text-xs font-semibold text-slate-700">{trx.officerName}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        trx.status === 'Berhasil' ? 'bg-green-100 text-green-700' : 
-                        'bg-red-100 text-red-700'
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${
+                        trx.status === 'Berhasil' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 
+                        'bg-rose-50 text-rose-700 border border-rose-200/60'
                       }`}>
-                        {trx.status === 'Berhasil' ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
+                        {trx.status === 'Berhasil' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <XCircle className="w-3.5 h-3.5 text-rose-600" />}
                         {trx.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex justify-center gap-2">
-                        <button type="button" className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors" title="Detail (Read-only)">
+                        <button 
+                          type="button" 
+                          onClick={() => handleViewDetail(trx)}
+                          className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors cursor-pointer" 
+                          title="Lihat Struk / Detail Transaksi"
+                        >
                           <Eye className="w-4 h-4" />
                         </button>
                       </div>
@@ -196,8 +233,8 @@ const Transactions = () => {
                   <td colSpan="6" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-500">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
-                      <p className="font-medium text-slate-600">Tidak ada transaksi ditemukan</p>
-                      <p className="text-sm mt-1">Coba ubah kata kunci pencarian atau filter.</p>
+                      <p className="font-bold text-slate-700">Tidak ada transaksi ditemukan</p>
+                      <p className="text-xs mt-1 text-slate-400">Coba ubah kata kunci pencarian atau filter.</p>
                     </div>
                   </td>
                 </tr>
@@ -206,18 +243,71 @@ const Transactions = () => {
           </table>
         </div>
         
-        {/* Pagination Dummy */}
+        {/* Pagination Safety */}
         {filteredTransactions.length > 0 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-sm text-slate-600 bg-slate-50/50">
-            <div>Menampilkan 1-{filteredTransactions.length} dari {filteredTransactions.length} transaksi</div>
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 bg-slate-50/50">
+            <div className="font-medium">Menampilkan 1-{filteredTransactions.length} dari {filteredTransactions.length} transaksi</div>
             <div className="flex items-center gap-1">
-              <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-white bg-slate-50 disabled:opacity-50 transition-colors">Sebelumnya</button>
-              <button type="button" className="px-3 py-1.5 border border-primary bg-primary text-white rounded-lg font-medium shadow-sm">1</button>
-              <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-white bg-slate-50 disabled:opacity-50 transition-colors">Selanjutnya</button>
+              <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-50 text-xs font-semibold">Sebelumnya</button>
+              <button type="button" className="px-3 py-1.5 border border-primary bg-primary text-white rounded-lg font-bold text-xs shadow-sm">1</button>
+              <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-50 text-xs font-semibold">Selanjutnya</button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Transaction Detail Modal */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title={`Struk Transaksi - ${selectedTrx?.id}`}
+        cancelText="Tutup"
+        confirmText="Download Struk"
+        onConfirm={() => {
+          exportToCSV([selectedTrx], `Struk_${selectedTrx?.id}.csv`);
+          setIsDetailModalOpen(false);
+        }}
+      >
+        {selectedTrx && (
+          <div className="space-y-4 text-xs">
+            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-1">
+              <div className="w-10 h-10 rounded-full bg-blue-100 text-primary flex items-center justify-center mx-auto mb-2">
+                <Receipt className="w-5 h-5" />
+              </div>
+              <p className="text-slate-400 text-[11px]">Nominal Transaksi</p>
+              <p className="text-2xl font-black text-slate-800">{formatCurrency(selectedTrx.amount)}</p>
+              <span className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[11px] font-bold mt-1 ${
+                selectedTrx.status === 'Berhasil' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}>
+                {selectedTrx.status}
+              </span>
+            </div>
+
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              <div className="flex justify-between">
+                <span className="text-slate-400">ID Transaksi:</span>
+                <span className="font-bold text-slate-800 font-mono">{selectedTrx.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Nama WBP:</span>
+                <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Metode Pembayaran:</span>
+                <span className="font-bold text-slate-800">{selectedTrx.method}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Petugas Kantin:</span>
+                <span className="font-bold text-slate-800">{selectedTrx.officerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Waktu Transaksi:</span>
+                <span className="font-medium text-slate-600">{new Date(selectedTrx.date).toLocaleString('id-ID')}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
     </div>
   );
