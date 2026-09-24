@@ -33,45 +33,57 @@ const Detail = () => {
     }).format(value);
   };
 
+  const handleToggleStatus = () => {
+    const branchIndex = mockBranches.findIndex(b => b.id === id);
+    if (branchIndex !== -1) {
+      const nextStatus = mockBranches[branchIndex].status === 'Active' ? 'Inactive' : 'Active';
+      mockBranches[branchIndex].status = nextStatus;
+      setBranch({ ...mockBranches[branchIndex] });
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <Link 
-            to="/branches"
-            className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-600"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">{branch.name}</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                branch.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-              }`}>
-                {branch.status === 'Active' ? 'Aktif' : 'Nonaktif'}
-              </span>
-              <span className="text-slate-500 text-sm flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" /> {branch.location}
-              </span>
-            </div>
-          </div>
-        </div>
+    <div className="space-y-5">
+      {/* Header Action Bar (Single Title handled by Topbar) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex items-center gap-3">
           <Link 
-            to={`/branches/${id}/edit`}
-            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-medium flex items-center gap-2 shadow-sm transition-all"
+            to="/branches"
+            className="p-2 bg-white border border-slate-200/80 rounded-xl hover:bg-slate-50 transition-colors text-slate-600 shadow-2xs"
+            title="Kembali ke Daftar Cabang"
           >
-            <Edit className="w-4 h-4" /> Edit Cabang
+            <ArrowLeft className="w-4 h-4" />
           </Link>
-          <button className="px-4 py-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg font-medium flex items-center gap-2 transition-all">
-            <AlertTriangle className="w-4 h-4" /> Nonaktifkan
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800 text-sm">{branch.name}</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              branch.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+            }`}>
+              {branch.status === 'Active' ? 'Aktif' : 'Nonaktif'}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <Link 
+            to={`/branches/${id}/edit`}
+            className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center gap-2 shadow-2xs transition-all cursor-pointer"
+          >
+            <Edit className="w-3.5 h-3.5 text-primary" /> Edit Cabang
+          </Link>
+          <button 
+            onClick={handleToggleStatus}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              branch.status === 'Active'
+                ? 'bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200'
+                : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" /> {branch.status === 'Active' ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Info & Stats */}
         <div className="lg:col-span-2 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">

@@ -49,46 +49,39 @@ const Reports = () => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header & Filter */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Laporan & Analitik</h1>
-          <p className="text-slate-500 text-sm mt-1">Ringkasan performa dan kepatuhan dari seluruh cabang.</p>
-        </div>
+    <div className="space-y-5">
+      {/* Control Bar (Single Title handled by Topbar) */}
+      <div className="flex flex-col sm:flex-row justify-end items-center gap-3">
+        {showCustomDate ? (
+          <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs w-full sm:w-auto">
+            <input type="date" className="text-xs border-none focus:ring-0 text-slate-600 px-1 py-0.5 bg-transparent" />
+            <span className="text-slate-400">-</span>
+            <input type="date" className="text-xs border-none focus:ring-0 text-slate-600 px-1 py-0.5 bg-transparent" />
+            <button onClick={() => {setPeriodFilter('30days'); setShowCustomDate(false)}} className="text-slate-400 hover:text-red-500 ml-1 cursor-pointer">✕</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-white border border-slate-200/80 rounded-xl px-3 py-1.5 shadow-2xs w-full sm:w-auto">
+            <Calendar className="w-3.5 h-3.5 text-primary" />
+            <select 
+              value={periodFilter} 
+              onChange={handleFilterChange}
+              className="bg-transparent border-none focus:outline-none text-xs font-semibold text-slate-700 cursor-pointer"
+            >
+              <option value="7days">7 Hari Terakhir</option>
+              <option value="30days">30 Hari Terakhir</option>
+              <option value="thisMonth">Bulan Ini</option>
+              <option value="custom">Custom Range...</option>
+            </select>
+          </div>
+        )}
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {showCustomDate ? (
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-2 py-1 shadow-sm w-full sm:w-auto">
-              <input type="date" className="text-sm border-none focus:ring-0 text-slate-600 px-1 py-1 bg-transparent" />
-              <span className="text-slate-400">-</span>
-              <input type="date" className="text-sm border-none focus:ring-0 text-slate-600 px-1 py-1 bg-transparent" />
-              <button onClick={() => {setPeriodFilter('30days'); setShowCustomDate(false)}} className="text-slate-400 hover:text-red-500 ml-1 cursor-pointer">✕</button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm w-full sm:w-auto">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <select 
-                value={periodFilter} 
-                onChange={handleFilterChange}
-                className="bg-transparent border-none focus:ring-0 text-sm font-medium text-slate-700 cursor-pointer"
-              >
-                <option value="7days">7 Hari Terakhir</option>
-                <option value="30days">30 Hari Terakhir</option>
-                <option value="thisMonth">Bulan Ini</option>
-                <option value="custom">Custom Range...</option>
-              </select>
-            </div>
-          )}
-          
-          <button 
-            type="button"
-            onClick={handleExport}
-            className="w-full sm:w-auto px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-lg font-medium flex items-center justify-center gap-2 shadow-sm transition-all text-sm cursor-pointer"
-          >
-            <Download className="w-4 h-4" /> Export Data
-          </button>
-        </div>
+        <button 
+          type="button"
+          onClick={handleExport}
+          className="w-full sm:w-auto px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center justify-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+        >
+          <Download className="w-3.5 h-3.5" /> Export Data
+        </button>
       </div>
 
       {exportToast && (

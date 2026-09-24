@@ -133,7 +133,7 @@ const InmatesDetail = () => {
           {/* Core Inmate Info */}
           <div className="text-center md:text-left flex-1 space-y-2">
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
-              <h1 className="text-2xl font-black text-white tracking-tight">{inmate.name}</h1>
+              <h2 className="text-2xl font-black text-white tracking-tight">{inmate.name}</h2>
               <span className="font-mono text-xs font-bold bg-white/20 text-white px-3 py-0.5 rounded-full border border-white/30">
                 {inmate.wbpRegNumber}
               </span>

@@ -85,7 +85,7 @@ const Profile = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-6">
+    <div className="max-w-6xl mx-auto space-y-5 pb-6">
       {/* Overview Banner Card */}
       <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>

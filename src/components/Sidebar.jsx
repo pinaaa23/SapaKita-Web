@@ -16,7 +16,7 @@ import {
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
   const location = useLocation();
-  const isBranchAdmin = location.pathname.startsWith('/branch');
+  const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   
   const superadminMenuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -67,7 +67,9 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
           {isOpen && (
             <div className="overflow-hidden whitespace-nowrap">
               <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
-              <p className="text-[11px] text-blue-200 font-medium">Branch Operator</p>
+              <p className="text-[11px] text-blue-200 font-medium">
+                {isBranchAdmin ? 'Branch Operator' : 'Superadmin'}
+              </p>
             </div>
           )}
         </div>

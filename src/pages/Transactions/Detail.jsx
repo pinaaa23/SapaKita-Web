@@ -26,16 +26,51 @@ const Detail = () => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
   };
 
+  const handleDownloadStruk = () => {
+    const textContent = `
+==================================================
+           PASCALL AUDIT TRANSACTION RECEIPT
+==================================================
+ID Transaksi     : ${trx.id}
+Status           : ${trx.status}
+Waktu            : ${new Date(trx.date).toLocaleString('id-ID')} WIB
+Cabang           : ${branchName}
+Nama WBP         : ${trx.inmateName} (${trx.inmateId})
+Petugas Kantin   : ${trx.officerName}
+Metode           : ${trx.method}
+--------------------------------------------------
+Nominal Top-up   : ${formatCurrency(trx.amount)}
+Saldo Sebelumnya : ${formatCurrency(trx.balanceBefore)}
+Saldo Sesudah    : ${formatCurrency(trx.balanceAfter)}
+--------------------------------------------------
+Catatan: Dokumen transaksi terenkripsi & sah (Immutable Ledger)
+PasCall Management System
+==================================================
+`;
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Struk_Audit_${trx.id}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-5">
       {/* Action Bar */}
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-100">
-        <Link to="/transactions" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-800 font-medium transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+      <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
+        <Link to="/transactions" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors">
+          <ArrowLeft className="w-4 h-4" />
           <span>Kembali ke Riwayat</span>
         </Link>
-        <button className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm">
-          <Download className="w-4 h-4" />
+        <button 
+          onClick={handleDownloadStruk}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-bold text-xs cursor-pointer shadow-sm"
+        >
+          <Download className="w-3.5 h-3.5" />
           Download Struk Audit
         </button>
       </div>

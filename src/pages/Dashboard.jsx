@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   PhoneCall, 
   Wallet, 
@@ -18,9 +19,23 @@ import {
   Bar
 } from 'recharts';
 import StatCard from '../components/StatCard';
-import { mockDashboardStats } from '../services/mockData';
+import { mockDashboardStats, mockBranches, mockCalls, mockTransactions } from '../services/mockData';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
+  // Synchronize stats dynamically with active datasets
+  const activeBranchesCount = mockBranches.filter(b => b.status === 'Active').length;
+  const totalCallsCount = mockCalls.length;
+  const answeredCallsCount = mockCalls.filter(c => c.status === 'Answered').length;
+  const dynamicSuccessRate = totalCallsCount > 0 
+    ? ((answeredCallsCount / totalCallsCount) * 100).toFixed(1) 
+    : mockDashboardStats.successRate;
+  
+  const totalRevenueAmount = mockTransactions
+    .filter(t => t.status === 'Berhasil')
+    .reduce((sum, t) => sum + t.amount, 0);
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
@@ -34,22 +49,12 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center mb-2">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard Overview</h1>
-          <p className="text-slate-500">Ringkasan operasional PasCall seluruh cabang.</p>
-        </div>
-        <button className="bg-white border border-slate-200 text-slate-600 px-4 py-2 rounded-lg font-medium hover:bg-slate-50 transition-colors flex items-center gap-2">
-          <span>7 Hari Terakhir</span>
-        </button>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-5 relative">
+      {/* Stats Grid - 4 Cards Layout matching branch dashboard */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard 
           title="Total Panggilan" 
-          value={formatNumber(mockDashboardStats.totalCalls)} 
+          value={formatNumber(totalCallsCount)} 
           icon={PhoneCall} 
           color="blue"
           trend="up"
@@ -57,7 +62,7 @@ const Dashboard = () => {
         />
         <StatCard 
           title="Total Revenue" 
-          value={formatCurrency(mockDashboardStats.totalRevenue)} 
+          value={formatCurrency(totalRevenueAmount)} 
           icon={Wallet} 
           color="green"
           trend="up"
@@ -65,13 +70,13 @@ const Dashboard = () => {
         />
         <StatCard 
           title="Cabang Aktif" 
-          value={mockDashboardStats.activeBranches} 
+          value={activeBranchesCount} 
           icon={Building2} 
           color="primary"
         />
         <StatCard 
           title="Success Rate" 
-          value={`${mockDashboardStats.successRate}%`} 
+          value={`${dynamicSuccessRate}%`} 
           icon={Activity} 
           color="accent"
           trend="up"
@@ -79,16 +84,23 @@ const Dashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Main Chart */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-bold text-slate-800">Tren Pendapatan (Revenue)</h2>
-            <button className="text-primary text-sm font-medium flex items-center gap-1 hover:underline">
-              Lihat Laporan <ArrowUpRight className="w-4 h-4" />
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+          <div className="flex justify-between items-center mb-5">
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Tren Pendapatan (Revenue)</h2>
+              <p className="text-[11px] text-slate-500">Akumulasi pendapatan transaksi seluruh cabang</p>
+            </div>
+            <button 
+              onClick={() => navigate('/reports')}
+              className="text-primary hover:text-primary-dark text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
+            >
+              Lihat Laporan <ArrowUpRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="h-80 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={mockDashboardStats.revenueTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -97,20 +109,20 @@ const Dashboard = () => {
                   tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                   dy={10}
                 />
                 <YAxis 
-                  tickFormatter={(val) => `Rp ${val / 1000000}M`}
+                  tickFormatter={(val) => `Rp ${val / 1000}k`}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                   dx={-10}
                 />
                 <Tooltip 
                   formatter={(value) => formatCurrency(value)}
                   labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                 />
                 <Line 
                   type="monotone" 
@@ -126,12 +138,12 @@ const Dashboard = () => {
         </div>
 
         {/* Secondary Chart / Calls */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
-          <div className="mb-6">
-            <h2 className="text-lg font-bold text-slate-800">Volume Panggilan</h2>
-            <p className="text-slate-500 text-sm">Distribusi panggilan per hari</p>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
+          <div className="mb-5">
+            <h2 className="text-sm font-bold text-slate-800">Volume Panggilan</h2>
+            <p className="text-slate-500 text-[11px]">Distribusi panggilan per hari</p>
           </div>
-          <div className="h-80 w-full">
+          <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={mockDashboardStats.callTrend} margin={{ top: 5, right: 0, bottom: 5, left: -20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
@@ -140,19 +152,19 @@ const Dashboard = () => {
                   tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: 'numeric' })}
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                   dy={10}
                 />
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                 />
                 <Tooltip 
                   formatter={(value) => [`${formatNumber(value)} Panggilan`, 'Volume']}
                   labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                   cursor={{ fill: '#f1f5f9' }}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                 />
                 <Bar 
                   dataKey="calls" 
@@ -169,3 +181,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

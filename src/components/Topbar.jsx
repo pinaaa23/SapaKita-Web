@@ -10,7 +10,7 @@ const Topbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isBranchAdmin = location.pathname.startsWith('/branch');
+  const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   const userName = isBranchAdmin ? 'Admin Cipinang' : 'Admin Pusat';
   const userRole = isBranchAdmin ? 'Branch Operator' : 'Superadmin';
   const profileLink = isBranchAdmin ? '/branch/profile' : '/profile';
@@ -25,14 +25,27 @@ const Topbar = () => {
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran cabang' };
     if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analistik', subtitle: 'Ringkasan performa & statistik layanan' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Operator', subtitle: 'Informasi akun & pengaturan profil' };
-    if (pathname.startsWith('/branch')) return { title: 'Dashboard', subtitle: `Selamat Datang, ${userName}!` };
+    if (pathname === '/branch' || pathname.startsWith('/branch/')) return { title: 'Dashboard', subtitle: `Selamat Datang, ${userName}!` };
     
-    if (pathname.startsWith('/branches')) return { title: 'Kelola Cabang', subtitle: 'Daftar & status cabang PasCall' };
-    if (pathname.startsWith('/users')) return { title: 'Kelola Pengguna', subtitle: 'Daftar pengguna & peran operator' };
+    if (pathname.startsWith('/branches/create')) return { title: 'Tambah Cabang Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
+    if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit Cabang', subtitle: 'Perbarui data operasional cabang' };
+    if (pathname.startsWith('/branches/')) return { title: 'Detail Cabang', subtitle: 'Informasi operasional & data lapas' };
+    if (pathname.startsWith('/branches')) return { title: 'Manajemen Cabang', subtitle: 'Kelola data operasional lapas dan rutan yang terdaftar' };
+
+    if (pathname.startsWith('/users/create')) return { title: 'Tambah Pengguna Baru', subtitle: 'Daftarkan operator atau administrator baru' };
+    if (pathname.includes('/edit') && pathname.startsWith('/users')) return { title: 'Edit Data Pengguna', subtitle: 'Perbarui informasi & akses pengguna' };
+    if (pathname.startsWith('/users/')) return { title: 'Detail Pengguna', subtitle: 'Informasi akun & riwayat aktivitas' };
+    if (pathname.startsWith('/users')) return { title: 'Manajemen Pengguna', subtitle: 'Kelola daftar akun petugas & operator' };
+
+    if (pathname.startsWith('/calls/')) return { title: 'Detail Rekaman Panggilan', subtitle: 'Informasi panggilan & pemutaran rekaman audio' };
     if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh cabang' };
+
+    if (pathname.startsWith('/transactions/')) return { title: 'Detail Transaksi', subtitle: 'Rincian transaksi & status pembayaran' };
     if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi keuangan nasional' };
-    if (pathname.startsWith('/reports')) return { title: 'Laporan Pusat', subtitle: 'Statistik & analistik agregat' };
-    return { title: 'Dashboard Overview', subtitle: `Selamat Datang, ${userName}!` };
+
+    if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh cabang' };
+    if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
+    return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional PasCall seluruh cabang' };
   };
 
   const pageDetails = getPageDetails(location.pathname);

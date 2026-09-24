@@ -57,30 +57,29 @@ const Detail = () => {
   const progress = call.durationSeconds > 0 ? (currentTime / call.durationSeconds) * 100 : 0;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+    <div className="max-w-6xl mx-auto space-y-5">
+      {/* Header Action Bar (Single Title handled by Topbar) */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex items-center gap-3">
           <Link 
             to="/calls"
-            className="p-2 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors text-slate-600"
+            className="p-2 bg-white border border-slate-200/80 rounded-xl hover:bg-slate-50 transition-colors text-slate-600 shadow-2xs"
+            title="Kembali ke Riwayat Panggilan"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-4 h-4" />
           </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Detail Rekaman Panggilan</h1>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                call.status === 'Answered' ? 'bg-green-100 text-green-700' : 
-                call.status === 'No Answer' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
-              }`}>
-                {call.status}
-              </span>
-              <span className="text-slate-500 text-sm flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" /> 
-                {new Date(call.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB
-              </span>
-            </div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-slate-800 text-sm">Panggilan #{call.id}</span>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${
+              call.status === 'Answered' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 
+              call.status === 'No Answer' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+            }`}>
+              {call.status}
+            </span>
+            <span className="text-slate-500 text-xs flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-slate-400" /> 
+              {new Date(call.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB
+            </span>
           </div>
         </div>
         
