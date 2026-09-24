@@ -1,7 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 
-const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Konfirmasi', cancelText = 'Batal', isDanger = false }) => {
+const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Konfirmasi', cancelText = 'Batal', isDanger = false, children }) => {
   if (!isOpen) return null;
 
   return (
@@ -23,7 +23,8 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Konf
         </div>
         
         <div className="p-5">
-          <p className="text-slate-600 text-sm">{message}</p>
+          {message && <p className="text-slate-600 text-sm mb-4">{message}</p>}
+          {children}
         </div>
         
         <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
@@ -35,8 +36,12 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Konf
           </button>
           <button 
             onClick={() => {
-              onConfirm();
-              onClose();
+              if (onConfirm) {
+                const res = onConfirm();
+                if (res !== false) onClose();
+              } else {
+                onClose();
+              }
             }}
             className={`px-4 py-2 rounded-lg font-medium text-sm text-white shadow-sm transition-all ${
               isDanger 

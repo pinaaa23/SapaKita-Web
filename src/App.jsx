@@ -23,6 +23,13 @@ import TransactionDetail from './pages/Transactions/Detail';
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 
+// Branch Admin Pages
+import BranchDashboard from './pages/branch/Dashboard';
+import BranchContacts from './pages/branch/Contacts';
+import BranchTransactions from './pages/branch/Transactions';
+import BranchProfile from './pages/branch/Profile';
+import BranchReports from './pages/branch/Reports';
+
 function App() {
   return (
     <BrowserRouter>
@@ -63,6 +70,16 @@ function App() {
 
           <Route path="reports" element={<Reports />} />
           <Route path="profile" element={<Profile />} />
+
+          {/* Branch Admin Routes */}
+          <Route path="branch">
+            <Route index element={<Navigate to="/branch/dashboard" replace />} />
+            <Route path="dashboard" element={<BranchDashboard />} />
+            <Route path="contacts" element={<BranchContacts />} />
+            <Route path="transactions" element={<BranchTransactions />} />
+            <Route path="reports" element={<BranchReports />} />
+            <Route path="profile" element={<BranchProfile />} />
+          </Route>
         </Route>
         
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
