@@ -14,21 +14,25 @@
 
 /* --- Custom Properties --- */
 :root {
-  --lp-navy: #06091a;
-  --lp-navy-mid: #0b1230;
-  --lp-purple: #6b21a8;
-  --lp-magenta: #c026d3;
-  --lp-blue: #2563eb;
-  --lp-cyan: #06b6d4;
+  --lp-bg: #ffffff;
+  --lp-bg-soft: #f0f5ff;
+  --lp-bg-muted: #eef3fb;
+  --lp-blue: #2f6fed;
+  --lp-blue-light: #60a5fa;
+  --lp-navy: #101828;
+  --lp-gray: #5b6472;
+  --lp-gray-light: #98a2b3;
   --lp-content-max: 1080px;
   --lp-gap: 8px;
 }
 
-/* --- Hero entrance animation (only one, on load) --- */
-@keyframes lp-hero-up {
+/* --- Hero Orchestrated Entrance Animations --- */
+
+/* 1. Header slide down from top (slow & calm) */
+@keyframes lp-header-down {
   from {
     opacity: 0;
-    transform: translateY(32px);
+    transform: translateY(-32px);
   }
   to {
     opacity: 1;
@@ -36,32 +40,123 @@
   }
 }
 
-.lp-hero-animate {
-  animation: lp-hero-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+.lp-header-animate {
+  animation: lp-header-down 1.0s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
 }
 
-.lp-hero-animate-delay-1 {
-  animation: lp-hero-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+/* 2. Letter-by-letter reveal for Hero title */
+@keyframes lp-letter-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.94);
+    filter: blur(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
 }
 
-.lp-hero-animate-delay-2 {
-  animation: lp-hero-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+/* Squiggle wave entrance */
+@keyframes lp-squiggle-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.7) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1) translateY(0);
+  }
 }
 
-.lp-hero-animate-delay-3 {
-  animation: lp-hero-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+.lp-squiggle-animate {
+  animation: lp-squiggle-in 0.65s cubic-bezier(0.16, 1, 0.3, 1) 3.10s both;
+}
+
+/* 3. Description slide from left (after title pause) */
+@keyframes lp-swipe-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.lp-hero-swipe-left {
+  animation: lp-swipe-from-left 1.05s cubic-bezier(0.16, 1, 0.3, 1) 4.20s both;
+}
+
+/* 4. Mockup slide from right (simultaneous with description) */
+@keyframes lp-swipe-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(55px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.lp-hero-swipe-right {
+  animation: lp-swipe-from-right 1.05s cubic-bezier(0.16, 1, 0.3, 1) 4.20s both;
+}
+
+/* 5. Buttons fade & rise up (after description & mockup pause) */
+@keyframes lp-buttons-rise {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.lp-hero-buttons-animate {
+  animation: lp-buttons-rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 5.80s both;
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .lp-hero-animate,
-  .lp-hero-animate-delay-1,
-  .lp-hero-animate-delay-2,
-  .lp-hero-animate-delay-3 {
+  .lp-header-animate,
+  .lp-squiggle-animate,
+  .lp-hero-swipe-left,
+  .lp-hero-swipe-right,
+  .lp-hero-buttons-animate,
+  .lp-reveal-left,
+  .lp-reveal-right {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
+    transition: none !important;
   }
+}
+
+/* --- Scroll-triggered Reveal Animations (Slow & Calm) --- */
+.lp-reveal-left {
+  opacity: 0;
+  transform: translateX(-55px);
+  transition: opacity 1.15s cubic-bezier(0.16, 1, 0.3, 1), transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.lp-reveal-right {
+  opacity: 0;
+  transform: translateX(55px);
+  transition: opacity 1.15s cubic-bezier(0.16, 1, 0.3, 1), transform 1.15s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.lp-reveal-active {
+  opacity: 1 !important;
+  transform: translateX(0) !important;
 }
 
 /* --- Scroll indicator bounce --- */
@@ -84,11 +179,11 @@
 .lp-phone {
   width: 280px;
   border-radius: 36px;
-  background: linear-gradient(145deg, #181e3a 0%, #10142a 100%);
-  border: 2.5px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 2.5px solid rgba(0, 0, 0, 0.08);
   box-shadow:
-    0 32px 80px rgba(0, 0, 0, 0.5),
-    0 0 0 1px rgba(255, 255, 255, 0.04);
+    0 24px 60px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
   overflow: hidden;
   position: relative;
 }
@@ -96,7 +191,7 @@
 .lp-phone-notch {
   width: 100px;
   height: 24px;
-  background: #06091a;
+  background: #eef3fb;
   border-radius: 0 0 16px 16px;
   margin: 0 auto;
 }
@@ -109,8 +204,8 @@
   display: flex;
   justify-content: space-around;
   padding: 10px 8px 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(6, 9, 26, 0.6);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(240, 245, 255, 0.8);
 }
 
 /* --- Clip path for lapas image --- */
@@ -120,38 +215,21 @@
 
 /* --- Squiggle glow (subtle, only for squiggle SVGs) --- */
 .lp-squiggle-glow {
-  filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.35));
+  filter: drop-shadow(0 1px 3px rgba(47, 111, 237, 0.15));
 }
 
 /* --- Outline text for "Tanpa Batas" --- */
-.lp-text-outline {
-  -webkit-text-stroke: 2px rgba(255, 255, 255, 0.85);
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-}
-
-@media (min-width: 768px) {
-  .lp-text-outline {
-    -webkit-text-stroke: 2.5px rgba(255, 255, 255, 0.9);
-  }
-}
+/* lp-text-outline not used in light theme (replaced by colored text) */
 
 /* --- Landing page link focus styles --- */
 .lp-focus-ring:focus-visible {
-  outline: 2px solid #06b6d4;
+  outline: 2px solid #2f6fed;
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 /* --- Button glow (only for Unduh APK) --- */
-.lp-btn-glow {
-  box-shadow: 0 0 20px rgba(192, 38, 211, 0.3), 0 0 60px rgba(192, 38, 211, 0.1);
-  transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-.lp-btn-glow:hover {
-  box-shadow: 0 0 28px rgba(192, 38, 211, 0.45), 0 0 80px rgba(192, 38, 211, 0.15);
-  transform: translateY(-1px);
-}
+/* No neon glow in light theme — clean blue shadow only */
 
 @media (prefers-reduced-motion: reduce) {
   .lp-btn-glow:hover {
@@ -162,9 +240,9 @@
 /* --- Security list divider --- */
 .lp-security-item {
   padding: 16px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   font-size: 0.9375rem;
-  color: rgba(255, 255, 255, 0.85);
+  color: #344054;
 }
 .lp-security-item:last-child {
   border-bottom: none;
@@ -187,6 +265,6 @@
 /* --- Stats divider --- */
 .lp-stat-divider {
   width: 1px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(0, 0, 0, 0.08);
   align-self: stretch;
 }
