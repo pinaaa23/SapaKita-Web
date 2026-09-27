@@ -268,3 +268,67 @@
   background: rgba(0, 0, 0, 0.08);
   align-self: stretch;
 }
+
+/* --- Hero Mockup Animated Dashed Rings --- */
+@keyframes lp-spin-clockwise {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes lp-spin-counter {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes lp-spin-center-cw {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes lp-spin-center-ccw {
+  0% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+}
+
+.lp-dash-spin-1 {
+  animation: lp-spin-clockwise 30s linear infinite;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.lp-dash-spin-2 {
+  animation: lp-spin-center-ccw 22s linear infinite;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.lp-dash-spin-3 {
+  animation: lp-spin-clockwise 26s linear infinite;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-dash-spin-1,
+  .lp-dash-spin-2,
+  .lp-dash-spin-3 {
+    animation: none !important;
+  }
+}
+

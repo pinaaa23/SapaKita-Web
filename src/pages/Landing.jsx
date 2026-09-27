@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare, Sparkles } from 'lucide-react';
 
 /**
  * Link URL unduhan aplikasi PasCall (APK / Play Store).
@@ -196,52 +196,126 @@ const STATS = [
   {
     value: '100%',
     label: 'panggilan direkam',
-    gradId: 'stat-grad-1',
-    gradient: ['#2563eb', '#4f46e5'],
-    glow: 'rgba(37, 99, 235, 0.18)',
+    gradId: 'dial-grad-1',
+    gradient: ['#2563eb', '#3b82f6', '#4f46e5'],
+    glow: 'rgba(37, 99, 235, 0.35)',
+    tickGlow: '#3b82f6',
   },
   {
     value: '8',
     label: 'cabang lapas',
-    gradId: 'stat-grad-2',
-    gradient: ['#1d4ed8', '#6366f1'],
-    glow: 'rgba(29, 78, 216, 0.18)',
+    gradId: 'dial-grad-2',
+    gradient: ['#1d4ed8', '#4f46e5', '#7c3aed'],
+    glow: 'rgba(79, 70, 229, 0.35)',
+    tickGlow: '#6366f1',
   },
   {
     value: '24/7',
     label: 'pusat bantuan',
-    gradId: 'stat-grad-3',
-    gradient: ['#4338ca', '#7c3aed'],
-    glow: 'rgba(67, 56, 202, 0.18)',
+    gradId: 'dial-grad-3',
+    gradient: ['#4338ca', '#6366f1', '#8b5cf6'],
+    glow: 'rgba(99, 102, 241, 0.35)',
+    tickGlow: '#8b5cf6',
   },
   {
     value: '3 menit',
     label: 'rata-rata verifikasi kontak',
-    gradId: 'stat-grad-4',
-    gradient: ['#3b82f6', '#8b5cf6'],
-    glow: 'rgba(59, 130, 246, 0.18)',
+    gradId: 'dial-grad-4',
+    gradient: ['#0284c7', '#2563eb', '#6366f1'],
+    glow: 'rgba(2, 132, 199, 0.35)',
+    tickGlow: '#0ea5e9',
   },
 ];
 
+// Pre-generate 48 radial tick mark angles
+const DIAL_TICKS = Array.from({ length: 48 }, (_, i) => (i * 360) / 48);
+
 // ──────────────────────────────────────────────────────────────────
-// RADIAL STAT CIRCLE — Full Gradient Donut Chart
+// SEGMENTED DIAL STAT CIRCLE — Radial Ticks + Synchronized Progress Arc
 // ──────────────────────────────────────────────────────────────────
-function RadialStatCircle({ value, label, gradient, gradId, glow }) {
-  const size = 150;
-  const strokeWidth = 14;
+function SegmentedDialCircle({ value, label, gradient, gradId, glow, tickGlow, isVisible, delay = 0 }) {
+  const size = 176;
   const center = size / 2;
-  const radius = 58;
-  const circ = 2 * Math.PI * radius;
+  const outerRadius = 78;
+  const circ = 2 * Math.PI * outerRadius; // ~490.08
+
+  // Numerical extraction for synchronous counter
+  const numericMatch = value.match(/^(\d+)(.*)$/);
+  const isNumericOnly = numericMatch && !value.includes('/') && !value.includes(' ');
+  const targetNum = isNumericOnly ? parseInt(numericMatch[1], 10) : 0;
+  const suffix = isNumericOnly ? numericMatch[2] : '';
+
+  // Synchronized animation states
+  const [isDialRevealed, setIsDialRevealed] = React.useState(false);
+  const [arcProgress, setArcProgress] = React.useState(0); // 0 to 1
+  const [displayCount, setDisplayCount] = React.useState(0);
+  const [isCompleted, setIsCompleted] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isVisible) return;
+
+    let animFrameId = null;
+    let arcTimeoutId = null;
+
+    // TAHAP 1: Dial base & white inner circle appear statically
+    const revealTimeoutId = setTimeout(() => {
+      setIsDialRevealed(true);
+    }, delay);
+
+    // TAHAP 2 & 3: Progress arc fills and number counts up in 100% synchronous lockstep
+    arcTimeoutId = setTimeout(() => {
+      const duration = 1400; // ms
+      let startTime = null;
+
+      const step = (now) => {
+        if (!startTime) startTime = now;
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Easing: smooth cubic ease-out
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        setArcProgress(eased);
+        if (isNumericOnly) {
+          setDisplayCount(Math.round(eased * targetNum));
+        }
+
+        if (progress < 1) {
+          animFrameId = requestAnimationFrame(step);
+        } else {
+          setIsCompleted(true);
+        }
+      };
+
+      animFrameId = requestAnimationFrame(step);
+    }, delay + 350);
+
+    return () => {
+      clearTimeout(revealTimeoutId);
+      clearTimeout(arcTimeoutId);
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+    };
+  }, [isVisible, delay, isNumericOnly, targetNum]);
+
+  const currentDashoffset = circ * (1 - arcProgress);
+  const activeTickCount = Math.round(arcProgress * DIAL_TICKS.length);
 
   return (
-    <div className="flex flex-col items-center group transition-all duration-300 hover:scale-105">
+    <div
+      className="flex flex-col items-center group transition-all duration-300 hover:scale-105"
+      style={{
+        opacity: isDialRevealed ? 1 : 0,
+        transform: isDialRevealed ? 'translateY(0)' : 'translateY(20px)',
+        transition: 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+      }}
+    >
       <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-        {/* Soft Ambient Glow */}
+        {/* Soft Ambient Radial Glow */}
         <div
-          className="absolute inset-2 rounded-full pointer-events-none transition-opacity duration-300 opacity-60 group-hover:opacity-100"
+          className="absolute inset-0 rounded-full pointer-events-none transition-opacity duration-700"
           style={{
             background: `radial-gradient(circle, ${glow} 0%, transparent 70%)`,
-            filter: 'blur(16px)',
+            filter: 'blur(22px)',
+            opacity: arcProgress > 0.05 ? 0.9 : 0,
           }}
         />
 
@@ -254,61 +328,114 @@ function RadialStatCircle({ value, label, gradient, gradId, glow }) {
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor={gradient[0]} />
-              <stop offset="100%" stopColor={gradient[1]} />
+              <stop offset="50%" stopColor={gradient[1] || gradient[0]} />
+              <stop offset="100%" stopColor={gradient[gradient.length - 1]} />
             </linearGradient>
+            <filter id={`glow-${gradId}`} x="-30%" y="-30%" width="160%" height="160%">
+              <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor={gradient[0]} floodOpacity="0.45" />
+            </filter>
           </defs>
 
-          {/* 1. Outer Track Ring */}
+          {/* 1. LAYER: 48 Radial Dial Tick Marks (Inactive Base + Active Illuminated) */}
+          <g>
+            {DIAL_TICKS.map((angle, idx) => {
+              const isActive = idx < activeTickCount;
+              return (
+                <line
+                  key={idx}
+                  x1={center}
+                  y1={center - 70}
+                  x2={center}
+                  y2={center - 60}
+                  stroke={isActive ? tickGlow : 'rgba(203, 213, 225, 0.75)'}
+                  strokeWidth={isActive ? 2.4 : 1.6}
+                  strokeLinecap="round"
+                  transform={`rotate(${angle} ${center} ${center})`}
+                  style={{
+                    transition: 'stroke 0.15s ease, stroke-width 0.15s ease',
+                  }}
+                />
+              );
+            })}
+          </g>
+
+          {/* 2. LAYER: Inner Concentric Guide Ring */}
           <circle
             cx={center}
             cy={center}
-            r={radius}
+            r={54}
             fill="none"
-            stroke="rgba(219, 234, 254, 0.6)"
-            strokeWidth={strokeWidth}
+            stroke="rgba(226, 232, 240, 0.9)"
+            strokeWidth={1.5}
           />
 
-          {/* 2. Full Donut Gradient Ring */}
+          {/* 3. LAYER: Outer Smooth Base Track Ring */}
           <circle
             cx={center}
             cy={center}
-            r={radius}
+            r={outerRadius}
+            fill="none"
+            stroke="rgba(226, 232, 240, 0.65)"
+            strokeWidth={5}
+          />
+
+          {/* 4. LAYER: Active Animated Glowing Progress Arc */}
+          <circle
+            cx={center}
+            cy={center}
+            r={outerRadius}
             fill="none"
             stroke={`url(#${gradId})`}
-            strokeWidth={strokeWidth}
+            strokeWidth={5.5}
             strokeLinecap="round"
             strokeDasharray={circ}
-            strokeDashoffset={0}
+            strokeDashoffset={currentDashoffset}
             transform={`rotate(-90 ${center} ${center})`}
-            style={{ filter: `drop-shadow(0 3px 8px ${gradient[0]}35)` }}
+            style={{
+              filter: `url(#glow-${gradId})`,
+            }}
           />
 
-          {/* 3. Center White Disc */}
+          {/* 5. LAYER: Floating White Center Disc with Depth Elevation */}
           <circle
             cx={center}
             cy={center}
-            r={radius - strokeWidth / 2 - 2}
+            r={46}
             fill="#ffffff"
-            style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.04))' }}
+            style={{
+              filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.08)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.04))',
+            }}
           />
         </svg>
 
-        {/* Center Text overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none">
-          {value.includes(' ') ? (
-            <div className="text-center leading-tight">
-              <span className="block text-2xl font-black text-[#101828] tracking-tight">
+        {/* 6. LAYER: Synchronized Center Number Display */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center z-20 pointer-events-none select-none">
+          {isNumericOnly ? (
+            <span className="font-black text-[1.9rem] sm:text-3xl text-[#101828] tracking-tight">
+              {displayCount}{suffix}
+            </span>
+          ) : value.includes(' ') ? (
+            <div
+              className="text-center leading-tight transition-all duration-500"
+              style={{
+                opacity: isCompleted ? 1 : 0.2,
+                transform: isCompleted ? 'scale(1)' : 'scale(0.9)',
+              }}
+            >
+              <span className="block text-[1.85rem] sm:text-3xl font-black text-[#101828] tracking-tight">
                 {value.split(' ')[0]}
               </span>
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-[#5b6472] -mt-0.5">
+              <span className="block text-[10px] font-extrabold uppercase tracking-wider text-[#475467] -mt-0.5">
                 {value.split(' ')[1]}
               </span>
             </div>
           ) : (
             <span
-              className={`font-black text-[#101828] tracking-tight ${
-                value.length > 3 ? 'text-2xl' : 'text-3xl sm:text-4xl'
-              }`}
+              className="font-black text-[1.75rem] sm:text-3xl text-[#101828] tracking-tight transition-all duration-500"
+              style={{
+                opacity: isCompleted ? 1 : 0.2,
+                transform: isCompleted ? 'scale(1)' : 'scale(0.9)',
+              }}
             >
               {value}
             </span>
@@ -316,8 +443,8 @@ function RadialStatCircle({ value, label, gradient, gradId, glow }) {
         </div>
       </div>
 
-      {/* Label below circle */}
-      <p className="mt-4 text-xs sm:text-sm font-semibold text-[#344054] text-center max-w-[145px] leading-snug group-hover:text-[#101828] transition-colors">
+      {/* Label below dial */}
+      <p className="mt-4 text-xs sm:text-sm font-semibold text-[#475467] text-center max-w-[150px] leading-snug group-hover:text-[#101828] transition-colors">
         {label}
       </p>
     </div>
@@ -383,7 +510,8 @@ export default function Landing() {
   const [sec2Ref, isSec2Visible] = useScrollReveal(0.15, '0px 0px -120px 0px');
   const [sec3Ref, isSec3Visible] = useScrollReveal(0.32, '0px 0px -25% 0px');
   const [sec4Ref, isSec4Visible] = useScrollReveal(0.32, '0px 0px -25% 0px');
-  const [sec6Ref, isSec6Visible] = useScrollReveal(0.15, '0px 0px -80px 0px');
+  const [sec5Ref, isSec5Visible] = useScrollReveal(0.2, '0px 0px -80px 0px');
+  const [sec6Ref, isSec6Visible] = useScrollReveal(0.32, '0px 0px -20% 0px');
 
   const handleSmoothScroll = (e) => {
     e.preventDefault();
@@ -501,7 +629,7 @@ export default function Landing() {
                 aria-hidden="true"
                 className="absolute -top-12 -right-8 w-[280px] h-[280px] rounded-full pointer-events-none -z-10"
                 style={{
-                  background: 'linear-gradient(135deg, #dbe9ff 0%, #eef4fd 100%)',
+                  background: 'linear-gradient(135deg, #dbe9ff 0%, #dbe9fc 100%)',
                   filter: 'blur(60px)',
                   opacity: 0.6,
                 }}
@@ -516,18 +644,18 @@ export default function Landing() {
                 }}
               />
 
-              {/* 2. Dashed Circle Outlines (Higher Opacity & Vibrant Rings) */}
+              {/* 2. Dashed Circle Outlines (Animated Walking / Rotating Rings) */}
               <div
                 aria-hidden="true"
-                className="absolute -top-10 -right-8 w-[360px] sm:w-[430px] h-[360px] sm:h-[430px] rounded-full border-2 border-dashed border-[#60a5fa]/85 sm:border-[#3b82f6]/75 pointer-events-none -z-10"
+                className="absolute -top-10 -right-8 w-[360px] sm:w-[430px] h-[360px] sm:h-[430px] rounded-full border-2 border-dashed border-[#60a5fa]/85 sm:border-[#3b82f6]/75 pointer-events-none -z-10 lp-dash-spin-1"
               />
               <div
                 aria-hidden="true"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[270px] sm:w-[310px] h-[270px] sm:h-[310px] rounded-full border-[1.5px] border-dashed border-[#818cf8]/70 pointer-events-none -z-10"
+                className="absolute top-1/2 left-1/2 w-[270px] sm:w-[310px] h-[270px] sm:h-[310px] rounded-full border-[1.5px] border-dashed border-[#818cf8]/70 pointer-events-none -z-10 lp-dash-spin-2"
               />
               <div
                 aria-hidden="true"
-                className="absolute bottom-4 -left-8 w-[230px] sm:w-[270px] h-[230px] sm:h-[270px] rounded-full border-[1.5px] border-dashed border-[#60a5fa]/65 pointer-events-none -z-10"
+                className="absolute bottom-4 -left-8 w-[230px] sm:w-[270px] h-[230px] sm:h-[270px] rounded-full border-[1.5px] border-dashed border-[#60a5fa]/65 pointer-events-none -z-10 lp-dash-spin-3"
               />
 
               {/* 3. Small Accent Dots */}
@@ -599,222 +727,218 @@ export default function Landing() {
           ============================================================== */}
       <section
         ref={sec2Ref}
-        className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20"
+        className="relative pt-12 pb-10 sm:pt-16 sm:pb-12 lg:pt-18 lg:pb-14 px-6 sm:px-10 lg:px-16 xl:px-20"
         style={{
-          background: 'linear-gradient(180deg, #ffffff 0%, #f0f6ff 16%, #f0f6ff 84%, #ffffff 100%)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #dbe9fc 12%, #dbe9fc 88%, #ffffff 100%)',
         }}
       >
         <div
-          className="mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
-          style={{ maxWidth: '1080px' }}
+          className="mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center"
+          style={{ maxWidth: '1100px' }}
         >
-          {/* Left Column — Swipes in from Left on Scroll */}
-          <div className={`flex flex-col justify-center lp-reveal-left ${isSec2Visible ? 'lp-reveal-active' : ''}`}>
-            {/* Eyebrow label */}
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-7 h-[2px] bg-gradient-to-r from-[#2f6fed] to-[#60a5fa] rounded-full" />
-              <span className="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.22em] text-[#2f6fed]">
+          {/* Left Column — 2x2 Custom Curved Image Collage (Swipes in from Left on Scroll) */}
+          <div className={`lg:col-span-6 relative w-full lp-reveal-left ${isSec2Visible ? 'lp-reveal-active' : ''}`}>
+            <div className="relative p-2.5 sm:p-4 max-w-[480px] mx-auto">
+              {/* Outer Top-Left Blue Contour Ribbon Accent */}
+              <div
+                aria-hidden="true"
+                className="absolute top-0 left-0 w-24 sm:w-32 h-24 sm:h-32 rounded-tl-[44px] sm:rounded-tl-[54px] border-t-[7px] border-l-[7px] sm:border-t-[9px] sm:border-l-[9px] border-[#2f6fed] -z-0 pointer-events-none"
+              />
+
+              {/* Outer Bottom-Right Dark Navy Contour Ribbon Accent */}
+              <div
+                aria-hidden="true"
+                className="absolute bottom-0 right-0 w-24 sm:w-32 h-24 sm:h-32 rounded-br-[44px] sm:rounded-br-[54px] border-b-[7px] border-r-[7px] sm:border-b-[9px] sm:border-r-[9px] border-[#0f172a] -z-0 pointer-events-none"
+              />
+
+              {/* 2x2 Image Grid */}
+              <div className="relative z-10 grid grid-cols-2 gap-3 sm:gap-4 items-center">
+                {/* 1. Top-Left Image: Warm Connection */}
+                <div
+                  className="relative group overflow-hidden bg-white shadow-md transition-all duration-300 hover:scale-[1.02] border-2 border-white"
+                  style={{
+                    borderRadius: '34px 12px 12px 12px',
+                    aspectRatio: '1/1',
+                  }}
+                >
+                  <img
+                    src="/assets/warm_connection.jpg"
+                    alt="Komunikasi hangat dan bermakna bersama orang tercinta"
+                    className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-950/20 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                {/* 2. Top-Right Image: Modern Lapas Facility */}
+                <div
+                  className="relative group overflow-hidden bg-white shadow-md transition-all duration-300 hover:scale-[1.02] border-2 border-white"
+                  style={{
+                    borderRadius: '12px 16px 12px 12px',
+                    aspectRatio: '1/1',
+                  }}
+                >
+                  <img
+                    src="/assets/lapas.jpg"
+                    alt="Fasilitas institusi pemasyarakatan terintegrasi digital"
+                    className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-950/15 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                {/* 3. Bottom-Left Image: Family Video Call */}
+                <div
+                  className="relative group overflow-hidden bg-white shadow-md transition-all duration-300 hover:scale-[1.02] border-2 border-white"
+                  style={{
+                    borderRadius: '12px 12px 12px 16px',
+                    aspectRatio: '1/1',
+                  }}
+                >
+                  <img
+                    src="/assets/family_call.jpg"
+                    alt="Keluarga bahagia terhubung lewat panggilan video"
+                    className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-950/15 via-transparent to-transparent pointer-events-none" />
+                </div>
+
+                {/* 4. Bottom-Right Image: Secure Encrypted Infrastructure */}
+                <div
+                  className="relative group overflow-hidden bg-white shadow-md transition-all duration-300 hover:scale-[1.02] border-2 border-white"
+                  style={{
+                    borderRadius: '12px 12px 34px 12px',
+                    aspectRatio: '1/1',
+                  }}
+                >
+                  <img
+                    src="/assets/security_connection.jpg"
+                    alt="Jaringan komunikasi aman dan terenkripsi"
+                    className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-950/15 via-transparent to-transparent pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Center Seal Badge (Matching Reference Center Rosette Stamp) */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30 flex items-center justify-center pointer-events-none">
+                <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center drop-shadow-[0_8px_20px_rgba(47,111,237,0.35)]">
+                  {/* Scalloped Stamp Badge */}
+                  <svg viewBox="0 0 100 100" className="w-full h-full text-[#2f6fed]" fill="currentColor">
+                    <path d="M50 0 L58 10 L70 5 L75 17 L88 16 L89 29 L100 33 L97 45 L100 57 L91 63 L91 76 L78 78 L74 90 L61 88 L54 98 L44 94 L34 100 L28 89 L16 90 L14 78 L2 73 L5 61 L0 49 L7 39 L4 27 L16 24 L17 12 L29 14 L37 4 L47 8 Z" />
+                  </svg>
+                  {/* Inner White Ring & Arrow Icon */}
+                  <div className="absolute w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white flex items-center justify-center text-[#2f6fed] shadow-inner">
+                    <ArrowUpRight size={18} className="stroke-[2.5]" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modern Geometric Dot Grid Accent at Bottom Left */}
+              <div
+                aria-hidden="true"
+                className="absolute -bottom-5 -left-4 sm:-bottom-6 sm:-left-5 z-20 pointer-events-none grid grid-cols-3 gap-1.5 p-1 bg-white/40 backdrop-blur-xs rounded-lg"
+              >
+                <div className="w-2 h-2 rounded-full bg-[#2f6fed] opacity-90" />
+                <div className="w-2 h-2 rounded-full bg-[#60a5fa] opacity-60" />
+                <div className="w-2 h-2 rounded-full bg-[#93c5fd] opacity-40" />
+                <div className="w-2 h-2 rounded-full bg-[#60a5fa] opacity-60" />
+                <div className="w-2 h-2 rounded-full bg-[#2f6fed] opacity-90" />
+                <div className="w-2 h-2 rounded-full bg-[#60a5fa] opacity-50" />
+                <div className="w-2 h-2 rounded-full bg-[#93c5fd] opacity-40" />
+                <div className="w-2 h-2 rounded-full bg-[#60a5fa] opacity-50" />
+                <div className="w-2 h-2 rounded-full bg-[#2f6fed] opacity-80" />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column — Typography, Narrative & Stats (Swipes in from Right on Scroll) */}
+          <div className={`lg:col-span-6 flex flex-col justify-center lp-reveal-right ${isSec2Visible ? 'lp-reveal-active' : ''}`}>
+            {/* Eyebrow Label with // prefix */}
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base sm:text-lg font-black text-[#2f6fed] font-mono leading-none select-none">
+                //
+              </span>
+              <span className="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.2em] text-[#475467]">
                 Masalah Yang Diselesaikan
               </span>
             </div>
 
             {/* Title */}
-            <h2 className="text-2xl sm:text-3xl lg:text-[2.3rem] font-extrabold leading-[1.22] text-left text-[#101828] mb-5">
+            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-[1.2] text-left text-[#101828] mb-4 tracking-tight">
               Komunikasi terbatas,<br />
-              <span className="relative inline-block mt-1">
-                <span className="text-[#2f6fed]">
-                  berdampak besar.
-                </span>
-                <span className="absolute -bottom-2.5 left-0 w-full overflow-hidden h-3 pointer-events-none" aria-hidden="true">
-                  <Squiggle width={110} height={18} id="sq-sec2" />
-                </span>
-              </span>
+              <span className="text-[#2f6fed]">berdampak besar.</span>
             </h2>
 
-            {/* Paragraph */}
-            <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[470px] mb-8">
-              Menjembatani kehangatan komunikasi dengan keluarga secara aman, terverifikasi, dan mudah diakses kapan saja.
+            {/* Narrative Paragraph */}
+            <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[490px] mb-6">
+              Keterbatasan waktu kunjungan fisik dan jarak tempuh seringkali menjadi kendala utama bagi keluarga. PasCall hadir menjembatani kehangatan komunikasi dengan sistem yang aman, terverifikasi, dan mudah diakses.
             </p>
 
-            {/* Mini Stats Cards */}
-            <div className="pt-6 border-t border-blue-200/60 grid grid-cols-3 gap-2.5 sm:gap-3">
-              <div className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border border-blue-100/80 bg-white shadow-sm transition-all hover:shadow-md">
-                <div className="w-[3px] h-9 rounded-full bg-gradient-to-b from-[#2f6fed] to-[#60a5fa] shrink-0" aria-hidden="true" />
-                <div>
-                  <span className="block text-base sm:text-lg lg:text-xl font-black tracking-tight text-[#101828] font-mono leading-none">
-                    85%
-                  </span>
-                  <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    kendala jarak & waktu
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border border-blue-100/80 bg-white shadow-sm transition-all hover:shadow-md">
-                <div className="w-[3px] h-9 rounded-full bg-gradient-to-b from-[#8b5cf6] to-[#c4b5fd] shrink-0" aria-hidden="true" />
-                <div>
-                  <span className="block text-base sm:text-lg lg:text-xl font-black tracking-tight text-[#101828] font-mono leading-none">
-                    1x/mgg
-                  </span>
-                  <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    rata-rata batas tatap muka
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2.5 p-2.5 sm:p-3 rounded-xl border border-blue-100/80 bg-white shadow-sm transition-all hover:shadow-md">
-                <div className="w-[3px] h-9 rounded-full bg-gradient-to-b from-[#f59e0b] to-[#fcd34d] shrink-0" aria-hidden="true" />
-                <div>
-                  <span className="block text-base sm:text-lg lg:text-xl font-black tracking-tight text-[#101828] font-mono leading-none">
-                    100%
-                  </span>
-                  <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    komunikasi terjamin aman
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column — Layered Collage — Swipes in from Right on Scroll */}
-          <div className={`relative w-full pt-4 pb-6 px-2 sm:px-4 lp-reveal-right ${isSec2Visible ? 'lp-reveal-active' : ''}`}>
-            {/* Collage Grid */}
-            <div className="relative z-10 grid grid-cols-12 gap-3 sm:gap-4 items-start">
-              {/* Box 1 — Warm Dignified Connection Call */}
-              <div
-                className="col-span-7 relative group overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.01] border-2 border-white bg-white"
-                style={{
-                  borderRadius: '24px 8px 20px 24px',
-                  aspectRatio: '4/3',
-                }}
-              >
-                {/* Corner Brackets */}
-                <svg className="absolute top-2.5 left-2.5 w-9 h-9 pointer-events-none z-20" viewBox="0 0 36 36" fill="none" aria-hidden="true">
-                  <path d="M 3 14 L 3 3 L 14 3" stroke="url(#lapas-brk-1)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <defs>
-                    <linearGradient id="lapas-brk-1" x1="0" y1="0" x2="36" y2="36">
-                      <stop offset="0%" stopColor="#2f6fed" />
-                      <stop offset="100%" stopColor="#60a5fa" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-
-                <img
-                  src="/assets/warm_connection.jpg"
-                  alt="Komunikasi hangat dan bermakna bersama orang tercinta"
-                  className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/20 via-transparent to-transparent pointer-events-none" />
-                <span className="absolute bottom-2.5 left-3 text-[10px] font-extrabold uppercase tracking-widest text-white z-20 bg-[#2f6fed]/85 px-2 py-0.5 rounded backdrop-blur-sm">
-                  Komunikasi Hangat
+            {/* 3 Metric Columns with Dividers (Matching Reference) */}
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 py-5 border-y border-blue-200/70 my-4 bg-white/60 backdrop-blur-sm rounded-xl px-3.5 sm:px-5">
+              <div>
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
+                  85%
+                </span>
+                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
+                  Kendala Jarak & Waktu
                 </span>
               </div>
 
-              {/* Box 2 — Family Video Call */}
-              <div
-                className="col-span-5 relative group overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.03] -ml-4 sm:-ml-6 mt-3 sm:mt-4 z-20 transform rotate-[2.5deg] border-2 border-white bg-white"
-                style={{
-                  borderRadius: '12px 24px 14px 24px',
-                  aspectRatio: '1/1',
-                  boxShadow: '0 12px 30px rgba(0,0,0,0.1)',
-                }}
-              >
-                <img
-                  src="/assets/family_call.jpg"
-                  alt="Keluarga bahagia terhubung lewat panggilan video"
-                  className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 via-transparent to-transparent pointer-events-none" />
+              <div className="border-l border-blue-200/70 pl-3.5 sm:pl-5">
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
+                  1x/mgg
+                </span>
+                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
+                  Batas Tatap Muka
+                </span>
               </div>
 
-              {/* Box 3 — Modern Secure Connection */}
-              <div
-                className="col-span-5 relative group overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.01] -mt-3 sm:-mt-4 z-10 transform -rotate-[1.5deg] border-2 border-white bg-white"
-                style={{
-                  borderRadius: '24px 10px 24px 12px',
-                  aspectRatio: '1/1',
-                }}
-              >
-                <img
-                  src="/assets/security_connection.jpg"
-                  alt="Jaringan komunikasi aman dan terenkripsi"
-                  className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 via-transparent to-transparent pointer-events-none" />
-              </div>
-
-              {/* Box 4 — Standar Layanan Card */}
-              <div
-                className="col-span-7 relative group overflow-hidden shadow-lg p-4 sm:p-5 flex flex-col justify-between min-h-[145px] -mt-2 sm:-mt-3 z-10 border border-blue-100/80 bg-white"
-                style={{
-                  borderRadius: '10px 24px 12px 24px',
-                }}
-              >
-                {/* Accent glow */}
-                <div className="absolute -bottom-6 -right-6 w-28 h-28 rounded-full bg-gradient-to-br from-blue-100/60 to-indigo-50/40 blur-xl pointer-events-none" />
-
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-[#2f6fed]">
-                    Standar Layanan
-                  </span>
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
-                </div>
-
-                <div className="relative z-10 mt-2 pr-2">
-                  <p className="text-xs sm:text-sm font-semibold text-[#344054] leading-relaxed">
-                    Sistem komunikasi terintegrasi dengan pengawasan real-time yang aman dan ramah pengguna.
-                  </p>
-                </div>
+              <div className="border-l border-blue-200/70 pl-3.5 sm:pl-5">
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
+                  100%
+                </span>
+                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
+                  Terjamin Aman
+                </span>
               </div>
             </div>
 
-            {/* Badge Card 1 */}
-            <div className="absolute -top-3 right-0 sm:-top-4 sm:right-2 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white border border-blue-100/80 shadow-md max-w-[250px] sm:max-w-[270px] transition-transform hover:scale-[1.02]">
-              <div className="w-7 h-7 rounded-full bg-[#2f6fed] flex items-center justify-center shrink-0 shadow-sm">
-                <Phone size={13} className="text-white" strokeWidth={2} />
+            {/* Signature / Official Verification Footer (Matching Reference) */}
+            <div className="flex items-center gap-3.5 pt-2">
+              <div className="w-10 h-10 rounded-full bg-blue-100/90 border border-blue-200 flex items-center justify-center text-[#2f6fed] shrink-0 shadow-sm">
+                <Shield size={20} className="stroke-[2.2]" />
               </div>
-              <p className="text-[11px] sm:text-xs font-bold text-[#344054] leading-snug m-0">
-                Jangkauan lebih dekat untuk keluarga.
-              </p>
-            </div>
-
-            {/* Badge Card 2 */}
-            <div className="absolute -bottom-3 left-1 sm:-bottom-4 sm:left-2 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white border border-blue-100/80 shadow-md max-w-[230px] sm:max-w-[250px] transition-transform hover:scale-[1.02]">
-              <div className="w-7 h-7 rounded-full bg-[#22c55e] flex items-center justify-center shrink-0 shadow-sm">
-                <Shield size={13} className="text-white" strokeWidth={2} />
+              <div>
+                <span className="block text-sm sm:text-base font-extrabold text-[#101828] tracking-tight font-serif italic">
+                  PasCall Indonesia
+                </span>
+                <span className="block text-[10px] sm:text-[11px] font-semibold text-[#64748b] tracking-wider uppercase">
+                  Sistem Layanan Terpadu & Terintegrasi
+                </span>
               </div>
-              <p className="text-[11px] sm:text-xs font-bold text-[#344054] leading-snug m-0">
-                Aman, terverifikasi, dan tercatat.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ==============================================================
-          SECTION 3 — FITUR UTAMA (Reference Layout with Staggered Entrance Animation)
+          SECTION 3 — FITUR UTAMA (Flat White Background)
           ============================================================== */}
       <section
         ref={sec3Ref}
-        className="relative py-16 sm:py-20 lg:py-28 px-6 sm:px-10 lg:px-16 xl:px-20"
-        style={{
-          background: 'linear-gradient(180deg, #ffffff 0%, #eef4fd 14%, #eef4fd 86%, #ffffff 100%)',
-        }}
+        className="relative pt-6 sm:pt-8 lg:pt-10 pb-16 sm:pb-20 lg:pb-24 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white"
       >
         <div className="mx-auto" style={{ maxWidth: '1120px' }}>
           {/* Header (Slides down from above with pure translateY + fade-in) */}
           <div
-            className="mb-12 sm:mb-16 text-center max-w-[760px] mx-auto flex flex-col items-center"
+            className="mb-10 sm:mb-12 text-center max-w-[760px] mx-auto flex flex-col items-center"
             style={{
               opacity: isSec3Visible ? 1 : 0,
               transform: isSec3Visible ? 'translateY(0)' : 'translateY(-35px)',
               transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
             }}
           >
-            <div className="mb-3">
-              <Squiggle width={110} height={24} id="sq-feat" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-tight text-[#101828] mt-2">
+            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-tight text-[#101828]">
               Komunikasi yang lebih mudah dan aman, untuk semua pihak.
             </h2>
           </div>
@@ -926,11 +1050,14 @@ export default function Landing() {
       </section>
 
       {/* ==============================================================
-          SECTION 4 — KEAMANAN (Flat Light Section with Gradient Cards)
+          SECTION 4 — KEAMANAN (Light Blue Background with Gradient Cards)
           ============================================================== */}
       <section
         ref={sec4Ref}
-        className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white"
+        className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20"
+        style={{
+          background: 'linear-gradient(180deg, #ffffff 0%, #dbe9fc 12%, #dbe9fc 88%, #ffffff 100%)',
+        }}
       >
         <div className="mx-auto" style={{ maxWidth: '1080px' }}>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
@@ -1005,35 +1132,52 @@ export default function Landing() {
       </section>
 
       {/* ==============================================================
-          SECTION 5 — CARA KERJA (Flat White Background)
+          SECTION 5 — CARA KERJA (Progressive Traveling Line Animation)
           ============================================================== */}
       <section
         id="cara-kerja"
-        className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white"
+        ref={sec5Ref}
+        className="relative py-12 sm:py-16 lg:py-20 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white"
       >
         <div className="mx-auto" style={{ maxWidth: '1080px' }}>
           {/* Header */}
-          <div className="text-center max-w-[700px] mx-auto mb-10 lg:mb-14 relative">
-            <div className="flex items-center justify-center gap-2.5 mb-2.5">
-              <div className="w-6 h-[2px] bg-gradient-to-r from-[#2f6fed] to-[#60a5fa] rounded-full" />
-              <span className="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.2em] text-[#2f6fed]">
+          <div className="text-center max-w-[700px] mx-auto mb-8 sm:mb-10 lg:mb-12 relative">
+            {/* 1. Eyebrow: Slides down first */}
+            <div
+              className="flex items-center justify-center gap-2 mb-2"
+              style={{
+                opacity: isSec5Visible ? 1 : 0,
+                transform: isSec5Visible ? 'translateY(0)' : 'translateY(-24px)',
+                transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                transitionDelay: isSec5Visible ? '0ms' : '0ms',
+              }}
+            >
+              <div className="w-5 h-[2px] bg-gradient-to-r from-[#2f6fed] to-[#60a5fa] rounded-full" />
+              <span className="text-[11px] sm:text-xs font-extrabold uppercase tracking-[0.2em] text-[#2f6fed]">
                 Alur Penggunaan Layanan
               </span>
-              <div className="w-6 h-[2px] bg-gradient-to-r from-[#60a5fa] to-[#2f6fed] rounded-full" />
+              <div className="w-5 h-[2px] bg-gradient-to-r from-[#60a5fa] to-[#2f6fed] rounded-full" />
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-tight text-[#101828]">
+
+            {/* 2. Main Title: Slides down after eyebrow */}
+            <h2
+              className="text-2xl sm:text-3xl lg:text-[2.25rem] font-extrabold leading-tight text-[#101828]"
+              style={{
+                opacity: isSec5Visible ? 1 : 0,
+                transform: isSec5Visible ? 'translateY(0)' : 'translateY(-28px)',
+                transition: 'opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1), transform 0.7s cubic-bezier(0.16, 1, 0.3, 1)',
+                transitionDelay: isSec5Visible ? '280ms' : '0ms',
+              }}
+            >
               Prosedur Layanan dalam 4 Langkah Mudah
             </h2>
-            <p className="text-[#475467] text-xs sm:text-sm mt-2.5 max-w-[500px] mx-auto leading-relaxed">
-              Panduan terstruktur untuk memulai panggilan resmi secara aman dan terverifikasi.
-            </p>
           </div>
 
-          {/* DESKTOP: Zig-Zag Timeline with Pastel Cards */}
-          <div className="relative hidden lg:block" style={{ height: '460px' }}>
+          {/* DESKTOP: Zig-Zag Timeline with Traveling Path Animation */}
+          <div className="relative hidden lg:block" style={{ height: '260px' }}>
             <svg
               className="absolute inset-0 w-full h-full pointer-events-none z-0"
-              viewBox="0 0 1080 460"
+              viewBox="0 0 1080 260"
               fill="none"
               aria-hidden="true"
             >
@@ -1046,85 +1190,221 @@ export default function Landing() {
                 </linearGradient>
               </defs>
 
-              <line x1="135" y1="260" x2="135" y2="275" stroke="url(#elbow-path-grad)" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.4" />
-              <line x1="405" y1="200" x2="405" y2="185" stroke="url(#elbow-path-grad)" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.4" />
-              <line x1="675" y1="260" x2="675" y2="275" stroke="url(#elbow-path-grad)" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.4" />
-              <line x1="945" y1="200" x2="945" y2="185" stroke="url(#elbow-path-grad)" strokeWidth="2.5" strokeDasharray="3 3" opacity="0.4" />
-
+              {/* 0. Subtle Background Guide Track */}
               <path
-                d="M 135 260 L 135 242 Q 135 230, 147 230 L 393 230 Q 405 230, 405 218 L 405 200 L 405 218 Q 405 230, 417 230 L 663 230 Q 675 230, 675 242 L 675 260 L 675 242 Q 675 230, 687 230 L 933 230 Q 945 230, 945 218 L 945 200"
+                d="M 135 144 L 135 136 Q 135 130, 147 130 L 393 130 Q 405 130, 405 116 Q 405 130, 417 130 L 663 130 Q 675 130, 675 144 Q 675 130, 687 130 L 933 130 Q 945 130, 945 116"
+                stroke="#e2e8f0"
+                strokeWidth="2.5"
+                strokeDasharray="4 4"
+                strokeLinecap="round"
+                style={{
+                  opacity: isSec5Visible ? 0.9 : 0,
+                  transition: 'opacity 0.6s ease-out',
+                  transitionDelay: isSec5Visible ? '500ms' : '0ms',
+                }}
+              />
+
+              {/* 1. Progressive Line Segment 1 (Step 1 -> Step 2) */}
+              <path
+                d="M 135 144 L 135 136 Q 135 130, 147 130 L 393 130 Q 405 130, 405 116"
                 stroke="url(#elbow-path-grad)"
-                strokeWidth="3"
+                strokeWidth="3.5"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                strokeDasharray="300"
+                style={{
+                  strokeDashoffset: isSec5Visible ? 0 : 300,
+                  transition: 'stroke-dashoffset 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transitionDelay: isSec5Visible ? '1250ms' : '0ms',
+                }}
+              />
+
+              {/* 2. Progressive Line Segment 2 (Step 2 -> Step 3) */}
+              <path
+                d="M 405 116 Q 405 130, 417 130 L 663 130 Q 675 130, 675 144"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="300"
+                style={{
+                  strokeDashoffset: isSec5Visible ? 0 : 300,
+                  transition: 'stroke-dashoffset 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transitionDelay: isSec5Visible ? '2450ms' : '0ms',
+                }}
+              />
+
+              {/* 3. Progressive Line Segment 3 (Step 3 -> Step 4) */}
+              <path
+                d="M 675 144 Q 675 130, 687 130 L 933 130 Q 945 130, 945 116"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="300"
+                style={{
+                  strokeDashoffset: isSec5Visible ? 0 : 300,
+                  transition: 'stroke-dashoffset 0.65s cubic-bezier(0.4, 0, 0.2, 1)',
+                  transitionDelay: isSec5Visible ? '3650ms' : '0ms',
+                }}
+              />
+
+              {/* Dashed lines to cards synchronized with each step */}
+              <line
+                x1="135" y1="144" x2="135" y2="158"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="2.5"
+                strokeDasharray="3 3"
+                style={{
+                  opacity: isSec5Visible ? 0.4 : 0,
+                  transition: 'opacity 0.4s ease-out',
+                  transitionDelay: isSec5Visible ? '700ms' : '0ms',
+                }}
+              />
+              <line
+                x1="405" y1="102" x2="405" y2="116"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="2.5"
+                strokeDasharray="3 3"
+                style={{
+                  opacity: isSec5Visible ? 0.4 : 0,
+                  transition: 'opacity 0.4s ease-out',
+                  transitionDelay: isSec5Visible ? '1900ms' : '0ms',
+                }}
+              />
+              <line
+                x1="675" y1="144" x2="675" y2="158"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="2.5"
+                strokeDasharray="3 3"
+                style={{
+                  opacity: isSec5Visible ? 0.4 : 0,
+                  transition: 'opacity 0.4s ease-out',
+                  transitionDelay: isSec5Visible ? '3100ms' : '0ms',
+                }}
+              />
+              <line
+                x1="945" y1="102" x2="945" y2="116"
+                stroke="url(#elbow-path-grad)"
+                strokeWidth="2.5"
+                strokeDasharray="3 3"
+                style={{
+                  opacity: isSec5Visible ? 0.4 : 0,
+                  transition: 'opacity 0.4s ease-out',
+                  transitionDelay: isSec5Visible ? '4300ms' : '0ms',
+                }}
               />
 
               {/* Dot 1 */}
-              <circle cx="135" cy="260" r="12" fill="#2f6fed" opacity="0.12" />
-              <circle cx="135" cy="260" r="5.5" fill="#2f6fed" />
-              <circle cx="135" cy="260" r="2" fill="#ffffff" />
+              <g
+                style={{
+                  opacity: isSec5Visible ? 1 : 0,
+                  transform: isSec5Visible ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: '135px 144px',
+                  transition: 'opacity 0.45s ease-out, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transitionDelay: isSec5Visible ? '700ms' : '0ms',
+                }}
+              >
+                <circle cx="135" cy="144" r="10" fill="#2f6fed" opacity="0.15" />
+                <circle cx="135" cy="144" r="4.5" fill="#2f6fed" />
+                <circle cx="135" cy="144" r="1.5" fill="#ffffff" />
+              </g>
 
               {/* Dot 2 */}
-              <circle cx="405" cy="200" r="12" fill="#8b5cf6" opacity="0.12" />
-              <circle cx="405" cy="200" r="5.5" fill="#8b5cf6" />
-              <circle cx="405" cy="200" r="2" fill="#ffffff" />
+              <g
+                style={{
+                  opacity: isSec5Visible ? 1 : 0,
+                  transform: isSec5Visible ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: '405px 116px',
+                  transition: 'opacity 0.45s ease-out, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transitionDelay: isSec5Visible ? '1900ms' : '0ms',
+                }}
+              >
+                <circle cx="405" cy="116" r="10" fill="#8b5cf6" opacity="0.15" />
+                <circle cx="405" cy="116" r="4.5" fill="#8b5cf6" />
+                <circle cx="405" cy="116" r="1.5" fill="#ffffff" />
+              </g>
 
               {/* Dot 3 */}
-              <circle cx="675" cy="260" r="12" fill="#f59e0b" opacity="0.12" />
-              <circle cx="675" cy="260" r="5.5" fill="#f59e0b" />
-              <circle cx="675" cy="260" r="2" fill="#ffffff" />
+              <g
+                style={{
+                  opacity: isSec5Visible ? 1 : 0,
+                  transform: isSec5Visible ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: '675px 144px',
+                  transition: 'opacity 0.45s ease-out, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transitionDelay: isSec5Visible ? '3100ms' : '0ms',
+                }}
+              >
+                <circle cx="675" cy="144" r="10" fill="#f59e0b" opacity="0.15" />
+                <circle cx="675" cy="144" r="4.5" fill="#f59e0b" />
+                <circle cx="675" cy="144" r="1.5" fill="#ffffff" />
+              </g>
 
               {/* Dot 4 */}
-              <circle cx="945" cy="200" r="12" fill="#22c55e" opacity="0.12" />
-              <circle cx="945" cy="200" r="5.5" fill="#22c55e" />
-              <circle cx="945" cy="200" r="2" fill="#ffffff" />
+              <g
+                style={{
+                  opacity: isSec5Visible ? 1 : 0,
+                  transform: isSec5Visible ? 'scale(1)' : 'scale(0)',
+                  transformOrigin: '945px 116px',
+                  transition: 'opacity 0.45s ease-out, transform 0.45s cubic-bezier(0.16, 1, 0.3, 1)',
+                  transitionDelay: isSec5Visible ? '4300ms' : '0ms',
+                }}
+              >
+                <circle cx="945" cy="116" r="10" fill="#22c55e" opacity="0.15" />
+                <circle cx="945" cy="116" r="4.5" fill="#22c55e" />
+                <circle cx="945" cy="116" r="1.5" fill="#ffffff" />
+              </g>
             </svg>
 
-            {/* 4 Step Cards */}
+            {/* 4 Step Cards — Appears in Sequence after Traveling Line Arrives */}
             <div className="grid grid-cols-4 gap-6 h-full relative z-10">
               {STEPS.map((s, i) => {
                 const Icon = s.Icon;
                 const isTop = i % 2 === 1;
+                const stepDelays = ['700ms', '1900ms', '3100ms', '4300ms'];
+                const cardDelay = stepDelays[i];
+                const initialTranslate = isTop ? 'translateY(-24px)' : 'translateY(24px)';
 
                 return (
                   <div
                     key={s.num}
                     className={`relative flex flex-col ${
-                      isTop ? 'justify-start pt-[10px]' : 'justify-end pb-[10px]'
+                      isTop ? 'justify-start pt-1' : 'justify-end pb-1'
                     }`}
                   >
                     <div
-                      className="group p-5 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full max-w-[235px] h-[175px] mx-auto flex flex-col justify-between"
+                      className="group px-4 py-3.5 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full max-w-[220px] h-[98px] mx-auto flex flex-col justify-center"
                       style={{
                         background: s.cardBg,
                         border: `1.5px solid ${s.borderColor}`,
                         borderLeft: `4.5px solid ${s.dotColor}`,
                         boxShadow: `0 8px 24px ${s.shadowColor}`,
+                        opacity: isSec5Visible ? 1 : 0,
+                        transform: isSec5Visible ? 'translateY(0)' : initialTranslate,
+                        transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                        transitionDelay: isSec5Visible ? cardDelay : '0ms',
+                        pointerEvents: isSec5Visible ? 'auto' : 'none',
                       }}
                     >
-                      <div>
+                      <div className="flex items-center gap-2.5 mb-2">
                         <div
-                          className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm mb-2.5 transition-transform duration-300 group-hover:scale-110"
+                          className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover:scale-110"
                           style={{ background: s.iconBg }}
                         >
-                          <Icon size={18} color="white" aria-hidden="true" strokeWidth={2} />
+                          <Icon size={14} color="white" aria-hidden="true" strokeWidth={2.2} />
                         </div>
 
                         <span
-                          className="text-[10px] font-extrabold tracking-[0.18em] uppercase block mb-1"
+                          className="text-[10px] font-extrabold tracking-[0.18em] uppercase"
                           style={{ color: s.accentColor }}
                         >
                           LANGKAH {s.num}
                         </span>
-
-                        <h3 className="text-sm sm:text-base font-extrabold text-[#101828] leading-snug">
-                          {s.title}
-                        </h3>
                       </div>
 
-                      <p className="text-[#475467] text-xs leading-relaxed font-normal">
-                        {s.desc}
-                      </p>
+                      <h3 className="text-[14px] sm:text-[15px] font-extrabold text-[#101828] leading-snug">
+                        {s.title}
+                      </h3>
                     </div>
                   </div>
                 );
@@ -1132,19 +1412,36 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* MOBILE: Vertical Timeline */}
-          <div className="block lg:hidden relative pl-4 sm:pl-6">
+          {/* MOBILE: Vertical Timeline — Sequential Traveling Line */}
+          <div className="block lg:hidden relative pl-4 sm:pl-6 max-w-[420px] mx-auto">
             <div
               aria-hidden="true"
-              className="absolute left-7 sm:left-9 top-6 bottom-6 w-0.5 bg-gradient-to-b from-[#2f6fed] via-[#8b5cf6] to-[#22c55e] rounded-full pointer-events-none"
+              className="absolute left-7 sm:left-9 top-4 bottom-4 w-0.5 bg-gradient-to-b from-[#2f6fed] via-[#8b5cf6] to-[#22c55e] rounded-full pointer-events-none origin-top"
+              style={{
+                transform: isSec5Visible ? 'scaleY(1)' : 'scaleY(0)',
+                transition: 'transform 3.8s cubic-bezier(0.25, 1, 0.5, 1)',
+                transitionDelay: isSec5Visible ? '700ms' : '0ms',
+              }}
             />
 
-            <div className="space-y-6 relative z-10">
-              {STEPS.map((s) => {
+            <div className="space-y-4 relative z-10">
+              {STEPS.map((s, idx) => {
                 const Icon = s.Icon;
+                const stepDelays = ['700ms', '1900ms', '3100ms', '4300ms'];
+                const cardDelay = stepDelays[idx];
+
                 return (
-                  <div key={s.num} className="flex items-start gap-4 sm:gap-6">
-                    <div className="relative mt-5 flex items-center justify-center shrink-0">
+                  <div
+                    key={s.num}
+                    className="flex items-center gap-4 sm:gap-5"
+                    style={{
+                      opacity: isSec5Visible ? 1 : 0,
+                      transform: isSec5Visible ? 'translateY(0)' : 'translateY(22px)',
+                      transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transitionDelay: isSec5Visible ? cardDelay : '0ms',
+                    }}
+                  >
+                    <div className="relative flex items-center justify-center shrink-0">
                       <div
                         className="w-3.5 h-3.5 rounded-full relative z-10 shadow-sm"
                         style={{ background: s.dotColor }}
@@ -1156,35 +1453,33 @@ export default function Landing() {
                     </div>
 
                     <div
-                      className="flex-1 p-5 rounded-2xl transition-all"
+                      className="flex-1 p-3.5 sm:p-4 rounded-2xl transition-all flex items-center gap-3.5"
                       style={{
                         background: s.cardBg,
                         border: `1.5px solid ${s.borderColor}`,
                         borderLeft: `4.5px solid ${s.dotColor}`,
-                        boxShadow: `0 8px 24px ${s.shadowColor}`,
+                        boxShadow: `0 4px 16px ${s.shadowColor}`,
                       }}
                     >
                       <div
-                        className="w-9 h-9 rounded-lg flex items-center justify-center shadow-sm mb-2.5"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm"
                         style={{ background: s.iconBg }}
                       >
-                        <Icon size={18} color="white" aria-hidden="true" strokeWidth={2} />
+                        <Icon size={16} color="white" aria-hidden="true" strokeWidth={2.2} />
                       </div>
 
-                      <span
-                        className="text-[10px] font-extrabold tracking-[0.18em] uppercase block mb-1"
-                        style={{ color: s.accentColor }}
-                      >
-                        LANGKAH {s.num}
-                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span
+                          className="text-[10px] font-extrabold tracking-[0.16em] uppercase block mb-0.5"
+                          style={{ color: s.accentColor }}
+                        >
+                          LANGKAH {s.num}
+                        </span>
 
-                      <h3 className="text-sm sm:text-base font-extrabold text-[#101828] mb-1 leading-snug">
-                        {s.title}
-                      </h3>
-
-                      <p className="text-[#5b6472] text-xs sm:text-sm leading-relaxed">
-                        {s.desc}
-                      </p>
+                        <h3 className="text-sm sm:text-base font-extrabold text-[#101828] leading-snug">
+                          {s.title}
+                        </h3>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1195,31 +1490,47 @@ export default function Landing() {
       </section>
 
       {/* ==============================================================
-          SECTION 6 — STATISTIK RADIAL & CTA PENUTUP (Seamless Gradient Background)
+          SECTION 6 — STATISTIK RADIAL & CTA PENUTUP (3-Stage Sequential Animation)
           ============================================================== */}
       <section
         ref={sec6Ref}
         className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20"
         style={{
-          background: 'linear-gradient(180deg, #ffffff 0%, #f0f6ff 16%, #f0f6ff 84%, #ffffff 100%)',
+          background: 'linear-gradient(180deg, #ffffff 0%, #dbe9fc 12%, #dbe9fc 88%, #ffffff 100%)',
         }}
       >
         <div
-          className={`mx-auto transition-all duration-1000 ${isSec6Visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+          className="mx-auto"
           style={{ maxWidth: '1080px' }}
         >
 
-          {/* Radial Stats Row */}
+          {/* TAHAP 2 — Radial Stats Row (Staggered Battery Filling from Left to Right) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 justify-items-center items-start mb-14 sm:mb-18">
-            {STATS.map((stat) => (
-              <RadialStatCircle key={stat.label} {...stat} />
-            ))}
+            {STATS.map((stat, idx) => {
+              const statDelays = [100, 280, 460, 640];
+              const delay = statDelays[idx];
+
+              return (
+                <SegmentedDialCircle
+                  key={stat.label}
+                  {...stat}
+                  isVisible={isSec6Visible}
+                  delay={delay}
+                />
+              );
+            })}
           </div>
 
-          {/* CTA Block */}
+          {/* TAHAP 3 — CTA Block (Appears after all 4 circles finish filling) */}
           <div className="flex justify-center">
             <div
               className="w-full max-w-[840px] px-7 sm:px-10 py-6 sm:py-8 rounded-3xl relative overflow-hidden border border-blue-100 bg-white shadow-xl shadow-blue-900/5 transition-all hover:shadow-2xl"
+              style={{
+                opacity: isSec6Visible ? 1 : 0,
+                transform: isSec6Visible ? 'translateY(0)' : 'translateY(24px)',
+                transition: 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                transitionDelay: isSec6Visible ? '2450ms' : '0ms',
+              }}
             >
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
                 <div>
