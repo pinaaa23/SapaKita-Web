@@ -73,35 +73,39 @@ function ShieldArt() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// DATA (Soft gradient feature cards following style_gradient_cards)
+// DATA (Reference Card Layout with Overlapping Circular Icons & Gradient Fills)
 // ──────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    title: 'Panggilan suara & video terjadwal',
-    desc: 'Keluarga dapat memilih jadwal panggilan suara maupun video yang tersedia. Sistem akan otomatis mengingatkan waktunya agar tidak terlewat.',
-    gradient: 'linear-gradient(145deg, #2563eb 0%, #4f46e5 100%)',
-    shadowColor: 'rgba(37, 99, 235, 0.22)',
+    title: 'Panggilan Suara & Video',
+    desc: 'Keluarga dapat memilih jadwal panggilan suara maupun video yang tersedia. Sistem otomatis mengingatkan waktu agar tidak terlewat.',
+    cardGradient: 'linear-gradient(150deg, #2563eb 0%, #3b82f6 45%, #6366f1 100%)',
+    shadowColor: 'rgba(37, 99, 235, 0.32)',
+    bracketColor: '#2563eb',
     icon: Phone,
   },
   {
-    title: 'Sistem saldo/top-up mudah',
-    desc: 'Isi saldo dilakukan oleh narapidana langsung melalui petugas kantin di dalam lapas. Saldo tersebut otomatis siap digunakan untuk panggilan tanpa proses tambahan.',
-    gradient: 'linear-gradient(145deg, #1d4ed8 0%, #6366f1 100%)',
-    shadowColor: 'rgba(29, 78, 216, 0.22)',
+    title: 'Sistem Saldo Praktis',
+    desc: 'Isi saldo dilakukan resmi melalui petugas kantin di lapas. Saldo otomatis siap digunakan untuk panggilan tanpa prosedur rumit.',
+    cardGradient: 'linear-gradient(150deg, #4f46e5 0%, #6366f1 45%, #8b5cf6 100%)',
+    shadowColor: 'rgba(99, 102, 241, 0.32)',
+    bracketColor: '#6366f1',
     icon: Wallet,
   },
   {
-    title: 'Riwayat panggilan tercatat',
-    desc: 'Setiap panggilan (waktu, durasi, dan kontak yang dihubungi) tersimpan rapi dalam sistem. Pihak yang berwenang dapat menelusuri kembali seluruh riwayat kapan saja secara transparan.',
-    gradient: 'linear-gradient(145deg, #4338ca 0%, #7c3aed 100%)',
-    shadowColor: 'rgba(67, 56, 202, 0.22)',
+    title: 'Riwayat Panggilan Tertata',
+    desc: 'Setiap panggilan (waktu, durasi, dan kontak) tersimpan rapi dalam sistem secara transparan untuk pengawasan dan kenyamanan bersama.',
+    cardGradient: 'linear-gradient(150deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
+    shadowColor: 'rgba(2, 132, 199, 0.32)',
+    bracketColor: '#0284c7',
     icon: Clock,
   },
   {
-    title: 'Kontak yang sudah terverifikasi',
-    desc: 'Admin lapas memverifikasi setiap kontak keluarga melalui KTP sebelum dapat dihubungi. Hal ini memastikan hanya kontak sah dan terdaftar yang bisa terhubung dengan narapidana.',
-    gradient: 'linear-gradient(145deg, #3b82f6 0%, #8b5cf6 100%)',
-    shadowColor: 'rgba(59, 130, 246, 0.22)',
+    title: 'Kontak Terverifikasi Sah',
+    desc: 'Admin memverifikasi setiap kontak keluarga melalui KTP resmi untuk memastikan hanya pihak keluarga sah yang terhubung.',
+    cardGradient: 'linear-gradient(150deg, #4338ca 0%, #7c3aed 50%, #9333ea 100%)',
+    shadowColor: 'rgba(124, 58, 237, 0.32)',
+    bracketColor: '#7c3aed',
     icon: Shield,
   },
 ];
@@ -112,52 +116,80 @@ const STEPS = [
     title: 'Daftar Akun',
     desc: 'Buat akun dengan nomor handphone.',
     Icon: IdCard,
-    cardBg: 'linear-gradient(145deg, #ffffff 0%, #eff6ff 100%)',
-    borderColor: '#bfdbfe',
-    accentColor: '#2f6fed',
-    dotColor: '#2f6fed',
-    iconBg: 'linear-gradient(135deg, #2f6fed, #60a5fa)',
+    cardBg: 'linear-gradient(145deg, #f0f7ff 0%, #dbeafe 100%)',
+    borderColor: '#93c5fd',
+    accentColor: '#1d4ed8',
+    dotColor: '#2563eb',
+    iconBg: 'linear-gradient(135deg, #2563eb, #60a5fa)',
+    shadowColor: 'rgba(37, 99, 235, 0.14)',
   },
   {
     num: '02',
     title: 'Verifikasi Kontak',
     desc: 'Lakukan verifikasi kontak keluarga via KTP.',
     Icon: Shield,
-    cardBg: 'linear-gradient(145deg, #ffffff 0%, #faf5ff 100%)',
-    borderColor: '#e9d5ff',
-    accentColor: '#8b5cf6',
-    dotColor: '#8b5cf6',
-    iconBg: 'linear-gradient(135deg, #8b5cf6, #c4b5fd)',
+    cardBg: 'linear-gradient(145deg, #faf5ff 0%, #ede9fe 100%)',
+    borderColor: '#c4b5fd',
+    accentColor: '#6d28d9',
+    dotColor: '#7c3aed',
+    iconBg: 'linear-gradient(135deg, #7c3aed, #c084fc)',
+    shadowColor: 'rgba(124, 58, 237, 0.14)',
   },
   {
     num: '03',
     title: 'Top Up Saldo',
     desc: 'Isi saldo melalui petugas kantin di dalam lapas.',
     Icon: Wallet,
-    cardBg: 'linear-gradient(145deg, #ffffff 0%, #fffbeb 100%)',
-    borderColor: '#fde68a',
-    accentColor: '#f59e0b',
-    dotColor: '#f59e0b',
-    iconBg: 'linear-gradient(135deg, #f59e0b, #fcd34d)',
+    cardBg: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
+    borderColor: '#fcd34d',
+    accentColor: '#b45309',
+    dotColor: '#d97706',
+    iconBg: 'linear-gradient(135deg, #d97706, #fbbf24)',
+    shadowColor: 'rgba(217, 119, 6, 0.14)',
   },
   {
     num: '04',
     title: 'Mulai Panggilan',
     desc: 'Pilih jadwal dan mulai panggilan sesuai waktu yang tersedia.',
     Icon: Phone,
-    cardBg: 'linear-gradient(145deg, #ffffff 0%, #f0fdf4 100%)',
-    borderColor: '#bbf7d0',
-    accentColor: '#22c55e',
-    dotColor: '#22c55e',
-    iconBg: 'linear-gradient(135deg, #22c55e, #86efac)',
+    cardBg: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+    borderColor: '#86efac',
+    accentColor: '#15803d',
+    dotColor: '#16a34a',
+    iconBg: 'linear-gradient(135deg, #16a34a, #4ade80)',
+    shadowColor: 'rgba(22, 163, 74, 0.14)',
   },
 ];
 
 const SECURITY_ITEMS = [
-  { label: 'Rekaman Panggilan',    desc: 'Semua panggilan direkam dan bisa diaudit.',       Icon: Mic,     bg: '#ef4444' },
-  { label: 'Verifikasi KTP',       desc: 'Kontak diverifikasi via KTP.',                    Icon: IdCard,  bg: '#2f6fed' },
-  { label: 'Monitoring Real-time', desc: 'Dashboard monitoring untuk admin.',               Icon: Monitor, bg: '#8b5cf6' },
-  { label: 'Standar Keamanan',     desc: 'Sesuai standar lembaga pemasyarakatan.',          Icon: Shield,  bg: '#22c55e' },
+  {
+    label: 'Rekaman Panggilan',
+    desc: 'Semua panggilan direkam dan bisa diaudit.',
+    Icon: Mic,
+    gradient: 'linear-gradient(135deg, #e11d48 0%, #be185d 50%, #7c3aed 100%)',
+    shadowColor: 'rgba(225, 29, 72, 0.22)',
+  },
+  {
+    label: 'Verifikasi KTP',
+    desc: 'Kontak diverifikasi via KTP.',
+    Icon: IdCard,
+    gradient: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4f46e5 100%)',
+    shadowColor: 'rgba(37, 99, 235, 0.22)',
+  },
+  {
+    label: 'Monitoring Real-time',
+    desc: 'Dashboard monitoring untuk admin.',
+    Icon: Monitor,
+    gradient: 'linear-gradient(135deg, #6366f1 0%, #7c3aed 50%, #9333ea 100%)',
+    shadowColor: 'rgba(124, 58, 237, 0.22)',
+  },
+  {
+    label: 'Standar Keamanan',
+    desc: 'Sesuai standar lembaga pemasyarakatan.',
+    Icon: Shield,
+    gradient: 'linear-gradient(135deg, #0d9488 0%, #0284c7 50%, #2563eb 100%)',
+    shadowColor: 'rgba(13, 148, 136, 0.22)',
+  },
 ];
 
 const STATS = [
@@ -318,17 +350,20 @@ function AnimatedLetterReveal({ text, startIndex = 0, letterDelay = 0.075, baseD
 // ──────────────────────────────────────────────────────────────────
 // SCROLL REVEAL HOOK
 // ──────────────────────────────────────────────────────────────────
-function useScrollReveal(threshold = 0.15) {
+function useScrollReveal(threshold = 0.2, rootMargin = '0px 0px -120px 0px') {
   const [isVisible, setIsVisible] = React.useState(false);
   const domRef = React.useRef(null);
 
   React.useEffect(() => {
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        if (domRef.current) observer.unobserve(domRef.current);
-      }
-    }, { threshold });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (domRef.current) observer.unobserve(domRef.current);
+        }
+      },
+      { threshold, rootMargin }
+    );
 
     const current = domRef.current;
     if (current) observer.observe(current);
@@ -336,7 +371,7 @@ function useScrollReveal(threshold = 0.15) {
     return () => {
       if (current) observer.unobserve(current);
     };
-  }, [threshold]);
+  }, [threshold, rootMargin]);
 
   return [domRef, isVisible];
 }
@@ -345,8 +380,10 @@ function useScrollReveal(threshold = 0.15) {
 // MAIN COMPONENT
 // ──────────────────────────────────────────────────────────────────
 export default function Landing() {
-  const [sec2Ref, isSec2Visible] = useScrollReveal(0.18);
-  const [sec6Ref, isSec6Visible] = useScrollReveal(0.15);
+  const [sec2Ref, isSec2Visible] = useScrollReveal(0.15, '0px 0px -120px 0px');
+  const [sec3Ref, isSec3Visible] = useScrollReveal(0.32, '0px 0px -25% 0px');
+  const [sec4Ref, isSec4Visible] = useScrollReveal(0.32, '0px 0px -25% 0px');
+  const [sec6Ref, isSec6Visible] = useScrollReveal(0.15, '0px 0px -80px 0px');
 
   const handleSmoothScroll = (e) => {
     e.preventDefault();
@@ -413,8 +450,7 @@ export default function Landing() {
             </h1>
 
             <p className="lp-hero-swipe-left text-base sm:text-lg text-[#475467] leading-relaxed max-w-[480px] mt-10 sm:mt-12 mb-8">
-              PasCall menghubungkan narapidana dengan keluarga melalui panggilan yang
-              terverifikasi, tercatat, dan diawasi petugas.
+              PasCall menjaga komunikasi Anda dengan orang tercinta tetap aman, terverifikasi, dan tercatat, di mana pun mereka berada.
             </p>
 
             {/* Hero CTAs (Fade & rise up after description & mockup) */}
@@ -597,8 +633,7 @@ export default function Landing() {
 
             {/* Paragraph */}
             <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[470px] mb-8">
-              Selama ini komunikasi narapidana dengan keluarga terbatas dan sulit diawasi.
-              PasCall hadir sebagai solusi yang terjamin, aman, dan mudah diakses.
+              Menjembatani kehangatan komunikasi dengan keluarga secara aman, terverifikasi, dan mudah diakses kapan saja.
             </p>
 
             {/* Mini Stats Cards */}
@@ -610,7 +645,7 @@ export default function Landing() {
                     85%
                   </span>
                   <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    kendala jadwal kunjungan
+                    kendala jarak & waktu
                   </span>
                 </div>
               </div>
@@ -622,7 +657,7 @@ export default function Landing() {
                     1x/mgg
                   </span>
                   <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    rata-rata batas kunjungan
+                    rata-rata batas tatap muka
                   </span>
                 </div>
               </div>
@@ -634,7 +669,7 @@ export default function Landing() {
                     100%
                   </span>
                   <span className="block text-[10px] sm:text-[11px] text-[#5b6472] font-medium leading-tight mt-1">
-                    pengawasan terjamin
+                    komunikasi terjamin aman
                   </span>
                 </div>
               </div>
@@ -645,7 +680,7 @@ export default function Landing() {
           <div className={`relative w-full pt-4 pb-6 px-2 sm:px-4 lp-reveal-right ${isSec2Visible ? 'lp-reveal-active' : ''}`}>
             {/* Collage Grid */}
             <div className="relative z-10 grid grid-cols-12 gap-3 sm:gap-4 items-start">
-              {/* Box 1 — Lapas Building */}
+              {/* Box 1 — Warm Dignified Connection Call */}
               <div
                 className="col-span-7 relative group overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.01] border-2 border-white bg-white"
                 style={{
@@ -665,17 +700,17 @@ export default function Landing() {
                 </svg>
 
                 <img
-                  src="/assets/lapas.jpg"
-                  alt="Gedung Lembaga Pemasyarakatan"
+                  src="/assets/warm_connection.jpg"
+                  alt="Komunikasi hangat dan bermakna bersama orang tercinta"
                   className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/20 via-transparent to-transparent pointer-events-none" />
                 <span className="absolute bottom-2.5 left-3 text-[10px] font-extrabold uppercase tracking-widest text-white z-20 bg-[#2f6fed]/85 px-2 py-0.5 rounded backdrop-blur-sm">
-                  Fasilitas Lapas
+                  Komunikasi Hangat
                 </span>
               </div>
 
-              {/* Box 2 — Family Call Photo */}
+              {/* Box 2 — Family Video Call */}
               <div
                 className="col-span-5 relative group overflow-hidden shadow-xl transition-all duration-300 hover:scale-[1.03] -ml-4 sm:-ml-6 mt-3 sm:mt-4 z-20 transform rotate-[2.5deg] border-2 border-white bg-white"
                 style={{
@@ -686,13 +721,13 @@ export default function Landing() {
               >
                 <img
                   src="/assets/family_call.jpg"
-                  alt="Keluarga melakukan panggilan video"
+                  alt="Keluarga bahagia terhubung lewat panggilan video"
                   className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 via-transparent to-transparent pointer-events-none" />
               </div>
 
-              {/* Box 3 — Security Connection */}
+              {/* Box 3 — Modern Secure Connection */}
               <div
                 className="col-span-5 relative group overflow-hidden shadow-lg transition-all duration-300 hover:scale-[1.01] -mt-3 sm:-mt-4 z-10 transform -rotate-[1.5deg] border-2 border-white bg-white"
                 style={{
@@ -702,13 +737,13 @@ export default function Landing() {
               >
                 <img
                   src="/assets/security_connection.jpg"
-                  alt="Jaringan komunikasi aman PasCall"
+                  alt="Jaringan komunikasi aman dan terenkripsi"
                   className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/15 via-transparent to-transparent pointer-events-none" />
               </div>
 
-              {/* Box 4 — Standar Lapas Card */}
+              {/* Box 4 — Standar Layanan Card */}
               <div
                 className="col-span-7 relative group overflow-hidden shadow-lg p-4 sm:p-5 flex flex-col justify-between min-h-[145px] -mt-2 sm:-mt-3 z-10 border border-blue-100/80 bg-white"
                 style={{
@@ -720,14 +755,14 @@ export default function Landing() {
 
                 <div className="relative z-10 flex items-center justify-between">
                   <span className="text-[10px] sm:text-xs font-extrabold uppercase tracking-widest text-[#2f6fed]">
-                    Standar Lapas
+                    Standar Layanan
                   </span>
                   <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
                 </div>
 
                 <div className="relative z-10 mt-2 pr-2">
                   <p className="text-xs sm:text-sm font-semibold text-[#344054] leading-relaxed">
-                    Sistem komunikasi terintegrasi dengan pemantauan real-time.
+                    Sistem komunikasi terintegrasi dengan pengawasan real-time yang aman dan ramah pengguna.
                   </p>
                 </div>
               </div>
@@ -757,50 +792,132 @@ export default function Landing() {
       </section>
 
       {/* ==============================================================
-          SECTION 3 — FITUR UTAMA (Flat White with Soft Gradient Cards)
+          SECTION 3 — FITUR UTAMA (Reference Layout with Staggered Entrance Animation)
           ============================================================== */}
-      <section className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white">
+      <section
+        ref={sec3Ref}
+        className="relative py-16 sm:py-20 lg:py-28 px-6 sm:px-10 lg:px-16 xl:px-20"
+        style={{
+          background: 'linear-gradient(180deg, #ffffff 0%, #eef4fd 14%, #eef4fd 86%, #ffffff 100%)',
+        }}
+      >
         <div className="mx-auto" style={{ maxWidth: '1120px' }}>
-          {/* Header */}
-          <div className="mb-14 sm:mb-16 text-center max-w-[760px] mx-auto flex flex-col items-center">
+          {/* Header (Slides down from above with pure translateY + fade-in) */}
+          <div
+            className="mb-12 sm:mb-16 text-center max-w-[760px] mx-auto flex flex-col items-center"
+            style={{
+              opacity: isSec3Visible ? 1 : 0,
+              transform: isSec3Visible ? 'translateY(0)' : 'translateY(-35px)',
+              transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
             <div className="mb-3">
               <Squiggle width={110} height={24} id="sq-feat" />
             </div>
-            <h2 className="text-3xl sm:text-4xl lg:text-[2.5rem] font-extrabold leading-tight text-[#101828] mt-2">
+            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-tight text-[#101828] mt-2">
               Komunikasi yang lebih mudah dan aman, untuk semua pihak.
             </h2>
           </div>
 
-          {/* 4 Soft Gradient Feature Cards (following style_gradient_cards reference) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-            {FEATURES.map((f) => {
+          {/* 4 Feature Cards Layout with Pure Slide-Down (translateY) Staggered Animation */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12 items-stretch pt-2">
+            {FEATURES.map((f, idx) => {
               const Icon = f.icon;
+              const isEven = idx % 2 === 1; // Cards 2 and 4
+              const staggerDelay = `${200 + idx * 220}ms`;
+
               return (
                 <div
                   key={f.title}
-                  className="group relative rounded-3xl p-6 sm:p-7 flex flex-col justify-between transition-all duration-300 hover:-translate-y-2 text-white"
+                  className={`group relative flex flex-col items-center transition-all duration-300 ${
+                    isEven ? 'lg:mt-7' : 'lg:-mt-2'
+                  }`}
                   style={{
-                    background: f.gradient,
-                    boxShadow: `0 14px 32px -4px ${f.shadowColor}`,
+                    opacity: isSec3Visible ? 1 : 0,
+                    transform: isSec3Visible ? 'translateY(0)' : 'translateY(-38px)',
+                    transition: 'opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transitionDelay: isSec3Visible ? staggerDelay : '0ms',
+                    pointerEvents: isSec3Visible ? 'auto' : 'none',
                   }}
                 >
-                  {/* Subtle top inner light highlight */}
-                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent rounded-t-3xl pointer-events-none" />
+                  {/* Top Circular Icon Badge (With Corner Framing Brackets for ALL 4 Cards) */}
+                  <div className="relative z-30 mb-5 flex items-center justify-center">
+                    {/* Top-Left Bracket */}
+                    <svg
+                      className="absolute -top-3 -left-4 w-7 h-7 pointer-events-none z-20 transition-transform duration-300 group-hover:-translate-x-1 group-hover:-translate-y-1"
+                      viewBox="0 0 32 32"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M 3 24 L 3 3 L 24 3"
+                        stroke={f.bracketColor}
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
 
-                  <div>
-                    {/* Frosted Translucent Icon Box */}
-                    <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center mb-6 shadow-sm transition-transform duration-300 group-hover:scale-110">
-                      <Icon size={26} color="white" aria-hidden="true" strokeWidth={2} />
+                    {/* Top-Right Bracket */}
+                    <svg
+                      className="absolute -top-3 -right-4 w-7 h-7 pointer-events-none z-20 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1"
+                      viewBox="0 0 32 32"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M 8 3 L 29 3 L 29 24"
+                        stroke={f.bracketColor}
+                        strokeWidth="3.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+
+                    {/* Circle Badge */}
+                    <div
+                      className="w-22 h-22 sm:w-24 sm:h-24 rounded-full p-2 bg-white flex items-center justify-center transition-all duration-300 group-hover:scale-105"
+                      style={{
+                        boxShadow: `0 12px 28px -4px ${f.shadowColor}`,
+                        border: '3px solid rgba(255,255,255,0.95)',
+                      }}
+                    >
+                      <div
+                        className="w-full h-full rounded-full flex items-center justify-center shadow-inner"
+                        style={{
+                          background: f.cardGradient,
+                        }}
+                      >
+                        <Icon size={32} color="#ffffff" strokeWidth={2.2} aria-hidden="true" />
+                      </div>
                     </div>
-
-                    <h3 className="text-lg sm:text-xl font-extrabold text-white mb-3 leading-snug">
-                      {f.title}
-                    </h3>
                   </div>
 
-                  <p className="text-blue-50/90 text-xs sm:text-sm leading-relaxed mt-2 font-normal">
-                    {f.desc}
-                  </p>
+                  {/* Card Body with Rich Vibrant Gradient */}
+                  <div
+                    className="relative w-full flex-1 rounded-3xl p-6 sm:p-7 pt-7 pb-8 flex flex-col justify-between text-center transition-all duration-300 hover:scale-[1.02] text-white min-h-[240px] overflow-hidden"
+                    style={{
+                      background: f.cardGradient,
+                      boxShadow: `0 18px 38px -6px ${f.shadowColor}`,
+                    }}
+                  >
+                    {/* Top inner subtle highlight */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
+
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-extrabold text-white mb-3 leading-snug">
+                        {f.title}
+                      </h3>
+                      <p className="text-blue-50/95 text-xs sm:text-sm leading-relaxed font-normal">
+                        {f.desc}
+                      </p>
+                    </div>
+
+                    {/* Subtle bottom decorative dash */}
+                    <div className="mt-5 pt-4 border-t border-white/15 flex justify-center">
+                      <div className="w-10 h-1 rounded-full bg-white/40 transition-all duration-300 group-hover:w-16 group-hover:bg-white/80" />
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -809,63 +926,75 @@ export default function Landing() {
       </section>
 
       {/* ==============================================================
-          SECTION 4 — KEAMANAN (Gradient Block Container)
+          SECTION 4 — KEAMANAN (Flat Light Section with Gradient Cards)
           ============================================================== */}
-      <section className="relative py-12 sm:py-16 lg:py-20 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white">
+      <section
+        ref={sec4Ref}
+        className="relative py-16 sm:py-20 lg:py-24 px-6 sm:px-10 lg:px-16 xl:px-20 bg-white"
+      >
         <div className="mx-auto" style={{ maxWidth: '1080px' }}>
-          <div
-            className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 p-8 sm:p-10 lg:p-12 relative overflow-hidden text-white"
-            style={{
-              background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 50%, #4f46e5 100%)',
-              borderRadius: '32px 8px 32px 8px',
-              boxShadow: '0 16px 40px -10px rgba(37, 99, 235, 0.35)',
-            }}
-          >
-            {/* Wavy texture */}
-            <svg aria-hidden="true" style={{ position: 'absolute', right: 0, top: 0, height: '100%', width: '50%', opacity: 0.06 }} viewBox="0 0 200 300" fill="none" preserveAspectRatio="none">
-              {[0,30,60,90,120,150,180,210,240,270].map((y, i) => (
-                <path key={i} d={`M${i%2===0?0:200} ${y} Q 100 ${y+14} ${i%2===0?200:0} ${y+28}`} stroke="#ffffff" strokeWidth="1" fill="none" />
-              ))}
-            </svg>
-
-            {/* Shield decoration */}
-            <div aria-hidden="true" style={{ position: 'absolute', bottom: -20, right: 20, opacity: 0.2, pointerEvents: 'none' }}>
-              <ShieldArt />
-            </div>
-
-            {/* Left */}
-            <div className="lg:col-span-5 relative z-10 flex flex-col justify-center">
-              <h2 className="text-2xl sm:text-3xl lg:text-[2.1rem] font-extrabold leading-tight text-white">
-                Transparan untuk institusi,<br />terpercaya untuk semua.
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+            {/* Left Block (Slides in from Left as a unified block) */}
+            <div
+              className="lg:col-span-5 flex flex-col justify-center"
+              style={{
+                opacity: isSec4Visible ? 1 : 0,
+                transform: isSec4Visible ? 'translateX(0)' : 'translateX(-30px)',
+                transition: 'opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+              }}
+            >
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-7 h-[2px] bg-gradient-to-r from-[#2f6fed] to-[#60a5fa] rounded-full" />
+                <span className="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.22em] text-[#2f6fed]">
+                  Keamanan & Transparansi
+                </span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-[2.25rem] font-extrabold leading-[1.22] text-[#101828]">
+                Transparan untuk institusi,<br />
+                <span className="text-[#2f6fed]">terpercaya untuk semua.</span>
               </h2>
-              <div className="w-20 h-[3px] bg-gradient-to-r from-blue-300 to-indigo-200 rounded-full mt-4" />
+              <div className="w-20 h-[3.5px] bg-gradient-to-r from-[#2f6fed] to-[#8b5cf6] rounded-full mt-4 mb-4" />
+              <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[420px]">
+                Seluruh aktivitas komunikasi diawasi dengan standar keamanan tinggi untuk menjamin integritas dan ketenangan setiap pihak.
+              </p>
             </div>
 
-            {/* Right — 2x2 Grid with Translucent Cards */}
-            <div className="lg:col-span-7 relative z-10 grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-5 items-center">
-              {SECURITY_ITEMS.map((item) => {
+            {/* Right — 2x2 Grid with Staggered Scale-Fade Cards in Z-pattern */}
+            <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 items-stretch">
+              {SECURITY_ITEMS.map((item, idx) => {
                 const Icon = item.Icon;
+                const cardDelay = `${120 + idx * 160}ms`;
+
                 return (
                   <div
                     key={item.label}
-                    className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/10 hover:bg-white/15 backdrop-blur-md border border-white/20 transition-all shadow-sm"
+                    className="group relative flex items-center justify-between gap-4 p-5 rounded-3xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl text-white overflow-hidden"
+                    style={{
+                      background: item.gradient,
+                      boxShadow: `0 12px 28px -4px ${item.shadowColor}`,
+                      opacity: isSec4Visible ? 1 : 0,
+                      transform: isSec4Visible ? 'scale(1)' : 'scale(0.92)',
+                      transition: 'opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+                      transitionDelay: isSec4Visible ? cardDelay : '0ms',
+                      pointerEvents: isSec4Visible ? 'auto' : 'none',
+                    }}
                   >
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base sm:text-lg font-bold text-white mb-1 leading-snug">
+                    {/* Top inner subtle highlight */}
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent pointer-events-none" />
+
+                    <div className="flex-1 min-w-0 pr-1">
+                      <h3 className="text-base sm:text-lg font-extrabold text-white mb-1 leading-snug">
                         {item.label}
                       </h3>
-                      <p className="text-blue-100/90 text-xs sm:text-sm leading-relaxed font-normal">
+                      <p className="text-white/90 text-xs sm:text-sm leading-relaxed font-normal">
                         {item.desc}
                       </p>
                     </div>
+
                     <div
-                      className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 shadow-md relative z-10"
-                      style={{
-                        background: item.bg,
-                        boxShadow: `0 6px 16px ${item.bg}40`,
-                      }}
+                      className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0 shadow-md transition-transform duration-300 group-hover:scale-110"
                     >
-                      <Icon size={26} color="white" aria-hidden="true" strokeWidth={1.8} />
+                      <Icon size={24} color="#ffffff" aria-hidden="true" strokeWidth={2} />
                     </div>
                   </div>
                 );
@@ -884,13 +1013,20 @@ export default function Landing() {
       >
         <div className="mx-auto" style={{ maxWidth: '1080px' }}>
           {/* Header */}
-          <div className="text-center max-w-[600px] mx-auto mb-12 lg:mb-16 relative">
-            <h2 className="text-3xl sm:text-4xl lg:text-[2.6rem] font-extrabold leading-tight text-[#101828] mb-3">
-              Mudah dalam 4 langkah.
-            </h2>
-            <div className="mt-3 flex justify-center">
-              <Squiggle width={120} height={26} id="sq-steps" />
+          <div className="text-center max-w-[700px] mx-auto mb-10 lg:mb-14 relative">
+            <div className="flex items-center justify-center gap-2.5 mb-2.5">
+              <div className="w-6 h-[2px] bg-gradient-to-r from-[#2f6fed] to-[#60a5fa] rounded-full" />
+              <span className="text-xs sm:text-[13px] font-extrabold uppercase tracking-[0.2em] text-[#2f6fed]">
+                Alur Penggunaan Layanan
+              </span>
+              <div className="w-6 h-[2px] bg-gradient-to-r from-[#60a5fa] to-[#2f6fed] rounded-full" />
             </div>
+            <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-tight text-[#101828]">
+              Prosedur Layanan dalam 4 Langkah Mudah
+            </h2>
+            <p className="text-[#475467] text-xs sm:text-sm mt-2.5 max-w-[500px] mx-auto leading-relaxed">
+              Panduan terstruktur untuk memulai panggilan resmi secara aman dan terverifikasi.
+            </p>
           </div>
 
           {/* DESKTOP: Zig-Zag Timeline with Pastel Cards */}
@@ -961,9 +1097,9 @@ export default function Landing() {
                       className="group p-5 rounded-2xl transition-all duration-300 hover:-translate-y-1 hover:shadow-lg w-full max-w-[235px] h-[175px] mx-auto flex flex-col justify-between"
                       style={{
                         background: s.cardBg,
-                        border: `1px solid ${s.borderColor}`,
-                        borderLeft: `3.5px solid ${s.dotColor}`,
-                        boxShadow: '0 6px 20px rgba(0,0,0,0.05)',
+                        border: `1.5px solid ${s.borderColor}`,
+                        borderLeft: `4.5px solid ${s.dotColor}`,
+                        boxShadow: `0 8px 24px ${s.shadowColor}`,
                       }}
                     >
                       <div>
@@ -986,7 +1122,7 @@ export default function Landing() {
                         </h3>
                       </div>
 
-                      <p className="text-[#5b6472] text-xs leading-relaxed">
+                      <p className="text-[#475467] text-xs leading-relaxed font-normal">
                         {s.desc}
                       </p>
                     </div>
@@ -1020,11 +1156,12 @@ export default function Landing() {
                     </div>
 
                     <div
-                      className="flex-1 p-5 rounded-2xl shadow-sm transition-all"
+                      className="flex-1 p-5 rounded-2xl transition-all"
                       style={{
                         background: s.cardBg,
-                        border: `1px solid ${s.borderColor}`,
-                        borderLeft: `3px solid ${s.dotColor}`,
+                        border: `1.5px solid ${s.borderColor}`,
+                        borderLeft: `4.5px solid ${s.dotColor}`,
+                        boxShadow: `0 8px 24px ${s.shadowColor}`,
                       }}
                     >
                       <div
