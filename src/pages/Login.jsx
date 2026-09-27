@@ -6,24 +6,26 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
-  UserPlus, 
-  PhoneCall, 
-  AlertCircle 
+  ArrowLeft,
+  AlertCircle,
+  Check
 } from 'lucide-react';
 
 export default function Login() {
   const navigate = useNavigate();
 
-  // Local state
+  // Form State
   const [identifier, setIdentifier] = useState('admin.cipinang@pascall.id');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeRole, setActiveRole] = useState('cabang');
 
-  // Quick switch credentials helper
-  const selectRole = (role) => {
+  // Quick switch role helper
+  const handleSelectRole = (role) => {
+    setActiveRole(role);
     setError('');
     if (role === 'pusat') {
       setIdentifier('admin.pusat@pascall.id');
@@ -38,262 +40,419 @@ export default function Login() {
     e.preventDefault();
     setError('');
 
-    // Client-side validation
     if (!identifier.trim()) {
-      setError('Email atau username tidak boleh kosong.');
+      setError('Nomor HP atau email tidak boleh kosong.');
       return;
     }
 
     if (!password) {
-      setError('Password tidak boleh kosong.');
+      setError('Kata sandi tidak boleh kosong.');
       return;
     }
 
     if (password.length < 6) {
-      setError('Password minimal harus terdiri dari 6 karakter.');
+      setError('Kata sandi minimal harus terdiri dari 6 karakter.');
       return;
     }
 
     setIsLoading(true);
 
-    // Simulate authentication logic
     setTimeout(() => {
       setIsLoading(false);
       const lower = identifier.toLowerCase();
-      // Route intelligently: if branch admin, go to branch dashboard, otherwise superadmin dashboard
-      if (lower.includes('branch') || lower.includes('cipinang') || lower.includes('cabang') || lower.includes('budi')) {
+      if (lower.includes('branch') || lower.includes('cipinang') || lower.includes('cabang') || activeRole === 'cabang') {
         navigate('/branch/dashboard');
       } else {
         navigate('/dashboard');
       }
-    }, 600);
+    }, 650);
   };
 
   return (
-    <div className="relative h-screen w-full flex flex-col items-center justify-center bg-[#06091a] text-white font-sans selection:bg-blue-500 selection:text-white px-4 py-4 overflow-hidden">
-      
-      {/* ========================================================================= */}
-      {/* BACKGROUND: Same image as Landing Page, but focused on another area (bottom/center wave) */}
-      {/* ========================================================================= */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div
-          className="absolute inset-0 w-full h-full"
-          style={{
-            background: `url('/bg-sections/background_pascall.png') center bottom / cover no-repeat, #06091a`,
-            filter: 'contrast(1.05) brightness(0.9)',
-          }}
-          aria-hidden="true"
-        />
-        {/* Soft Radial Vignette Overlay to maintain focal point on login card */}
-        <div
-          className="absolute inset-0 w-full h-full bg-[radial-gradient(ellipse_at_center,rgba(6,9,26,0.55)_0%,rgba(6,9,26,0.92)_85%)]"
-          aria-hidden="true"
-        />
-        {/* Ambient Glow Orbs */}
-        <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute -bottom-24 right-1/3 w-[500px] h-[300px] bg-cyan-500/15 rounded-full blur-[100px] pointer-events-none" />
-      </div>
+    <div 
+      className="relative min-h-screen w-full flex flex-col items-center justify-start sm:justify-center py-6 sm:py-8 px-4 text-[#101828] select-none overflow-hidden"
+      style={{
+        background: 'radial-gradient(ellipse at 50% 45%, #f2f7fe 0%, #e6effa 50%, #d8e5f8 100%)',
+        fontFamily: "'Montserrat', sans-serif"
+      }}
+    >
+      {/* ================================================================
+          BACKGROUND DECORATIVE ELEMENTS (Subtle, Atmospheric & Non-intrusive)
+          ================================================================ */}
+      {/* 1. Ambient Corner Blur Blobs */}
+      <div
+        aria-hidden="true"
+        className="absolute -top-20 -left-20 w-80 sm:w-[420px] h-80 sm:h-[420px] rounded-full pointer-events-none -z-10"
+        style={{
+          background: 'linear-gradient(135deg, #cde1fe 0%, #dbeafe 100%)',
+          filter: 'blur(75px)',
+          opacity: 0.5,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-24 -right-24 w-80 sm:w-[440px] h-80 sm:h-[440px] rounded-full pointer-events-none -z-10"
+        style={{
+          background: 'linear-gradient(135deg, #c7d2fe 0%, #bfdbfe 100%)',
+          filter: 'blur(80px)',
+          opacity: 0.4,
+        }}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute top-1/4 -right-16 w-60 sm:w-72 h-60 sm:h-72 rounded-full pointer-events-none -z-10"
+        style={{
+          background: 'linear-gradient(135deg, #dbeafe 0%, #e0e7ff 100%)',
+          filter: 'blur(65px)',
+          opacity: 0.45,
+        }}
+      />
 
-      {/* ========================================================================= */}
-      {/* FLOATING GLASSMORPHIC LOGIN CARD (Compact height - fit 1 screen without scroll) */}
-      {/* ========================================================================= */}
-      <div className="relative z-10 w-full max-w-[420px] bg-[#0b1329]/80 backdrop-blur-2xl border border-white/12 rounded-3xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.65)]">
-        
-        {/* Subtle Ambient Highlight Ring */}
-        <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-40 h-16 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 blur-xl pointer-events-none" />
+      {/* 2. Dashed Orbit Circles (Walking / Rotating like Hero page) */}
+      <div
+        aria-hidden="true"
+        className="absolute top-1/2 left-1/2 w-[480px] sm:w-[560px] h-[480px] sm:h-[560px] rounded-full border-[1.5px] border-dashed border-[#60a5fa]/30 pointer-events-none -z-10 lp-dash-spin-2"
+      />
+      <div
+        aria-hidden="true"
+        className="absolute -top-12 -right-8 w-[280px] sm:w-[340px] h-[280px] sm:h-[340px] rounded-full border border-dashed border-[#818cf8]/25 pointer-events-none -z-10 lp-dash-spin-1"
+      />
 
-        {/* 1. Logo PasCall */}
-        <div className="flex justify-center mb-4">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <svg width="28" height="21" viewBox="0 0 32 24" fill="none" aria-hidden="true" className="group-hover:scale-105 transition-transform duration-200">
-              <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#login-hdr-g)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
+      {/* 3. Subtle Accent Dots */}
+      <div aria-hidden="true" className="absolute top-14 left-8 sm:left-24 w-2 h-2 rounded-full bg-[#2f6fed] opacity-45 pointer-events-none -z-10" />
+      <div aria-hidden="true" className="absolute top-1/3 left-6 sm:left-16 w-1.5 h-1.5 rounded-full bg-[#60a5fa] opacity-60 pointer-events-none -z-10" />
+      <div aria-hidden="true" className="absolute bottom-20 left-10 sm:left-24 w-2.5 h-2.5 rounded-full bg-[#93c5fd] opacity-55 pointer-events-none -z-10" />
+      <div aria-hidden="true" className="absolute top-20 right-10 sm:right-28 w-2 h-2 rounded-full bg-[#818cf8] opacity-50 pointer-events-none -z-10" />
+      <div aria-hidden="true" className="absolute bottom-28 right-8 sm:right-20 w-2.5 h-2.5 rounded-full bg-[#2f6fed] opacity-40 pointer-events-none -z-10" />
+
+      {/* Main Content Container */}
+      <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center">
+        {/* Top Header / Back Navigation & Brand Mark */}
+        <div className="w-full flex items-center justify-between mb-3.5 px-1">
+          <Link
+            to="/"
+            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#475467] hover:text-[#2f6fed] transition-all duration-200 cursor-pointer"
+            style={{
+              backgroundColor: '#dce6f8',
+              boxShadow: '4px 4px 10px #b6c9e4, -4px -4px 10px #ffffff',
+            }}
+            title="Kembali ke Beranda"
+          >
+            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform text-[#2f6fed]" />
+            <span>Beranda</span>
+          </Link>
+
+          {/* Small Logo Mark */}
+          <Link to="/" className="flex items-center gap-2 group">
+            <svg width="24" height="18" viewBox="0 0 32 24" fill="none" aria-hidden="true" className="group-hover:scale-105 transition-transform">
+              <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#neu-logo-g)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
               <defs>
-                <linearGradient id="login-hdr-g" x1="0" y1="12" x2="32" y2="12">
-                  <stop offset="0%" stopColor="#a855f7"/>
-                  <stop offset="100%" stopColor="#06b6d4"/>
+                <linearGradient id="neu-logo-g" x1="0" y1="12" x2="32" y2="12">
+                  <stop offset="0%" stopColor="#2f6fed"/>
+                  <stop offset="100%" stopColor="#60a5fa"/>
                 </linearGradient>
               </defs>
             </svg>
-            <span className="text-xl font-extrabold tracking-tight text-white">PasCall</span>
+            <span className="text-base font-extrabold tracking-tight text-[#101828]">PasCall</span>
           </Link>
         </div>
 
-        {/* 2. Judul & Subjudul */}
-        <div className="text-center mb-4">
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Selamat Datang Kembali
-          </h1>
-          <p className="text-slate-400 text-xs mt-1">
-            Masuk untuk mengakses sistem manajemen PasCall.
-          </p>
-        </div>
-
-        {/* Quick Demo Role Picker Tabs */}
-        <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl mb-4">
-          <button
-            type="button"
-            onClick={() => selectRole('cabang')}
-            className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
-              identifier.toLowerCase().includes('cipinang') || identifier.toLowerCase().includes('cabang')
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md shadow-purple-600/30'
-                : 'text-slate-400 hover:text-white'
-            }`}
+        {/* ================================================================
+            MAIN NEUMORPHIC CARD (Enhanced Edge Contrast & Dual Shadow)
+            ================================================================ */}
+        <main
+          className="relative w-full rounded-[28px] sm:rounded-[32px] p-5 sm:p-7 flex flex-col items-center border border-white/40"
+          style={{
+            backgroundColor: '#dce6f8',
+            boxShadow: '16px 16px 36px rgba(145, 165, 195, 0.78), -16px -16px 36px rgba(255, 255, 255, 0.95)',
+          }}
+        >
+          {/* 1. Neumorphic Avatar Icon (Raised Circle Badge with Inset Wave) */}
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center -mt-2 mb-3.5 transition-transform duration-300 hover:scale-105"
+            style={{
+              backgroundColor: '#dce6f8',
+              boxShadow: '6px 6px 14px #b6c9e4, -6px -6px 14px #ffffff',
+            }}
+            aria-hidden="true"
           >
-            Admin Cabang
-          </button>
-          <button
-            type="button"
-            onClick={() => selectRole('pusat')}
-            className={`flex-1 py-1.5 px-3 text-xs font-semibold rounded-lg transition-all duration-200 cursor-pointer ${
-              identifier.toLowerCase().includes('pusat')
-                ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-md shadow-purple-600/30'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            Admin Pusat
-          </button>
-        </div>
-
-        {/* Validation Error Alert */}
-        {error && (
-          <div className="mb-3 p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2 animate-fadeIn">
-            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-3.5">
-          
-          {/* Input Email / Username */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-semibold text-slate-300 tracking-wide uppercase">
-              Email / Username
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Mail className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="Masukkan email atau username"
-                className="w-full pl-9 pr-3 py-2.5 bg-white/5 border border-white/10 hover:border-purple-400/40 focus:border-cyan-400 rounded-xl text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all"
-              />
+            <div
+              className="w-11 h-11 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: '#dce6f8',
+                boxShadow: 'inset 3px 3px 5px #b6c9e4, inset -3px -3px 5px #ffffff',
+              }}
+            >
+              <svg width="24" height="18" viewBox="0 0 32 24" fill="none" aria-hidden="true">
+                <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#neu-card-g)" strokeWidth="3.6" strokeLinecap="round" fill="none"/>
+                <defs>
+                  <linearGradient id="neu-card-g" x1="0" y1="12" x2="32" y2="12">
+                    <stop offset="0%" stopColor="#2f6fed"/>
+                    <stop offset="100%" stopColor="#60a5fa"/>
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
           </div>
 
-          {/* Input Password */}
-          <div className="space-y-1">
-            <label className="block text-[11px] font-semibold text-slate-300 tracking-wide uppercase">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                <Lock className="w-4 h-4" />
+          {/* 2. Header Text */}
+          <h1 className="text-xl font-extrabold text-[#101828] tracking-tight text-center">
+            Masuk ke PasCall
+          </h1>
+          <p className="text-[11px] text-[#475467] font-medium mt-0.5 mb-4 text-center leading-tight max-w-[270px]">
+            Kelola akun dan komunikasi layanan PasCall.
+          </p>
+
+          {/* Quick Demo Role Selector (Neumorphic Inset / Convex Switch) */}
+          <div
+            className="w-full p-1 rounded-xl flex items-center gap-1 mb-4"
+            style={{
+              backgroundColor: '#dce6f8',
+              boxShadow: 'inset 3px 3px 6px #b6c9e4, inset -3px -3px 6px #ffffff',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => handleSelectRole('cabang')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                activeRole === 'cabang'
+                  ? 'text-[#2f6fed]'
+                  : 'text-[#64748b] hover:text-[#101828]'
+              }`}
+              style={
+                activeRole === 'cabang'
+                  ? {
+                      backgroundColor: '#dce6f8',
+                      boxShadow: '3px 3px 7px #b6c9e4, -3px -3px 7px #ffffff',
+                    }
+                  : {}
+              }
+            >
+              Admin Cabang
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSelectRole('pusat')}
+              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
+                activeRole === 'pusat'
+                  ? 'text-[#2f6fed]'
+                  : 'text-[#64748b] hover:text-[#101828]'
+              }`}
+              style={
+                activeRole === 'pusat'
+                  ? {
+                      backgroundColor: '#dce6f8',
+                      boxShadow: '3px 3px 7px #b6c9e4, -3px -3px 7px #ffffff',
+                    }
+                  : {}
+              }
+            >
+              Admin Pusat
+            </button>
+          </div>
+
+          {/* Error Alert Message */}
+          {error && (
+            <div
+              className="w-full mb-3 p-2.5 rounded-xl text-xs font-semibold text-rose-600 flex items-center gap-2"
+              style={{
+                backgroundColor: '#fce8e8',
+                boxShadow: 'inset 2px 2px 4px #eec4c4, inset -2px -2px 4px #ffffff',
+              }}
+            >
+              <AlertCircle size={15} className="shrink-0 text-rose-500" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* 3. Form */}
+          <form onSubmit={handleSubmit} className="w-full space-y-3">
+            
+            {/* Input 1: Nomor HP atau Email (Inset Shadow) */}
+            <div className="space-y-1">
+              <label className="block text-[11px] font-bold text-[#344054] ml-1">
+                Nomor HP atau Email
+              </label>
+              <div
+                className="relative flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#2f6fed]/40"
+                style={{
+                  backgroundColor: '#dce6f8',
+                  boxShadow: 'inset 4px 4px 7px #b6c9e4, inset -4px -4px 7px #ffffff',
+                }}
+              >
+                <div className="pl-3.5 text-[#2f6fed] pointer-events-none flex items-center justify-center">
+                  <Mail size={16} strokeWidth={2.2} />
+                </div>
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="0812xxxxxx / email@pascall.id"
+                  className="w-full py-2.5 pl-2.5 pr-3 bg-transparent text-xs sm:text-sm font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
+                />
               </div>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Masukkan password"
-                className="w-full pl-9 pr-9 py-2.5 bg-white/5 border border-white/10 hover:border-purple-400/40 focus:border-cyan-400 rounded-xl text-white placeholder-slate-500 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all"
-              />
+            </div>
+
+            {/* Input 2: Kata Sandi (Inset Shadow + Show/Hide Toggle) */}
+            <div className="space-y-1">
+              <label className="block text-[11px] font-bold text-[#344054] ml-1">
+                Kata Sandi
+              </label>
+              <div
+                className="relative flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#2f6fed]/40"
+                style={{
+                  backgroundColor: '#dce6f8',
+                  boxShadow: 'inset 4px 4px 7px #b6c9e4, inset -4px -4px 7px #ffffff',
+                }}
+              >
+                <div className="pl-3.5 text-[#2f6fed] pointer-events-none flex items-center justify-center">
+                  <Lock size={16} strokeWidth={2.2} />
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan kata sandi Anda"
+                  className="w-full py-2.5 pl-2.5 pr-10 bg-transparent text-xs sm:text-sm font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 p-1 text-[#64748b] hover:text-[#2f6fed] transition-colors cursor-pointer rounded-lg"
+                  title={showPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Ingat Saya & Lupa Kata Sandi Row */}
+            <div className="flex items-center justify-between pt-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
-                title={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+                onClick={() => setRememberMe(!rememberMe)}
+                className="flex items-center gap-1.5 cursor-pointer select-none text-[#475467] hover:text-[#101828] font-medium"
               >
-                {showPassword ? (
-                  <EyeOff className="w-4 h-4" />
+                <div
+                  className="w-4 h-4 rounded-md flex items-center justify-center transition-all"
+                  style={{
+                    backgroundColor: '#dce6f8',
+                    boxShadow: rememberMe
+                      ? 'inset 2px 2px 4px #b6c9e4, inset -2px -2px 4px #ffffff'
+                      : '2px 2px 4px #b6c9e4, -2px -2px 4px #ffffff',
+                  }}
+                >
+                  {rememberMe && <Check size={11} className="text-[#2f6fed] stroke-[3.5]" />}
+                </div>
+                <span className="text-[11px]">Ingat saya</span>
+              </button>
+
+              <Link
+                to="/forgot-password"
+                className="text-[11px] font-bold text-[#2f6fed] hover:text-[#1a5fd4] transition-colors"
+              >
+                Lupa kata sandi?
+              </Link>
+            </div>
+
+            {/* 4. Primary Button (Extruded Neumorphic Blue Button) */}
+            <div className="pt-1.5">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 sm:py-3 px-5 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none focus:ring-3 focus:ring-[#2f6fed]/40"
+                style={{
+                  backgroundColor: '#2f6fed',
+                  boxShadow: '6px 6px 16px rgba(47, 111, 237, 0.48), -6px -6px 16px rgba(255, 255, 255, 0.85)',
+                }}
+              >
+                {isLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>Memverifikasi...</span>
+                  </span>
                 ) : (
-                  <Eye className="w-4 h-4" />
+                  <>
+                    <span>Masuk</span>
+                    <ArrowRight size={15} strokeWidth={2.5} />
+                  </>
                 )}
               </button>
             </div>
-          </div>
+          </form>
 
-          {/* Baris Ingat Saya / Lupa Password */}
-          <div className="flex items-center justify-between text-xs pt-0.5">
-            <label className="flex items-center gap-1.5 cursor-pointer select-none text-slate-300 hover:text-white transition-colors">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-3.5 h-3.5 rounded border-slate-600 bg-white/10 text-purple-600 focus:ring-purple-400 focus:ring-offset-0 cursor-pointer"
-              />
-              <span className="text-[11px]">Ingat saya</span>
-            </label>
-            
-            <Link 
-              to="/forgot-password" 
-              className="text-cyan-400 hover:text-cyan-300 hover:underline text-[11px] font-medium transition-colors"
-            >
-              Lupa password?
-            </Link>
-          </div>
-
-          {/* Tombol Masuk */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-semibold py-2.5 px-5 rounded-xl shadow-lg shadow-purple-600/30 hover:shadow-cyan-500/40 flex items-center justify-center gap-2 transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer text-xs sm:text-sm"
-          >
-            {isLoading ? (
-              <span className="inline-flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Memproses...</span>
-              </span>
-            ) : (
-              <>
-                <span>Masuk</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-
-          {/* Divider "atau" */}
-          <div className="relative py-1 flex items-center justify-center">
-            <div className="w-full border-t border-white/10"></div>
-            <span className="absolute bg-[#0b1329] px-2.5 text-[10px] text-slate-400 uppercase tracking-wider font-medium">
+          {/* 5. Seamless Divider with "atau" */}
+          <div className="w-full flex items-center gap-3 my-3.5">
+            <div 
+              className="flex-1 h-[2px] rounded-full"
+              style={{
+                boxShadow: 'inset 1px 1px 2px #b6c9e4, inset -1px -1px 2px #ffffff',
+              }}
+            />
+            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider shrink-0 select-none">
               atau
             </span>
+            <div 
+              className="flex-1 h-[2px] rounded-full"
+              style={{
+                boxShadow: 'inset 1px 1px 2px #b6c9e4, inset -1px -1px 2px #ffffff',
+              }}
+            />
           </div>
 
-          {/* Tombol "Daftar sebagai Admin" */}
-          <Link
-            to="/register"
-            className="w-full border border-white/15 hover:border-purple-400/50 hover:bg-white/5 text-white font-medium py-2 px-4 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 text-xs"
+          {/* 6. Social Login (Google Neumorphic Button) */}
+          <button
+            type="button"
+            onClick={() => handleSelectRole('cabang')}
+            className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-[#344054] hover:text-[#101828] flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[#2f6fed]/40"
+            style={{
+              backgroundColor: '#dce6f8',
+              boxShadow: '5px 5px 12px #b6c9e4, -5px -5px 12px #ffffff',
+            }}
           >
-            <UserPlus className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Daftar sebagai Admin</span>
-          </Link>
+            {/* Official Google Icon SVG */}
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
+              />
+              <path
+                fill="#4285F4"
+                d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
+              />
+              <path
+                fill="#FBBC05"
+                d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.7s.2-2 .4-2.7L1.9 6.4C.7 8.8 0 10.8 0 12s.7 3.2 1.9 5.6l3.7-2.9z"
+              />
+              <path
+                fill="#34A853"
+                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16C3.7 19.8 7.5 23 12 23z"
+              />
+            </svg>
+            <span>Masuk dengan Google</span>
+          </button>
 
-        </form>
+          {/* 7. Footer text */}
+          <p className="text-[11px] text-[#475467] font-medium mt-4 text-center">
+            Belum memiliki akun?{' '}
+            <Link
+              to="/register"
+              className="font-bold text-[#2f6fed] hover:underline transition-all"
+            >
+              Daftar Sekarang
+            </Link>
+          </p>
+        </main>
 
-        {/* Teks Bawah */}
-        <div className="mt-4 text-center text-[11px] text-slate-400">
-          <span>Belum memiliki akun admin? </span>
-          <Link 
-            to="/register" 
-            className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold transition-colors"
-          >
-            Daftar sekarang
-          </Link>
-        </div>
-
+        {/* Bottom Legal / Copyright */}
+        <footer className="mt-3.5 text-center text-[10px] font-medium text-[#64748b]">
+          &copy; {new Date().getFullYear()} PasCall. Sistem Layanan Terpadu Lembaga Pemasyarakatan.
+        </footer>
       </div>
-
-      {/* Subtle Bottom Copyright */}
-      <div className="absolute bottom-2 inset-x-0 text-center text-[10px] text-slate-500 pointer-events-none">
-        &copy; 2026 PasCall. Sistem Komunikasi Terverifikasi Lembaga Pemasyarakatan.
-      </div>
-
     </div>
   );
 }
