@@ -139,7 +139,7 @@ const InmatesCreate = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  No. Registrasi WBP <span className="text-rose-500">*</span>
+                  No. ID <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -152,7 +152,7 @@ const InmatesCreate = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">NIK KTP (Opsional)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">No. KK (Opsional)</label>
                 <input 
                   type="text" 
                   value={formData.nik}

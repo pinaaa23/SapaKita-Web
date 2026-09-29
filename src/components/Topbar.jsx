@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, UserCircle, LogOut, User, X } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
 const Topbar = () => {
@@ -135,10 +135,28 @@ const Topbar = () => {
 
   return (
     <div className="pt-0 pb-3 px-0 flex items-center justify-between z-40 relative">
-      {/* Left section: Page Title */}
+      {/* Left section: Page Title or Back to Dashboard Button */}
       <div>
-        <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{pageDetails.title}</h1>
-        <p className="text-xs text-slate-500 font-medium mt-0.5">{pageDetails.subtitle}</p>
+        {location.pathname === '/branch/profile' ? (
+          <Link 
+            to="/branch/dashboard"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> Kembali ke Dashboard
+          </Link>
+        ) : location.pathname === '/profile' ? (
+          <Link 
+            to="/dashboard"
+            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group"
+          >
+            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> Kembali ke Dashboard
+          </Link>
+        ) : (
+          <>
+            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{pageDetails.title}</h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">{pageDetails.subtitle}</p>
+          </>
+        )}
       </div>
 
       {/* Right section: Compact Actions */}

@@ -30,7 +30,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const branchMenuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
     { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
-    { name: 'Kontak', icon: Contact, path: '/branch/contacts' },
+    { name: 'Persetujuan Kontak', icon: Contact, path: '/branch/contacts' },
     { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
     { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
   ];

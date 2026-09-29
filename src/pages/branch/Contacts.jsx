@@ -27,7 +27,12 @@ const initialContacts = Array.from({ length: 20 }).map((_, i) => {
   if (i % 3 === 1) status = 'Approved';
   if (i % 3 === 2) {
     status = 'Rejected';
-    rejectReason = 'Foto KTP tidak terbaca / buram';
+    const reasons = [
+      'Foto Kartu Keluarga tidak jelas / buram',
+      'Nama pemohon tidak terdaftar di Kartu Keluarga',
+      'Hubungan keluarga tidak sesuai di KK'
+    ];
+    rejectReason = reasons[i % reasons.length];
   }
 
   const inmates = getInmates();
@@ -115,7 +120,7 @@ const Contacts = () => {
     setIsRejectModalOpen(true);
   };
 
-  const handleViewKTP = (contact) => {
+  const handleViewKK = (contact) => {
     setSelectedContact(contact);
     setIsImageModalOpen(true);
   };
@@ -250,26 +255,25 @@ const Contacts = () => {
         )}
 
         {/* Table View */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-5 text-left whitespace-nowrap">Tgl Diajukan</th>
-                <th className="py-3.5 px-5 text-left">Nama Narapidana</th>
-                <th className="py-3.5 px-5 text-left">Kontak & Hubungan</th>
-                <th className="py-3.5 px-5 text-left whitespace-nowrap">KTP</th>
-                <th className="py-3.5 pl-14 pr-5 text-left whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-5 text-center whitespace-nowrap">Aksi</th>
+                <th className="py-3.5 px-6 text-left whitespace-nowrap w-40">Tgl Diajukan</th>
+                <th className="py-3.5 px-6 text-left">Nama Narapidana</th>
+                <th className="py-3.5 px-6 text-left">Kontak &amp; Hubungan</th>
+                <th className="py-3.5 px-6 text-center whitespace-nowrap w-40">Status</th>
+                <th className="py-3.5 px-6 text-center whitespace-nowrap w-48">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredContacts.length > 0 ? (
                 filteredContacts.map(contact => (
                   <tr key={contact.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-5 font-medium text-slate-600 whitespace-nowrap">
+                    <td className="py-3.5 px-6 font-medium text-slate-600 whitespace-nowrap">
                       {contact.date}
                     </td>
-                    <td className="py-3.5 px-5">
+                    <td className="py-3.5 px-6">
                       <Link 
                         to={`/branch/inmates/${contact.inmateId}`}
                         className="font-bold text-slate-800 hover:text-primary transition-colors flex items-center gap-1.5 group"
@@ -278,41 +282,37 @@ const Contacts = () => {
                         <User className="w-3.5 h-3.5 text-blue-600 group-hover:scale-110 transition-transform" />
                         <span>{contact.napiName.split(' (')[0]}</span>
                       </Link>
-                      <div className="text-[11px] text-slate-500 font-mono mt-0.5">
-                        {contact.wbpRegNumber}
+                      <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                        No ID: {contact.wbpRegNumber}
                       </div>
                     </td>
-                    <td className="py-3.5 px-5">
+                    <td className="py-3.5 px-6">
                       <div className="font-bold text-slate-800">{contact.contactName}</div>
                       <div className="text-[11px] text-slate-500 font-medium">{contact.relation} • <span className="font-mono text-slate-600">{contact.phone}</span></div>
                     </td>
-                    <td className="py-3.5 px-5 text-left whitespace-nowrap">
-                      <button 
-                        type="button"
-                        onClick={() => handleViewKTP(contact)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 hover:bg-primary/10 hover:text-primary text-slate-700 rounded-lg text-[11px] font-bold transition-all border border-slate-200 cursor-pointer"
-                      >
-                        <ImageIcon className="w-3.5 h-3.5 text-slate-500" /> Foto KTP
-                      </button>
-                    </td>
-                    <td className="py-3.5 pl-14 pr-5 whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        contact.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 
-                        contact.status === 'Rejected' ? 'bg-rose-50 text-rose-700 border border-rose-200/60' : 
-                        'bg-amber-50 text-amber-700 border border-amber-200/60'
-                      }`}>
-                        {contact.status === 'Approved' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                        {contact.status === 'Rejected' && <XCircle className="w-3.5 h-3.5 text-rose-600" />}
-                        {contact.status === 'Pending' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                        {contact.status}
-                      </span>
-                      {contact.status === 'Rejected' && contact.rejectReason && (
-                        <div className="text-[10px] text-rose-600 font-medium mt-1 leading-tight max-w-[140px] truncate" title={contact.rejectReason}>
-                          Alasan: {contact.rejectReason}
-                        </div>
+                    <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                      {contact.status === 'Rejected' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleViewDetail(contact)}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-all cursor-pointer shadow-2xs group"
+                          title={`Klik untuk lihat alasan penolakan`}
+                        >
+                          <XCircle className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform" />
+                          <span>{contact.status}</span>
+                        </button>
+                      ) : (
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                          contact.status === 'Approved' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 
+                          'bg-amber-50 text-amber-700 border border-amber-200/60'
+                        }`}>
+                          {contact.status === 'Approved' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
+                          {contact.status === 'Pending' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
+                          <span>{contact.status}</span>
+                        </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-5 text-center whitespace-nowrap">
+                    <td className="py-3.5 px-6 text-center whitespace-nowrap">
                       {contact.status === 'Pending' ? (
                         <div className="flex items-center justify-center gap-1.5">
                           <button 
@@ -338,32 +338,15 @@ const Contacts = () => {
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                      ) : contact.status === 'Approved' ? (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Approved
-                          </span>
-                          <button 
-                            type="button"
-                            onClick={() => handleViewDetail(contact)}
-                            className="p-1 text-slate-400 hover:text-primary hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
-                            title="Lihat Detail / Ubah Status"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
                       ) : (
-                        <div className="flex items-center justify-center gap-1.5">
-                          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
-                            <XCircle className="w-3 h-3 text-rose-600" /> Rejected
-                          </span>
+                        <div className="flex items-center justify-center">
                           <button 
                             type="button"
                             onClick={() => handleViewDetail(contact)}
-                            className="p-1 text-slate-400 hover:text-primary hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
-                            title="Lihat Detail / Ubah Status"
+                            className="inline-flex items-center gap-1.5 px-3 py-1 text-slate-600 hover:text-primary hover:bg-slate-100 border border-slate-200/80 rounded-lg text-[11px] font-bold transition-all cursor-pointer"
+                            title="Lihat Rincian Kontak"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5 text-slate-400" /> Detail
                           </button>
                         </div>
                       )}
@@ -372,7 +355,7 @@ const Contacts = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-16 text-center">
+                  <td colSpan="5" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-500">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="font-bold text-slate-700">Tidak ada kontak ditemukan</p>
@@ -480,10 +463,10 @@ const Contacts = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">Upload Dokumen KTP</label>
+            <label className="block font-bold text-slate-700 mb-1.5">Upload Dokumen Kartu Keluarga (KK)</label>
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50 text-center text-slate-500">
               <Camera className="w-5 h-5 mx-auto mb-1 text-slate-400" />
-              <span className="text-[11px] font-medium">Klik untuk upload foto KTP</span>
+              <span className="text-[11px] font-medium">Klik untuk upload foto Kartu Keluarga (KK)</span>
             </div>
           </div>
         </form>
@@ -523,7 +506,7 @@ const Contacts = () => {
                 ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500' 
                 : 'border-slate-300 focus:ring-primary/20 focus:border-primary'
             }`}
-            placeholder="Contoh: Foto KTP tidak jelas / bukan keluarga inti..."
+            placeholder="Contoh: Foto Kartu Keluarga tidak jelas / nama pemohon tidak ada dalam KK..."
             required
           ></textarea>
           {rejectError && <p className="text-rose-600 text-xs font-semibold flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{rejectError}</p>}
@@ -599,7 +582,7 @@ const Contacts = () => {
       <Modal
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
-        title={`Foto KTP - ${selectedContact?.contactName}`}
+        title={`Foto Kartu Keluarga (KK) - ${selectedContact?.contactName}`}
         cancelText="Tutup"
         confirmText="Selesai"
         onConfirm={() => setIsImageModalOpen(false)}
@@ -607,9 +590,9 @@ const Contacts = () => {
         <div className="flex flex-col items-center justify-center p-4 bg-slate-100 rounded-xl">
           <div className="w-full max-w-sm aspect-[1.6/1] bg-slate-200 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500">
             <ImageIcon className="w-10 h-10 mb-2 text-slate-400" />
-            <p className="font-bold text-xs text-slate-700">Dokumen KTP Terverifikasi</p>
+            <p className="font-bold text-xs text-slate-700">Dokumen Kartu Keluarga (KK) Terverifikasi</p>
             <p className="text-[11px] text-slate-500 mt-0.5">Atas Nama: {selectedContact?.contactName}</p>
-            <p className="text-[10px] text-slate-400 font-mono mt-1">NIK: 317508******1004</p>
+            <p className="text-[10px] text-slate-400 font-mono mt-1">No. KK: 317508******0001</p>
           </div>
         </div>
       </Modal>

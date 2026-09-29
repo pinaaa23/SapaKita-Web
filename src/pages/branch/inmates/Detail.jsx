@@ -184,11 +184,11 @@ const InmatesDetail = () => {
               <span className="font-bold text-slate-800">{inmate.name}</span>
             </div>
             <div>
-              <span className="text-slate-400 block font-medium">No. Registrasi WBP</span>
+              <span className="text-slate-400 block font-medium">No. ID</span>
               <span className="font-bold font-mono text-slate-800">{inmate.wbpRegNumber}</span>
             </div>
             <div>
-              <span className="text-slate-400 block font-medium">NIK KTP</span>
+              <span className="text-slate-400 block font-medium">No. KK</span>
               <span className="font-bold font-mono text-slate-800">{inmate.nik || '-'}</span>
             </div>
             <div>

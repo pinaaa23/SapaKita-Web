@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, 
   Plus, 
@@ -25,6 +25,7 @@ import { exportToCSV } from '../../../utils/exportUtils';
 
 const InmatesList = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [inmatesList, setInmatesList] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -42,7 +43,12 @@ const InmatesList = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+    if (location.state?.toast) {
+      setToastMessage(location.state.toast);
+      window.history.replaceState({}, document.title);
+      setTimeout(() => setToastMessage(''), 3500);
+    }
+  }, [location]);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
@@ -55,7 +61,6 @@ const InmatesList = () => {
   const filteredInmates = inmatesList.filter(item => {
     const matchesSearch = searchTerm === '' ||
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.wbpRegNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.blockRoom.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
@@ -78,9 +83,7 @@ const InmatesList = () => {
 
   const handleExport = () => {
     const exportData = filteredInmates.map(i => ({
-      No_Registrasi_WBP: i.wbpRegNumber,
       Nama_Lengkap: i.name,
-      NIK: i.nik || '-',
       Blok_Kamar: i.blockRoom,
       Tanggal_Masuk: i.entryDate,
       Saldo_Panggilan: i.callBalance,
@@ -106,7 +109,7 @@ const InmatesList = () => {
       )}
 
       {/* Main Table Container */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-200/80 overflow-hidden transition-all">
         
         {/* Top Control Bar */}
         <div className="p-5 border-b border-slate-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50/60">
@@ -116,7 +119,7 @@ const InmatesList = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama WBP atau No. Registrasi..." 
+              placeholder="Cari nama WBP atau blok kamar..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium"
@@ -152,7 +155,7 @@ const InmatesList = () => {
             {/* Add Inmate Button */}
             <Link 
               to="/branch/inmates/create"
-              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-2 shadow-md transition-all text-xs cursor-pointer ml-auto md:ml-1"
+              className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all text-xs cursor-pointer ml-auto md:ml-1"
             >
               <Plus className="w-4 h-4" /> Tambah Narapidana
             </Link>
@@ -160,17 +163,16 @@ const InmatesList = () => {
         </div>
 
         {/* Table View */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-5 whitespace-nowrap">No. Registrasi WBP</th>
                 <th className="py-3.5 px-5">Nama Lengkap</th>
-                <th className="py-3.5 px-5">Blok / Kamar</th>
-                <th className="py-3.5 px-5 whitespace-nowrap">Tgl Masuk</th>
-                <th className="py-3.5 px-5 whitespace-nowrap">Saldo Panggilan</th>
-                <th className="py-3.5 px-5 whitespace-nowrap">Status Penempatan</th>
-                <th className="py-3.5 px-5 whitespace-nowrap">Status Akun</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Blok / Kamar</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Tgl Masuk</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Saldo Panggilan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status Penempatan</th>
+                <th className="py-3.5 px-4 whitespace-nowrap">Status Akun</th>
                 <th className="py-3.5 px-5 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
@@ -178,23 +180,19 @@ const InmatesList = () => {
               {filteredInmates.length > 0 ? (
                 filteredInmates.map((inmate) => (
                   <tr key={inmate.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-5 font-mono font-bold text-slate-700 whitespace-nowrap">
-                      {inmate.wbpRegNumber}
+                    <td className="py-3.5 px-5 font-bold text-slate-800 whitespace-nowrap">
+                      {inmate.name}
                     </td>
-                    <td className="py-3.5 px-5">
-                      <div className="font-bold text-slate-800">{inmate.name}</div>
-                      {inmate.nik && <div className="text-[10px] text-slate-400 font-mono">NIK: {inmate.nik}</div>}
-                    </td>
-                    <td className="py-3.5 px-5 font-medium text-slate-700">
+                    <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
                       {inmate.blockRoom}
                     </td>
-                    <td className="py-3.5 px-5 font-medium text-slate-600 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-medium text-slate-600 whitespace-nowrap">
                       {new Date(inmate.entryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </td>
-                    <td className="py-3.5 px-5 font-extrabold text-slate-800 whitespace-nowrap">
+                    <td className="py-3.5 px-4 font-extrabold text-slate-800 whitespace-nowrap">
                       {formatCurrency(inmate.callBalance)}
                     </td>
-                    <td className="py-3.5 px-5 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         inmate.status === 'Aktif' 
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
@@ -208,7 +206,7 @@ const InmatesList = () => {
                         {inmate.status}
                       </span>
                     </td>
-                    <td className="py-3.5 px-5 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         inmate.commStatus === 'Aktif' 
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
@@ -257,7 +255,7 @@ const InmatesList = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="8" className="py-16 text-center">
+                  <td colSpan="7" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="font-bold text-slate-700">Tidak ada narapidana ditemukan</p>
@@ -276,7 +274,7 @@ const InmatesList = () => {
             <div className="font-medium">Menampilkan 1-{filteredInmates.length} dari {filteredInmates.length} narapidana</div>
             <div className="flex items-center gap-1">
               <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-50 text-xs font-semibold">Sebelumnya</button>
-              <button type="button" className="px-3 py-1.5 border border-primary bg-primary text-white rounded-lg font-bold text-xs shadow-sm">1</button>
+              <button type="button" className="px-3 py-1.5 border border-primary bg-primary text-white rounded-lg font-bold text-xs shadow-xs">1</button>
               <button type="button" disabled className="px-3 py-1.5 border border-slate-200 rounded-lg bg-white disabled:opacity-50 text-xs font-semibold">Selanjutnya</button>
             </div>
           </div>

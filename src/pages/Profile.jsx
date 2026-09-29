@@ -134,7 +134,7 @@ const Profile = () => {
               onClick={() => setIsLogoutModalOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold backdrop-blur-md transition-all border border-white/20 cursor-pointer shadow-sm"
             >
-              <LogOut className="w-3.5 h-3.5" /> Keluar Sesi
+              <LogOut className="w-3.5 h-3.5" /> Logout
             </button>
           </div>
         </div>
@@ -387,26 +387,13 @@ const Profile = () => {
       <Modal 
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        title="Konfirmasi Keluar"
-      >
-        <div className="py-4">
-          <p className="text-slate-600 text-sm mb-6 font-medium">Apakah Anda yakin ingin keluar dari sesi Superadmin saat ini?</p>
-          <div className="flex justify-end gap-3">
-            <button 
-              onClick={() => setIsLogoutModalOpen(false)}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
-            >
-              Batal
-            </button>
-            <button 
-              onClick={() => navigate('/login')}
-              className="px-5 py-2 bg-red-600 text-white text-xs font-bold rounded-xl hover:bg-red-700 transition-all shadow-md cursor-pointer"
-            >
-              Ya, Keluar
-            </button>
-          </div>
-        </div>
-      </Modal>
+        onConfirm={() => navigate('/login')}
+        title="Konfirmasi Logout"
+        message="Apakah Anda yakin ingin keluar dari sesi Superadmin saat ini?"
+        confirmText="Logout"
+        cancelText="Batal"
+        isDanger={true}
+      />
 
     </div>
   );

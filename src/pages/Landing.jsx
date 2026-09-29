@@ -1,6 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare, Sparkles } from 'lucide-react';
+import mockupPascall from '../assets/mockup_pascall.png';
+import warmConnectionImg from '../assets/warm_connection.jpg';
+import lapasImg from '../assets/lapas.jpg';
+import familyCallImg from '../assets/family_call.jpg';
+import securityConnectionImg from '../assets/security_connection.jpg';
 
 /**
  * Link URL unduhan aplikasi PasCall (APK / Play Store).
@@ -713,7 +718,7 @@ export default function Landing() {
 
               {/* 5. Mockup image */}
               <img
-                src="/reference/mockup_pascall.png"
+                src={mockupPascall}
                 alt="Mockup Aplikasi PasCall"
                 className="relative z-10 w-full h-auto object-contain max-w-full block pointer-events-none"
               />
@@ -762,7 +767,7 @@ export default function Landing() {
                   }}
                 >
                   <img
-                    src="/assets/warm_connection.jpg"
+                    src={warmConnectionImg}
                     alt="Komunikasi hangat dan bermakna bersama orang tercinta"
                     className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                   />
@@ -778,7 +783,7 @@ export default function Landing() {
                   }}
                 >
                   <img
-                    src="/assets/lapas.jpg"
+                    src={lapasImg}
                     alt="Fasilitas institusi pemasyarakatan terintegrasi digital"
                     className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                   />
@@ -794,7 +799,7 @@ export default function Landing() {
                   }}
                 >
                   <img
-                    src="/assets/family_call.jpg"
+                    src={familyCallImg}
                     alt="Keluarga bahagia terhubung lewat panggilan video"
                     className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                   />
@@ -810,7 +815,7 @@ export default function Landing() {
                   }}
                 >
                   <img
-                    src="/assets/security_connection.jpg"
+                    src={securityConnectionImg}
                     alt="Jaringan komunikasi aman dan terenkripsi"
                     className="w-full h-full object-cover brightness-[0.98] contrast-[1.02] transition-all duration-500 group-hover:scale-105"
                   />
