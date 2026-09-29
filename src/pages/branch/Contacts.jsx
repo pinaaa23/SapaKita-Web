@@ -28,9 +28,9 @@ const initialContacts = Array.from({ length: 20 }).map((_, i) => {
   if (i % 3 === 2) {
     status = 'Rejected';
     const reasons = [
-      'Foto Kartu Keluarga tidak jelas / buram',
-      'Nama pemohon tidak terdaftar di Kartu Keluarga',
-      'Hubungan keluarga tidak sesuai di KK'
+      'Foto dokumen verifikasi tidak jelas / buram',
+      'Nama pemohon tidak sesuai dengan identitas terdaftar',
+      'Nomor telepon pemohon tidak aktif atau tidak valid'
     ];
     rejectReason = reasons[i % reasons.length];
   }
@@ -120,7 +120,7 @@ const Contacts = () => {
     setIsRejectModalOpen(true);
   };
 
-  const handleViewKK = (contact) => {
+  const handleViewDoc = (contact) => {
     setSelectedContact(contact);
     setIsImageModalOpen(true);
   };
@@ -463,10 +463,10 @@ const Contacts = () => {
           </div>
 
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">Upload Dokumen Kartu Keluarga (KK)</label>
+            <label className="block font-bold text-slate-700 mb-1.5">Upload Dokumen Identitas / Verifikasi</label>
             <div className="border-2 border-dashed border-slate-300 rounded-xl p-3 bg-slate-50 text-center text-slate-500">
               <Camera className="w-5 h-5 mx-auto mb-1 text-slate-400" />
-              <span className="text-[11px] font-medium">Klik untuk upload foto Kartu Keluarga (KK)</span>
+              <span className="text-[11px] font-medium">Klik untuk upload foto dokumen verifikasi</span>
             </div>
           </div>
         </form>
@@ -506,7 +506,7 @@ const Contacts = () => {
                 ? 'border-rose-300 focus:ring-rose-500/20 focus:border-rose-500' 
                 : 'border-slate-300 focus:ring-primary/20 focus:border-primary'
             }`}
-            placeholder="Contoh: Foto Kartu Keluarga tidak jelas / nama pemohon tidak ada dalam KK..."
+            placeholder="Contoh: Foto dokumen tidak jelas / nama pemohon tidak sesuai identitas terdaftar..."
             required
           ></textarea>
           {rejectError && <p className="text-rose-600 text-xs font-semibold flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" />{rejectError}</p>}
@@ -582,7 +582,7 @@ const Contacts = () => {
       <Modal
         isOpen={isImageModalOpen}
         onClose={() => setIsImageModalOpen(false)}
-        title={`Foto Kartu Keluarga (KK) - ${selectedContact?.contactName}`}
+        title={`Dokumen Verifikasi Kontak - ${selectedContact?.contactName}`}
         cancelText="Tutup"
         confirmText="Selesai"
         onConfirm={() => setIsImageModalOpen(false)}
@@ -590,9 +590,9 @@ const Contacts = () => {
         <div className="flex flex-col items-center justify-center p-4 bg-slate-100 rounded-xl">
           <div className="w-full max-w-sm aspect-[1.6/1] bg-slate-200 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-500">
             <ImageIcon className="w-10 h-10 mb-2 text-slate-400" />
-            <p className="font-bold text-xs text-slate-700">Dokumen Kartu Keluarga (KK) Terverifikasi</p>
-            <p className="text-[11px] text-slate-500 mt-0.5">Atas Nama: {selectedContact?.contactName}</p>
-            <p className="text-[10px] text-slate-400 font-mono mt-1">No. KK: 317508******0001</p>
+            <p className="font-bold text-xs text-slate-700">Dokumen Verifikasi Kontak Terdaftar</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Atas Nama: {selectedContact?.contactName} ({selectedContact?.relation})</p>
+            <p className="text-[10px] text-slate-400 font-mono mt-1">No. Telp: {selectedContact?.phone} • ID Kontak: {selectedContact?.id}</p>
           </div>
         </div>
       </Modal>

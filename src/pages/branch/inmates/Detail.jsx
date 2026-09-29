@@ -188,10 +188,6 @@ const InmatesDetail = () => {
               <span className="font-bold font-mono text-slate-800">{inmate.wbpRegNumber}</span>
             </div>
             <div>
-              <span className="text-slate-400 block font-medium">No. KK</span>
-              <span className="font-bold font-mono text-slate-800">{inmate.nik || '-'}</span>
-            </div>
-            <div>
               <span className="text-slate-400 block font-medium">Tempat & Tanggal Lahir</span>
               <span className="font-semibold text-slate-800">{inmate.birthPlace || '-'}, {inmate.birthDate || '-'}</span>
             </div>

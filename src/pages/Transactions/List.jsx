@@ -7,14 +7,16 @@ import {
   CheckCircle2, 
   XCircle, 
   Wallet, 
-  ArrowUpRight, 
+  ArrowDownRight, 
   Clock, 
   Users, 
   Download,
   Building2,
   Calendar,
   X,
-  ChevronDown
+  ChevronDown,
+  PhoneCall,
+  ShoppingBag
 } from 'lucide-react';
 import { mockTransactions, mockBranches, mockUsers, mockTransactionStats } from '../../services/mockData';
 import { exportToCSV } from '../../utils/exportUtils';
@@ -25,6 +27,7 @@ const List = () => {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [branchFilter, setBranchFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
   const [officerFilter, setOfficerFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [startDate, setStartDate] = useState('');
@@ -38,14 +41,38 @@ const List = () => {
 
   const canteenOfficers = mockUsers.filter(u => u.role === 'Petugas Kantin');
 
+  // Category determination helper
+  const getTransactionCategory = (trx) => {
+    const explicitCat = trx.category;
+    const desc = (trx.description || '').toLowerCase();
+
+    if (explicitCat === 'Panggilan' || desc.includes('pemakaian') || (desc.includes('panggilan') && !desc.includes('pembelian'))) {
+      return {
+        label: 'Panggilan',
+        dotColor: 'bg-amber-500',
+        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200/60'
+      };
+    }
+
+    return {
+      label: 'Kantin',
+      dotColor: 'bg-rose-500',
+      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200/60'
+    };
+  };
+
   const filteredTransactions = mockTransactions.filter(trx => {
+    const cat = getTransactionCategory(trx);
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm || 
                           trx.id.toLowerCase().includes(searchLower) || 
                           trx.inmateName.toLowerCase().includes(searchLower) || 
-                          trx.inmateId.toLowerCase().includes(searchLower);
+                          trx.inmateId.toLowerCase().includes(searchLower) ||
+                          (trx.description || '').toLowerCase().includes(searchLower) ||
+                          cat.label.toLowerCase().includes(searchLower);
     
     const matchesBranch = branchFilter === 'All' || trx.branchId === branchFilter;
+    const matchesCategory = categoryFilter === 'All' || cat.label === categoryFilter;
     const matchesOfficer = officerFilter === 'All' || trx.officerName === officerFilter;
     const matchesStatus = statusFilter === 'All' || trx.status === statusFilter;
     
@@ -57,8 +84,12 @@ const List = () => {
       matchesDate = trxDate >= start && trxDate <= end;
     }
 
-    return matchesSearch && matchesBranch && matchesOfficer && matchesStatus && matchesDate;
+    return matchesSearch && matchesBranch && matchesCategory && matchesOfficer && matchesStatus && matchesDate;
   });
+
+  const totalPemakaian = filteredTransactions.filter(t => t.status === 'Berhasil').reduce((sum, t) => sum + t.amount, 0);
+  const totalPanggilan = filteredTransactions.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Panggilan').reduce((sum, t) => sum + t.amount, 0);
+  const totalKantin = filteredTransactions.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Kantin').reduce((sum, t) => sum + t.amount, 0);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
@@ -69,27 +100,33 @@ const List = () => {
   };
 
   const handleExport = () => {
-    const exportData = filteredTransactions.map(t => ({
-      'ID Transaksi': t.id,
-      'Cabang': branchesMap[t.branchId] || t.branchId,
-      'Nama WBP': t.inmateName,
-      'ID WBP': t.inmateId,
-      'Nominal (Rp)': t.amount,
-      'Petugas': t.officerName,
-      'Metode': t.method,
-      'Status': t.status,
-      'Waktu': new Date(t.date).toLocaleString('id-ID'),
-      'Saldo Sebelum': t.balanceBefore,
-      'Saldo Sesudah': t.balanceAfter
-    }));
-    exportToCSV(exportData, `Data_Transaksi_PasCall_${new Date().toISOString().split('T')[0]}`);
+    const exportData = filteredTransactions.map(t => {
+      const cat = getTransactionCategory(t);
+      return {
+        'ID Transaksi': t.id,
+        'Cabang': branchesMap[t.branchId] || t.branchId,
+        'Nama WBP': t.inmateName,
+        'ID WBP': t.inmateId,
+        'Kategori': cat.label,
+        'Keterangan': t.description,
+        'Nominal (Rp)': `-${t.amount}`,
+        'Petugas': t.officerName || 'Sistem (Otomatis)',
+        'Metode': t.method || 'Potong Saldo',
+        'Status': t.status,
+        'Waktu': new Date(t.date).toLocaleString('id-ID'),
+        'Saldo Sebelum': t.balanceBefore,
+        'Saldo Sesudah': t.balanceAfter
+      };
+    });
+    exportToCSV(exportData, `Data_Mutasi_Transaksi_PasCall_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const hasActiveFilters = searchTerm !== '' || branchFilter !== 'All' || officerFilter !== 'All' || statusFilter !== 'All' || startDate !== '' || endDate !== '';
+  const hasActiveFilters = searchTerm !== '' || branchFilter !== 'All' || categoryFilter !== 'All' || officerFilter !== 'All' || statusFilter !== 'All' || startDate !== '' || endDate !== '';
 
   const resetFilters = () => {
     setSearchTerm('');
     setBranchFilter('All');
+    setCategoryFilter('All');
     setOfficerFilter('All');
     setStatusFilter('All');
     setStartDate('');
@@ -98,31 +135,31 @@ const List = () => {
 
   return (
     <div className="space-y-4">
-      {/* Stats Grid */}
+      {/* Stats Grid - Synchronized with Saldo Deductions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <StatCard 
-          title="Total Transaksi Hari Ini" 
-          value={new Intl.NumberFormat('id-ID').format(mockTransactionStats.todayCount)} 
-          icon={ArrowUpRight} 
+          title="Total Pemakaian Nasional" 
+          value={formatCurrency(totalPemakaian)} 
+          icon={Wallet} 
+          color="rose"
+        />
+        <StatCard 
+          title="Pemakaian Panggilan" 
+          value={formatCurrency(totalPanggilan)} 
+          icon={PhoneCall} 
+          color="accent"
+        />
+        <StatCard 
+          title="Pemakaian Paket Kantin" 
+          value={formatCurrency(totalKantin)} 
+          icon={ShoppingBag} 
           color="blue"
         />
         <StatCard 
-          title="Total Nominal Hari Ini" 
-          value={formatCurrency(mockTransactionStats.todayAmount)} 
-          icon={Wallet} 
+          title="Total Mutasi Sukses" 
+          value={new Intl.NumberFormat('id-ID').format(filteredTransactions.filter(t => t.status === 'Berhasil').length)} 
+          icon={ArrowDownRight} 
           color="green"
-        />
-        <StatCard 
-          title="Total Transaksi Bulan Ini" 
-          value={new Intl.NumberFormat('id-ID').format(mockTransactionStats.monthCount)} 
-          icon={Clock} 
-          color="primary"
-        />
-        <StatCard 
-          title="Total Nominal Bulan Ini" 
-          value={formatCurrency(mockTransactionStats.monthAmount)} 
-          icon={Wallet} 
-          color="accent"
         />
       </div>
 
@@ -135,7 +172,7 @@ const List = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             <input 
               type="text" 
-              placeholder="Cari ID transaksi (TRX-...), nama WBP, atau ID WBP..." 
+              placeholder="Cari ID transaksi (TRX-...), nama WBP, ID WBP, atau keterangan..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-9 py-2 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
@@ -187,6 +224,24 @@ const List = () => {
                 {mockBranches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
+              </select>
+              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+
+            {/* Kategori Filter (Panggilan / Kantin) */}
+            <div className="relative">
+              <select 
+                value={categoryFilter} 
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className={`pl-2.5 pr-7 py-1 rounded-xl border text-xs font-semibold appearance-none cursor-pointer transition-all ${
+                  categoryFilter !== 'All' 
+                    ? 'bg-blue-50/90 border-blue-200 text-primary font-bold shadow-2xs' 
+                    : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <option value="All">Semua Kategori</option>
+                <option value="Panggilan">Panggilan</option>
+                <option value="Kantin">Kantin</option>
               </select>
               <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -271,104 +326,109 @@ const List = () => {
         </div>
       </div>
 
-      {/* Table Card - Optimized column widths and cell padding so columns never get clipped */}
+      {/* Table Card - Luxurious Spacing & Fully Responsive Layout (Zero Clipping) */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] uppercase tracking-wider">
-                <th className="px-3.5 py-3 font-bold whitespace-nowrap">ID Transaksi</th>
-                <th className="px-3 py-3 font-bold whitespace-nowrap">Waktu</th>
-                <th className="px-3 py-3 font-bold">Narapidana</th>
-                <th className="px-3 py-3 font-bold">Cabang</th>
-                <th className="px-3 py-3 font-bold">Petugas Kantin</th>
-                <th className="px-3.5 py-3 font-bold text-right whitespace-nowrap">Nominal</th>
-                <th className="px-2.5 py-3 font-bold text-center whitespace-nowrap">Status</th>
-                <th className="px-3 py-3 font-bold text-center whitespace-nowrap">Aksi</th>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">ID Transaksi & Waktu</th>
+                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Warga Binaan & Cabang</th>
+                <th className="py-3.5 px-4 lg:px-5">Kategori & Keterangan</th>
+                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Petugas / Sistem</th>
+                <th className="py-3.5 px-4 lg:px-5 text-right whitespace-nowrap">Nominal</th>
+                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Status</th>
+                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {filteredTransactions.length > 0 ? (
-                filteredTransactions.slice(0, entriesPerPage).map((trx) => (
-                  <tr key={trx.id} className="hover:bg-slate-50/60 transition-colors">
-                    {/* ID Transaksi */}
-                    <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100/90 px-2 py-0.5 rounded-lg border border-slate-200/70">
-                        {trx.id}
-                      </span>
-                    </td>
-
-                    {/* Waktu */}
-                    <td className="px-3 py-2.5 whitespace-nowrap">
-                      <p className="font-bold text-slate-800 text-xs">
-                        {new Date(trx.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                      </p>
-                      <p className="text-slate-400 text-[11px] font-medium">
-                        {new Date(trx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                      </p>
-                    </td>
-
-                    {/* Narapidana */}
-                    <td className="px-3 py-2.5">
-                      <p className="font-bold text-slate-800 text-xs truncate max-w-[130px]" title={trx.inmateName}>
-                        {trx.inmateName}
-                      </p>
-                      <span className="font-mono text-[10px] text-primary bg-primary/10 px-1.5 py-0.5 rounded font-bold inline-block">
-                        {trx.inmateId}
-                      </span>
-                    </td>
-
-                    {/* Cabang */}
-                    <td className="px-3 py-2.5 text-slate-600">
-                      <span className="inline-flex items-center gap-1 font-medium text-slate-700 text-xs truncate max-w-[130px]" title={branchesMap[trx.branchId] || trx.branchId}>
-                        <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate">{branchesMap[trx.branchId] || trx.branchId}</span>
-                      </span>
-                    </td>
-
-                    {/* Petugas Kantin */}
-                    <td className="px-3 py-2.5 text-slate-700 font-medium whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        {trx.officerName}
-                      </span>
-                    </td>
-
-                    {/* Nominal */}
-                    <td className="px-3.5 py-2.5 text-right text-slate-800 font-bold whitespace-nowrap">
-                      <span className="text-emerald-700 font-bold">
-                        {formatCurrency(trx.amount)}
-                      </span>
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-2.5 py-2.5 text-center whitespace-nowrap">
-                      {trx.status === 'Berhasil' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Berhasil
+                filteredTransactions.slice(0, entriesPerPage).map((trx) => {
+                  const cat = getTransactionCategory(trx);
+                  return (
+                    <tr key={trx.id} className="hover:bg-slate-50/60 transition-colors">
+                      {/* ID Transaksi & Waktu */}
+                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                        <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100/90 px-2 py-0.5 rounded-lg border border-slate-200/70">
+                          {trx.id}
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                          <XCircle className="w-3 h-3 text-rose-600" /> Gagal
-                        </span>
-                      )}
-                    </td>
+                        <p className="text-slate-400 text-[11px] font-medium mt-1">
+                          {new Date(trx.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • {new Date(trx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                        </p>
+                      </td>
 
-                    {/* Aksi */}
-                    <td className="px-3 py-2.5 text-center whitespace-nowrap">
-                      <button 
-                        onClick={() => navigate(`/transactions/${trx.id}`)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-primary rounded-lg text-xs font-bold transition-all border border-slate-200/80 cursor-pointer shadow-2xs"
-                        title="Lihat Detail Transaksi"
-                      >
-                        <FileText className="w-3 h-3 text-slate-500" /> Detail
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                      {/* Warga Binaan & Cabang */}
+                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                        <p className="font-bold text-slate-800 text-xs">
+                          {trx.inmateName}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                          <span className="font-mono text-slate-400">{trx.inmateId}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                            <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                            {branchesMap[trx.branchId] || trx.branchId}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Kategori & Keterangan */}
+                      <td className="py-3.5 px-4 lg:px-5">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold border ${cat.badgeBg}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
+                            {cat.label}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-700 font-medium leading-snug">
+                          {trx.description || '-'}
+                        </p>
+                      </td>
+
+                      {/* Petugas / Sistem */}
+                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium text-xs">
+                          <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          {trx.officerName || 'Sistem (Otomatis)'}
+                        </span>
+                      </td>
+
+                      {/* Nominal */}
+                      <td className="py-3.5 px-4 lg:px-5 text-right whitespace-nowrap">
+                        <span className="text-rose-600 font-extrabold text-xs tracking-tight">
+                          -{formatCurrency(trx.amount)}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
+                        {trx.status === 'Berhasil' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Berhasil
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                            <XCircle className="w-3 h-3 text-rose-600" /> Gagal
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Aksi */}
+                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
+                        <button 
+                          onClick={() => navigate(`/transactions/${trx.id}`)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-primary rounded-lg text-xs font-bold transition-all border border-slate-200/80 cursor-pointer shadow-2xs hover:border-primary/30"
+                          title="Lihat Detail Transaksi"
+                        >
+                          <FileText className="w-3 h-3 text-slate-500" /> Detail
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
                     <p className="font-semibold text-slate-700 text-sm">Tidak ada data transaksi yang sesuai</p>
                     <p className="text-xs text-slate-400 mt-1">Coba sesuaikan kata kunci pencarian atau ubah filter cabang & status.</p>
                   </td>

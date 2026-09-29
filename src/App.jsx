@@ -1,11 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
-// Landing Page untuk semua user (keluarga & publik) - simpan untuk referensi/penggunaan kembali
+// Landing Page (Pusat & Cabang / Publik) - disimpan untuk referensi/penggunaan kembali jika dibutuhkan
+// import LandingAdmin from './pages/LandingAdmin';
 // import Landing from './pages/Landing';
-
-// Landing Page BARU khusus Admin (Pusat & Cabang)
-import LandingAdmin from './pages/LandingAdmin';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 
@@ -45,9 +43,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Halaman Landing Admin (Aktif) */}
-        {/* Untuk mengembalikan ke Landing Page publik lama: ganti element ke <Landing /> */}
-        <Route path="/" element={<LandingAdmin />} />
+        {/* Langsung redirect root ke halaman login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
         
         {/* Admin Dashboard Routes wrapped in Layout */}
@@ -102,7 +99,7 @@ function App() {
           </Route>
         </Route>
         
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

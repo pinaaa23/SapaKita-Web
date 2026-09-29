@@ -1,6 +1,21 @@
 import React from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download, ShieldAlert, User, CheckCircle2, XCircle, MapPin, BadgeDollarSign, Wallet, Calendar, Fingerprint } from 'lucide-react';
+import { 
+  ArrowLeft, 
+  Download, 
+  ShieldAlert, 
+  User, 
+  CheckCircle2, 
+  XCircle, 
+  MapPin, 
+  BadgeDollarSign, 
+  Wallet, 
+  Calendar, 
+  Fingerprint,
+  PhoneCall,
+  ShoppingBag,
+  Cpu
+} from 'lucide-react';
 import { mockTransactions, mockBranches, mockUsers } from '../../services/mockData';
 
 const Detail = () => {
@@ -22,6 +37,9 @@ const Detail = () => {
   const branchName = mockBranches.find(b => b.id === trx.branchId)?.name || 'Unknown Branch';
   const isSuccess = trx.status === 'Berhasil';
 
+  const isCall = trx.category === 'Panggilan' || (trx.description || '').toLowerCase().includes('pemakaian');
+  const categoryLabel = isCall ? 'Panggilan' : 'Kantin';
+
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
   };
@@ -36,10 +54,12 @@ Status           : ${trx.status}
 Waktu            : ${new Date(trx.date).toLocaleString('id-ID')} WIB
 Cabang           : ${branchName}
 Nama WBP         : ${trx.inmateName} (${trx.inmateId})
-Petugas Kantin   : ${trx.officerName}
-Metode           : ${trx.method}
+Kategori         : ${categoryLabel}
+Keterangan       : ${trx.description || '-'}
+Petugas / Sistem : ${trx.officerName || 'Sistem (Otomatis)'}
+Metode           : ${trx.method || 'Potong Saldo'}
 --------------------------------------------------
-Nominal Top-up   : ${formatCurrency(trx.amount)}
+Nominal Mutasi   : -${formatCurrency(trx.amount)}
 Saldo Sebelumnya : ${formatCurrency(trx.balanceBefore)}
 Saldo Sesudah    : ${formatCurrency(trx.balanceAfter)}
 --------------------------------------------------
@@ -81,7 +101,7 @@ PasCall Management System
         <div>
           <h4 className="text-sm font-bold text-amber-800">Immutable Ledger Record</h4>
           <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-            Data ini merupakan catatan transaksi permanen yang sudah disahkan ke buku besar sistem. Data tidak dapat diedit, diubah, maupun dihapus untuk menjamin integritas jejak audit Laporan Keuangan PasCall.
+            Data ini merupakan catatan mutasi pemakaian saldo permanen yang sudah disahkan ke buku besar sistem. Data tidak dapat diedit, diubah, maupun dihapus untuk menjamin integritas jejak audit Laporan Keuangan PasCall.
           </p>
         </div>
       </div>
@@ -97,26 +117,39 @@ PasCall Management System
           
           <div className="relative z-10">
             {isSuccess ? (
-              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
             ) : (
-              <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm">
                 <XCircle className="w-8 h-8" />
               </div>
             )}
             
-            <h2 className="text-3xl font-black text-slate-800 mb-2">{formatCurrency(trx.amount)}</h2>
-            <p className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-sm font-semibold mb-6 ${isSuccess ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              TRANSAKSI {trx.status.toUpperCase()}
-            </p>
+            <h2 className="text-3xl font-black text-rose-600 mb-2">-{formatCurrency(trx.amount)}</h2>
+            
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${
+                isSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+              }`}>
+                MUTASI {trx.status.toUpperCase()}
+              </span>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                categoryLabel === 'Panggilan' 
+                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}>
+                {categoryLabel === 'Panggilan' ? <PhoneCall className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
+                {categoryLabel}
+              </span>
+            </div>
             
             <div className="flex flex-col md:flex-row gap-6 justify-center text-slate-600 text-sm font-medium">
               <span className="flex items-center gap-1.5 justify-center"><Fingerprint className="w-4 h-4 text-slate-400" /> {trx.id}</span>
               <span className="hidden md:inline text-slate-300">•</span>
               <span className="flex items-center gap-1.5 justify-center"><Calendar className="w-4 h-4 text-slate-400" /> {new Date(trx.date).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })} WIB</span>
               <span className="hidden md:inline text-slate-300">•</span>
-              <span className="flex items-center gap-1.5 justify-center"><BadgeDollarSign className="w-4 h-4 text-slate-400" /> Metode {trx.method}</span>
+              <span className="flex items-center gap-1.5 justify-center"><BadgeDollarSign className="w-4 h-4 text-slate-400" /> {trx.method || 'Potong Saldo'}</span>
             </div>
           </div>
         </div>
@@ -128,7 +161,7 @@ PasCall Management System
             {/* Left Col: Narapidana & Balance */}
             <div className="space-y-8">
               <div>
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Penerima Saldo</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Warga Binaan (WBP)</h3>
                 <div className="flex gap-4 items-start">
                   <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center border border-slate-200 shrink-0">
                     <User className="w-6 h-6 text-slate-400" />
@@ -137,7 +170,7 @@ PasCall Management System
                     <h4 className="text-lg font-bold text-slate-800">{trx.inmateName}</h4>
                     <p className="text-slate-500 font-mono text-sm mt-0.5">{trx.inmateId}</p>
                     <p className="text-slate-500 text-sm mt-1 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5" /> {branchName}
+                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> {branchName}
                     </p>
                   </div>
                 </div>
@@ -147,12 +180,16 @@ PasCall Management System
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Mutasi Saldo</h3>
                 <div className="bg-slate-50 rounded-xl p-5 border border-slate-100 space-y-3">
                   <div className="flex justify-between items-center text-sm">
+                    <span className="text-slate-500 font-medium">Keterangan Transaksi</span>
+                    <span className="text-slate-800 font-semibold text-right max-w-[200px] truncate" title={trx.description}>{trx.description || '-'}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-slate-500 font-medium">Saldo Sebelum</span>
                     <span className="text-slate-700 font-semibold">{formatCurrency(trx.balanceBefore)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Nominal Top-up</span>
-                    <span className={`${isSuccess ? 'text-green-600' : 'text-red-600'} font-bold`}>{isSuccess ? '+' : ''} {formatCurrency(trx.amount)}</span>
+                    <span className="text-slate-500 font-medium">Nominal Pemakaian</span>
+                    <span className="text-rose-600 font-bold">-{formatCurrency(trx.amount)}</span>
                   </div>
                   <div className="pt-3 border-t border-slate-200 flex justify-between items-center">
                     <span className="text-slate-800 font-bold">Saldo Akhir</span>
@@ -168,11 +205,11 @@ PasCall Management System
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Diproses Oleh</h3>
                 <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
-                    <User className="w-5 h-5 text-primary" />
+                    {trx.officerName ? <User className="w-5 h-5 text-primary" /> : <Cpu className="w-5 h-5 text-primary" />}
                   </div>
                   <div>
-                    <h4 className="font-bold text-slate-800">{trx.officerName}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Petugas Kantin</p>
+                    <h4 className="font-bold text-slate-800">{trx.officerName || 'Sistem (Otomatis)'}</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">{trx.officerName ? 'Petugas Kantin' : 'Modul Otomasi Bilik Panggilan'}</p>
                   </div>
                 </div>
               </div>

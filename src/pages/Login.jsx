@@ -6,9 +6,8 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
-  ArrowLeft,
-  AlertCircle,
-  Check
+  AlertCircle, 
+  Check 
 } from 'lucide-react';
 
 export default function Login() {
@@ -70,7 +69,7 @@ export default function Login() {
 
   return (
     <div 
-      className="relative min-h-screen w-full flex flex-col items-center justify-start sm:justify-center py-6 sm:py-8 px-4 text-[#101828] select-none overflow-hidden"
+      className="relative min-h-screen h-screen w-full flex flex-col items-center justify-center p-3 sm:p-4 text-[#101828] select-none overflow-hidden"
       style={{
         background: 'radial-gradient(ellipse at 50% 45%, #f2f7fe 0%, #e6effa 50%, #d8e5f8 100%)',
         fontFamily: "'Montserrat', sans-serif"
@@ -126,64 +125,34 @@ export default function Login() {
       <div aria-hidden="true" className="absolute bottom-28 right-8 sm:right-20 w-2.5 h-2.5 rounded-full bg-[#2f6fed] opacity-40 pointer-events-none -z-10" />
 
       {/* Main Content Container */}
-      <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center">
-        {/* Top Header / Back Navigation & Brand Mark */}
-        <div className="w-full flex items-center justify-between mb-3.5 px-1">
-          <Link
-            to="/"
-            className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#475467] hover:text-[#2f6fed] transition-all duration-200 cursor-pointer"
-            style={{
-              backgroundColor: '#dce6f8',
-              boxShadow: '4px 4px 10px #b6c9e4, -4px -4px 10px #ffffff',
-            }}
-            title="Kembali ke Beranda"
-          >
-            <ArrowLeft size={14} className="group-hover:-translate-x-0.5 transition-transform text-[#2f6fed]" />
-            <span>Beranda</span>
-          </Link>
-
-          {/* Small Logo Mark */}
-          <Link to="/" className="flex items-center gap-2 group">
-            <svg width="24" height="18" viewBox="0 0 32 24" fill="none" aria-hidden="true" className="group-hover:scale-105 transition-transform">
-              <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#neu-logo-g)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-              <defs>
-                <linearGradient id="neu-logo-g" x1="0" y1="12" x2="32" y2="12">
-                  <stop offset="0%" stopColor="#2f6fed"/>
-                  <stop offset="100%" stopColor="#60a5fa"/>
-                </linearGradient>
-              </defs>
-            </svg>
-            <span className="text-base font-extrabold tracking-tight text-[#101828]">PasCall</span>
-          </Link>
-        </div>
-
+      <div className="relative z-10 w-full max-w-[400px] flex flex-col items-center my-auto">
         {/* ================================================================
             MAIN NEUMORPHIC CARD (Enhanced Edge Contrast & Dual Shadow)
             ================================================================ */}
         <main
-          className="relative w-full rounded-[28px] sm:rounded-[32px] p-5 sm:p-7 flex flex-col items-center border border-white/40"
+          className="relative w-full rounded-[28px] sm:rounded-[32px] p-6 sm:p-7 flex flex-col items-center border border-white/50"
           style={{
             backgroundColor: '#dce6f8',
             boxShadow: '16px 16px 36px rgba(145, 165, 195, 0.78), -16px -16px 36px rgba(255, 255, 255, 0.95)',
           }}
         >
-          {/* 1. Neumorphic Avatar Icon (Raised Circle Badge with Inset Wave) */}
+          {/* 1. Neumorphic Avatar Brand Icon (Raised Circle Badge with Inset Wave) */}
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center -mt-2 mb-3.5 transition-transform duration-300 hover:scale-105"
+            className="w-14 h-14 rounded-full flex items-center justify-center -mt-1 mb-3 transition-transform duration-300 hover:scale-105"
             style={{
               backgroundColor: '#dce6f8',
-              boxShadow: '6px 6px 14px #b6c9e4, -6px -6px 14px #ffffff',
+              boxShadow: '5px 5px 12px #b6c9e4, -5px -5px 12px #ffffff',
             }}
             aria-hidden="true"
           >
             <div
-              className="w-11 h-11 rounded-full flex items-center justify-center"
+              className="w-9 h-9 rounded-full flex items-center justify-center"
               style={{
                 backgroundColor: '#dce6f8',
-                boxShadow: 'inset 3px 3px 5px #b6c9e4, inset -3px -3px 5px #ffffff',
+                boxShadow: 'inset 2px 2px 4px #b6c9e4, inset -2px -2px 4px #ffffff',
               }}
             >
-              <svg width="24" height="18" viewBox="0 0 32 24" fill="none" aria-hidden="true">
+              <svg width="20" height="15" viewBox="0 0 32 24" fill="none" aria-hidden="true">
                 <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#neu-card-g)" strokeWidth="3.6" strokeLinecap="round" fill="none"/>
                 <defs>
                   <linearGradient id="neu-card-g" x1="0" y1="12" x2="32" y2="12">
@@ -196,14 +165,14 @@ export default function Login() {
           </div>
 
           {/* 2. Header Text */}
-          <h1 className="text-xl font-extrabold text-[#101828] tracking-tight text-center">
+          <h1 className="text-xl font-extrabold text-[#101828] tracking-tight text-center leading-tight">
             Masuk ke PasCall
           </h1>
-          <p className="text-[11px] text-[#475467] font-medium mt-0.5 mb-4 text-center leading-tight max-w-[270px]">
-            Kelola akun dan komunikasi layanan PasCall.
+          <p className="text-xs text-[#475467] font-medium mt-1 mb-4 text-center leading-relaxed max-w-[280px]">
+            Portal Layanan Komunikasi & Operasional Admin
           </p>
 
-          {/* Quick Demo Role Selector (Neumorphic Inset / Convex Switch) */}
+          {/* Quick Role Selector (Neumorphic Pill Switch) */}
           <div
             className="w-full p-1 rounded-xl flex items-center gap-1 mb-4"
             style={{
@@ -262,14 +231,14 @@ export default function Login() {
               }}
             >
               <AlertCircle size={15} className="shrink-0 text-rose-500" />
-              <span>{error}</span>
+              <span className="text-[11.5px]">{error}</span>
             </div>
           )}
 
           {/* 3. Form */}
           <form onSubmit={handleSubmit} className="w-full space-y-3">
             
-            {/* Input 1: Nomor HP atau Email (Inset Shadow) */}
+            {/* Input 1: Nomor HP atau Email */}
             <div className="space-y-1">
               <label className="block text-[11px] font-bold text-[#344054] ml-1">
                 Nomor HP atau Email
@@ -278,7 +247,7 @@ export default function Login() {
                 className="relative flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#2f6fed]/40"
                 style={{
                   backgroundColor: '#dce6f8',
-                  boxShadow: 'inset 4px 4px 7px #b6c9e4, inset -4px -4px 7px #ffffff',
+                  boxShadow: 'inset 3px 3px 6px #b6c9e4, inset -3px -3px 6px #ffffff',
                 }}
               >
                 <div className="pl-3.5 text-[#2f6fed] pointer-events-none flex items-center justify-center">
@@ -294,7 +263,7 @@ export default function Login() {
               </div>
             </div>
 
-            {/* Input 2: Kata Sandi (Inset Shadow + Show/Hide Toggle) */}
+            {/* Input 2: Kata Sandi */}
             <div className="space-y-1">
               <label className="block text-[11px] font-bold text-[#344054] ml-1">
                 Kata Sandi
@@ -303,7 +272,7 @@ export default function Login() {
                 className="relative flex items-center rounded-xl transition-all focus-within:ring-2 focus-within:ring-[#2f6fed]/40"
                 style={{
                   backgroundColor: '#dce6f8',
-                  boxShadow: 'inset 4px 4px 7px #b6c9e4, inset -4px -4px 7px #ffffff',
+                  boxShadow: 'inset 3px 3px 6px #b6c9e4, inset -3px -3px 6px #ffffff',
                 }}
               >
                 <div className="pl-3.5 text-[#2f6fed] pointer-events-none flex items-center justify-center">
@@ -339,8 +308,8 @@ export default function Login() {
                   style={{
                     backgroundColor: '#dce6f8',
                     boxShadow: rememberMe
-                      ? 'inset 2px 2px 4px #b6c9e4, inset -2px -2px 4px #ffffff'
-                      : '2px 2px 4px #b6c9e4, -2px -2px 4px #ffffff',
+                      ? 'inset 2px 2px 3px #b6c9e4, inset -2px -2px 3px #ffffff'
+                      : '2px 2px 3px #b6c9e4, -2px -2px 3px #ffffff',
                   }}
                 >
                   {rememberMe && <Check size={11} className="text-[#2f6fed] stroke-[3.5]" />}
@@ -356,15 +325,15 @@ export default function Login() {
               </Link>
             </div>
 
-            {/* 4. Primary Button (Extruded Neumorphic Blue Button) */}
+            {/* 4. Primary Button */}
             <div className="pt-1.5">
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 sm:py-3 px-5 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none focus:ring-3 focus:ring-[#2f6fed]/40"
+                className="w-full py-2.5 sm:py-3 px-5 rounded-xl font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#2f6fed]/40"
                 style={{
                   backgroundColor: '#2f6fed',
-                  boxShadow: '6px 6px 16px rgba(47, 111, 237, 0.48), -6px -6px 16px rgba(255, 255, 255, 0.85)',
+                  boxShadow: '5px 5px 14px rgba(47, 111, 237, 0.45), -5px -5px 14px rgba(255, 255, 255, 0.85)',
                 }}
               >
                 {isLoading ? (
@@ -377,79 +346,17 @@ export default function Login() {
                   </span>
                 ) : (
                   <>
-                    <span>Masuk</span>
+                    <span>Masuk ke Akun</span>
                     <ArrowRight size={15} strokeWidth={2.5} />
                   </>
                 )}
               </button>
             </div>
           </form>
-
-          {/* 5. Seamless Divider with "atau" */}
-          <div className="w-full flex items-center gap-3 my-3.5">
-            <div 
-              className="flex-1 h-[2px] rounded-full"
-              style={{
-                boxShadow: 'inset 1px 1px 2px #b6c9e4, inset -1px -1px 2px #ffffff',
-              }}
-            />
-            <span className="text-[10px] font-bold text-[#64748b] uppercase tracking-wider shrink-0 select-none">
-              atau
-            </span>
-            <div 
-              className="flex-1 h-[2px] rounded-full"
-              style={{
-                boxShadow: 'inset 1px 1px 2px #b6c9e4, inset -1px -1px 2px #ffffff',
-              }}
-            />
-          </div>
-
-          {/* 6. Social Login (Google Neumorphic Button) */}
-          <button
-            type="button"
-            onClick={() => handleSelectRole('cabang')}
-            className="w-full py-2.5 px-4 rounded-xl font-bold text-xs text-[#344054] hover:text-[#101828] flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 focus:outline-none focus:ring-2 focus:ring-[#2f6fed]/40"
-            style={{
-              backgroundColor: '#dce6f8',
-              boxShadow: '5px 5px 12px #b6c9e4, -5px -5px 12px #ffffff',
-            }}
-          >
-            {/* Official Google Icon SVG */}
-            <svg width="16" height="16" viewBox="0 0 24 24">
-              <path
-                fill="#EA4335"
-                d="M12 5c1.6 0 3 .6 4.1 1.7l3.1-3.1C17.3 1.8 14.8 1 12 1 7.5 1 3.7 3.6 1.9 7.4l3.7 2.9C6.5 7.4 9 5 12 5z"
-              />
-              <path
-                fill="#4285F4"
-                d="M23.5 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.5c-.3 1.5-1.1 2.8-2.4 3.7l3.7 2.9c2.2-2 3.7-5 3.7-8.8z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.6 14.7c-.2-.7-.4-1.5-.4-2.7s.2-2 .4-2.7L1.9 6.4C.7 8.8 0 10.8 0 12s.7 3.2 1.9 5.6l3.7-2.9z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c3.2 0 6-1.1 8-3l-3.7-2.9c-1.1.7-2.5 1.2-4.3 1.2-3 0-5.5-2.4-6.4-5.3L1.9 16C3.7 19.8 7.5 23 12 23z"
-              />
-            </svg>
-            <span>Masuk dengan Google</span>
-          </button>
-
-          {/* 7. Footer text */}
-          <p className="text-[11px] text-[#475467] font-medium mt-4 text-center">
-            Belum memiliki akun?{' '}
-            <Link
-              to="/register"
-              className="font-bold text-[#2f6fed] hover:underline transition-all"
-            >
-              Daftar Sekarang
-            </Link>
-          </p>
         </main>
 
         {/* Bottom Legal / Copyright */}
-        <footer className="mt-3.5 text-center text-[10px] font-medium text-[#64748b]">
+        <footer className="mt-3 text-center text-[10px] font-medium text-[#64748b]">
           &copy; {new Date().getFullYear()} PasCall. Sistem Layanan Terpadu Lembaga Pemasyarakatan.
         </footer>
       </div>

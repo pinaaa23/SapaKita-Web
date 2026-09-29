@@ -138,11 +138,7 @@ const Detail = () => {
               <span className="font-mono text-[11px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
                 {user.id.toUpperCase()}
               </span>
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase ${
-                user.role === 'Admin Cabang' 
-                  ? 'bg-blue-400/25 text-blue-100 border border-blue-300/40' 
-                  : 'bg-purple-400/25 text-purple-100 border border-purple-300/40'
-              }`}>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase bg-blue-400/25 text-blue-100 border border-blue-300/40">
                 {user.role}
               </span>
               <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
@@ -193,9 +189,7 @@ const Detail = () => {
             
             <div className="space-y-1">
               <p className="text-[11px] text-slate-400 uppercase font-bold tracking-wider">Role Otorisasi</p>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold ${
-                user.role === 'Admin Cabang' ? 'bg-blue-50 text-blue-700' : 'bg-purple-50 text-purple-700'
-              }`}>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
                 {user.role}
               </span>
             </div>

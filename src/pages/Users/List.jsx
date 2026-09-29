@@ -23,7 +23,6 @@ const List = () => {
   
   // State for filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState('All');
   const [branchFilter, setBranchFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -52,11 +51,10 @@ const List = () => {
                           user.name.toLowerCase().includes(searchLower) || 
                           user.email.toLowerCase().includes(searchLower) ||
                           (user.phone && user.phone.includes(searchLower));
-    const matchesRole = roleFilter === 'All' || user.role === roleFilter;
     const matchesBranch = branchFilter === 'All' || user.branchId === branchFilter;
     const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
     
-    return matchesSearch && matchesRole && matchesBranch && matchesStatus;
+    return matchesSearch && matchesBranch && matchesStatus;
   });
 
   const handleToggleStatus = (user) => {
@@ -104,11 +102,10 @@ const List = () => {
     exportToCSV(exportData, `Daftar_Pengguna_PasCall_${new Date().toISOString().split('T')[0]}`);
   };
 
-  const hasActiveFilters = searchTerm !== '' || roleFilter !== 'All' || branchFilter !== 'All' || statusFilter !== 'All';
+  const hasActiveFilters = searchTerm !== '' || branchFilter !== 'All' || statusFilter !== 'All';
 
   const resetFilters = () => {
     setSearchTerm('');
-    setRoleFilter('All');
     setBranchFilter('All');
     setStatusFilter('All');
   };
@@ -168,25 +165,6 @@ const List = () => {
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mr-0.5">
               <Filter className="w-3 h-3 text-slate-400" /> Filter:
             </span>
-
-            {/* Role Filter Dropdown */}
-            <div className="relative">
-              <select 
-                value={roleFilter} 
-                onChange={(e) => setRoleFilter(e.target.value)}
-                className={`pl-3 pr-8 py-1.5 rounded-xl border text-xs font-semibold appearance-none cursor-pointer transition-all ${
-                  roleFilter !== 'All' 
-                    ? 'bg-blue-50/90 border-blue-200 text-primary font-bold shadow-2xs' 
-                    : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <option value="All">Semua Role</option>
-                <option value="Admin Cabang">Admin Cabang</option>
-                <option value="Petugas Kantin">Petugas Kantin</option>
-              </select>
-              <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
-
             {/* Cabang Filter Dropdown */}
             <div className="relative">
               <select 
@@ -266,21 +244,11 @@ const List = () => {
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                          {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
-                        </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-xs">{user.name}</p>
-                          <span className="font-mono text-[10px] text-slate-400">{user.id.toUpperCase()}</span>
-                        </div>
-                      </div>
+                      <p className="font-bold text-slate-800 text-xs">{user.name}</p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          user.role === 'Admin Cabang' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200'
-                        }`}>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 text-blue-700 border border-blue-200">
                           {user.role}
                         </span>
                         <span className="text-slate-500 text-[11px] font-medium flex items-center gap-1">

@@ -314,21 +314,21 @@ const Detail = () => {
                     <div className="flex gap-4">
                       <div className="text-xs font-mono text-slate-400 mt-1 w-12 shrink-0">00:00</div>
                       <div className="bg-blue-100/50 rounded-lg p-3 text-sm text-slate-700 w-full">
-                        <span className="font-bold text-blue-700 block mb-1">NAPI-001 (Ahmad bin Jono):</span>
+                        <span className="font-bold text-blue-700 block mb-1">{call.inmateId} ({call.inmateName}):</span>
                         Halo mah, asalamualaikum. Gimana kabarnya anak-anak?
                       </div>
                     </div>
                     <div className="flex gap-4">
                       <div className="text-xs font-mono text-slate-400 mt-1 w-12 shrink-0">00:08</div>
                       <div className="bg-purple-100/50 rounded-lg p-3 text-sm text-slate-700 w-full">
-                        <span className="font-bold text-purple-700 block mb-1">Keluarga (Suryani):</span>
+                        <span className="font-bold text-purple-700 block mb-1">Keluarga ({call.familyName}):</span>
                         Waalaikumsalam pak. Alhamdulillah sehat semua. Tadi si adek nanyain bapak kapan pulang.
                       </div>
                     </div>
                     <div className="flex gap-4">
                       <div className="text-xs font-mono text-slate-400 mt-1 w-12 shrink-0">00:15</div>
                       <div className="bg-blue-100/50 rounded-lg p-3 text-sm text-slate-700 w-full">
-                        <span className="font-bold text-blue-700 block mb-1">NAPI-001 (Ahmad bin Jono):</span>
+                        <span className="font-bold text-blue-700 block mb-1">{call.inmateId} ({call.inmateName}):</span>
                         Bilangin aja bapak lagi kerja, insyaallah sebentar lagi kelar urusannya. Mama sehat kan? Uang belanjanya masih cukup?
                       </div>
                     </div>

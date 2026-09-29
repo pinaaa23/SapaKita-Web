@@ -13,7 +13,6 @@ import {
   Plus,
   AlertCircle,
   ShieldCheck,
-  Store,
   MapPin,
   CheckCircle2,
   ChevronDown
@@ -159,7 +158,7 @@ const Create = () => {
           <div className="text-center sm:text-left flex-1 space-y-1">
             <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Petugas / Operator Baru</h2>
             <p className="text-blue-100 text-xs">
-              Buat akun akses untuk Admin Cabang Lapas/Rutan atau Petugas Kasir Kantin
+              Buat akun akses untuk Admin Cabang Lapas/Rutan
             </p>
           </div>
         </div>
@@ -263,59 +262,24 @@ const Create = () => {
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Role Selection Cards */}
+            {/* Role Card */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Pilih Role / Peran Otorisasi <span className="text-rose-500">*</span>
+                Role / Peran Otorisasi
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange('Admin Cabang')}
-                  className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
-                    formData.role === 'Admin Cabang'
-                      ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-sm'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                    formData.role === 'Admin Cabang' ? 'bg-primary text-white' : 'bg-slate-100 text-slate-400'
-                  }`}>
-                    <ShieldCheck className="w-4 h-4" />
+              <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/70 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center shrink-0 mt-0.5 shadow-xs">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-bold text-primary">Admin Cabang</p>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">Otorisasi Resmi</span>
                   </div>
-                  <div>
-                    <p className={`text-xs font-bold ${formData.role === 'Admin Cabang' ? 'text-primary' : 'text-slate-700'}`}>
-                      Admin Cabang
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Mengelola data WBP, verifikasi kontak keluarga, dan monitoring bilik panggilan cabang.
-                    </p>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleRoleChange('Petugas Kantin')}
-                  className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
-                    formData.role === 'Petugas Kantin'
-                      ? 'bg-purple-50/80 border-purple-300 ring-2 ring-purple-500/20 shadow-sm'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                    formData.role === 'Petugas Kantin' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-400'
-                  }`}>
-                    <Store className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className={`text-xs font-bold ${formData.role === 'Petugas Kantin' ? 'text-purple-800' : 'text-slate-700'}`}>
-                      Petugas Kantin
-                    </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Memproses transaksi belanja kantin, top-up saldo voucher WBP, dan rekapitulasi setoran.
-                    </p>
-                  </div>
-                </button>
+                  <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                    Mengelola data WBP, verifikasi kontak keluarga, dan monitoring bilik panggilan cabang.
+                  </p>
+                </div>
               </div>
             </div>
 

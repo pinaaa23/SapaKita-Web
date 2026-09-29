@@ -152,17 +152,6 @@ const InmatesCreate = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">No. KK (Opsional)</label>
-                <input 
-                  type="text" 
-                  value={formData.nik}
-                  onChange={(e) => setFormData({...formData, nik: e.target.value})}
-                  placeholder="317508xxxxxxxxxx"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-medium"
-                />
-              </div>
-
-              <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Tempat Lahir</label>
                 <input 
                   type="text" 
