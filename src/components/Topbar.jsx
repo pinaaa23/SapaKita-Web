@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { logout, getAuthUser } from '../services/api';
+import { getNotifications } from '../services/notificationService';
 
 const Topbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -11,20 +13,24 @@ const Topbar = () => {
   const location = useLocation();
 
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
-  const userName = isBranchAdmin ? 'Admin Cipinang' : 'Admin Pusat';
-  const userRole = isBranchAdmin ? 'Branch Operator' : 'Superadmin';
+  const authUser = getAuthUser();
+
+  const rawRole = (authUser?.role || (isBranchAdmin ? 'BRANCH_ADMIN' : 'SUPERADMIN')).toUpperCase();
+  const isBranchRole = rawRole === 'BRANCH_ADMIN' || rawRole === 'ADMIN_CABANG' || rawRole === 'BRANCH_OPERATOR';
+  const userRole = isBranchRole ? 'Admin Cabang' : 'Superadmin';
+  const userName = authUser?.name || (isBranchRole ? 'Admin Cabang' : 'Superadmin');
+  const branchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null);
   const profileLink = isBranchAdmin ? '/branch/profile' : '/profile';
 
   const getPageDetails = (pathname) => {
     if (pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah Narapidana Baru', subtitle: 'Form pendaftaran warga binaan baru' };
-    if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data Narapidana', subtitle: 'Perbarui informasi & penempatan warga binaan' };
-    if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap, kontak keluarga & riwayat panggilan' };
-    if (pathname.startsWith('/branch/inmates')) return { title: 'Data Narapidana', subtitle: 'Kelola data warga binaan di Lapas Kelas I Cipinang' };
+    if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data Narapidana', subtitle: 'Perbarui informasi & data warga binaan' };
+    if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
+    if (pathname.startsWith('/branch/inmates')) return { title: 'Data Narapidana', subtitle: branchName ? `Kelola data warga binaan di ${branchName}` : 'Kelola data warga binaan di cabang Anda' };
 
-    if (pathname.startsWith('/branch/contacts')) return { title: 'Daftar Kontak Keluarga', subtitle: 'Kelola persetujuan kontak keluarga narapidana' };
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran cabang' };
-    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analistik', subtitle: 'Ringkasan performa & statistik layanan' };
-    if (pathname.startsWith('/branch/profile')) return { title: 'Profil Operator', subtitle: 'Informasi akun & pengaturan profil' };
+    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik layanan' };
+    if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil' };
     if (pathname === '/branch' || pathname.startsWith('/branch/')) return { title: 'Dashboard', subtitle: `Selamat Datang, ${userName}!` };
     
     if (pathname.startsWith('/branches/create')) return { title: 'Tambah Cabang Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
@@ -32,10 +38,8 @@ const Topbar = () => {
     if (pathname.startsWith('/branches/')) return { title: 'Detail Cabang', subtitle: 'Informasi operasional & data lapas' };
     if (pathname.startsWith('/branches')) return { title: 'Manajemen Cabang', subtitle: 'Kelola data operasional lapas dan rutan yang terdaftar' };
 
-    if (pathname.startsWith('/users/create')) return { title: 'Tambah Pengguna Baru', subtitle: 'Daftarkan operator atau administrator baru' };
-    if (pathname.includes('/edit') && pathname.startsWith('/users')) return { title: 'Edit Data Pengguna', subtitle: 'Perbarui informasi & akses pengguna' };
-    if (pathname.startsWith('/users/')) return { title: 'Detail Pengguna', subtitle: 'Informasi akun & riwayat aktivitas' };
-    if (pathname.startsWith('/users')) return { title: 'Manajemen Pengguna', subtitle: 'Kelola daftar akun petugas & operator' };
+    if (pathname.startsWith('/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
+    if (pathname.startsWith('/inmates')) return { title: 'Data Narapidana', subtitle: 'Seluruh warga binaan di semua cabang' };
 
     if (pathname.startsWith('/calls/')) return { title: 'Detail Rekaman Panggilan', subtitle: 'Informasi panggilan & pemutaran rekaman audio' };
     if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh cabang' };
@@ -51,42 +55,40 @@ const Topbar = () => {
   const pageDetails = getPageDetails(location.pathname);
 
   // Notification State
-  const [notifications, setNotifications] = useState(() => {
-    return isBranchAdmin ? [
-      { id: 1, title: 'Permohonan Kontak Baru', desc: 'Siti Aminah mengajukan verifikasi kontak keluarga WBP Ahmad Supriyadi.', time: '5 min lalu', read: false, type: 'contact', link: '/branch/contacts' },
-      { id: 2, title: 'Setoran Saldo Berhasil', desc: 'Setoran saldo Rp 150.000 via QRIS oleh Budi H. telah terverifikasi.', time: '1 jam lalu', read: false, type: 'transaction', link: '/branch/transactions' },
-      { id: 3, title: 'Panggilan Selesai', desc: 'Panggilan Bilik 02 oleh WBP Rahmat Hidayat telah selesai (14:32 WIB).', time: '3 jam lalu', read: true, type: 'call', link: '/branch/reports' },
-      { id: 4, title: 'Pembaruan Sistem', desc: 'Sistem perekaman panggilan otomatis telah diperbarui ke versi v2.4.', time: 'Kemarin', read: true, type: 'system', link: '/branch/profile' }
-    ] : [
-      { id: 1, title: 'Cabang Baru Didaftarkan', desc: 'Lapas Kelas 1 Cipinang telah aktif dan terhubung ke server pusat.', time: '10 min lalu', read: false, type: 'branch', link: '/branches' },
-      { id: 2, title: 'Operator Baru', desc: 'Admin Cabang Cipinang mengkonfirmasi pendaftaran operator baru.', time: '2 jam lalu', read: false, type: 'user', link: '/users' },
-      { id: 3, title: 'Laporan Bulanan Siap', desc: 'Laporan rekapitulasi transaksi nasional bulan ini dapat diunduh.', time: '5 jam lalu', read: true, type: 'report', link: '/reports' }
-    ];
-  });
-  
+  const [notifications, setNotifications] = useState([]);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [activeNotifTab, setActiveNotifTab] = useState('all'); // 'all' | 'unread'
   
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
-  // Search Items List
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const notifList = await getNotifications();
+        setNotifications(Array.isArray(notifList) ? notifList : []);
+      } catch (err) {
+        console.log('[Topbar] Gagal mengambil notifikasi:', err);
+        setNotifications([]);
+      }
+    };
+    fetchNotifs();
+  }, []);
+
+  // Search Items List (Navigation only)
   const searchDatabase = isBranchAdmin ? [
-    { title: 'Daftar Kontak Keluarga', category: 'Halaman', link: '/branch/contacts', desc: 'Kelola persetujuan & verifikasi kontak keluarga' },
+    { title: 'Data Narapidana', category: 'Halaman', link: '/branch/inmates', desc: 'Kelola data narapidana & NIP' },
+    { title: 'Tambah Narapidana Baru', category: 'Aksi Cepat', link: '/branch/inmates/create', desc: 'Daftarkan narapidana baru' },
     { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data setoran saldo & pembayaran cabang' },
-    { title: 'Laporan & Analistik Cabang', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan cabang' },
+    { title: 'Laporan & Analitik Cabang', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan cabang' },
     { title: 'Profil Operator', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan operator' },
-    { title: 'WBP Ahmad Supriyadi', category: 'Kontak WBP', link: '/branch/contacts', desc: 'Kamar 102B - Cabang Cipinang' },
-    { title: 'WBP Rahmat Hidayat', category: 'Kontak WBP', link: '/branch/contacts', desc: 'Kamar 105A - Cabang Cipinang' },
-    { title: 'Tambah Kontak Baru', category: 'Aksi Cepat', link: '/branch/contacts', desc: 'Buka form pendaftaran kontak keluarga' },
   ] : [
     { title: 'Kelola Cabang', category: 'Halaman', link: '/branches', desc: 'Daftar & status cabang PasCall nasional' },
-    { title: 'Kelola Pengguna', category: 'Halaman', link: '/users', desc: 'Daftar pengguna & peran operator' },
+    { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh cabang' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh cabang' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
-    { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analistik agregat' },
+    { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },
-    { title: 'Lapas Kelas 1 Cipinang', category: 'Cabang', link: '/branches', desc: 'Status: Aktif - Jakarta Timur' },
   ];
 
   const filteredSearchResults = searchValue.trim() === '' 
@@ -117,6 +119,7 @@ const Topbar = () => {
 
   const handleLogout = () => {
     setIsDropdownOpen(false);
+    logout();
     navigate('/login');
   };
 
@@ -346,7 +349,7 @@ const Topbar = () => {
                   ))
                 ) : (
                   <div className="px-4 py-8 text-center text-slate-400 text-xs">
-                    Tidak ada notifikasi {activeNotifTab === 'unread' ? 'belum dibaca' : ''}.
+                    Belum ada notifikasi
                   </div>
                 )}
               </div>

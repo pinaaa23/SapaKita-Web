@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   PhoneCall, 
   PhoneMissed,
   PhoneForwarded,
-  ShieldCheck,
+  Users,
   Search,
   Filter,
   Play,
@@ -22,72 +23,184 @@ import {
   Info
 } from 'lucide-react';
 import StatCard from '../../components/StatCard';
-import { mockCalls, mockVideoCalls } from '../../services/mockData';
+import { getBranchSummary } from '../../services/branchDashboardService';
+import { getInmates } from '../../services/inmateService';
+import { getCallHistory } from '../../services/callService';
+import { logout } from '../../services/api';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('voice'); // 'voice' | 'video'
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
   
-  // State khusus untuk audio preview playback (hanya diset saat tombol Play diklik)
+  // Loading states
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [isCallsLoading, setIsCallsLoading] = useState(true);
+  
+  // Data states
+  const [summaryStats, setSummaryStats] = useState({
+    totalCalls: 0,
+    answeredCalls: 0,
+    missedCalls: 0,
+    totalInmates: null,
+    callsGrowth: null,
+    answeredGrowth: null,
+    missedGrowth: null,
+    inmatesGrowth: null,
+  });
+  const [callsData, setCallsData] = useState({
+    items: [],
+    total: 0,
+    totalPages: 1,
+  });
+  
+  // Audio playback & transcript state
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  
-  // State khusus untuk Modal Transkrip (independen dari selectedRecording)
   const [transcriptCall, setTranscriptCall] = useState(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
-  
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Filter calls for Branch 1 (Cipinang)
-  const branchVoiceCalls = mockCalls.filter(c => c.branchId === 'b1');
-  const branchVideoCalls = mockVideoCalls.filter(c => c.branchId === 'b1');
+  // Debounce search 400ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [searchInput]);
 
-  // Combined for stats or tab-specific
-  const currentTabCalls = activeTab === 'voice' ? branchVoiceCalls : branchVideoCalls;
+  // Load branch summary stats & total inmates count
+  useEffect(() => {
+    let isMounted = true;
+    const fetchStats = async () => {
+      setIsStatsLoading(true);
+      try {
+        const [summaryRes, inmatesRes] = await Promise.allSettled([
+          getBranchSummary(),
+          getInmates({ page: 1, limit: 1 })
+        ]);
 
-  // Calculate statistics (4 StatCards: Total Panggilan, Panggilan Terjawab, Tidak Terjawab, WBP Terverifikasi)
-  const totalBranchCallsCount = branchVoiceCalls.length + branchVideoCalls.length;
-  const answeredCount = branchVoiceCalls.filter(c => c.status === 'Answered').length + branchVideoCalls.filter(c => c.status === 'Answered').length;
-  const missedCount = branchVoiceCalls.filter(c => c.status !== 'Answered').length + branchVideoCalls.filter(c => c.status !== 'Answered').length;
+        if (isMounted) {
+          const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : {};
+          const inmatesData = inmatesRes.status === 'fulfilled' ? inmatesRes.value : null;
 
-  const stats = {
-    totalCalls: totalBranchCallsCount,
-    answered: answeredCount,
-    missed: missedCount,
-    verifiedInmates: 88 // 88% WBP kontak keluarga terverifikasi KTP
+          // Ambil angka Total WBP dari pagination/meta getInmates atau getBranchSummary
+          let totalInmates = null;
+          if (typeof inmatesData?.total === 'number') {
+            totalInmates = inmatesData.total;
+          } else if (typeof inmatesData?.pagination?.total === 'number') {
+            totalInmates = inmatesData.pagination.total;
+          } else if (typeof inmatesData?.meta?.total === 'number') {
+            totalInmates = inmatesData.meta.total;
+          } else if (typeof inmatesData?.totalItems === 'number') {
+            totalInmates = inmatesData.totalItems;
+          } else if (typeof summary?.totalInmates === 'number' && summary.totalInmates > 0) {
+            totalInmates = summary.totalInmates;
+          }
+
+          setSummaryStats({
+            totalCalls: summary?.totalCalls || 0,
+            answeredCalls: summary?.answeredCalls || 0,
+            missedCalls: summary?.missedCalls || 0,
+            totalInmates,
+            callsGrowth: summary?.callsGrowth ?? null,
+            answeredGrowth: summary?.answeredGrowth ?? null,
+            missedGrowth: summary?.missedGrowth ?? null,
+            inmatesGrowth: summary?.inmatesGrowth ?? null,
+          });
+        }
+      } catch (err) {
+        if (err?.status === 401) {
+          logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+        console.log('[BranchDashboard] Gagal memuat ringkasan:', err);
+      } finally {
+        if (isMounted) setIsStatsLoading(false);
+      }
+    };
+
+    fetchStats();
+    return () => { isMounted = false; };
+  }, [navigate]);
+
+  // Load calls list
+  const loadCalls = useCallback(async () => {
+    setIsCallsLoading(true);
+    try {
+      const res = await getCallHistory({
+        search: debouncedSearch,
+        status: statusFilter,
+        callType: activeTab,
+        page,
+        limit,
+      });
+      setCallsData(res);
+    } catch (err) {
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      console.log('[BranchDashboard] Gagal memuat riwayat panggilan:', err);
+      setCallsData({ items: [], total: 0, totalPages: 1 });
+    } finally {
+      setIsCallsLoading(false);
+    }
+  }, [debouncedSearch, statusFilter, activeTab, page, limit, navigate]);
+
+  useEffect(() => {
+    loadCalls();
+  }, [loadCalls]);
+
+  const showToast = (message) => {
+    setToastMessage(message);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
   };
 
-  const formatNumber = (value) => new Intl.NumberFormat('id-ID').format(value);
-  const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+  const formatNumber = (value) => new Intl.NumberFormat('id-ID').format(value || 0);
+  const formatCurrency = (value) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
 
-  const filteredCalls = currentTabCalls.filter(call => {
-    const isSearchMatch = searchTerm === '' || 
-                          call.inmateName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          call.familyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          call.inmateId.toLowerCase().includes(searchTerm.toLowerCase());
-    const isStatusMatch = statusFilter === 'All' || 
-                          (statusFilter === 'Answered' && call.status === 'Answered') ||
-                          (statusFilter === 'Missed' && call.status !== 'Answered');
-    return isSearchMatch && isStatusMatch;
-  });
+  const formatSeconds = (seconds) => {
+    if (!seconds) return '00:00';
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
+
+  const getTrendProps = (growth) => {
+    if (typeof growth !== 'number' || isNaN(growth)) {
+      return { trend: null, trendValue: null };
+    }
+    return {
+      trend: growth >= 0 ? 'up' : 'down',
+      trendValue: Math.abs(growth).toString(),
+    };
+  };
 
   const handleSelectRecording = (call) => {
-    if (!call.hasRecording) return;
+    if (!call.hasRecording) {
+      showToast('Fitur rekaman audio belum tersedia untuk panggilan ini.');
+      return;
+    }
     setSelectedRecording(call);
-    setIsPlaying(true); // Auto play audio preview when selected
+    setIsPlaying(true);
   };
 
-  // Membuka modal transkrip langsung tanpa mempengaruhi selectedRecording
   const handleOpenTranscript = (call) => {
-    if (!call.hasRecording) return;
+    if (!call.hasRecording && !call.transcript) {
+      showToast('Fitur transkrip belum tersedia untuk panggilan ini.');
+      return;
+    }
     setTranscriptCall(call);
-    setShowTranscriptModal(true);
-  };
-
-  const handleOpenTranscriptFromPreview = () => {
-    if (!selectedRecording) return;
-    setTranscriptCall(selectedRecording);
     setShowTranscriptModal(true);
   };
 
@@ -100,130 +213,14 @@ const Dashboard = () => {
     setIsPlaying(!isPlaying);
   };
 
-  const writeString = (view, offset, string) => {
-    for (let i = 0; i < string.length; i++) {
-      view.setUint8(offset + i, string.charCodeAt(i));
-    }
-  };
-
-  const createAudioBlob = () => {
-    const sampleRate = 44100;
-    const duration = 3;
-    const numSamples = sampleRate * duration;
-    const buffer = new ArrayBuffer(44 + numSamples * 2);
-    const view = new DataView(buffer);
-
-    writeString(view, 0, 'RIFF');
-    view.setUint32(4, 36 + numSamples * 2, true);
-    writeString(view, 8, 'WAVE');
-    writeString(view, 12, 'fmt ');
-    view.setUint32(16, 16, true);
-    view.setUint16(20, 1, true);
-    view.setUint16(22, 1, true);
-    view.setUint32(24, sampleRate, true);
-    view.setUint32(28, sampleRate * 2, true);
-    view.setUint16(32, 2, true);
-    view.setUint16(34, 16, true);
-    writeString(view, 36, 'data');
-    view.setUint32(40, numSamples * 2, true);
-
-    for (let i = 0; i < numSamples; i++) {
-      const t = i / sampleRate;
-      const envelope = Math.sin((Math.PI * i) / numSamples);
-      const sample = Math.sin(2 * Math.PI * 523.25 * t) * 0.3 * envelope;
-      const intSample = Math.max(-1, Math.min(1, sample)) * 32767;
-      view.setInt16(44 + i * 2, intSample, true);
-    }
-
-    return new Blob([buffer], { type: 'audio/wav' });
-  };
-
   const handleDownloadAudio = () => {
     if (!selectedRecording) return;
-    const blob = createAudioBlob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const safeName = selectedRecording.inmateName.replace(/[^a-zA-Z0-9]/g, '_');
-    const dateStr = new Date(selectedRecording.date).toISOString().split('T')[0];
-    const prefix = selectedRecording.callType === 'Video' ? 'Rekaman_Audio_VideoCall' : 'Rekaman_VoiceCall';
-    const filename = `${prefix}_${safeName}_${dateStr}.wav`;
-    
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast(`File audio rekaman (${filename}) berhasil diunduh!`);
+    showToast('Fitur unduh berkas audio asli belum didukung server backend.');
   };
 
   const handleDownloadTranscript = (targetCall) => {
-    const callTarget = targetCall || transcriptCall || selectedRecording;
-    if (!callTarget) return;
-    const safeName = callTarget.inmateName.replace(/[^a-zA-Z0-9]/g, '_');
-    const dateStr = new Date(callTarget.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
-    const durationStr = formatSeconds(callTarget.durationSeconds);
-    const callTypeName = callTarget.callType === 'Video' ? 'VIDEO CALL (AUDIO ONLY)' : 'SUARA (VOICE CALL)';
-    const filename = `Transkrip_${callTarget.callType || 'Voice'}_${safeName}_${callTarget.date.split('T')[0]}.txt`;
-    
-    const textContent = `==================================================
-PAS CALL - TRANSKRIP REKAMAN PANGGILAN ${callTypeName}
-==================================================
-ID Panggilan : ${callTarget.id}
-Tipe Layanan : ${callTarget.callType === 'Video' ? 'Video Call (Perekaman Audio Sah)' : 'Voice Call'}
-Narapidana   : ${callTarget.inmateName} (${callTarget.inmateId})
-Keluarga     : ${callTarget.familyName} (${callTarget.familyPhone})
-Tanggal      : ${dateStr}
-Durasi       : ${durationStr}
-Cabang       : Lapas Kelas I Cipinang
-Status       : Verified / Transkripsi AI Automatic
-Catatan      : Perekaman hanya menyimpan berkas audio demi privasi & kepatuhan.
-==================================================
-
-[00:04] WBP - ${callTarget.inmateName}:
-"Halo, Assalamu'alaikum Ibu, sehat kan di rumah sama anak-anak?"
-
-[00:12] KLG - ${callTarget.familyName}:
-"Wa'alaikumsalam. Alhamdulillah sehat Pak. Bapak gimana kondisinya di sana? Sehat kan?"
-
-[00:26] WBP - ${callTarget.inmateName}:
-"Alhamdulillah Bapak sehat Bu. Makanan di sini teratur, petugas juga ramah. Anak-anak gimana sekolahnya?"
-
-[00:45] KLG - ${callTarget.familyName}:
-"Alhamdulillah lancar Pak, si adik kemarin dapet nilai 90 ulangan Matematika. Tadi sebelum sekolah pamit nitip salam buat Bapak."
-
-[01:05] WBP - ${callTarget.inmateName}:
-"Pintar anak Bapak. Titip salam balik ya Ibu, bilang Bapak selalu doakan anak-anak dari sini. Jaga kesehatan ya Bu."
-
-==================================================
-Dokumen resmi diproses secara otomatis oleh PasCall System.
-`;
-
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    showToast(`File transkrip (${filename}) berhasil diunduh!`);
-  };
-
-  const showToast = (message) => {
-    setToastMessage(message);
-    setTimeout(() => {
-      setToastMessage(null);
-    }, 3500);
-  };
-
-  const formatSeconds = (seconds) => {
-    if (!seconds) return '00:00';
-    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
-    const s = (seconds % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
+    if (!targetCall) return;
+    showToast('Fitur ekspor transkrip belum didukung server backend.');
   };
 
   return (
@@ -243,38 +240,51 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
 
       {/* Stats Grid - 4 Uniform StatCards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5">
-        <StatCard 
-          title="Total Panggilan" 
-          value={formatNumber(stats.totalCalls)} 
-          icon={PhoneCall} 
-          color="blue"
-          trend="up"
-          trendValue="12.5"
-        />
-        <StatCard 
-          title="Panggilan Terjawab" 
-          value={formatNumber(stats.answered)} 
-          icon={PhoneForwarded} 
-          color="teal"
-          trend="up"
-          trendValue="8.2"
-        />
-        <StatCard 
-          title="Tidak Terjawab" 
-          value={formatNumber(stats.missed)} 
-          icon={PhoneMissed} 
-          color="pink"
-          trend="down"
-          trendValue="2.1"
-        />
-        <StatCard 
-          title="WBP Terverifikasi" 
-          value={`${stats.verifiedInmates}%`} 
-          icon={ShieldCheck} 
-          color="purple"
-          trend="up"
-          trendValue="6.4"
-        />
+        {isStatsLoading ? (
+          Array.from({ length: 4 }).map((_, idx) => (
+            <div 
+              key={idx} 
+              className="bg-white rounded-2xl p-5 shadow-xs border border-slate-100/80 animate-pulse h-32 flex flex-col justify-between"
+            >
+              <div className="w-11 h-11 rounded-xl bg-slate-100" />
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-slate-100 rounded" />
+                <div className="h-6 w-32 bg-slate-200 rounded" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard 
+              title="Total Panggilan" 
+              value={formatNumber(summaryStats.totalCalls)} 
+              icon={PhoneCall} 
+              color="blue"
+              {...getTrendProps(summaryStats.callsGrowth)}
+            />
+            <StatCard 
+              title="Panggilan Terjawab" 
+              value={formatNumber(summaryStats.answeredCalls)} 
+              icon={PhoneForwarded} 
+              color="teal"
+              {...getTrendProps(summaryStats.answeredGrowth)}
+            />
+            <StatCard 
+              title="Tidak Terjawab" 
+              value={formatNumber(summaryStats.missedCalls)} 
+              icon={PhoneMissed} 
+              color="pink"
+              {...getTrendProps(summaryStats.missedGrowth)}
+            />
+            <StatCard 
+              title="Total Narapidana" 
+              value={summaryStats.totalInmates !== null && summaryStats.totalInmates !== undefined ? formatNumber(summaryStats.totalInmates) : '-'} 
+              icon={Users} 
+              color="purple"
+              {...getTrendProps(summaryStats.inmatesGrowth)}
+            />
+          </>
+        )}
       </div>
 
       {/* Main Content Area */}
@@ -300,9 +310,9 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <input 
                       type="text" 
-                      placeholder="Cari nomor / nama..." 
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Cari NIP / nama WBP..." 
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
                       className="w-full sm:w-60 pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50/60"
                     />
                   </div>
@@ -310,7 +320,10 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                     <Filter className="w-3.5 h-3.5 text-slate-400" />
                     <select 
                       value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setPage(1);
+                      }}
                       className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
                     >
                       <option value="All">Semua Status</option>
@@ -330,6 +343,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                     onClick={() => {
                       setActiveTab('voice');
                       setSelectedRecording(null);
+                      setPage(1);
                     }}
                     className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
                       activeTab === 'voice' 
@@ -339,11 +353,6 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   >
                     <Volume2 className={`w-4 h-4 ${activeTab === 'voice' ? 'text-primary' : 'text-slate-400'}`} />
                     <span>Voice Call</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      activeTab === 'voice' ? 'bg-blue-100 text-primary' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {branchVoiceCalls.length}
-                    </span>
                     {activeTab === 'voice' && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full"></div>
                     )}
@@ -355,6 +364,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                     onClick={() => {
                       setActiveTab('video');
                       setSelectedRecording(null);
+                      setPage(1);
                     }}
                     className={`pb-3 text-xs font-bold transition-all relative flex items-center gap-2 cursor-pointer ${
                       activeTab === 'video' 
@@ -364,11 +374,6 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   >
                     <Video className={`w-4 h-4 ${activeTab === 'video' ? 'text-primary' : 'text-slate-400'}`} />
                     <span>Video Call</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                      activeTab === 'video' ? 'bg-blue-100 text-primary' : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {branchVideoCalls.length}
-                    </span>
                     {activeTab === 'video' && (
                       <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full"></div>
                     )}
@@ -389,7 +394,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                 <div className="mt-3 p-3 bg-amber-50/70 border border-amber-200/50 rounded-xl flex items-start gap-2.5 text-xs text-amber-800 animate-in fade-in duration-200">
                   <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong>Pemberitahuan Sistem:</strong> Pada layanan Video Call, sistem <strong>hanya merekam berkas audio</strong> percakapan untuk kepatuhan privasi dan enkripsi data Lapas. Transkrip AI dan tombol putar audio tetap aktif.
+                    <strong>Pemberitahuan Sistem:</strong> Pada layanan Video Call, sistem <strong>hanya merekam berkas audio</strong> percakapan untuk kepatuhan privasi dan enkripsi data Lapas.
                   </p>
                 </div>
               )}
@@ -409,8 +414,19 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100/90 text-xs">
-                  {filteredCalls.length > 0 ? (
-                    filteredCalls.map((call) => {
+                  {isCallsLoading ? (
+                    Array.from({ length: 5 }).map((_, idx) => (
+                      <tr key={idx} className="animate-pulse">
+                        <td className="py-4 px-5"><div className="h-4 bg-slate-200 rounded w-28" /></td>
+                        <td className="py-4 px-5"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                        <td className="py-4 px-5"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                        <td className="py-4 px-5 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
+                        <td className="py-4 px-5 text-center"><div className="h-6 bg-slate-200 rounded-lg w-16 mx-auto" /></td>
+                        <td className="py-4 px-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-8 mx-auto" /></td>
+                      </tr>
+                    ))
+                  ) : callsData.items.length > 0 ? (
+                    callsData.items.map((call) => {
                       const isSelected = selectedRecording?.id === call.id;
                       return (
                         <tr 
@@ -454,7 +470,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                                 type="button"
                                 onClick={() => handleOpenTranscript(call)}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/80 text-slate-700 hover:bg-blue-50 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-200/60 cursor-pointer shadow-2xs"
-                                title={`Lihat Transkrip Percakapan Audio ${call.callType === 'Video' ? 'Video Call' : 'Voice Call'}`}
+                                title="Lihat Transkrip Percakapan Audio"
                               >
                                 <FileText className="w-3.5 h-3.5 text-primary" />
                                 <span>Transkrip</span>
@@ -468,13 +484,12 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                               <button 
                                 type="button" 
                                 onClick={() => handleSelectRecording(call)}
-                                disabled={!call.hasRecording}
                                 className={`p-2 rounded-xl transition-all cursor-pointer ${
                                   isSelected 
                                     ? 'bg-primary text-white shadow-md shadow-blue-500/20 scale-105' 
                                     : 'bg-blue-50 text-primary hover:bg-blue-100'
-                                } disabled:opacity-40 disabled:cursor-not-allowed`} 
-                                title={call.hasRecording ? `Putar Audio Rekaman (${call.callType === 'Video' ? 'Video Call' : 'Voice Call'})` : "Tidak ada rekaman"}
+                                }`} 
+                                title="Putar Audio Rekaman"
                               >
                                 <Play className="w-3.5 h-3.5 fill-current" />
                               </button>
@@ -488,8 +503,8 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                       <td colSpan="6" className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-400">
                           <SearchX className="w-10 h-10 mb-2 text-slate-300" />
-                          <p className="font-semibold text-xs text-slate-600">Data panggilan tidak ditemukan</p>
-                          <p className="text-[11px] mt-0.5">Coba sesuaikan kata kunci pencarian atau filter status</p>
+                          <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
+                          <p className="text-[11px] mt-0.5">Tidak ada riwayat panggilan yang tersedia saat ini.</p>
                         </div>
                       </td>
                     </tr>
@@ -499,20 +514,36 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
             </div>
             
             {/* Pagination Footer */}
-            {filteredCalls.length > 0 && (
+            {!isCallsLoading && callsData.items.length > 0 && (
               <div className="p-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 bg-slate-50/40">
-                <span>Menampilkan 1-{filteredCalls.length} dari {filteredCalls.length} data ({activeTab === 'voice' ? 'Voice Call' : 'Video Call'})</span>
+                <span>Menampilkan {callsData.items.length} dari total {callsData.total || callsData.items.length} panggilan</span>
                 <div className="flex items-center gap-1">
-                  <button type="button" disabled className="px-3 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 cursor-not-allowed">Prev</button>
-                  <button type="button" className="px-3 py-1 border border-primary bg-primary text-white rounded-lg font-bold shadow-xs">1</button>
-                  <button type="button" disabled className="px-3 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 cursor-not-allowed">Next</button>
+                  <button 
+                    type="button" 
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    className="px-3 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Prev
+                  </button>
+                  <button type="button" className="px-3 py-1 border border-primary bg-primary text-white rounded-lg font-bold shadow-xs">
+                    {page}
+                  </button>
+                  <button 
+                    type="button" 
+                    disabled={page >= callsData.totalPages}
+                    onClick={() => setPage(p => p + 1)}
+                    className="px-3 py-1 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Right Side - Audio Player Preview Card (When a recording is selected) */}
+        {/* Right Side - Audio Player Preview Card */}
         {selectedRecording && (
           <div className="w-full lg:w-72 xl:w-80 shrink-0 space-y-4 animate-in slide-in-from-right-4 duration-300 sticky top-6">
             <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl shadow-lg shadow-blue-900/15 border border-blue-400/20 overflow-hidden flex flex-col">
@@ -524,14 +555,9 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   <h3 className="font-extrabold text-white text-xs tracking-wide uppercase">
                     PREVIEW REKAMAN
                   </h3>
-                  {selectedRecording.callType === 'Video' && (
-                    <span className="text-[10px] bg-amber-400/20 text-amber-300 px-1.5 py-0.2 rounded font-semibold border border-amber-300/30">
-                      Audio
-                    </span>
-                  )}
                 </div>
                 <button 
-                  type="button"
+                  type="button" 
                   onClick={() => setSelectedRecording(null)}
                   className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/25 text-white/80 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
                   title="Tutup Preview"
@@ -543,7 +569,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
               {/* Player Body */}
               <div className="p-5 flex-1 flex flex-col items-center justify-center bg-white/5 border-b border-white/15">
                 <button 
-                  type="button"
+                  type="button" 
                   onClick={togglePlayAudio}
                   className="w-14 h-14 bg-white text-[#0B3D91] rounded-full shadow-xl flex items-center justify-center mb-3 cursor-pointer hover:scale-105 active:scale-95 transition-all group"
                   title={isPlaying ? "Jeda Audio" : "Putar Audio"}
@@ -555,7 +581,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   )}
                 </button>
 
-                {/* Scrubber / Waveform indicator */}
+                {/* Scrubber indicator */}
                 <div className="w-full bg-white/20 h-2 rounded-full overflow-hidden mb-2 cursor-pointer relative">
                   <div 
                     className={`bg-amber-400 h-full rounded-full transition-all duration-300 ${isPlaying ? 'w-2/5' : 'w-1/5'}`}
@@ -570,16 +596,11 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
               {/* Call Details & Action Buttons */}
               <div className="p-4 bg-white/10">
                 <div className="mb-4">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <span className="text-[10px] uppercase font-bold text-amber-300">
-                      {selectedRecording.callType === 'Video' ? 'Video Call (Audio)' : 'Voice Call'}
-                    </span>
-                  </div>
                   <p className="text-xs font-extrabold text-white truncate">
                     {selectedRecording.inmateName} → {selectedRecording.familyName}
                   </p>
                   <p className="text-[11px] text-blue-200 font-medium mt-0.5">
-                    {new Date(selectedRecording.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}, {new Date(selectedRecording.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                    {new Date(selectedRecording.date).toLocaleDateString('id-ID')}, {new Date(selectedRecording.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                   </p>
                 </div>
                 
@@ -588,15 +609,13 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                     type="button" 
                     onClick={handleDownloadAudio}
                     className="flex-1 flex justify-center items-center gap-1.5 bg-white text-[#0B3D91] py-2 px-3 rounded-xl text-xs font-bold hover:bg-blue-50 transition-all shadow-md cursor-pointer"
-                    title="Unduh Rekaman Audio"
                   >
                     <Download className="w-3.5 h-3.5" /> Unduh Audio
                   </button>
                   <button 
                     type="button" 
-                    onClick={handleOpenTranscriptFromPreview}
+                    onClick={() => handleOpenTranscript(selectedRecording)}
                     className="flex-1 flex justify-center items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white py-2 px-3 rounded-xl text-xs font-bold border border-white/25 transition-all cursor-pointer"
-                    title="Buka Transkrip Percakapan"
                   >
                     <FileText className="w-3.5 h-3.5 text-white" /> Transkrip
                   </button>
@@ -618,23 +637,16 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-bold text-sm text-slate-800">
-                      Transkrip {transcriptCall.callType === 'Video' ? 'Video Call' : 'Voice Call'}
-                    </h3>
-                    {transcriptCall.callType === 'Video' && (
-                      <span className="text-[10px] bg-amber-100 text-amber-700 font-bold px-1.5 py-0.2 rounded border border-amber-200">
-                        Audio Only
-                      </span>
-                    )}
-                  </div>
+                  <h3 className="font-bold text-sm text-slate-800">
+                    Transkrip {transcriptCall.callType === 'Video' ? 'Video Call' : 'Voice Call'}
+                  </h3>
                   <p className="text-xs text-slate-400 font-medium">
                     {transcriptCall.inmateName} &amp; {transcriptCall.familyName}
                   </p>
                 </div>
               </div>
               <button 
-                type="button"
+                type="button" 
                 onClick={handleCloseTranscriptModal}
                 className="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
               >
@@ -642,7 +654,7 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
               </button>
             </div>
 
-            {/* Modal Info Sub-header */}
+            {/* Modal Subheader */}
             <div className="px-5 py-3 bg-blue-50/50 border-b border-blue-100/50 flex items-center justify-between text-xs text-slate-600">
               <div>
                 <span className="font-semibold text-slate-700">Tanggal:</span> {new Date(transcriptCall.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
@@ -652,98 +664,25 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
               </div>
             </div>
 
-            {/* Modal Body / Dialogue */}
+            {/* Modal Body */}
             <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              
-              {/* Speaker 1: Narapidana */}
-              <div className="flex gap-3 items-start">
-                <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  WBP
-                </div>
-                <div className="flex-1 bg-slate-100/80 rounded-2xl p-3.5 text-xs text-slate-800 rounded-tl-none border border-slate-200/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-primary">{transcriptCall.inmateName}</span>
-                    <span className="text-[10px] text-slate-400">00:04</span>
-                  </div>
-                  <p className="leading-relaxed">"Halo, Assalamu'alaikum Ibu, sehat kan di rumah sama anak-anak?"</p>
-                </div>
+              <div className="p-6 bg-slate-50 rounded-xl text-center text-slate-400 text-xs font-medium border border-dashed border-slate-200">
+                {transcriptCall.transcript || "Belum ada transkrip audio yang tersedia untuk panggilan ini."}
               </div>
-
-              {/* Speaker 2: Keluarga */}
-              <div className="flex gap-3 items-start flex-row-reverse">
-                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  KLG
-                </div>
-                <div className="flex-1 bg-amber-50/70 rounded-2xl p-3.5 text-xs text-slate-800 rounded-tr-none border border-amber-200/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-amber-700">{transcriptCall.familyName}</span>
-                    <span className="text-[10px] text-slate-400">00:12</span>
-                  </div>
-                  <p className="leading-relaxed">"Wa'alaikumsalam. Alhamdulillah sehat Pak. Bapak gimana kondisinya di sana? Sehat kan?"</p>
-                </div>
-              </div>
-
-              {/* Speaker 1: Narapidana */}
-              <div className="flex gap-3 items-start">
-                <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  WBP
-                </div>
-                <div className="flex-1 bg-slate-100/80 rounded-2xl p-3.5 text-xs text-slate-800 rounded-tl-none border border-slate-200/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-primary">{transcriptCall.inmateName}</span>
-                    <span className="text-[10px] text-slate-400">00:26</span>
-                  </div>
-                  <p className="leading-relaxed">"Alhamdulillah Bapak sehat Bu. Makanan di sini teratur, petugas juga ramah. Anak-anak gimana sekolahnya?"</p>
-                </div>
-              </div>
-
-              {/* Speaker 2: Keluarga */}
-              <div className="flex gap-3 items-start flex-row-reverse">
-                <div className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  KLG
-                </div>
-                <div className="flex-1 bg-amber-50/70 rounded-2xl p-3.5 text-xs text-slate-800 rounded-tr-none border border-amber-200/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-amber-700">{transcriptCall.familyName}</span>
-                    <span className="text-[10px] text-slate-400">00:45</span>
-                  </div>
-                  <p className="leading-relaxed">"Alhamdulillah lancar Pak, si adik kemarin dapet nilai 90 ulangan Matematika. Tadi sebelum sekolah pamit nitip salam buat Bapak."</p>
-                </div>
-              </div>
-
-              {/* Speaker 1: Narapidana */}
-              <div className="flex gap-3 items-start">
-                <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
-                  WBP
-                </div>
-                <div className="flex-1 bg-slate-100/80 rounded-2xl p-3.5 text-xs text-slate-800 rounded-tl-none border border-slate-200/50">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-primary">{transcriptCall.inmateName}</span>
-                    <span className="text-[10px] text-slate-400">01:05</span>
-                  </div>
-                  <p className="leading-relaxed">"Pintar anak Bapak. Titip salam balik ya Ibu, bilang Bapak selalu doakan anak-anak dari sini. Jaga kesehatan ya Bu."</p>
-                </div>
-              </div>
-
             </div>
 
             {/* Modal Footer */}
             <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
               <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Transkripsi AI Otomatis PasCall
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Transkripsi PasCall
               </span>
-              <div className="flex gap-2">
-                <button 
-                  type="button" 
-                  onClick={() => {
-                    handleDownloadTranscript(transcriptCall);
-                    handleCloseTranscriptModal();
-                  }}
-                  className="px-3.5 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" /> Unduh Transkrip
-                </button>
-              </div>
+              <button 
+                type="button" 
+                onClick={() => handleDownloadTranscript(transcriptCall)}
+                className="px-3.5 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" /> Unduh Transkrip
+              </button>
             </div>
           </div>
         </div>
@@ -754,4 +693,3 @@ Dokumen resmi diproses secara otomatis oleh PasCall System.
 };
 
 export default Dashboard;
-

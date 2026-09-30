@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   PhoneCall, 
@@ -19,74 +19,132 @@ import {
   Bar
 } from 'recharts';
 import StatCard from '../components/StatCard';
-import { mockDashboardStats, mockBranches, mockCalls, mockTransactions } from '../services/mockData';
+import { getDashboardSummary } from '../services/dashboardService';
+import { logout } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(true);
+  const [summaryData, setSummaryData] = useState({
+    totalCalls: 0,
+    totalRevenue: 0,
+    activeBranches: 0,
+    successRate: 0,
+    revenueTrend: [],
+    callVolume: [],
+    callsGrowth: null,
+    revenueGrowth: null,
+    branchesGrowth: null,
+    successRateGrowth: null,
+  });
 
-  // Synchronize stats dynamically with active datasets
-  const activeBranchesCount = mockBranches.filter(b => b.status === 'Active').length;
-  const totalCallsCount = mockCalls.length;
-  const answeredCallsCount = mockCalls.filter(c => c.status === 'Answered').length;
-  const dynamicSuccessRate = totalCallsCount > 0 
-    ? ((answeredCallsCount / totalCallsCount) * 100).toFixed(1) 
-    : mockDashboardStats.successRate;
-  
-  const totalRevenueAmount = mockTransactions
-    .filter(t => t.status === 'Berhasil')
-    .reduce((sum, t) => sum + t.amount, 0);
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSummary = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getDashboardSummary();
+        if (isMounted) {
+          setSummaryData(data);
+        }
+      } catch (err) {
+        if (err?.status === 401) {
+          logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+        console.log('[Dashboard] Gagal memuat data ringkasan:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchSummary();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate]);
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       maximumFractionDigits: 0
-    }).format(value);
+    }).format(value || 0);
   };
 
   const formatNumber = (value) => {
-    return new Intl.NumberFormat('id-ID').format(value);
+    return new Intl.NumberFormat('id-ID').format(value || 0);
+  };
+
+  const getTrendProps = (growth) => {
+    if (typeof growth !== 'number' || isNaN(growth)) {
+      return { trend: null, trendValue: null };
+    }
+    return {
+      trend: growth >= 0 ? 'up' : 'down',
+      trendValue: Math.abs(growth).toString(),
+    };
   };
 
   return (
     <div className="space-y-5 relative">
-      {/* Stats Grid - 4 Cards Layout matching branch dashboard */}
+      {/* Stats Grid - 4 Cards Layout */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          title="Total Panggilan" 
-          value={formatNumber(totalCallsCount)} 
-          icon={PhoneCall} 
-          color="blue"
-          trend="up"
-          trendValue="12.5"
-        />
-        <StatCard 
-          title="Total Revenue" 
-          value={formatCurrency(totalRevenueAmount)} 
-          icon={Wallet} 
-          color="green"
-          trend="up"
-          trendValue="8.2"
-        />
-        <StatCard 
-          title="Cabang Aktif" 
-          value={activeBranchesCount} 
-          icon={Building2} 
-          color="primary"
-        />
-        <StatCard 
-          title="Success Rate" 
-          value={`${dynamicSuccessRate}%`} 
-          icon={Activity} 
-          color="accent"
-          trend="up"
-          trendValue="1.1"
-        />
+        {isLoading ? (
+          Array.from({ length: 4 }).map((_, idx) => (
+            <div 
+              key={idx} 
+              className="bg-white rounded-2xl p-5 shadow-xs border border-slate-100/80 animate-pulse h-32 flex flex-col justify-between"
+            >
+              <div className="w-11 h-11 rounded-xl bg-slate-100" />
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-slate-100 rounded" />
+                <div className="h-6 w-32 bg-slate-200 rounded" />
+              </div>
+            </div>
+          ))
+        ) : (
+          <>
+            <StatCard 
+              title="Total Panggilan" 
+              value={formatNumber(summaryData.totalCalls)} 
+              icon={PhoneCall} 
+              color="blue"
+              {...getTrendProps(summaryData.callsGrowth)}
+            />
+            <StatCard 
+              title="Total Revenue" 
+              value={formatCurrency(summaryData.totalRevenue)} 
+              icon={Wallet} 
+              color="green"
+              {...getTrendProps(summaryData.revenueGrowth)}
+            />
+            <StatCard 
+              title="Cabang Aktif" 
+              value={formatNumber(summaryData.activeBranches)} 
+              icon={Building2} 
+              color="primary"
+              {...getTrendProps(summaryData.branchesGrowth)}
+            />
+            <StatCard 
+              title="Success Rate" 
+              value={`${summaryData.successRate}%`} 
+              icon={Activity} 
+              color="accent"
+              {...getTrendProps(summaryData.successRateGrowth)}
+            />
+          </>
+        )}
       </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Main Chart */}
+        {/* Main Chart: Tren Pendapatan */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
           <div className="flex justify-between items-center mb-5">
             <div>
@@ -101,78 +159,122 @@ const Dashboard = () => {
             </button>
           </div>
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={mockDashboardStats.revenueTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                  dy={10}
-                />
-                <YAxis 
-                  tickFormatter={(val) => `Rp ${val / 1000}k`}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                  dx={-10}
-                />
-                <Tooltip 
-                  formatter={(value) => formatCurrency(value)}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="revenue" 
-                  stroke="#0B3D91" 
-                  strokeWidth={3}
-                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} 
-                  activeDot={{ r: 6, fill: '#F59E0B', stroke: '#fff', strokeWidth: 2 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="h-full w-full bg-slate-50/70 rounded-xl animate-pulse flex items-center justify-center text-slate-400 text-xs" />
+            ) : summaryData.revenueTrend && summaryData.revenueTrend.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={summaryData.revenueTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(val) => {
+                      try {
+                        const parsed = new Date(val);
+                        return isNaN(parsed.getTime()) ? val : parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                      } catch {
+                        return val;
+                      }
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    tickFormatter={(val) => `Rp ${val >= 1000 ? (val / 1000) + 'k' : val}`}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                    dx={-10}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [formatCurrency(value), 'Pendapatan']}
+                    labelFormatter={(label) => {
+                      try {
+                        const parsed = new Date(label);
+                        return isNaN(parsed.getTime()) ? label : parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+                      } catch {
+                        return label;
+                      }
+                    }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="amount" 
+                    stroke="#0B3D91" 
+                    strokeWidth={3}
+                    dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} 
+                    activeDot={{ r: 6, fill: '#F59E0B', stroke: '#fff', strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <span>Belum ada data</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Secondary Chart / Calls */}
+        {/* Secondary Chart: Volume Panggilan */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
           <div className="mb-5">
             <h2 className="text-sm font-bold text-slate-800">Volume Panggilan</h2>
             <p className="text-slate-500 text-[11px]">Distribusi panggilan per hari</p>
           </div>
           <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockDashboardStats.callTrend} margin={{ top: 5, right: 0, bottom: 5, left: -20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', { day: 'numeric' })}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                />
-                <Tooltip 
-                  formatter={(value) => [`${formatNumber(value)} Panggilan`, 'Volume']}
-                  labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                  cursor={{ fill: '#f1f5f9' }}
-                  contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
-                />
-                <Bar 
-                  dataKey="calls" 
-                  fill="#1E5FCC" 
-                  radius={[4, 4, 0, 0]} 
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {isLoading ? (
+              <div className="h-full w-full bg-slate-50/70 rounded-xl animate-pulse flex items-center justify-center text-slate-400 text-xs" />
+            ) : summaryData.callVolume && summaryData.callVolume.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={summaryData.callVolume} margin={{ top: 5, right: 0, bottom: 5, left: -20 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(val) => {
+                      try {
+                        const parsed = new Date(val);
+                        return isNaN(parsed.getTime()) ? val : parsed.toLocaleDateString('id-ID', { day: 'numeric' });
+                      } catch {
+                        return val;
+                      }
+                    }}
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`${formatNumber(value)} Panggilan`, 'Volume']}
+                    labelFormatter={(label) => {
+                      try {
+                        const parsed = new Date(label);
+                        return isNaN(parsed.getTime()) ? label : parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                      } catch {
+                        return label;
+                      }
+                    }}
+                    cursor={{ fill: '#f1f5f9' }}
+                    contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="#1E5FCC" 
+                    radius={[4, 4, 0, 0]} 
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+                <span>Belum ada data</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -181,4 +283,3 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
-

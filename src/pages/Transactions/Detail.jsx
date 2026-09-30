@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -14,47 +14,60 @@ import {
   Fingerprint,
   PhoneCall,
   ShoppingBag,
-  Cpu
+  Cpu,
+  AlertCircle
 } from 'lucide-react';
-import { mockTransactions, mockBranches, mockUsers } from '../../services/mockData';
+import { getTransactionById } from '../../services/balanceService';
+import { logout } from '../../services/api';
 
 const Detail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const trx = mockTransactions.find(t => t.id === id);
+  const [trx, setTrx] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [toastMsg, setToastMsg] = useState('');
 
-  if (!trx) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <h2 className="text-xl font-bold text-slate-800 mb-2">Transaksi Tidak Ditemukan</h2>
-        <p className="text-slate-500 mb-6">ID {id} tidak terdaftar di buku besar sistem.</p>
-        <button onClick={() => navigate('/transactions')} className="px-4 py-2 bg-primary text-white rounded-lg">Kembali ke Riwayat</button>
-      </div>
-    );
-  }
-
-  const branchName = mockBranches.find(b => b.id === trx.branchId)?.name || 'Unknown Branch';
-  const isSuccess = trx.status === 'Berhasil';
-
-  const isCall = trx.category === 'Panggilan' || (trx.description || '').toLowerCase().includes('pemakaian');
-  const categoryLabel = isCall ? 'Panggilan' : 'Kantin';
+  useEffect(() => {
+    const fetchTransaction = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getTransactionById(id);
+        setTrx(data);
+      } catch (err) {
+        console.log('[TransactionDetail] Gagal memuat detail transaksi:', err);
+        if (err?.status === 401) {
+          logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+        setTrx(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTransaction();
+  }, [id, navigate]);
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value);
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(value || 0);
   };
 
   const handleDownloadStruk = () => {
+    if (!trx) {
+      setToastMsg('Fitur ini belum tersedia di sistem backend');
+      setTimeout(() => setToastMsg(''), 4000);
+      return;
+    }
     const textContent = `
 ==================================================
            PASCALL AUDIT TRANSACTION RECEIPT
 ==================================================
 ID Transaksi     : ${trx.id}
 Status           : ${trx.status}
-Waktu            : ${new Date(trx.date).toLocaleString('id-ID')} WIB
-Cabang           : ${branchName}
+Waktu            : ${trx.date ? new Date(trx.date).toLocaleString('id-ID') : '-'} WIB
 Nama WBP         : ${trx.inmateName} (${trx.inmateId})
-Kategori         : ${categoryLabel}
+Kategori         : ${trx.category || 'Panggilan'}
 Keterangan       : ${trx.description || '-'}
 Petugas / Sistem : ${trx.officerName || 'Sistem (Otomatis)'}
 Metode           : ${trx.method || 'Potong Saldo'}
@@ -78,8 +91,50 @@ PasCall Management System
     URL.revokeObjectURL(url);
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-5 animate-pulse">
+        <div className="h-10 bg-slate-200 rounded-xl w-48"></div>
+        <div className="h-40 bg-slate-200 rounded-2xl"></div>
+        <div className="h-64 bg-slate-200 rounded-2xl"></div>
+      </div>
+    );
+  }
+
+  if (!trx) {
+    return (
+      <div className="space-y-5 max-w-lg mx-auto py-12">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center">
+          <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
+          <h2 className="text-base font-bold text-slate-800">Data tidak tersedia</h2>
+          <p className="text-xs text-slate-500 mt-1">Informasi detail transaksi dengan ID {id} tidak ditemukan.</p>
+          <Link 
+            to="/transactions" 
+            className="inline-block mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-colors"
+          >
+            Kembali ke Riwayat Transaksi
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const isSuccess = trx.status === 'Berhasil';
+  const categoryLabel = trx.category || 'Panggilan';
+
   return (
     <div className="max-w-4xl mx-auto space-y-5">
+      {/* Toast Alert */}
+      {toastMsg && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between animate-in fade-in duration-200 shadow-2xs">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>{toastMsg}</span>
+          </div>
+          <button onClick={() => setToastMsg('')} className="text-amber-600 hover:text-amber-800 font-bold ml-4">✕</button>
+        </div>
+      )}
+
       {/* Action Bar */}
       <div className="flex justify-between items-center bg-white p-4 rounded-2xl shadow-sm border border-slate-200/80">
         <Link to="/transactions" className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-semibold text-xs transition-colors">
@@ -110,7 +165,6 @@ PasCall Management System
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
         {/* Receipt Header */}
         <div className="bg-slate-50 p-8 border-b border-slate-100 flex flex-col items-center text-center relative overflow-hidden">
-          {/* Subtle watermark background */}
           <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
             <ShieldAlert className="w-[300px] h-[300px]" />
           </div>
@@ -132,7 +186,7 @@ PasCall Management System
               <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-xs font-bold ${
                 isSuccess ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
               }`}>
-                MUTASI {trx.status.toUpperCase()}
+                MUTASI {trx.status ? trx.status.toUpperCase() : 'BERHASIL'}
               </span>
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
                 categoryLabel === 'Panggilan' 
@@ -147,7 +201,7 @@ PasCall Management System
             <div className="flex flex-col md:flex-row gap-6 justify-center text-slate-600 text-sm font-medium">
               <span className="flex items-center gap-1.5 justify-center"><Fingerprint className="w-4 h-4 text-slate-400" /> {trx.id}</span>
               <span className="hidden md:inline text-slate-300">•</span>
-              <span className="flex items-center gap-1.5 justify-center"><Calendar className="w-4 h-4 text-slate-400" /> {new Date(trx.date).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })} WIB</span>
+              <span className="flex items-center gap-1.5 justify-center"><Calendar className="w-4 h-4 text-slate-400" /> {trx.date ? new Date(trx.date).toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' }) : '-'} WIB</span>
               <span className="hidden md:inline text-slate-300">•</span>
               <span className="flex items-center gap-1.5 justify-center"><BadgeDollarSign className="w-4 h-4 text-slate-400" /> {trx.method || 'Potong Saldo'}</span>
             </div>
@@ -169,9 +223,6 @@ PasCall Management System
                   <div>
                     <h4 className="text-lg font-bold text-slate-800">{trx.inmateName}</h4>
                     <p className="text-slate-500 font-mono text-sm mt-0.5">{trx.inmateId}</p>
-                    <p className="text-slate-500 text-sm mt-1 flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 text-slate-400" /> {branchName}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -209,7 +260,7 @@ PasCall Management System
                   </div>
                   <div>
                     <h4 className="font-bold text-slate-800">{trx.officerName || 'Sistem (Otomatis)'}</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">{trx.officerName ? 'Petugas Kantin' : 'Modul Otomasi Bilik Panggilan'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{trx.officerName ? 'Petugas' : 'Modul Otomasi Bilik Panggilan'}</p>
                   </div>
                 </div>
               </div>
@@ -219,15 +270,11 @@ PasCall Management System
                 <div className="space-y-4">
                   <div className="flex flex-col gap-1">
                     <span className="text-xs text-slate-500 font-medium">Timestamp Sistem</span>
-                    <span className="text-sm font-mono text-slate-800">{trx.date}</span>
+                    <span className="text-sm font-mono text-slate-800">{trx.date || '-'}</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <span className="text-xs text-slate-500 font-medium">Kode Referensi Gateway</span>
-                    <span className="text-sm font-mono text-slate-800">REF-{trx.id.replace('TRX-', '')}-{Date.parse(trx.date).toString().slice(-6)}</span>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-xs text-slate-500 font-medium">Node Validasi</span>
-                    <span className="text-sm font-mono text-slate-800">pascall-core-node-03</span>
+                    <span className="text-xs text-slate-500 font-medium">Status Ledger</span>
+                    <span className="text-sm font-mono text-slate-800">Verified & Recorded</span>
                   </div>
                 </div>
               </div>

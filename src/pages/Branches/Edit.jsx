@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Power
 } from 'lucide-react';
-import { mockBranches } from '../../services/mockData';
+import { getBranchById, updateBranch } from '../../services/branchService';
+import { logout } from '../../services/api';
 
 const Edit = () => {
   const { id } = useParams();
@@ -33,18 +34,21 @@ const Edit = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const branch = mockBranches.find(b => b.id === id);
-    if (branch) {
-      setInitialBranch(branch);
-      setFormData({
-        name: branch.name,
-        location: branch.location,
-        address: branch.address || '',
-        phone: branch.phone || '',
-        capacity: branch.capacity || '',
-        status: branch.status || 'Active'
-      });
-    }
+    getBranchById(id).then(branch => {
+      if (branch) {
+        setInitialBranch(branch);
+        setFormData({
+          name: branch.name,
+          location: branch.location,
+          address: branch.address || '',
+          phone: branch.phone || '',
+          capacity: branch.capacity || '',
+          status: branch.status || 'Active'
+        });
+      }
+    }).catch(err => {
+      console.log('[BranchEdit] Error load branch:', err);
+    });
   }, [id]);
 
   const handleChange = (e) => {
@@ -56,7 +60,7 @@ const Edit = () => {
     setFormData(prev => ({ ...prev, status: newStatus }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -74,23 +78,34 @@ const Edit = () => {
     }
 
     setIsSubmitting(true);
-
-    setTimeout(() => {
-      const branchIndex = mockBranches.findIndex(b => b.id === id);
-      if (branchIndex !== -1) {
-        mockBranches[branchIndex] = {
-          ...mockBranches[branchIndex],
-          name: formData.name,
-          location: formData.location,
-          address: formData.address,
-          phone: formData.phone,
-          capacity: parseInt(formData.capacity, 10),
-          status: formData.status
-        };
-      }
-      setIsSubmitting(false);
+    try {
+      await updateBranch(id, {
+        name: formData.name.trim(),
+        location: formData.location.trim(),
+        address: formData.address.trim(),
+        phone: formData.phone.trim(),
+        capacity: parseInt(formData.capacity, 10),
+        status: formData.status
+      });
       navigate(`/branches/${id}`);
-    }, 400);
+    } catch (err) {
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setErrorMsg('Anda tidak memiliki akses.');
+      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
+        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+      } else if (err?.status === 400) {
+        setErrorMsg(err?.message || 'Data cabang tidak valid.');
+      } else {
+        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!initialBranch && formData.name === '') {

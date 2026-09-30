@@ -6,23 +6,28 @@ import {
   User, 
   Building2, 
   Camera, 
-  Wallet
+  Wallet,
+  AlertCircle
 } from 'lucide-react';
-import { getInmateById, updateInmate } from '../../../services/mockData';
+import { getInmates, updateInmate } from '../../../services/inmateService';
+import { logout, getAuthUser } from '../../../services/api';
 
 const InmatesEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const authUser = getAuthUser();
+  const currentBranchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
 
   const [formData, setFormData] = useState({
     name: '',
     wbpRegNumber: '',
+    initialPin: '',
     nik: '',
     birthPlace: '',
     birthDate: '',
     gender: 'Laki-laki',
     photoUrl: '',
-    branchName: 'Lapas Kelas I Cipinang',
+    branchName: currentBranchName,
     blockRoom: '',
     entryDate: '',
     status: 'Aktif',
@@ -32,28 +37,33 @@ const InmatesEdit = () => {
 
   const [photoPreview, setPhotoPreview] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const inmate = getInmateById(id);
-    if (inmate) {
-      setFormData({
-        name: inmate.name || '',
-        wbpRegNumber: inmate.wbpRegNumber || '',
-        nik: inmate.nik || '',
-        birthPlace: inmate.birthPlace || '',
-        birthDate: inmate.birthDate || '',
-        gender: inmate.gender || 'Laki-laki',
-        photoUrl: inmate.photoUrl || '',
-        branchName: inmate.branchName || 'Lapas Kelas I Cipinang',
-        blockRoom: inmate.blockRoom || '',
-        entryDate: inmate.entryDate || '',
-        status: inmate.status || 'Aktif',
-        callBalance: inmate.callBalance || 0,
-        commStatus: inmate.commStatus || 'Aktif'
-      });
-      if (inmate.photoUrl) setPhotoPreview(inmate.photoUrl);
-    }
-  }, [id]);
+    getInmates({ search: id }).then(res => {
+      const found = res?.items?.find(i => i.id === id || i.wbpRegNumber === id);
+      if (found) {
+        setFormData({
+          name: found.name || '',
+          wbpRegNumber: found.wbpRegNumber || '',
+          initialPin: '',
+          nik: '',
+          birthPlace: '',
+          birthDate: '',
+          gender: 'Laki-laki',
+          photoUrl: '',
+          branchName: currentBranchName,
+          blockRoom: found.blockRoom || 'Blok A / Kamar 1A',
+          entryDate: found.entryDate ? new Date(found.entryDate).toISOString().split('T')[0] : '',
+          status: found.status || 'Aktif',
+          callBalance: found.callBalance || 0,
+          commStatus: found.commStatus || 'Aktif'
+        });
+      }
+    }).catch((err) => {
+      console.log('[InmatesEdit] Error loading inmate:', err);
+    });
+  }, [id, currentBranchName]);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -67,15 +77,40 @@ const InmatesEdit = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.wbpRegNumber.trim()) {
-      setErrorMsg('Nama Lengkap dan No. Registrasi WBP wajib diisi.');
+      setErrorMsg('Nama Lengkap dan NIP Narapidana wajib diisi.');
       return;
     }
 
-    updateInmate(id, formData);
-    navigate('/branch/inmates', { state: { toast: `Data ${formData.name} berhasil diperbarui!` } });
+    setIsSubmitting(true);
+    setErrorMsg('');
+    try {
+      await updateInmate(id, {
+        name: formData.name,
+        identifier: formData.wbpRegNumber,
+        initialPin: formData.initialPin
+      });
+      navigate('/branch/inmates', { state: { toast: 'Data narapidana berhasil diperbarui.' } });
+    } catch (err) {
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setErrorMsg('Anda tidak memiliki akses.');
+      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
+        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+      } else if (err?.status === 400) {
+        setErrorMsg(err?.message || 'Data yang dimasukkan tidak valid.');
+      } else {
+        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -91,8 +126,9 @@ const InmatesEdit = () => {
       </div>
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-          {errorMsg}
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -155,7 +191,7 @@ const InmatesEdit = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  No. ID <span className="text-rose-500">*</span>
+                  NIP (Nomor Induk Narapidana) <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="text" 

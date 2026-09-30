@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Building2, 
@@ -8,20 +8,32 @@ import {
   CreditCard, 
   BarChart3, 
   LogOut,
-  Contact,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
+import { logout, getAuthUser } from '../services/api';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
   const location = useLocation();
+  const navigate = useNavigate();
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
+  
+  const authUser = getAuthUser();
+  const rawRole = (authUser?.role || (isBranchAdmin ? 'BRANCH_ADMIN' : 'SUPERADMIN')).toUpperCase();
+  const isBranchRole = rawRole === 'BRANCH_ADMIN' || rawRole === 'ADMIN_CABANG' || rawRole === 'BRANCH_OPERATOR';
+  const roleLabel = isBranchRole ? 'Admin Cabang' : 'Superadmin';
+  const branchDisplayName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
   
   const superadminMenuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
     { name: 'Cabang', icon: Building2, path: '/branches' },
-    { name: 'Pengguna', icon: Users, path: '/users' },
+    { name: 'Data Narapidana', icon: Users, path: '/inmates' },
     { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
     { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
     { name: 'Laporan', icon: BarChart3, path: '/reports' },
@@ -30,7 +42,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const branchMenuItems = [
     { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
     { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
-    { name: 'Persetujuan Kontak', icon: Contact, path: '/branch/contacts' },
+    // { name: 'Persetujuan Kontak', icon: Contact, path: '/branch/contacts' }, // Dinonaktifkan sesuai alur baru (pendaftaran mandiri keluarga)
     { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
     { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
   ];
@@ -68,7 +80,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
             <div className="overflow-hidden whitespace-nowrap">
               <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
               <p className="text-[11px] text-blue-200 font-medium">
-                {isBranchAdmin ? 'Branch Operator' : 'Superadmin'}
+                {roleLabel}
               </p>
             </div>
           )}
@@ -129,7 +141,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                </div>
                {isOpen && (
                  <div className="overflow-hidden whitespace-nowrap">
-                   <p className="text-xs font-semibold text-white">Cabang Cipinang</p>
+                   <p className="text-xs font-semibold text-white">{branchDisplayName}</p>
                    <div className="flex items-center gap-1.5 mt-0.5">
                      <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                      <p className="text-[10px] text-blue-200">Online</p>
@@ -139,20 +151,21 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
             </div>
           )}
 
-          <Link 
-            to="/login"
+          <button 
+            type="button"
+            onClick={handleLogout}
             title={!isOpen ? "Keluar" : undefined}
-            className={`flex items-center transition-colors rounded-2xl text-red-300 hover:bg-white/10 hover:text-red-200 ${
+            className={`flex items-center transition-colors rounded-2xl text-red-300 hover:bg-white/10 hover:text-red-200 cursor-pointer ${
               !isOpen 
                 ? 'w-11 h-11 justify-center p-0 mx-auto' 
-                : 'mx-1 px-3.5 py-2.5 gap-3'
+                : 'mx-1 px-3.5 py-2.5 gap-3 w-[calc(100%-8px)]'
             }`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
             {isOpen && (
               <span className="whitespace-nowrap text-sm font-medium">Keluar</span>
             )}
-          </Link>
+          </button>
         </div>
       </div>
     </div>

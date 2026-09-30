@@ -9,34 +9,22 @@ import {
   AlertCircle, 
   Check 
 } from 'lucide-react';
+import { login, setAuthSession, clearAuthSession } from '../services/api';
 
 export default function Login() {
   const navigate = useNavigate();
 
-  // Form State
-  const [identifier, setIdentifier] = useState('admin.cipinang@pascall.id');
-  const [password, setPassword] = useState('password123');
+  // Form State - Clean without dummy data
+  const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [activeRole, setActiveRole] = useState('cabang');
 
-  // Quick switch role helper
-  const handleSelectRole = (role) => {
-    setActiveRole(role);
-    setError('');
-    if (role === 'pusat') {
-      setIdentifier('admin.pusat@pascall.id');
-      setPassword('password123');
-    } else {
-      setIdentifier('admin.cipinang@pascall.id');
-      setPassword('password123');
-    }
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
     setError('');
 
     if (!identifier.trim()) {
@@ -56,15 +44,65 @@ export default function Login() {
 
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
-      const lower = identifier.toLowerCase();
-      if (lower.includes('branch') || lower.includes('cipinang') || lower.includes('cabang') || activeRole === 'cabang') {
+    try {
+      const responseData = await login(identifier, password);
+
+      // Extract token flexibly
+      const token = responseData?.token || 
+                    responseData?.data?.token || 
+                    responseData?.accessToken || 
+                    responseData?.data?.accessToken;
+
+      // Extract user & role flexibly
+      const user = responseData?.user || 
+                   responseData?.data?.user || 
+                   responseData?.data || 
+                   {};
+
+      let role = user?.role || 
+                 responseData?.role || 
+                 responseData?.data?.role;
+
+      // Fallback: decode JWT payload if role is embedded in token
+      if (!role && token && typeof token === 'string' && token.split('.').length === 3) {
+        try {
+          const payloadBase64 = token.split('.')[1];
+          const decoded = JSON.parse(atob(payloadBase64));
+          role = decoded.role || decoded.userRole;
+          if (!user.role && role) {
+            user.role = role;
+          }
+        } catch (e) {
+          console.warn('Could not decode JWT payload:', e);
+        }
+      }
+
+      const normalizedRole = (role || '').toString().trim().toUpperCase();
+
+      if (normalizedRole === 'SUPERADMIN') {
+        setAuthSession(token, { ...user, role: 'SUPERADMIN' });
+        navigate('/dashboard');
+      } else if (normalizedRole === 'BRANCH_ADMIN') {
+        setAuthSession(token, { ...user, role: 'BRANCH_ADMIN' });
         navigate('/branch/dashboard');
       } else {
-        navigate('/dashboard');
+        // Reject non-admin roles (FAMILY, INMATE, CANTEEN_STAFF, etc.)
+        clearAuthSession();
+        setError('Akun ini tidak memiliki akses ke dashboard admin');
       }
-    }, 650);
+    } catch (err) {
+      console.error('Login error:', err);
+      if (err.status === 401) {
+        setError('Email/nomor atau password salah');
+      } else if (err.status === 0 || err.isNetworkError) {
+        setError('Server tidak dapat dihubungi, coba lagi nanti');
+      } else {
+        const errorMsg = err.data?.message || err.data?.error || err.message;
+        setError(errorMsg || 'Terjadi kesalahan pada sistem, silakan coba lagi');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -171,55 +209,6 @@ export default function Login() {
           <p className="text-xs text-[#475467] font-medium mt-1 mb-4 text-center leading-relaxed max-w-[280px]">
             Portal Layanan Komunikasi & Operasional Admin
           </p>
-
-          {/* Quick Role Selector (Neumorphic Pill Switch) */}
-          <div
-            className="w-full p-1 rounded-xl flex items-center gap-1 mb-4"
-            style={{
-              backgroundColor: '#dce6f8',
-              boxShadow: 'inset 3px 3px 6px #b6c9e4, inset -3px -3px 6px #ffffff',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => handleSelectRole('cabang')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
-                activeRole === 'cabang'
-                  ? 'text-[#2f6fed]'
-                  : 'text-[#64748b] hover:text-[#101828]'
-              }`}
-              style={
-                activeRole === 'cabang'
-                  ? {
-                      backgroundColor: '#dce6f8',
-                      boxShadow: '3px 3px 7px #b6c9e4, -3px -3px 7px #ffffff',
-                    }
-                  : {}
-              }
-            >
-              Admin Cabang
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSelectRole('pusat')}
-              className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${
-                activeRole === 'pusat'
-                  ? 'text-[#2f6fed]'
-                  : 'text-[#64748b] hover:text-[#101828]'
-              }`}
-              style={
-                activeRole === 'pusat'
-                  ? {
-                      backgroundColor: '#dce6f8',
-                      boxShadow: '3px 3px 7px #b6c9e4, -3px -3px 7px #ffffff',
-                    }
-                  : {}
-              }
-            >
-              Admin Pusat
-            </button>
-          </div>
 
           {/* Error Alert Message */}
           {error && (

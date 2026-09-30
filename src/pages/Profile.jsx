@@ -19,19 +19,23 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Modal from '../components/Modal';
+import { getAuthUser, logout, changePasswordApi, updateProfileApi } from '../services/api';
 
 const Profile = () => {
   const navigate = useNavigate();
+  const authUser = getAuthUser();
   
-  // State for Account Info
+  // State for Account Info initialized from logged in BE user without dummy data
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [accountInfo, setAccountInfo] = useState({
-    name: 'Admin Pusat',
-    email: 'admin.pusat@pascall.id',
-    phone: '081234567890',
-    unit: 'Direktorat Jenderal Pemasyarakatan'
+    name: authUser?.name || 'Superadmin',
+    email: authUser?.email || authUser?.identifier || '-',
+    phone: authUser?.phone || '-',
+    unit: authUser?.unit || 'Direktorat Jenderal Pemasyarakatan'
   });
   const [infoSuccess, setInfoSuccess] = useState(false);
+  const [infoError, setInfoError] = useState('');
+  const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
 
   // State for Password
   const [passwords, setPasswords] = useState({
@@ -46,35 +50,85 @@ const Profile = () => {
   });
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
   // Logout Modal
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const handleSaveInfo = (e) => {
+  const handleSaveInfo = async (e) => {
     e.preventDefault();
-    setIsEditingInfo(false);
-    setInfoSuccess(true);
-    setTimeout(() => setInfoSuccess(false), 3000);
+    setInfoError('');
+    setInfoSuccess(false);
+    setIsSubmittingInfo(true);
+
+    try {
+      await updateProfileApi({
+        name: accountInfo.name,
+        phone: accountInfo.phone,
+        unit: accountInfo.unit
+      });
+      setIsEditingInfo(false);
+      setInfoSuccess(true);
+      setTimeout(() => setInfoSuccess(false), 3000);
+    } catch (err) {
+      console.log('[Profile] Gagal update profil:', err);
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setInfoError('Anda tidak memiliki akses.');
+      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
+        setInfoError('Fitur ini belum tersedia di sistem backend');
+      } else {
+        setInfoError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+      }
+    } finally {
+      setIsSubmittingInfo(false);
+    }
   };
 
-  const handleSavePassword = (e) => {
+  const handleSavePassword = async (e) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess(false);
 
+    if (passwords.new.length < 8) {
+      setPasswordError('Password baru minimal 8 karakter.');
+      return;
+    }
+
     if (passwords.new !== passwords.confirm) {
-      setPasswordError('Password Baru dan Konfirmasi Password tidak sama.');
+      setPasswordError('Password baru dan konfirmasi tidak sama.');
       return;
     }
 
-    if (passwords.new.length < 6) {
-      setPasswordError('Password harus minimal 6 karakter.');
-      return;
-    }
+    setIsSubmittingPassword(true);
 
-    setPasswordSuccess(true);
-    setPasswords({ current: '', new: '', confirm: '' });
-    setTimeout(() => setPasswordSuccess(false), 3000);
+    try {
+      await changePasswordApi({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+        confirmPassword: passwords.confirm
+      });
+      setPasswordSuccess(true);
+      setPasswords({ current: '', new: '', confirm: '' });
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (err) {
+      console.log('[Profile] Gagal ubah password:', err);
+      if (err?.status === 401) {
+        setPasswordError('Password lama salah');
+      } else if (err?.status === 403) {
+        setPasswordError('Anda tidak memiliki akses.');
+      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
+        setPasswordError('Fitur ini belum tersedia di sistem backend');
+      } else {
+        setPasswordError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+      }
+    } finally {
+      setIsSubmittingPassword(false);
+    }
   };
 
   const togglePasswordVisibility = (field) => {
@@ -84,6 +138,12 @@ const Profile = () => {
     }));
   };
 
+  const handleLogoutConfirm = () => {
+    setIsLogoutModalOpen(false);
+    logout();
+    navigate('/login');
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-5 pb-6">
       {/* Overview Banner Card */}
@@ -91,12 +151,9 @@ const Profile = () => {
         <div className="absolute right-0 top-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
           {/* Avatar Container */}
-          <div className="relative group cursor-pointer shrink-0">
+          <div className="relative group shrink-0">
             <div className="w-24 h-24 rounded-full bg-white/10 backdrop-blur-md p-1 border-2 border-indigo-400/40 shadow-inner flex items-center justify-center">
               <UserCircle className="w-full h-full text-indigo-100" />
-            </div>
-            <div className="absolute inset-0 bg-slate-950/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-6 h-6 text-white" />
             </div>
           </div>
 
@@ -123,9 +180,6 @@ const Profile = () => {
               <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
                 <Phone className="w-3.5 h-3.5 text-indigo-400" /> {accountInfo.phone}
               </div>
-              <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
-                <span>ID Operator:</span> <strong className="text-white">ADM-HQ-001</strong>
-              </div>
             </div>
           </div>
 
@@ -147,6 +201,13 @@ const Profile = () => {
         </div>
       )}
 
+      {infoError && (
+        <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">
+          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <span>{infoError}</span>
+        </div>
+      )}
+
       {/* Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -165,7 +226,10 @@ const Profile = () => {
               </div>
               
               <button 
-                onClick={() => setIsEditingInfo(!isEditingInfo)}
+                onClick={() => {
+                  setIsEditingInfo(!isEditingInfo);
+                  setInfoError('');
+                }}
                 className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                   isEditingInfo ? 'text-slate-600 bg-slate-100 hover:bg-slate-200' : 'text-indigo-600 bg-indigo-50 hover:bg-indigo-100'
                 }`}
@@ -196,20 +260,10 @@ const Profile = () => {
                   
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Alamat Email</label>
-                    {isEditingInfo ? (
-                      <input 
-                        type="email" 
-                        value={accountInfo.email}
-                        onChange={(e) => setAccountInfo({...accountInfo, email: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
-                        required
-                      />
-                    ) : (
-                      <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
-                        <Mail className="w-3.5 h-3.5 text-slate-400" />
-                        {accountInfo.email}
-                      </div>
-                    )}
+                    <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      {accountInfo.email}
+                    </div>
                   </div>
 
                   <div>
@@ -232,10 +286,19 @@ const Profile = () => {
 
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">Unit Kerja / Instansi</label>
-                    <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
-                      <Building2 className="w-3.5 h-3.5 text-indigo-600" />
-                      {accountInfo.unit}
-                    </div>
+                    {isEditingInfo ? (
+                      <input 
+                        type="text" 
+                        value={accountInfo.unit}
+                        onChange={(e) => setAccountInfo({...accountInfo, unit: e.target.value})}
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 font-semibold"
+                      />
+                    ) : (
+                      <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-indigo-600" />
+                        {accountInfo.unit}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -248,8 +311,12 @@ const Profile = () => {
                   </div>
 
                   {isEditingInfo && (
-                    <button type="submit" className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all text-xs font-bold shadow-md cursor-pointer">
-                      <Save className="w-3.5 h-3.5" /> Simpan Perubahan
+                    <button 
+                      type="submit" 
+                      disabled={isSubmittingInfo}
+                      className="inline-flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                    >
+                      <Save className="w-3.5 h-3.5" /> {isSubmittingInfo ? 'Menyimpan...' : 'Simpan Perubahan'}
                     </button>
                   )}
                 </div>
@@ -269,7 +336,7 @@ const Profile = () => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-800">Keamanan Password</h2>
-                <p className="text-[11px] text-slate-500">Perbarui kata sandi secara berkala</p>
+                <p className="text-[11px] text-slate-500">Perbarui kata sandi akun</p>
               </div>
             </div>
             
@@ -299,7 +366,7 @@ const Profile = () => {
                     value={passwords.new}
                     onChange={(e) => setPasswords({...passwords, new: e.target.value})}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 pr-10 py-2 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
-                    placeholder="Min 6 karakter"
+                    placeholder="Min 8 karakter"
                     required
                   />
                   <button type="button" onClick={() => togglePasswordVisibility('new')} className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer">
@@ -339,8 +406,12 @@ const Profile = () => {
                 </div>
               )}
 
-              <button type="submit" className="w-full py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-xs font-bold shadow-md cursor-pointer">
-                Simpan Password Baru
+              <button 
+                type="submit" 
+                disabled={isSubmittingPassword}
+                className="w-full py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-all text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {isSubmittingPassword ? 'Memproses...' : 'Simpan Password Baru'}
               </button>
             </form>
           </div>
@@ -353,7 +424,7 @@ const Profile = () => {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-800">Aktivitas Sesi</h2>
-                <p className="text-[11px] text-slate-500">Log akses & verifikasi sistem</p>
+                <p className="text-[11px] text-slate-500">Informasi status login pengguna</p>
               </div>
             </div>
             <div className="p-5 space-y-4">
@@ -362,19 +433,8 @@ const Profile = () => {
                   <Clock className="w-4 h-4 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-slate-800">Login Terakhir</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">22 Sep 2026, 08:15 WIB</p>
-                  <span className="text-[10px] text-slate-400 font-mono">IP: 192.168.1.45 (Jakarta)</span>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center shrink-0 border border-indigo-100">
-                  <Calendar className="w-4 h-4 text-indigo-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Akun Dibuat</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">15 Jan 2025, 10:00 WIB</p>
+                  <p className="text-xs font-bold text-slate-800">Status Akses</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Sesi login aktif (Superadmin)</p>
                 </div>
               </div>
             </div>
@@ -387,7 +447,7 @@ const Profile = () => {
       <Modal 
         isOpen={isLogoutModalOpen}
         onClose={() => setIsLogoutModalOpen(false)}
-        onConfirm={() => navigate('/login')}
+        onConfirm={handleLogoutConfirm}
         title="Konfirmasi Logout"
         message="Apakah Anda yakin ingin keluar dari sesi Superadmin saat ini?"
         confirmText="Logout"

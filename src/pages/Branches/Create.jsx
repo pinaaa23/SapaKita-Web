@@ -9,13 +9,72 @@ import {
   Users, 
   Plus, 
   AlertCircle,
-  Power
+  Power,
+  Shield,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Copy,
+  Check,
+  CheckCircle2,
+  AlertTriangle,
+  X
 } from 'lucide-react';
-import { mockBranches } from '../../services/mockData';
+import { createBranch, buildCreateBranchPayload } from '../../services/branchService';
+import { logout } from '../../services/api';
+
+export const ADMIN_EMAIL_DOMAIN = 'pascall.id';
+
+const generateAdminEmail = (name, location) => {
+  // Ambil teks sumber: utamakan lokasi jika ada, atau nama cabang
+  const rawText = (location && location.trim()) || (name && name.trim()) || '';
+  if (!rawText) return '';
+
+  // Filter kata-kata umum/formal agar format email ringkas, ramah pengguna, & mudah dihafal
+  const noiseWords = [
+    'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara',
+    'lapas', 'rutan', 'kelas', 'kls', 'khusus', 'narkotika', 'anak', 'wanita', 'pemuda',
+    'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii', 'iv', 'v'
+  ];
+
+  const words = rawText
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/g, ' ')
+    .split(/\s+/)
+    .filter(w => w && !noiseWords.includes(w));
+
+  // Jika kata inti tersisa ada, pakai kata tersebut. Jika terfilter semua, pakai teks asli yang disanitasi
+  const coreSlug = (words.length > 0 ? words.join('-') : rawText.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+    .replace(/^-+|-+$/g, '');
+
+  return coreSlug ? `admin.${coreSlug}@${ADMIN_EMAIL_DOMAIN}` : '';
+};
+
+const generateRandomPassword = () => {
+  const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowers = 'abcdefghijkmnpqrstuvwxyz';
+  const numbers = '23456789';
+  const all = uppers + lowers + numbers;
+
+  let pass = '';
+  // Pastikan memuat huruf besar, huruf kecil, dan angka
+  pass += uppers[Math.floor(Math.random() * uppers.length)];
+  pass += lowers[Math.floor(Math.random() * lowers.length)];
+  pass += numbers[Math.floor(Math.random() * numbers.length)];
+
+  // Total 10 karakter alfanumerik yang kuat, rapi, dan mudah dihafal
+  for (let i = 3; i < 10; i++) {
+    pass += all[Math.floor(Math.random() * all.length)];
+  }
+  return pass.split('').sort(() => 0.5 - Math.random()).join('');
+};
 
 const Create = () => {
   const navigate = useNavigate();
   
+  // Branch form state
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -25,19 +84,67 @@ const Create = () => {
     status: 'Active'
   });
 
+  // Admin account state
+  const [adminEmail, setAdminEmail] = useState('');
+  const [isEmailManuallyEdited, setIsEmailManuallyEdited] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [copiedField, setCopiedField] = useState('');
+
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  // Success Modal State (stores credentials once in memory only)
+  const [createdCredentials, setCreatedCredentials] = useState(null);
+
+  const handleBranchNameChange = (e) => {
+    const val = e.target.value;
+    setFormData(prev => {
+      const next = { ...prev, name: val };
+      if (!isEmailManuallyEdited) {
+        setAdminEmail(generateAdminEmail(next.name, next.location));
+      }
+      return next;
+    });
+  };
+
+  const handleLocationChange = (e) => {
+    const val = e.target.value;
+    setFormData(prev => {
+      const next = { ...prev, location: val };
+      if (!isEmailManuallyEdited) {
+        setAdminEmail(generateAdminEmail(next.name, next.location));
+      }
+      return next;
+    });
+  };
+
+  const handleEmailChange = (e) => {
+    setAdminEmail(e.target.value);
+    setIsEmailManuallyEdited(true);
   };
 
   const handleStatusChange = (newStatus) => {
     setFormData(prev => ({ ...prev, status: newStatus }));
   };
 
-  const handleSubmit = (e) => {
+  const handleAutoGeneratePassword = () => {
+    const pwd = generateRandomPassword();
+    setAdminPassword(pwd);
+    setAdminConfirmPassword(pwd);
+  };
+
+  const handleCopy = (text, fieldName) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedField(fieldName);
+    setTimeout(() => setCopiedField(''), 2500);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
 
@@ -54,24 +161,73 @@ const Create = () => {
       return;
     }
 
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!adminEmail.trim()) {
+      setErrorMsg('Email login admin cabang wajib diisi.');
+      return;
+    }
+    if (!emailRegex.test(adminEmail.trim())) {
+      setErrorMsg('Format email login admin cabang tidak valid.');
+      return;
+    }
+
+    if (!adminPassword) {
+      setErrorMsg('Password akun admin cabang wajib diisi.');
+      return;
+    }
+    if (adminPassword.length < 8) {
+      setErrorMsg('Password minimal harus 8 karakter.');
+      return;
+    }
+    if (adminPassword !== adminConfirmPassword) {
+      setErrorMsg('Password dan konfirmasi password tidak cocok.');
+      return;
+    }
+
     setIsSubmitting(true);
 
-    setTimeout(() => {
-      const newId = `b${mockBranches.length + 1}`;
-      mockBranches.push({
-        id: newId,
-        name: formData.name,
-        location: formData.location,
-        address: formData.address,
-        phone: formData.phone,
-        capacity: parseInt(formData.capacity, 10),
-        inmateCount: 0,
-        adminCount: 1,
-        status: formData.status
+    const payload = buildCreateBranchPayload(formData, {
+      email: adminEmail.trim(),
+      password: adminPassword
+    });
+
+    try {
+      await createBranch(payload);
+      
+      // Store in transient memory state only (never in storage)
+      setCreatedCredentials({
+        branchName: formData.name.trim(),
+        email: adminEmail.trim(),
+        password: adminPassword
       });
+    } catch (err) {
+      console.log('[BranchCreate] Error submit branch:');
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setErrorMsg('Anda tidak memiliki akses.');
+      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
+        setErrorMsg('Fitur ini belum tersedia di sistem backend');
+      } else if (err?.status === 400) {
+        const msg = err?.data?.message || err?.message || 'Email sudah dipakai, gunakan yang lain.';
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+      }
+    } finally {
       setIsSubmitting(false);
-      navigate('/branches');
-    }, 400);
+    }
+  };
+
+  const handleCloseSuccessModal = () => {
+    // Clear credentials from state immediately
+    setCreatedCredentials(null);
+    setAdminPassword('');
+    setAdminConfirmPassword('');
+    navigate('/branches');
   };
 
   return (
@@ -93,9 +249,9 @@ const Create = () => {
             <Building2 className="w-8 h-8 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
-            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Cabang Baru</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Cabang & Akun Admin</h2>
             <p className="text-blue-100 text-xs">
-              Daftarkan lapas atau rutan baru untuk mengaktifkan sistem monitoring & bilik telepon PasCall
+              Daftarkan lapas atau rutan baru dan buatkan akun login untuk Admin Cabang
             </p>
           </div>
         </div>
@@ -109,8 +265,8 @@ const Create = () => {
         </div>
       )}
 
-      {/* Main Form Form */}
-      <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Main Form */}
+      <form onSubmit={handleSubmit} autoComplete="off" className="space-y-5">
         
         {/* Section 1: Identitas & Status Operasional */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
@@ -136,7 +292,7 @@ const Create = () => {
                   type="text" 
                   name="name"
                   value={formData.name}
-                  onChange={handleChange}
+                  onChange={handleBranchNameChange}
                   required
                   placeholder="Contoh: Lapas Kelas I Cipinang"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
@@ -207,7 +363,7 @@ const Create = () => {
                   type="number" 
                   name="capacity"
                   value={formData.capacity}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
                   required
                   min="1"
                   placeholder="Contoh: 2500"
@@ -244,9 +400,9 @@ const Create = () => {
                     type="text" 
                     name="location"
                     value={formData.location}
-                    onChange={handleChange}
+                    onChange={handleLocationChange}
                     required
-                    placeholder="Contoh: Jakarta Timur"
+                    placeholder="Contoh: Surakarta"
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                   />
                 </div>
@@ -263,7 +419,7 @@ const Create = () => {
                     type="text" 
                     name="phone"
                     value={formData.phone}
-                    onChange={handleChange}
+                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     placeholder="Contoh: 021-8190001"
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                   />
@@ -281,11 +437,138 @@ const Create = () => {
                 <textarea 
                   name="address"
                   value={formData.address}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   rows="3"
                   placeholder="Masukkan alamat jalan, nomor, kecamatan, dan kode pos..."
                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all resize-none shadow-2xs leading-relaxed"
                 ></textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 3: Akun Admin Cabang */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+                <Shield className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Akun Admin Cabang</h3>
+                <p className="text-[11px] text-slate-500">Akun ini dipakai admin cabang untuk login ke dashboard</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleAutoGeneratePassword}
+              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Buat Otomatis Password</span>
+            </button>
+          </div>
+
+          <div className="p-6 space-y-5">
+            {/* Email Login */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Email Login <span className="text-rose-500">*</span>
+                </label>
+                {adminEmail && (
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(adminEmail, 'email')}
+                    className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {copiedField === 'email' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                    <span>{copiedField === 'email' ? 'Disalin' : 'Salin Email'}</span>
+                  </button>
+                )}
+              </div>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input 
+                  type="email" 
+                  name="branch_admin_email"
+                  autoComplete="off"
+                  value={adminEmail}
+                  onChange={handleEmailChange}
+                  required
+                  placeholder={`admin.lapas-surakarta@${ADMIN_EMAIL_DOMAIN}`}
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                />
+              </div>
+              <p className="text-[11px] text-slate-400 leading-normal">
+                Email ini terisi otomatis dari nama cabang dan lokasi. Tetap bisa disesuaikan manual oleh Admin Pusat.
+              </p>
+            </div>
+
+            {/* Password & Confirm Password */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Password <span className="text-rose-500">*</span>
+                  </label>
+                  {adminPassword && (
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(adminPassword, 'password')}
+                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input 
+                    type={showPassword ? 'text' : 'password'}
+                    name="branch_admin_password"
+                    autoComplete="new-password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    required
+                    placeholder="Minimal 8 karakter"
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs font-mono"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Konfirmasi Password <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input 
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="branch_admin_confirm_password"
+                    autoComplete="new-password"
+                    value={adminConfirmPassword}
+                    onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                    required
+                    placeholder="Ulangi password"
+                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs font-mono"
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -302,7 +585,7 @@ const Create = () => {
           <button 
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow-md shadow-primary/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow-md shadow-primary/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? (
               <>
@@ -312,16 +595,98 @@ const Create = () => {
             ) : (
               <>
                 <Plus className="w-3.5 h-3.5" />
-                <span>Daftarkan Cabang</span>
+                <span>Daftarkan Cabang & Akun</span>
               </>
             )}
           </button>
         </div>
 
       </form>
+
+      {/* Success Modal (Shows credentials ONCE, not saved in storage) */}
+      {createdCredentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white relative">
+              <button
+                type="button"
+                onClick={handleCloseSuccessModal}
+                className="absolute top-4 right-4 p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0 border border-white/30">
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold">Cabang dan Akun Admin Berhasil Dibuat</h3>
+                  <p className="text-xs text-emerald-100 mt-0.5">{createdCredentials.branchName}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-4">
+              {/* Warning Banner */}
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  Catat/salin sekarang. Password tidak bisa dilihat lagi setelah jendela ini ditutup demi keamanan sistem.
+                </p>
+              </div>
+
+              {/* Credential Cards */}
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Login Admin</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono truncate mt-0.5">{createdCredentials.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdCredentials.email, 'modal-email')}
+                    className="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    {copiedField === 'modal-email' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                    <span>{copiedField === 'modal-email' ? 'Disalin!' : 'Salin'}</span>
+                  </button>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Password Awal</p>
+                    <p className="text-xs font-bold text-slate-800 font-mono truncate mt-0.5 tracking-wider">{createdCredentials.password}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(createdCredentials.password, 'modal-password')}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                  >
+                    {copiedField === 'modal-password' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedField === 'modal-password' ? 'Disalin!' : 'Salin'}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Close Action */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={handleCloseSuccessModal}
+                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-md"
+                >
+                  Saya Sudah Menyimpan Kredensial Ini & Lanjutkan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
 
 export default Create;
-

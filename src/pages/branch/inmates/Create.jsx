@@ -1,33 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   Save, 
-  X, 
   User, 
   Building2, 
-  Phone, 
   Camera, 
-  Calendar, 
-  Wallet, 
-  ShieldCheck, 
-  CheckCircle2,
-  FileText
+  Wallet,
+  AlertCircle,
+  ChevronDown
 } from 'lucide-react';
-import { addInmate } from '../../../services/mockData';
+import { createInmate } from '../../../services/inmateService';
+import { getBranches } from '../../../services/branchService';
+import { logout, getAuthUser } from '../../../services/api';
 
 const InmatesCreate = () => {
   const navigate = useNavigate();
+  const authUser = getAuthUser();
+  const isSuperadmin = authUser?.role === 'SUPERADMIN';
+  const currentBranchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
+
+  const [branches, setBranches] = useState([]);
+  const [selectedBranchId, setSelectedBranchId] = useState('');
+  const [manualBranchName, setManualBranchName] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
-    wbpRegNumber: `REG-CPN-2026-${Math.floor(100 + Math.random() * 900)}`,
+    wbpRegNumber: `NIP-${Math.floor(1000 + Math.random() * 9000)}`,
+    initialPin: '1234',
     nik: '',
     birthPlace: '',
     birthDate: '',
     gender: 'Laki-laki',
     photoUrl: '',
-    branchName: 'Lapas Kelas I Cipinang',
+    branchName: currentBranchName,
     blockRoom: 'Blok A / Kamar 1A',
     entryDate: new Date().toISOString().split('T')[0],
     status: 'Aktif',
@@ -35,8 +41,25 @@ const InmatesCreate = () => {
     commStatus: 'Aktif'
   });
 
+  useEffect(() => {
+    const fetchBranchesList = async () => {
+      try {
+        const data = await getBranches({ limit: 100 });
+        const list = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
+        setBranches(list);
+        if (list.length > 0 && !selectedBranchId) {
+          setSelectedBranchId(list[0].id);
+        }
+      } catch (err) {
+        console.log('[InmatesCreate] Error fetching branches:', err);
+      }
+    };
+    fetchBranchesList();
+  }, []);
+
   const [photoPreview, setPhotoPreview] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -50,15 +73,62 @@ const InmatesCreate = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.wbpRegNumber.trim()) {
-      setErrorMsg('Nama Lengkap dan No. Registrasi WBP wajib diisi.');
+      setErrorMsg('Nama Lengkap dan NIP Narapidana wajib diisi.');
       return;
     }
 
-    addInmate(formData);
-    navigate('/branch/inmates', { state: { toast: `Narapidana ${formData.name} berhasil ditambahkan!` } });
+    if (!formData.initialPin || formData.initialPin.trim().length < 4) {
+      setErrorMsg('PIN awal narapidana untuk kiosk minimal 4 digit/karakter.');
+      return;
+    }
+
+    const branchIdToSend = isSuperadmin 
+      ? (selectedBranchId || manualBranchName.trim() || undefined)
+      : undefined;
+
+    if (isSuperadmin && !branchIdToSend) {
+      setErrorMsg('Cabang tujuan wajib dipilih atau diisi untuk Superadmin.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg('');
+
+    try {
+      // Nilai NIP dikirim ke backend sebagai field "identifier"
+      await createInmate({
+        identifier: formData.wbpRegNumber,
+        name: formData.name,
+        initialPin: formData.initialPin,
+        ...(branchIdToSend ? { branchId: branchIdToSend } : {})
+      });
+      
+      navigate('/branch/inmates', { 
+        state: { toast: `Narapidana ${formData.name} (NIP: ${formData.wbpRegNumber}) berhasil didaftarkan!` } 
+      });
+    } catch (err) {
+      console.log('[InmatesCreate] Error submit inmate:', err);
+      if (err?.status === 401) {
+        logout();
+        navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setErrorMsg('Anda tidak memiliki akses untuk menambah narapidana.');
+      } else if (err?.isNetworkError || err?.status === 0) {
+        setErrorMsg('Server tidak dapat dihubungi. Silakan coba lagi nanti.');
+      } else if (err?.status === 400 || err?.data?.message) {
+        const msg = err?.data?.errors?.map(e => e.message).join(', ') || err?.data?.message || err?.message || 'Validasi gagal.';
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg(err?.message || 'Gagal mendaftarkan narapidana.');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -74,8 +144,9 @@ const InmatesCreate = () => {
       </div>
 
       {errorMsg && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
-          {errorMsg}
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
@@ -139,16 +210,32 @@ const InmatesCreate = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  No. ID <span className="text-rose-500">*</span>
+                  NIP (Nomor Induk Narapidana) <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="text" 
                   value={formData.wbpRegNumber}
                   onChange={(e) => setFormData({...formData, wbpRegNumber: e.target.value})}
-                  placeholder="REG-CPN-2026-XXX"
+                  placeholder="NIP-1001"
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
                   required
                 />
+                <p className="text-[10px] text-slate-400 mt-1">Digunakan keluarga untuk mendaftarkan kontak di aplikasi mobile.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  PIN Awal Akses Kiosk / Panggilan <span className="text-rose-500">*</span>
+                </label>
+                <input 
+                  type="text" 
+                  value={formData.initialPin}
+                  onChange={(e) => setFormData({...formData, initialPin: e.target.value})}
+                  placeholder="Minimal 4 digit (misal: 1234)"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
+                  required
+                />
+                <p className="text-[10px] text-slate-400 mt-1">PIN awal untuk narapidana login di terminal kiosk / telepon wartel.</p>
               </div>
 
               <div>
@@ -201,12 +288,55 @@ const InmatesCreate = () => {
 
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">Cabang Operasional</label>
-              <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 font-bold flex items-center gap-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                {formData.branchName}
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">Cabang mengikuti lokasi Admin saat ini.</p>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Cabang Operasional {isSuperadmin && <span className="text-rose-500">*</span>}
+              </label>
+              {isSuperadmin ? (
+                branches.length > 0 ? (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+                      <select 
+                        value={selectedBranchId}
+                        onChange={(e) => setSelectedBranchId(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-8 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                      >
+                        {branches.map(b => (
+                          <option key={b.id} value={b.id}>
+                            {b.name} {b.location ? `(${b.location})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <p className="text-[10px] text-slate-400">Pilih cabang Lapas/Rutan tempat narapidana ini didaftarkan.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <div className="relative">
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input 
+                        type="text" 
+                        value={manualBranchName}
+                        onChange={(e) => setManualBranchName(e.target.value)}
+                        placeholder="Contoh: Lapas Kelas I Cipinang (atau ID Cabang)"
+                        className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        required
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">Daftar cabang belum tersedia dari server. Masukkan nama/ID cabang secara manual.</p>
+                  </div>
+                )
+              ) : (
+                <>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-700 font-bold flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-blue-600" />
+                    {formData.branchName}
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Cabang otomatis mengikuti lokasi Admin saat ini.</p>
+                </>
+              )}
             </div>
 
             <div>
@@ -300,9 +430,10 @@ const InmatesCreate = () => {
           </Link>
           <button 
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" /> Simpan Narapidana
+            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Narapidana'}
           </button>
         </div>
 
