@@ -334,10 +334,10 @@ const Detail = () => {
                 <p className="text-slate-800 font-bold">{branch.phone || '-'}</p>
               </div>
 
-              {/* Email Admin Cabang */}
+              {/* Email Kepala UPT */}
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Admin Cabang
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Kepala UPT
                 </p>
                 <p className="text-slate-800 font-mono font-bold text-xs">
                   {adminEmailDisplay || 'Belum diatur'}

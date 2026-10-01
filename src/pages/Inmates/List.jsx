@@ -18,11 +18,13 @@ import {
 } from 'lucide-react';
 import { getInmates, BACKEND_SUPPORTS_INMATE_FILTERS } from '../../services/inmateService';
 import { getBranches } from '../../services/branchService';
-import { exportToCSV } from '../../utils/exportUtils';
+import { exportToExcel } from '../../utils/exportUtils';
 import { logout, getAuthUser } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 
 const InmatesList = () => {
   const navigate = useNavigate();
+  const { userName } = useAuth();
   const authUser = getAuthUser();
   const rawRole = (authUser?.role || '').toUpperCase();
   const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
@@ -140,17 +142,43 @@ const InmatesList = () => {
     }
 
     try {
-      const exportData = inmates.map(i => ({
+      const exportData = inmates.map((i, idx) => ({
+        'No': idx + 1,
         'NIP': i.wbpRegNumber || i.identifier || '-',
         'Nama Lengkap': i.name || '-',
-        'Cabang': branchesMap[i.branchId] || i.branchName || '-',
-        'Saldo Panggilan': typeof i.callBalance === 'number' ? i.callBalance : '-',
-        'Status': i.status || '-',
+        'Cabang UPT': branchesMap[i.branchId] || i.branchName || 'Lapas Pusat',
+        'Saldo Panggilan (Rp)': typeof i.callBalance === 'number' ? i.callBalance : 0,
+        'Status Penempatan': i.status || 'Aktif',
         'Tanggal Terdaftar': i.entryDate ? new Date(i.entryDate).toLocaleDateString('id-ID') : '-'
       }));
-      exportToCSV(exportData, `Data_Narapidana_PasCall_${new Date().toISOString().split('T')[0]}`);
+
+      const activeCount = inmates.filter(i => (i.status || '').toLowerCase() === 'aktif').length;
+      const inactiveCount = inmates.length - activeCount;
+
+      const filename = `Data_Narapidana_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const success = exportToExcel(exportData, filename, 'Data Narapidana', {
+        title: 'LAPORAN DATA REGISTRASI NARAPIDANA NASIONAL (WBP)',
+        subtitle: 'Data Master Warga Binaan Seluruh Lapas/Rutan Se-Indonesia',
+        metadata: {
+          'Tingkat': 'Pusat / Nasional',
+          'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
+          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        },
+        summaryMetrics: [
+          { label: 'Total Warga Binaan', value: `${inmates.length} WBP` },
+          { label: 'Status Aktif', value: `${activeCount} Orang` },
+          { label: 'Nonaktif / Suspended', value: `${inactiveCount} Orang` },
+        ]
+      });
+
+      if (success !== false) {
+        setToastMessage('Berhasil mengekspor data narapidana ke format Excel!');
+        setTimeout(() => setToastMessage(''), 4000);
+      }
     } catch (e) {
-      setToastMessage('Fitur ini belum tersedia di sistem backend');
+      console.error('Export error:', e);
+      setToastMessage('Gagal mengekspor data narapidana.');
       setTimeout(() => setToastMessage(''), 4000);
     }
   };
@@ -215,7 +243,7 @@ const InmatesList = () => {
               onClick={handleExport}
               disabled={inmates.length === 0}
               className="px-3.5 py-2.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Export data narapidana ke file CSV"
+              title="Export data narapidana ke Excel (.xlsx)"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" /> 
               <span>Export</span>

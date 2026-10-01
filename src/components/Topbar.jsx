@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { logout, getAuthUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { getNotifications } from '../services/notificationService';
+import { ROLES } from '../config/menuConfig';
 
 const Topbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -13,43 +14,41 @@ const Topbar = () => {
   const location = useLocation();
 
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
-  const authUser = getAuthUser();
-
-  const rawRole = (authUser?.role || (isBranchAdmin ? 'BRANCH_ADMIN' : 'SUPERADMIN')).toUpperCase();
-  const isBranchRole = rawRole === 'BRANCH_ADMIN' || rawRole === 'ADMIN_CABANG' || rawRole === 'BRANCH_OPERATOR';
-  const userRole = isBranchRole ? 'Admin Cabang' : 'Superadmin';
-  const userName = authUser?.name || (isBranchRole ? 'Admin Cabang' : 'Superadmin');
-  const branchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null);
+  const { role: normRole, roleLabel: userRole, userName, uptName, logout } = useAuth();
   const profileLink = isBranchAdmin ? '/branch/profile' : '/profile';
 
   const getPageDetails = (pathname) => {
     if (pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah Narapidana Baru', subtitle: 'Form pendaftaran warga binaan baru' };
     if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data Narapidana', subtitle: 'Perbarui informasi & data warga binaan' };
     if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
-    if (pathname.startsWith('/branch/inmates')) return { title: 'Data Narapidana', subtitle: branchName ? `Kelola data warga binaan di ${branchName}` : 'Kelola data warga binaan di cabang Anda' };
+    if (pathname.startsWith('/branch/inmates')) return { title: 'Data Narapidana', subtitle: uptName ? `Kelola data warga binaan di ${uptName}` : 'Kelola data warga binaan di UPT Anda' };
 
-    if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran cabang' };
-    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik layanan' };
+    if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan suara dan video warga binaan (WBP)' };
+    if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Keluarga', subtitle: 'Verifikasi permohonan nomor kontak keluarga WBP' };
+    if (pathname.startsWith('/branch/packages')) return { title: 'Kelola Paket Komunikasi', subtitle: 'Pilihan tarif, durasi, dan status paket panggilan WBP' };
+    if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna UPT', subtitle: 'Manajemen akun Supervisor dan Operator Kantin' };
+    if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran UPT' };
+    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik layanan UPT' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil' };
     if (pathname === '/branch' || pathname.startsWith('/branch/')) return { title: 'Dashboard', subtitle: `Selamat Datang, ${userName}!` };
     
-    if (pathname.startsWith('/branches/create')) return { title: 'Tambah Cabang Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
-    if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit Cabang', subtitle: 'Perbarui data operasional cabang' };
-    if (pathname.startsWith('/branches/')) return { title: 'Detail Cabang', subtitle: 'Informasi operasional & data lapas' };
-    if (pathname.startsWith('/branches')) return { title: 'Manajemen Cabang', subtitle: 'Kelola data operasional lapas dan rutan yang terdaftar' };
+    if (pathname.startsWith('/branches/create')) return { title: 'Tambah UPT Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
+    if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit UPT', subtitle: 'Perbarui data operasional UPT' };
+    if (pathname.startsWith('/branches/')) return { title: 'Detail UPT', subtitle: 'Informasi operasional & data lapas/rutan' };
+    if (pathname.startsWith('/branches')) return { title: 'Manajemen UPT', subtitle: 'Kelola data operasional lapas dan rutan yang terdaftar' };
 
     if (pathname.startsWith('/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
-    if (pathname.startsWith('/inmates')) return { title: 'Data Narapidana', subtitle: 'Seluruh warga binaan di semua cabang' };
+    if (pathname.startsWith('/inmates')) return { title: 'Data Narapidana', subtitle: 'Seluruh warga binaan di semua UPT' };
 
     if (pathname.startsWith('/calls/')) return { title: 'Detail Rekaman Panggilan', subtitle: 'Informasi panggilan & pemutaran rekaman audio' };
-    if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh cabang' };
+    if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh UPT' };
 
     if (pathname.startsWith('/transactions/')) return { title: 'Detail Transaksi', subtitle: 'Rincian transaksi & status pembayaran' };
     if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi keuangan nasional' };
 
-    if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh cabang' };
+    if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh UPT' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
-    return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional PasCall seluruh cabang' };
+    return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional PasCall seluruh UPT' };
   };
 
   const pageDetails = getPageDetails(location.pathname);
@@ -79,13 +78,18 @@ const Topbar = () => {
   const searchDatabase = isBranchAdmin ? [
     { title: 'Data Narapidana', category: 'Halaman', link: '/branch/inmates', desc: 'Kelola data narapidana & NIP' },
     { title: 'Tambah Narapidana Baru', category: 'Aksi Cepat', link: '/branch/inmates/create', desc: 'Daftarkan narapidana baru' },
-    { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data setoran saldo & pembayaran cabang' },
-    { title: 'Laporan & Analitik Cabang', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan cabang' },
-    { title: 'Profil Operator', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan operator' },
+    ...(normRole === ROLES.KEPALA_UPT || normRole === ROLES.SUPERADMIN ? [
+      { title: 'Rekaman Panggilan', category: 'Halaman', link: '/branch/recordings', desc: 'Pemutaran rekaman audio & transkrip panggilan WBP' },
+      { title: 'Kelola Pengguna', category: 'Halaman', link: '/branch/users', desc: 'Kelola akun Supervisor & Operator Kantin' },
+    ] : []),
+    { title: 'Kelola Paket', category: 'Halaman', link: '/branch/packages', desc: 'Pilihan paket telepon & video call' },
+    { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data setoran saldo & pembayaran UPT' },
+    { title: 'Laporan & Analitik UPT', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan UPT' },
+    { title: 'Profil Pengguna', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan pengguna' },
   ] : [
-    { title: 'Kelola Cabang', category: 'Halaman', link: '/branches', desc: 'Daftar & status cabang PasCall nasional' },
-    { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh cabang' },
-    { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh cabang' },
+    { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT PasCall nasional' },
+    { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
+    { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },

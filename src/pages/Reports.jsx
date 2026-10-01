@@ -18,9 +18,12 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { getSummaryReport } from '../services/reportService';
 import { logout } from '../services/api';
+import { exportToExcel } from '../utils/exportUtils';
+import { useAuth } from '../context/AuthContext';
 
 const Reports = () => {
   const navigate = useNavigate();
+  const { userName } = useAuth();
   const [periodFilter, setPeriodFilter] = useState('30days');
   const [toastMessage, setToastMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +88,74 @@ const Reports = () => {
   }, [loadReport]);
 
   const handleExport = () => {
-    showToast('Fitur ini belum tersedia di sistem backend', 'error');
+    try {
+      const periodLabel = periodFilter === '7days' ? '7 Hari Terakhir' : (periodFilter === '90days' ? '90 Hari Terakhir' : '30 Hari Terakhir');
+      const rows = [];
+
+      // 1. Ringkasan Metrik
+      rows.push({
+        Kategori: 'RINGKASAN METRIK',
+        Keterangan: 'Total Pendapatan Nasional',
+        Nilai: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
+        Periode: periodLabel
+      });
+      rows.push({
+        Kategori: 'RINGKASAN METRIK',
+        Keterangan: 'Total Volume Panggilan',
+        Nilai: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} panggilan`,
+        Periode: periodLabel
+      });
+      rows.push({
+        Kategori: 'RINGKASAN METRIK',
+        Keterangan: 'Rata-rata Durasi Panggilan',
+        Nilai: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)} menit ${(reportData.avgCallDurationSeconds || 0) % 60} detik`,
+        Periode: periodLabel
+      });
+      rows.push({
+        Kategori: 'RINGKASAN METRIK',
+        Keterangan: 'Tingkat Keberhasilan Panggilan',
+        Nilai: `${reportData.successRate || 0}%`,
+        Periode: periodLabel
+      });
+
+      // 2. Data Tren Harian / Periode
+      if (Array.isArray(reportData.revenueTrend) && reportData.revenueTrend.length > 0) {
+        reportData.revenueTrend.forEach((item, idx) => {
+          const callItem = reportData.callVolumeTrend?.[idx] || {};
+          rows.push({
+            Kategori: 'TREN NASIONAL',
+            Keterangan: item.date || item.day || `Hari ke-${idx + 1}`,
+            Nilai: `Pendapatan: Rp ${new Intl.NumberFormat('id-ID').format(item.amount || item.revenue || 0)} | Panggilan: ${callItem.calls || item.calls || 0}`,
+            Periode: item.date || ''
+          });
+        });
+      }
+
+      const filename = `Laporan_Analitik_Nasional_${periodFilter}.xlsx`;
+      const success = exportToExcel(rows, filename, 'Laporan Nasional', {
+        title: 'LAPORAN ANALITIK & PENDAPATAN NASIONAL PASCALL',
+        subtitle: 'Laporan Konsolidasi Seluruh UPT Pemasyarakatan Indonesia',
+        metadata: {
+          'Tingkat': 'Pusat / Nasional',
+          'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
+          'Rentang Waktu': periodLabel,
+          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        },
+        summaryMetrics: [
+          { label: 'Total Pendapatan Nasional', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
+          { label: 'Total Panggilan', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
+          { label: 'Rata-rata Durasi', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
+          { label: 'Tingkat Keberhasilan', value: `${reportData.successRate || 0}%` },
+        ]
+      });
+
+      if (success !== false) {
+        showToast('Berhasil mengekspor laporan ke format Excel!', 'success');
+      }
+    } catch (err) {
+      console.error('Error export excel superadmin:', err);
+      showToast('Gagal mengekspor laporan.', 'error');
+    }
   };
 
   const formatCurrency = (value) => {
@@ -144,8 +214,9 @@ const Reports = () => {
           type="button"
           onClick={handleExport}
           className="w-full sm:w-auto px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center justify-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+          title="Export Laporan Nasional"
         >
-          <Download className="w-3.5 h-3.5" /> Export Data
+          <Download className="w-3.5 h-3.5" /> <span>Export</span>
         </button>
       </div>
 

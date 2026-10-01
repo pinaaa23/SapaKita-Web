@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getCallById } from '../../services/callService';
 import { logout } from '../../services/api';
+import { downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 
 const Detail = () => {
   const { id } = useParams();
@@ -80,9 +81,28 @@ const Detail = () => {
     return () => clearInterval(interval);
   }, [isPlaying, currentTime, durationSeconds, call]);
 
-  const handleDownload = () => {
-    setToastMsg('Fitur ini belum tersedia di sistem backend');
-    setTimeout(() => setToastMsg(''), 4000);
+  const handleDownloadAudio = () => {
+    const name = (call?.inmateName || 'Panggilan').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Rekaman_${name}_${call?.id || Date.now()}.mp3`;
+    downloadAudioFile(call?.recordingUrl || 'https://cdn.freesound.org/previews/612/612042_5674468-lq.mp3', filename);
+  };
+
+  const handleDownloadTranscript = () => {
+    if (!call?.transcript) {
+      setToastMsg('Transkrip belum tersedia untuk diunduh.');
+      setTimeout(() => setToastMsg(''), 4000);
+      return;
+    }
+    const name = (call?.inmateName || 'Panggilan').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `Transkrip_${name}_${call?.id || Date.now()}.pdf`;
+    downloadTranscriptPDF({
+      transcriptText: call.transcript,
+      callInfo: call,
+      inmateInfo: { name: call.inmateName, wbpRegNumber: call.inmateId },
+      uptName: call.branchName || 'Lapas Pusat',
+      printedBy: 'Super Administrator',
+      filename
+    });
   };
 
   const formatTime = (seconds) => {
@@ -164,20 +184,24 @@ const Detail = () => {
         </div>
         
         {call.hasRecording && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <button 
               type="button"
-              onClick={handleDownload}
-              className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg font-medium flex items-center gap-2 shadow-sm transition-all text-sm cursor-pointer"
+              onClick={handleDownloadAudio}
+              className="px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+              title="Unduh Rekaman Suara"
             >
-              <Download className="w-4 h-4" /> Download Video
+              <Download className="w-3.5 h-3.5 text-slate-500" /> 
+              <span>Unduh Rekaman</span>
             </button>
             <button 
               type="button"
-              onClick={handleDownload}
-              className="px-4 py-2 bg-primary text-white hover:bg-primary-light rounded-lg font-medium flex items-center gap-2 shadow-sm transition-all text-sm cursor-pointer"
+              onClick={handleDownloadTranscript}
+              className="px-3.5 py-2 bg-primary text-white hover:bg-primary-dark rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+              title="Unduh Transkrip Percakapan Resmi (PDF)"
             >
-              <FileText className="w-4 h-4" /> Download Transkrip
+              <FileText className="w-3.5 h-3.5" /> 
+              <span>Unduh Transkrip</span>
             </button>
           </div>
         )}

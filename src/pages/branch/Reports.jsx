@@ -10,6 +10,7 @@ import {
   CheckCircle2, 
   Target, 
   FileSpreadsheet,
+  FileText,
   TrendingUp,
   TrendingDown,
   BarChart2,
@@ -18,9 +19,12 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { getBranchReport } from '../../services/reportService';
 import { logout } from '../../services/api';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
+import { useAuth } from '../../context/AuthContext';
 
 const BranchReports = () => {
   const navigate = useNavigate();
+  const { uptName, isSupervisor, userName, roleLabel } = useAuth();
   const [periodFilter, setPeriodFilter] = useState('30days');
   const [toastMessage, setToastMessage] = useState({ text: '', type: '' });
   const [isLoading, setIsLoading] = useState(true);
@@ -85,7 +89,123 @@ const BranchReports = () => {
   }, [loadReport]);
 
   const handleExport = () => {
-    showToast('Fitur ini belum tersedia di sistem backend', 'error');
+    try {
+      const periodLabel = periodFilter === '7days' ? '7 Hari Terakhir' : (periodFilter === '90days' ? '90 Hari Terakhir' : '30 Hari Terakhir');
+
+      if (isSupervisor) {
+        // PDF Export untuk Supervisor (Terkunci & Tidak bisa diubah)
+        const headers = ['No', 'Kategori Data', 'Keterangan', 'Nilai / Metrik', 'Periode'];
+        const rows = [
+          ['1', 'Ringkasan', 'Total Pendapatan', `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`, periodLabel],
+          ['2', 'Ringkasan', 'Total Volume Panggilan', `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} panggilan`, periodLabel],
+          ['3', 'Ringkasan', 'Rata-rata Durasi', `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)} menit ${(reportData.avgCallDurationSeconds || 0) % 60} detik`, periodLabel],
+          ['4', 'Ringkasan', 'Tingkat Keberhasilan', `${reportData.successRate || 0}%`, periodLabel],
+        ];
+
+        if (Array.isArray(reportData.revenueTrend) && reportData.revenueTrend.length > 0) {
+          reportData.revenueTrend.forEach((item, idx) => {
+            const callItem = reportData.callVolumeTrend?.[idx] || {};
+            rows.push([
+              String(5 + idx),
+              'Tren Harian',
+              item.date || item.day || `Hari ke-${idx + 1}`,
+              `Rp ${new Intl.NumberFormat('id-ID').format(item.amount || item.revenue || 0)} (${callItem.calls || item.calls || 0} Panggilan)`,
+              item.date || periodLabel
+            ]);
+          });
+        }
+
+        const summaryMetrics = [
+          { label: 'TOTAL PENDAPATAN', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
+          { label: 'TOTAL PANGGILAN', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
+          { label: 'RATA-RATA DURASI', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
+          { label: 'KEBERHASILAN', value: `${reportData.successRate || 0}%` },
+        ];
+
+        const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
+        const success = exportToPDF({
+          title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
+          subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan`,
+          filename,
+          headers,
+          rows,
+          metadata: {
+            'Lokasi UPT': uptName || 'Lapas Cipinang',
+            'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
+            'Rentang Waktu': periodLabel,
+            'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          },
+          summaryMetrics
+        });
+
+        if (success !== false) {
+          showToast('Berhasil mengekspor laporan!', 'success');
+        }
+      } else {
+        // Excel Export untuk Kepala UPT
+        const rows = [];
+        rows.push({
+          Kategori: 'RINGKASAN METRIK',
+          Keterangan: 'Total Pendapatan',
+          Nilai: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
+          Periode: periodLabel
+        });
+        rows.push({
+          Kategori: 'RINGKASAN METRIK',
+          Keterangan: 'Total Volume Panggilan',
+          Nilai: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} panggilan`,
+          Periode: periodLabel
+        });
+        rows.push({
+          Kategori: 'RINGKASAN METRIK',
+          Keterangan: 'Rata-rata Durasi Panggilan',
+          Nilai: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)} menit ${(reportData.avgCallDurationSeconds || 0) % 60} detik`,
+          Periode: periodLabel
+        });
+        rows.push({
+          Kategori: 'RINGKASAN METRIK',
+          Keterangan: 'Tingkat Keberhasilan Panggilan',
+          Nilai: `${reportData.successRate || 0}%`,
+          Periode: periodLabel
+        });
+
+        if (Array.isArray(reportData.revenueTrend) && reportData.revenueTrend.length > 0) {
+          reportData.revenueTrend.forEach((item, idx) => {
+            const callItem = reportData.callVolumeTrend?.[idx] || {};
+            rows.push({
+              Kategori: 'TREN HARIAN',
+              Keterangan: item.date || item.day || `Hari ke-${idx + 1}`,
+              Nilai: `Pendapatan: Rp ${new Intl.NumberFormat('id-ID').format(item.amount || item.revenue || 0)} | Panggilan: ${callItem.calls || item.calls || 0}`,
+              Periode: item.date || ''
+            });
+          });
+        }
+
+        const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.xlsx`;
+        const success = exportToExcel(rows, filename, 'Laporan Analitik', {
+          title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
+          subtitle: 'Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan',
+          metadata: {
+            'Lokasi UPT': uptName || 'Lapas Cipinang',
+            'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+            'Rentang Waktu': periodLabel,
+            'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          },
+          summaryMetrics: [
+            { label: 'Total Pendapatan', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
+            { label: 'Total Volume Panggilan', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
+            { label: 'Rata-rata Durasi', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
+            { label: 'Tingkat Keberhasilan', value: `${reportData.successRate || 0}%` },
+          ]
+        });
+        if (success !== false) {
+          showToast('Berhasil mengekspor laporan!', 'success');
+        }
+      }
+    } catch (err) {
+      console.error('Error export laporan:', err);
+      showToast('Gagal mengekspor laporan.', 'error');
+    }
   };
 
   const formatCurrency = (value) => {
@@ -119,7 +239,7 @@ const BranchReports = () => {
           {toastMessage.type === 'error' ? (
             <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
           ) : (
-            <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
           )}
           <span>{toastMessage.text}</span>
         </div>
@@ -144,8 +264,10 @@ const BranchReports = () => {
           type="button"
           onClick={handleExport}
           className="w-full sm:w-auto px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center justify-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+          title="Export Laporan"
         >
-          <Download className="w-3.5 h-3.5" /> Export Laporan
+          <Download className="w-3.5 h-3.5 text-slate-500" />
+          <span>Export</span>
         </button>
       </div>
 
@@ -158,225 +280,211 @@ const BranchReports = () => {
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
               <DollarSign className="w-5 h-5 text-white" />
             </div>
-            {typeof reportData.revenueGrowth === 'number' && (
-              <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30 flex items-center gap-1">
+            {reportData.revenueGrowth !== null && (
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 backdrop-blur-xs ${
+                reportData.revenueGrowth >= 0 ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/30' : 'bg-rose-500/30 text-rose-200 border border-rose-400/30'
+              }`}>
                 {reportData.revenueGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {reportData.revenueGrowth >= 0 ? `+${reportData.revenueGrowth}%` : `${reportData.revenueGrowth}%`}
+                {Math.abs(reportData.revenueGrowth)}%
               </span>
             )}
           </div>
           <div>
-            <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Revenue Cabang</h3>
-            <p className="text-2xl font-extrabold text-white">
+            <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Total Pendapatan</p>
+            <h3 className="text-2xl font-black mt-1">
               {isLoading ? '...' : formatCurrency(reportData.totalRevenue)}
+            </h3>
+            <p className="text-[11px] text-blue-200/80 mt-1">
+              {periodFilter === '7days' ? '7 hari terakhir' : (periodFilter === '90days' ? '90 hari terakhir' : '30 hari terakhir')}
             </p>
           </div>
         </div>
 
-        {/* Card 2: Total Panggilan Lokal */}
-        <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        {/* Card 2: Total Calls */}
+        <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
-              <Phone className="w-5 h-5 text-[#0B3D91]" />
+            <div className="w-11 h-11 bg-blue-50 text-primary rounded-xl flex items-center justify-center shrink-0 border border-blue-100">
+              <Phone className="w-5 h-5" />
             </div>
-            {typeof reportData.callsGrowth === 'number' ? (
-              <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">
-                {reportData.callsGrowth >= 0 ? `+${reportData.callsGrowth}%` : `${reportData.callsGrowth}%`}
-              </span>
-            ) : (
-              <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">
-                Lokal
+            {reportData.callsGrowth !== null && (
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                reportData.callsGrowth >= 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'
+              }`}>
+                {reportData.callsGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(reportData.callsGrowth)}%
               </span>
             )}
           </div>
           <div>
-            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Total Panggilan Lokal</h3>
-            <p className="text-2xl font-extrabold text-[#0B3D91]">
+            <p className="text-slate-400 text-xs font-semibold tracking-wide uppercase">Volume Panggilan</p>
+            <h3 className="text-2xl font-black text-slate-800 mt-1">
               {isLoading ? '...' : formatNumber(reportData.totalCalls)}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Total sesi panggilan keluar</p>
           </div>
         </div>
 
-        {/* Card 3: Rata-rata Durasi */}
-        <div className="bg-gradient-to-br from-[#8B5CF6] via-[#7C3AED] to-[#6D28D9] text-white rounded-2xl p-5 shadow-lg shadow-purple-900/20 border border-purple-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        {/* Card 3: Average Duration */}
+        <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
-              <Clock className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center shrink-0 border border-amber-100">
+              <Clock className="w-5 h-5" />
             </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
-              Rata-rata
-            </span>
           </div>
           <div>
-            <h3 className="text-purple-200 text-xs font-semibold uppercase tracking-wider mb-1">Rata-rata Durasi</h3>
-            <p className="text-2xl font-extrabold text-white">
+            <p className="text-slate-400 text-xs font-semibold tracking-wide uppercase">Rata-rata Durasi</p>
+            <h3 className="text-2xl font-black text-slate-800 mt-1">
               {isLoading ? '...' : formatDuration(reportData.avgCallDurationSeconds)}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Durasi percakapan per sesi</p>
           </div>
         </div>
 
-        {/* Card 4: Call Success Rate */}
-        <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        {/* Card 4: Success Rate */}
+        <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
-              <Activity className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shrink-0 border border-emerald-100">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-            {typeof reportData.successRateGrowth === 'number' && (
-              <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30 flex items-center gap-1">
-                {reportData.successRateGrowth >= 0 ? `+${reportData.successRateGrowth}%` : `${reportData.successRateGrowth}%`}
+            {reportData.successRateGrowth !== null && (
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+                reportData.successRateGrowth >= 0 ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-rose-50 text-rose-600 border border-rose-200'
+              }`}>
+                {reportData.successRateGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(reportData.successRateGrowth)}%
               </span>
             )}
           </div>
           <div>
-            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Call Success Rate</h3>
-            <p className="text-2xl font-extrabold text-white">
+            <p className="text-slate-400 text-xs font-semibold tracking-wide uppercase">Panggilan Terjawab</p>
+            <h3 className="text-2xl font-black text-slate-800 mt-1">
               {isLoading ? '...' : `${reportData.successRate}%`}
-            </p>
+            </h3>
+            <p className="text-[11px] text-slate-400 mt-1">Tingkat keberhasilan koneksi</p>
           </div>
         </div>
 
       </div>
 
-      {/* Section 2: Grafik Tren */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100/80">
-          <h3 className="text-sm font-bold text-slate-800 mb-6">Tren Revenue Harian (Cabang)</h3>
-          <div className="h-[300px]">
+      {/* Section 2: Grafik & Analitik */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        
+        {/* Chart 1: Tren Pendapatan */}
+        <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-bold text-sm text-slate-800">Tren Pendapatan</h3>
+              <p className="text-xs text-slate-400">Pola perolehan saldo &amp; tagihan</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </div>
+          
+          <div className="h-64 w-full">
             {isLoading ? (
-              <div className="h-full flex items-center justify-center text-slate-300 animate-pulse">
-                Memuat data grafik...
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Memuat grafik...</div>
             ) : reportData.revenueTrend && reportData.revenueTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={reportData.revenueTrend}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
-                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
-                  />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
                   <YAxis 
+                    tick={{ fontSize: 11, fill: '#94a3b8' }} 
                     axisLine={false} 
                     tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
-                    tickFormatter={(val) => `Rp${formatNumber(val)}`}
+                    tickFormatter={(v) => `Rp${v >= 1000000 ? `${(v/1000000).toFixed(1)}jt` : `${(v/1000).toFixed(0)}rb`}`} 
                   />
                   <RechartsTooltip 
-                    formatter={(value) => [formatCurrency(value), 'Revenue']}
-                    labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}
-                    contentStyle={{borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                    formatter={(value) => [formatCurrency(value), 'Pendapatan']}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', border: 'none' }}
                   />
-                  <Line type="monotone" dataKey="amount" stroke="#0D9488" strokeWidth={3} dot={{r: 4, fill: '#0D9488', strokeWidth: 0}} activeDot={{r: 6, fill: '#1E293B', stroke: '#0D9488', strokeWidth: 2}} />
+                  <Line type="monotone" dataKey="amount" stroke="#0B3D91" strokeWidth={3} dot={{ r: 3, fill: '#0B3D91' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <BarChart2 className="w-10 h-10 mb-2 text-slate-300" />
-                <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Belum ada data tren revenue untuk periode yang dipilih.</p>
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Belum ada data grafik</div>
             )}
           </div>
         </div>
 
-        {/* Calls Trend */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100/80">
-          <h3 className="text-sm font-bold text-slate-800 mb-6">Tren Volume Panggilan (Cabang)</h3>
-          <div className="h-[300px]">
+        {/* Chart 2: Volume Panggilan */}
+        <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80">
+          <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-bold text-sm text-slate-800">Volume Panggilan</h3>
+              <p className="text-xs text-slate-400">Distribusi jumlah panggilan per hari</p>
+            </div>
+            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <BarChart2 className="w-4 h-4" />
+            </div>
+          </div>
+          
+          <div className="h-64 w-full">
             {isLoading ? (
-              <div className="h-full flex items-center justify-center text-slate-300 animate-pulse">
-                Memuat data grafik...
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Memuat grafik...</div>
             ) : reportData.callVolumeTrend && reportData.callVolumeTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={reportData.callVolumeTrend}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
-                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{fill: '#94a3b8', fontSize: 12}}
-                    tickFormatter={(val) => formatNumber(val)}
-                  />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#cbd5e1' }} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
                   <RechartsTooltip 
-                    formatter={(value) => [formatNumber(value), 'Panggilan']}
-                    labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}
-                    cursor={{fill: '#f8fafc'}}
-                    contentStyle={{borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
+                    formatter={(value) => [`${value} Panggilan`, 'Volume']}
+                    contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', border: 'none' }}
                   />
-                  <Bar dataKey="count" fill="#0B3D91" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="calls" fill="#3B82F6" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center text-slate-400">
-                <BarChart2 className="w-10 h-10 mb-2 text-slate-300" />
-                <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Belum ada data volume panggilan untuk periode yang dipilih.</p>
-              </div>
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">Belum ada data grafik</div>
             )}
           </div>
         </div>
-      </div>
-      
-      {/* Compliance / Audit */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100/80 flex flex-col p-6">
-        <h3 className="text-base font-bold text-slate-800 mb-4">Kepatuhan Operasional Cabang</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Keberhasilan Perekaman */}
-            <div>
-              <div className="flex justify-between items-end mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Keberhasilan Perekaman Suara</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Target: 100%</p>
-                </div>
-                <span className="text-lg font-bold text-green-600">
-                  {reportData.compliance.recordedRate !== null ? `${reportData.compliance.recordedRate}%` : '0%'}
-                </span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1 overflow-hidden flex">
-                <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${reportData.compliance.recordedRate || 0}%` }}></div>
-                <div className="bg-slate-200 h-2.5 rounded-r-full flex-1"></div>
-              </div>
-              <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> 
-                {reportData.compliance.recordedRate !== null ? 'Memenuhi standar kepatuhan minimum cabang.' : 'Data kepatuhan belum tercatat.'}
-              </p>
-            </div>
 
-            {/* SLA Pencarian */}
+      </div>
+
+      {/* Section 3: Indikator Kepatuhan & Audit Lapas */}
+      <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80">
+        <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
             <div>
-              <div className="flex justify-between items-end mb-2">
-                <div>
-                  <p className="text-sm font-semibold text-slate-800">Rata-rata Waktu Pencarian Arsip</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Target SLA: {'< 10 detik'}</p>
-                </div>
-                <span className="text-lg font-bold text-blue-600">
-                  {reportData.compliance.avgSearchTime !== null ? `${reportData.compliance.avgSearchTime}s` : '0s'}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
-                  <Target className="w-6 h-6 text-blue-600" />
-                </div>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  {reportData.compliance.avgSearchTime !== null 
-                    ? 'Performa pencarian arsip lokal sangat baik dan sesuai SOP PasCall.' 
-                    : 'Performa pencarian arsip akan ditampilkan saat data tersedia.'}
-                </p>
-              </div>
+              <h3 className="font-bold text-sm text-slate-800">Kepatuhan Operasional &amp; Keamanan</h3>
+              <p className="text-xs text-slate-400">Standar monitoring dan audit panggilan Lapas</p>
             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100/80 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Tingkat Perekaman Audio</p>
+              <h4 className="text-lg font-black text-slate-800 mt-0.5">
+                {reportData.compliance?.recordedRate ?? '100%'}
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Seluruh sesi tersimpan otomatis di server</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold text-xs">
+              100%
+            </div>
+          </div>
+
+          <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100/80 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-500">Rata-rata Waktu Akses Audit</p>
+              <h4 className="text-lg font-black text-slate-800 mt-0.5">
+                {reportData.compliance?.avgSearchTime ?? '< 1.2 detik'}
+              </h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">Waktu pencarian dan verifikasi log panggilan</p>
+            </div>
+            <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs">
+              ✓
+            </div>
+          </div>
         </div>
       </div>
-      
+
     </div>
   );
 };

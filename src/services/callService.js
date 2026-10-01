@@ -1,4 +1,5 @@
 import { apiFetch, logout } from './api';
+import { mockRecordings } from './mockRecordings';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan
 export const CALL_HISTORY_ENDPOINT = '/api/call/history';
@@ -46,7 +47,71 @@ export const mapCallItem = (item) => {
 };
 
 /**
- * Mengambil daftar riwayat panggilan dengan parameter pencarian dan pagination
+ * Helper untuk filter mock recordings secara lokal
+ */
+const getFilteredMockRecordings = ({
+  search = '',
+  status = '',
+  callType = '',
+  startDate = '',
+  endDate = '',
+  page = 1,
+  limit = 20,
+}) => {
+  let list = [...mockRecordings];
+
+  // Filter tipe panggilan (voice / video)
+  if (callType && callType !== 'All' && callType !== 'all') {
+    const isVideoReq = callType.toLowerCase().includes('video');
+    list = list.filter((c) => isVideoReq ? c.callType === 'Video' : c.callType === 'Voice');
+  }
+
+  // Filter status (Answered / Missed)
+  if (status && status !== 'All' && status !== 'all') {
+    const normStat = status.toLowerCase();
+    list = list.filter((c) => c.status.toLowerCase() === normStat);
+  }
+
+  // Filter pencarian teks
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    list = list.filter((c) =>
+      (c.inmateName || '').toLowerCase().includes(q) ||
+      (c.inmateId || '').toLowerCase().includes(q) ||
+      (c.familyName || '').toLowerCase().includes(q) ||
+      (c.familyPhone || '').toLowerCase().includes(q)
+    );
+  }
+
+  // Filter rentang tanggal
+  if (startDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    list = list.filter((c) => new Date(c.date) >= start);
+  }
+
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    list = list.filter((c) => new Date(c.date) <= end);
+  }
+
+  const total = list.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const startIndex = (page - 1) * limit;
+  const paginatedItems = list.slice(startIndex, startIndex + limit).map(mapCallItem);
+
+  return {
+    items: paginatedItems,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+  };
+};
+
+/**
+ * Mengambil daftar riwayat panggilan dengan parameter pencarian, rentang tanggal, dan pagination
  */
 export const getCallHistory = async ({
   search = '',
@@ -55,6 +120,8 @@ export const getCallHistory = async ({
   status = '',
   branchId = '',
   callType = '',
+  startDate = '',
+  endDate = '',
 } = {}) => {
   const params = new URLSearchParams();
   if (search && search.trim()) params.append('search', search.trim());
@@ -62,6 +129,8 @@ export const getCallHistory = async ({
   if (limit) params.append('limit', limit.toString());
   if (status && status !== 'All') params.append('status', status.toUpperCase());
   if (branchId && branchId !== 'All') params.append('branchId', branchId);
+  if (startDate) params.append('startDate', startDate);
+  if (endDate) params.append('endDate', endDate);
   if (callType && callType !== 'All') {
     const normalizedType = callType.toUpperCase().includes('VIDEO') ? 'VIDEO' : 'AUDIO';
     params.append('type', normalizedType);
@@ -83,6 +152,11 @@ export const getCallHistory = async ({
           : Array.isArray(res?.calls)
             ? res.calls
             : [];
+
+    if (rawList.length === 0) {
+      // Jika backend belum menyediakan data, gunakan mockRecordings
+      return getFilteredMockRecordings({ search, status, callType, startDate, endDate, page, limit });
+    }
 
     const total = typeof res?.total === 'number'
       ? res.total
@@ -108,14 +182,8 @@ export const getCallHistory = async ({
       logout();
       throw error;
     }
-    console.log('[CallService] Fallback data kosong riwayat panggilan:', error?.message || error);
-    return {
-      items: [],
-      total: 0,
-      page,
-      limit,
-      totalPages: 1,
-    };
+    console.log('[CallService] Menggunakan mock data riwayat panggilan:', error?.message || error);
+    return getFilteredMockRecordings({ search, status, callType, startDate, endDate, page, limit });
   }
 };
 
@@ -136,7 +204,9 @@ export const getCallById = async (id) => {
       logout();
       throw error;
     }
-    console.log(`[CallService] Gagal memuat detail panggilan (${id}):`, error?.message || error);
+    // Fallback dari mock data
+    const found = mockRecordings.find(c => c.id === id);
+    if (found) return mapCallItem(found);
     throw error;
   }
 };

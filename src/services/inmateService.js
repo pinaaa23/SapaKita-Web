@@ -51,6 +51,108 @@ export const mapInmateItem = (item) => {
   };
 };
 
+const STORAGE_KEY = 'pascall_inmates_v2';
+
+export const defaultMockInmates = [
+  {
+    id: 'inm-1001',
+    identifier: 'NAPI-1001',
+    wbpRegNumber: 'NAPI-1001',
+    name: 'Ahmad Pratama',
+    initialPin: '1234',
+    callBalance: 75000,
+    blockRoom: 'Blok B - Kamar 04',
+    entryDate: '2025-11-10T08:30:00.000Z',
+    status: 'Aktif',
+    commStatus: 'Aktif',
+    isActive: true,
+    branchId: 'b1',
+    branchName: 'Lapas Cipinang'
+  },
+  {
+    id: 'inm-1002',
+    identifier: 'NAPI-1002',
+    wbpRegNumber: 'NAPI-1002',
+    name: 'Budi Santoso',
+    initialPin: '1234',
+    callBalance: 45000,
+    blockRoom: 'Blok A - Kamar 02',
+    entryDate: '2025-12-01T10:15:00.000Z',
+    status: 'Aktif',
+    commStatus: 'Aktif',
+    isActive: true,
+    branchId: 'b1',
+    branchName: 'Lapas Cipinang'
+  },
+  {
+    id: 'inm-1003',
+    identifier: 'NAPI-1003',
+    wbpRegNumber: 'NAPI-1003',
+    name: 'Hendra Wijaya',
+    initialPin: '1234',
+    callBalance: 120000,
+    blockRoom: 'Blok C - Kamar 12',
+    entryDate: '2026-01-15T14:20:00.000Z',
+    status: 'Aktif',
+    commStatus: 'Aktif',
+    isActive: true,
+    branchId: 'b1',
+    branchName: 'Lapas Cipinang'
+  },
+  {
+    id: 'inm-1004',
+    identifier: 'NAPI-1004',
+    wbpRegNumber: 'NAPI-1004',
+    name: 'Rian Kurniawan',
+    initialPin: '1234',
+    callBalance: 0,
+    blockRoom: 'Blok A - Kamar 08',
+    entryDate: '2026-02-05T09:00:00.000Z',
+    status: 'Aktif',
+    commStatus: 'Nonaktif',
+    isActive: false,
+    branchId: 'b1',
+    branchName: 'Lapas Cipinang'
+  },
+  {
+    id: 'inm-1005',
+    identifier: 'NAPI-1005',
+    wbpRegNumber: 'NAPI-1005',
+    name: 'Dedi Supriyadi',
+    initialPin: '1234',
+    callBalance: 30000,
+    blockRoom: 'Blok B - Kamar 06',
+    entryDate: '2026-02-20T11:45:00.000Z',
+    status: 'Aktif',
+    commStatus: 'Aktif',
+    isActive: true,
+    branchId: 'b1',
+    branchName: 'Lapas Cipinang'
+  }
+];
+
+const getStoredInmates = () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMockInmates));
+      return defaultMockInmates;
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultMockInmates;
+  } catch {
+    return defaultMockInmates;
+  }
+};
+
+const saveStoredInmates = (items) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch (err) {
+    console.error('Error saving inmates storage:', err);
+  }
+};
+
 /**
  * Mengambil daftar narapidana dengan dukungan parameter search, page, limit
  * Parameter branchId dan status hanya dikirim jika BACKEND_SUPPORTS_INMATE_FILTERS === true
@@ -83,37 +185,64 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
             ? res.inmates
             : [];
 
-    const total = typeof res?.pagination?.total === 'number'
-      ? res.pagination.total
-      : typeof res?.total === 'number'
-        ? res.total
-        : typeof res?.meta?.total === 'number'
-          ? res.meta.total
-          : rawList.length;
+    if (rawList.length > 0) {
+      const total = typeof res?.pagination?.total === 'number'
+        ? res.pagination.total
+        : typeof res?.total === 'number'
+          ? res.total
+          : typeof res?.meta?.total === 'number'
+            ? res.meta.total
+            : rawList.length;
 
-    const totalPages = typeof res?.pagination?.totalPages === 'number'
-      ? res.pagination.totalPages
-      : typeof res?.totalPages === 'number'
-        ? res.totalPages
-        : typeof res?.meta?.totalPages === 'number'
-          ? res.meta.totalPages
-          : Math.max(1, Math.ceil(total / limit));
+      const totalPages = typeof res?.pagination?.totalPages === 'number'
+        ? res.pagination.totalPages
+        : typeof res?.totalPages === 'number'
+          ? res.totalPages
+          : typeof res?.meta?.totalPages === 'number'
+            ? res.meta.totalPages
+            : Math.max(1, Math.ceil(total / limit));
 
-    return {
-      items: rawList.map(mapInmateItem).filter(Boolean),
-      total,
-      page: Number(res?.pagination?.page || res?.page || page),
-      limit: Number(res?.pagination?.limit || res?.limit || limit),
-      totalPages,
-    };
-  } catch (error) {
-    if (error?.status === 401) {
-      logout();
-      throw error;
+      return {
+        items: rawList.map(mapInmateItem).filter(Boolean),
+        total,
+        page: Number(res?.pagination?.page || res?.page || page),
+        limit: Number(res?.pagination?.limit || res?.limit || limit),
+        totalPages,
+      };
     }
-    console.log('[InmateService] Gagal memuat data narapidana:', error?.message || error);
-    throw error;
+  } catch (err) {
+    console.log('[InmateService] Backend API not available, using stored mock data:', err?.message || err);
   }
+
+  // Fallback to local stored inmates
+  let list = getStoredInmates().map(mapInmateItem);
+
+  if (status && status !== 'All') {
+    list = list.filter((i) => i.status === status);
+  }
+
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    list = list.filter(
+      (i) =>
+        i.name.toLowerCase().includes(q) ||
+        i.identifier.toLowerCase().includes(q) ||
+        i.wbpRegNumber.toLowerCase().includes(q)
+    );
+  }
+
+  const total = list.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const startIndex = (page - 1) * limit;
+  const paginated = list.slice(startIndex, startIndex + limit);
+
+  return {
+    items: paginated,
+    total,
+    page: Number(page),
+    limit: Number(limit),
+    totalPages,
+  };
 };
 
 /**

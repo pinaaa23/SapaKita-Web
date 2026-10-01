@@ -1,17 +1,14 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
-  LayoutDashboard, 
   Building2, 
-  Users, 
-  PhoneCall, 
-  CreditCard, 
-  BarChart3, 
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  PhoneCall
 } from 'lucide-react';
-import { logout, getAuthUser } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { getMenuItemsByRole } from '../config/menuConfig';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
@@ -19,35 +16,15 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const navigate = useNavigate();
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   
-  const authUser = getAuthUser();
-  const rawRole = (authUser?.role || (isBranchAdmin ? 'BRANCH_ADMIN' : 'SUPERADMIN')).toUpperCase();
-  const isBranchRole = rawRole === 'BRANCH_ADMIN' || rawRole === 'ADMIN_CABANG' || rawRole === 'BRANCH_OPERATOR';
-  const roleLabel = isBranchRole ? 'Admin Cabang' : 'Superadmin';
-  const branchDisplayName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
+  const { role: currentRole, roleLabel, uptName, logout } = useAuth();
+  const uptDisplayName = uptName || 'UPT Anda';
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
   
-  const superadminMenuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { name: 'Cabang', icon: Building2, path: '/branches' },
-    { name: 'Data Narapidana', icon: Users, path: '/inmates' },
-    { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
-    { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
-    { name: 'Laporan', icon: BarChart3, path: '/reports' },
-  ];
-
-  const branchMenuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
-    { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
-    // { name: 'Persetujuan Kontak', icon: Contact, path: '/branch/contacts' }, // Dinonaktifkan sesuai alur baru (pendaftaran mandiri keluarga)
-    { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
-    { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
-  ];
-
-  const menuItems = isBranchAdmin ? branchMenuItems : superadminMenuItems;
+  const menuItems = getMenuItemsByRole(currentRole);
 
   return (
     <div className={`fixed left-6 top-6 bottom-6 z-50 transition-all duration-300 ${isOpen ? 'w-56' : 'w-[80px]'}`}>
@@ -128,7 +105,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
           })}
         </div>
 
-        {/* 3. Branch Info & 4. Logout */}
+        {/* 3. UPT Info & 4. Logout */}
         <div className={`pb-5 pt-2 mt-auto transition-all duration-300 ${!isOpen ? 'px-2 flex flex-col items-center gap-2' : 'px-3'}`}>
           {isBranchAdmin && (
             <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
@@ -141,7 +118,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                </div>
                {isOpen && (
                  <div className="overflow-hidden whitespace-nowrap">
-                   <p className="text-xs font-semibold text-white">{branchDisplayName}</p>
+                   <p className="text-xs font-semibold text-white">{uptDisplayName}</p>
                    <div className="flex items-center gap-1.5 mt-0.5">
                      <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
                      <p className="text-[10px] text-blue-200">Online</p>

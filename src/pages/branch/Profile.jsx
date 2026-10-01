@@ -28,10 +28,10 @@ const BranchProfile = () => {
   // State for Account Info initialized from logged in BE user without dummy data
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [accountInfo, setAccountInfo] = useState({
-    name: authUser?.name || 'Admin Cabang',
+    name: authUser?.name || 'Kepala UPT',
     email: authUser?.email || authUser?.identifier || '-',
     phone: authUser?.phone || '-',
-    branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Lapas')
+    branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'UPT Lapas')
   });
   const [infoSuccess, setInfoSuccess] = useState(false);
   const [infoError, setInfoError] = useState('');
@@ -161,7 +161,7 @@ const BranchProfile = () => {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <h2 className="text-2xl font-black text-white tracking-tight">{accountInfo.name}</h2>
               <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/30">
-                <ShieldCheck className="w-3.5 h-3.5" /> Admin Cabang
+                <ShieldCheck className="w-3.5 h-3.5" /> Kepala UPT
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Aktif
@@ -296,7 +296,7 @@ const BranchProfile = () => {
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Role Sistem</label>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Admin Cabang
+                      <ShieldCheck className="w-3.5 h-3.5" /> Kepala UPT
                     </span>
                   </div>
 
@@ -424,7 +424,7 @@ const BranchProfile = () => {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-800">Status Akses</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Sesi login aktif (Admin Cabang)</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Sesi login aktif (Kepala UPT)</p>
                 </div>
               </div>
             </div>
@@ -439,7 +439,7 @@ const BranchProfile = () => {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleLogoutConfirm}
         title="Konfirmasi Logout"
-        message="Apakah Anda yakin ingin keluar dari sesi Admin Cabang saat ini?"
+        message="Apakah Anda yakin ingin keluar dari sesi Kepala UPT saat ini?"
         confirmText="Logout"
         cancelText="Batal"
         isDanger={true}

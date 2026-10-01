@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle } from 'lucide-react';
 import { getBranches } from '../../services/branchService';
 import { logout } from '../../services/api';
-import { exportToCSV } from '../../utils/exportUtils';
+import { exportToExcel } from '../../utils/exportUtils';
+import { useAuth } from '../../context/AuthContext';
 
 const List = () => {
   const navigate = useNavigate();
+  const { userName } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -72,18 +74,42 @@ const List = () => {
       showToast('Tidak ada data cabang untuk diekspor.', 'error');
       return;
     }
-    const exportData = filteredBranches.map(b => ({
-      'ID': b.id,
-      'Nama Cabang': b.name,
+    const exportData = filteredBranches.map((b, idx) => ({
+      'No': idx + 1,
+      'ID Cabang': b.id,
+      'Nama UPT / Cabang': b.name,
       'Lokasi': b.location,
-      'Alamat': b.address,
-      'Telepon': b.phone,
-      'Kapasitas': b.capacity,
+      'Alamat Lengkap': b.address,
+      'Nomor Telepon': b.phone,
+      'Kapasitas Maksimal': b.capacity,
       'Jumlah WBP': b.inmateCount,
-      'Jumlah Admin': b.adminCount,
-      'Status': b.status === 'Active' ? 'Aktif' : 'Nonaktif'
+      'Jumlah Admin / Petugas': b.adminCount,
+      'Status Operasional': b.status === 'Active' ? 'Aktif' : 'Nonaktif'
     }));
-    exportToCSV(exportData, `Daftar_Cabang_PasCall_${new Date().toISOString().split('T')[0]}`);
+
+    const activeCount = filteredBranches.filter(b => b.status === 'Active').length;
+    const totalWbp = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+
+    const filename = `Daftar_Cabang_UPT_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const success = exportToExcel(exportData, filename, 'Cabang UPT', {
+      title: 'LAPORAN DATA MASTER CABANG & UPT PEMASYARAKATAN',
+      subtitle: 'Daftar Seluruh Unit Pelaksana Teknis (UPT) Lapas & Rutan Se-Indonesia',
+      metadata: {
+        'Tingkat': 'Pusat / Nasional',
+        'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
+        'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Active' ? 'Aktif' : 'Nonaktif',
+        'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics: [
+        { label: 'Total Cabang / UPT', value: `${filteredBranches.length} UPT` },
+        { label: 'Cabang Aktif', value: `${activeCount} UPT` },
+        { label: 'Total Warga Binaan', value: `${totalWbp} Orang` },
+      ]
+    });
+
+    if (success !== false) {
+      showToast('Berhasil mengekspor data cabang UPT ke format Excel!', 'success');
+    }
   };
 
   return (

@@ -12,16 +12,19 @@ import {
   XCircle,
   SearchX,
   FileSpreadsheet,
+  FileText,
   Receipt,
   AlertCircle
 } from 'lucide-react';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
 import Modal from '../../components/Modal';
-import { exportToCSV } from '../../utils/exportUtils';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
+import { useAuth } from '../../context/AuthContext';
 
 const Transactions = () => {
   const navigate = useNavigate();
+  const { uptName, isSupervisor, userName, roleLabel } = useAuth();
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -133,24 +136,90 @@ const Transactions = () => {
       showToast('Tidak ada data transaksi untuk diekspor.', 'error');
       return;
     }
-    const exportData = transactionsData.items.map(t => {
-      const cat = getTransactionCategory(t);
-      return {
-        ID_Transaksi: t.id,
-        WBP: t.inmateName,
-        NIP: t.inmateId,
-        Nominal: `-${t.amount}`,
-        Kategori: cat.label,
-        Keterangan: t.description,
-        Metode: t.method || 'Potong Saldo',
-        Petugas: t.officerName || 'Sistem (Otomatis)',
-        Status: t.status,
-        Waktu: t.date
-      };
-    });
-    const success = exportToCSV(exportData, `Transaksi_Mutasi_Cabang_${statusFilter}.csv`);
-    if (success !== false) {
-      showToast(`Berhasil mengunduh ${transactionsData.items.length} data transaksi (.csv)!`);
+
+    if (isSupervisor) {
+      // PDF Export untuk Supervisor (Terkunci & Tidak bisa diubah)
+      const headers = ['No', 'ID Transaksi', 'Nama WBP', 'NIP', 'Nominal', 'Kategori', 'Keterangan', 'Petugas', 'Status', 'Waktu'];
+      const rows = transactionsData.items.map((t, idx) => {
+        const cat = getTransactionCategory(t);
+        return [
+          String(idx + 1),
+          t.id || '-',
+          t.inmateName || '-',
+          t.inmateId || '-',
+          `-${formatCurrency(t.amount)}`,
+          cat.label || 'Pemakaian',
+          t.description || '-',
+          t.officerName || 'Sistem (Otomatis)',
+          t.status || 'Berhasil',
+          t.date || '-'
+        ];
+      });
+
+      const summaryMetrics = [
+        { label: 'TOTAL TRANSAKSI', value: `${transactionsData.items.length} Data` },
+        { label: 'TOTAL PEMAKAIAN', value: `-${formatCurrency(computedTotalPemakaian)}` },
+        { label: 'PANGGILAN', value: formatCurrency(computedTotalPanggilan) },
+        { label: 'KANTIN', value: formatCurrency(computedTotalKantin) }
+      ];
+
+      const filename = `Mutasi_Transaksi_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
+      const success = exportToPDF({
+        title: 'LAPORAN MUTASI & TRANSAKSI SALDO PASCALL',
+        subtitle: `Rekapitulasi riwayat mutasi saldo komunikasi dan kantin warga binaan`,
+        filename,
+        headers,
+        rows,
+        orientation: 'landscape',
+        metadata: {
+          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
+          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+          'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        },
+        summaryMetrics
+      });
+
+      if (success !== false) {
+        showToast('Berhasil mengekspor data transaksi!', 'success');
+      }
+    } else {
+      // Excel Export untuk Kepala UPT
+      const exportData = transactionsData.items.map(t => {
+        const cat = getTransactionCategory(t);
+        return {
+          ID_Transaksi: t.id,
+          WBP: t.inmateName,
+          NIP: t.inmateId,
+          Nominal: `-${t.amount}`,
+          Kategori: cat.label,
+          Keterangan: t.description,
+          Metode: t.method || 'Potong Saldo',
+          Petugas: t.officerName || 'Sistem (Otomatis)',
+          Status: t.status,
+          Waktu: t.date
+        };
+      });
+      const filename = `Transaksi_Mutasi_Cabang_${statusFilter}.xlsx`;
+      const success = exportToExcel(exportData, filename, 'Transaksi', {
+        title: 'LAPORAN MUTASI & TRANSAKSI SALDO PASCALL',
+        subtitle: 'Rekapitulasi riwayat mutasi saldo komunikasi dan kantin warga binaan',
+        metadata: {
+          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        },
+        summaryMetrics: [
+          { label: 'Total Transaksi', value: `${transactionsData.items.length} Data` },
+          { label: 'Total Pemakaian', value: `-${formatCurrency(computedTotalPemakaian)}` },
+          { label: 'Panggilan', value: formatCurrency(computedTotalPanggilan) },
+          { label: 'Kantin', value: formatCurrency(computedTotalKantin) },
+        ]
+      });
+      if (success !== false) {
+        showToast('Berhasil mengekspor data transaksi!', 'success');
+      }
     }
   };
 
@@ -274,8 +343,10 @@ const Transactions = () => {
             type="button"
             onClick={handleExport}
             className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer ml-auto md:ml-1"
+            title="Export Data Transaksi"
           >
-            <Download className="w-3.5 h-3.5" /> Export Data
+            <Download className="w-3.5 h-3.5 text-slate-500" />
+            <span>Export</span>
           </button>
         </div>
       </div>

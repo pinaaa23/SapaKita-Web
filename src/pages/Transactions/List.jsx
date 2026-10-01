@@ -22,11 +22,13 @@ import {
 } from 'lucide-react';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
-import { exportToCSV } from '../../utils/exportUtils';
+import { exportToExcel } from '../../utils/exportUtils';
+import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/StatCard';
 
 const List = () => {
   const navigate = useNavigate();
+  const { userName } = useAuth();
   
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -148,7 +150,7 @@ const List = () => {
       const cat = getTransactionCategory(t);
       return {
         'ID Transaksi': t.id,
-        'Cabang': t.branchName || t.branchId,
+        'Cabang': t.branchName || t.branchId || 'Pusat',
         'Nama WBP': t.inmateName,
         'NIP': t.inmateId,
         'Kategori': cat.label,
@@ -162,7 +164,29 @@ const List = () => {
         'Saldo Sesudah': t.balanceAfter
       };
     });
-    exportToCSV(exportData, `Data_Mutasi_Transaksi_PasCall_${new Date().toISOString().split('T')[0]}`);
+
+    const filename = `Data_Mutasi_Transaksi_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const success = exportToExcel(exportData, filename, 'Transaksi Nasional', {
+      title: 'LAPORAN MUTASI & TRANSAKSI SALDO NASIONAL PASCALL',
+      subtitle: 'Rekapitulasi Konsolidasi Seluruh Transaksi Komunikasi & Kantin UPT Se-Indonesia',
+      metadata: {
+        'Tingkat': 'Pusat / Nasional',
+        'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
+        'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+        'Kategori Filter': categoryFilter === 'All' ? 'Semua Kategori' : categoryFilter,
+        'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics: [
+        { label: 'Total Transaksi', value: `${transactionsData.items.length} Data` },
+        { label: 'Total Pemakaian', value: `-${formatCurrency(computedTotalPemakaian)}` },
+        { label: 'Panggilan', value: formatCurrency(computedTotalPanggilan) },
+        { label: 'Kantin', value: formatCurrency(computedTotalKantin) },
+      ]
+    });
+
+    if (success !== false) {
+      showToast('Berhasil mengekspor data transaksi ke format Excel!', 'success');
+    }
   };
 
   const hasActiveFilters = searchInput !== '' || branchFilter !== 'All' || categoryFilter !== 'All' || officerFilter !== 'All' || statusFilter !== 'All' || startDate !== '' || endDate !== '';
@@ -249,10 +273,10 @@ const List = () => {
               type="button"
               onClick={handleExport}
               className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
-              title="Export data transaksi ke CSV"
+              title="Export data transaksi ke Excel (.xlsx)"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" /> 
-              <span>Export CSV</span>
+              <span>Export</span>
             </button>
           </div>
         </div>
