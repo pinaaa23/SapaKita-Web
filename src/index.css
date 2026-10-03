@@ -437,6 +437,73 @@
     color: #000000 !important;
   }
 
+  /* Blok Kode Voucher di Struk saat cetak thermal 80mm */
+  #struk-cetak .struk-voucher-box {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 3px solid #000000 !important;
+    border-radius: 6px !important;
+    padding: 8px 6px !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+    box-shadow: none !important;
+  }
+
+  #struk-cetak .struk-voucher-box * {
+    color: #000000 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  #struk-cetak .struk-voucher-box p {
+    color: #000000 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+  }
+
+  #struk-cetak .struk-voucher-code {
+    font-size: 28px !important;
+    font-weight: 900 !important;
+    letter-spacing: 3px !important;
+    color: #000000 !important;
+    margin: 6px 0 !important;
+    padding: 2px 0 !important;
+    line-height: 1.1 !important;
+  }
+
+  /* Semua badge, chip, ikon dan container rincian di struk dicetak monokrom hitam-putih murni */
+  #struk-cetak .bg-blue-50,
+  #struk-cetak .bg-blue-50\/70,
+  #struk-cetak .bg-slate-100,
+  #struk-cetak .bg-emerald-100,
+  #struk-cetak .border-emerald-200,
+  #struk-cetak .border-blue-100 {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  #struk-cetak svg {
+    color: #000000 !important;
+    stroke: #000000 !important;
+  }
+
+  #struk-cetak .text-\[\#16A34A\],
+  #struk-cetak .text-\[\#1565C0\],
+  #struk-cetak .text-\[\#0D47A1\],
+  #struk-cetak .text-emerald-800,
+  #struk-cetak .text-slate-800,
+  #struk-cetak .text-slate-700,
+  #struk-cetak .text-slate-600,
+  #struk-cetak .text-slate-500,
+  #struk-cetak .text-slate-400 {
+    color: #000000 !important;
+  }
+
   #struk-cetak .border-dashed {
     border-color: #000000 !important;
   }

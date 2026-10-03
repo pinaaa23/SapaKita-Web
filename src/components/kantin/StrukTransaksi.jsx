@@ -56,10 +56,31 @@ export default function StrukTransaksi({ transaksi }) {
             Paket komunikasi telah berhasil diaktifkan.
           </p>
 
-          <div className="mt-4 inline-block px-3 py-1 bg-slate-100 rounded-full">
-            <span className="text-xs font-mono font-bold text-slate-700">
-              {transaksi.id}
+          {/* Blok Kode Voucher */}
+          {transaksi.kodeVoucher && (
+            <div className="struk-voucher-box w-full mt-4 p-4 sm:p-5 rounded-2xl border-[3px] border-[#0D47A1] bg-[#EAF2FF] text-center shadow-xs">
+              <p className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#0D47A1]">
+                KODE VOUCHER ANDA
+              </p>
+              <div className="struk-voucher-code my-3.5 sm:my-4 text-[44px] sm:text-[48px] font-black font-mono tracking-widest leading-none text-[#0F172A] select-all">
+                {transaksi.kodeVoucher}
+              </div>
+              <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
+                Masukkan kode ini di wartel PasCall. Kode hanya berlaku satu kali.
+              </p>
+            </div>
+          )}
+
+          {/* Nomor Transaksi */}
+          <div className="mt-4">
+            <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">
+              No. Transaksi
             </span>
+            <div className="inline-block px-3 py-1 bg-slate-100 rounded-full">
+              <span className="text-xs font-mono font-bold text-slate-600">
+                {transaksi.id}
+              </span>
+            </div>
           </div>
         </div>
 

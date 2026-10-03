@@ -24,6 +24,8 @@ export default function StrukPage() {
         console.error('Gagal mengambil data transaksi:', err);
       } finally {
         if (isMounted) {
+
+          
           setIsLoading(false);
         }
       }
