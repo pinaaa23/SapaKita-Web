@@ -79,6 +79,7 @@ const Edit = () => {
 
     setIsSubmitting(true);
     try {
+      // TODO: ganti ke API BE saat endpoint tersedia
       await updateBranch(id, {
         name: formData.name.trim(),
         location: formData.location.trim(),
@@ -87,7 +88,7 @@ const Edit = () => {
         capacity: parseInt(formData.capacity, 10),
         status: formData.status
       });
-      navigate(`/branches/${id}`);
+      navigate('/branches');
     } catch (err) {
       if (err?.status === 401) {
         logout();
@@ -130,12 +131,13 @@ const Edit = () => {
     <div className="max-w-4xl mx-auto space-y-5 pb-8">
       {/* Top Header & Breadcrumb Bar */}
       <div className="flex items-center justify-between">
-        <Link 
-          to={`/branches/${id}`}
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
+        <button 
+          type="button"
+          onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Detail
-        </Link>
+          <ArrowLeft className="w-4 h-4" /> Batal & Kembali
+        </button>
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-slate-400 font-medium">Status Operasional:</span>
@@ -372,12 +374,13 @@ const Edit = () => {
 
         {/* Action Button Footer */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Link 
-            to={`/branches/${id}`}
-            className="px-5 py-2.5 bg-white border border-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold rounded-xl text-xs transition-colors shadow-2xs"
+          <button 
+            type="button"
+            onClick={() => navigate(-1)}
+            className="px-5 py-2.5 bg-white border border-slate-200/80 text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-bold rounded-xl text-xs transition-colors shadow-2xs cursor-pointer"
           >
             Batal
-          </Link>
+          </button>
           <button 
             type="submit"
             disabled={isSubmitting}

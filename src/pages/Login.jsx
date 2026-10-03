@@ -51,7 +51,26 @@ export default function Login() {
       const idLower = identifier.trim().toLowerCase();
 
       // Check for dummy mock login accounts for testing & offline support
-      if (idLower.includes('supervisor') || idLower.includes('spv')) {
+      if (idLower.includes('kantin') || idLower.includes('canteen')) {
+        // Mock login Operator Kantin — role resmi BE: CANTEEN_STAFF
+        let branchName = 'Lapas Kelas I Cipinang';
+        let operatorName = 'Petugas Kantin Lapas Cipinang';
+        if (idLower.includes('salemba')) { branchName = 'Lapas Kelas IIA Salemba'; operatorName = 'Petugas Kantin Lapas Salemba'; }
+        else if (idLower.includes('sukamiskin')) { branchName = 'Lapas Kelas I Sukamiskin'; operatorName = 'Petugas Kantin Lapas Sukamiskin'; }
+        else if (idLower.includes('kerobokan')) { branchName = 'Lapas Kelas IIA Kerobokan'; operatorName = 'Petugas Kantin Lapas Kerobokan'; }
+        responseData = {
+          token: 'mock-token-kantin-operator',
+          user: {
+            id: 'usr-ktn-mock',
+            name: operatorName,
+            email: identifier.trim(),
+            // BE role: CANTEEN_STAFF — normalizeRole akan mengkonversinya ke operator_kantin
+            role: 'operator_kantin',
+            branch: { id: 'b1', name: branchName },
+            branchName,
+          }
+        };
+      } else if (idLower.includes('supervisor') || idLower.includes('spv')) {
         responseData = {
           token: 'mock-token-supervisor-cipinang',
           user: {
@@ -170,8 +189,9 @@ export default function Login() {
         setAuthContextSession(token, { ...user, role: 'supervisor' });
         navigate('/branch/dashboard');
       } else if (normalizedRole === 'operator_kantin' || normalizedRole === 'canteen_staff' || normalizedRole === 'kantin') {
-        clearAuthSession();
-        setError('Akun Operator Kantin silakan masuk melalui aplikasi Web Kantin.');
+        // Operator Kantin: redirect ke halaman Kantin
+        setAuthContextSession(token, { ...user, role: 'operator_kantin' });
+        navigate('/kantin');
       } else {
         // Reject non-admin roles (FAMILY, INMATE, etc.)
         clearAuthSession();

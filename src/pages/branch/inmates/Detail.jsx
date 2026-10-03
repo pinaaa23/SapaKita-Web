@@ -25,6 +25,7 @@ const InmatesDetail = () => {
   const [inmate, setInmate] = useState(null);
   const [toastMessage, setToastMessage] = useState({ type: '', text: '' });
   const [isLoading, setIsLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
   const showToast = (text, type = 'error') => {
@@ -36,6 +37,7 @@ const InmatesDetail = () => {
 
   const loadInmate = async () => {
     setIsLoading(true);
+    setAccessDenied(false);
     const targetIdentifier = decodeURIComponent(id || '').trim();
     try {
       // Panggil getInmates dan daftar cabang jika Superadmin
@@ -43,6 +45,20 @@ const InmatesDetail = () => {
         getInmates({ search: targetIdentifier }),
         isSuperAdmin ? getBranches({ limit: 100 }) : Promise.resolve(null)
       ]);
+
+      if (res.status === 'rejected') {
+        if (res.reason?.status === 403) {
+          setAccessDenied(true);
+          setInmate(null);
+          return;
+        }
+        if (res.reason?.status === 401) {
+          logout();
+          navigate('/login', { replace: true });
+          return;
+        }
+        throw res.reason;
+      }
 
       const inmatesData = res.status === 'fulfilled' ? res.value : null;
       const branchesData = branchesRes.status === 'fulfilled' ? branchesRes.value : null;
@@ -56,10 +72,11 @@ const InmatesDetail = () => {
         });
       }
 
-      // Cocokkan persis identifier / wbpRegNumber dengan parameter URL
+      // Cocokkan persis identifier / wbpRegNumber / id dengan parameter URL
       const found = inmatesData?.items?.find(i => 
         String(i.identifier || '').trim() === targetIdentifier || 
-        String(i.wbpRegNumber || '').trim() === targetIdentifier
+        String(i.wbpRegNumber || '').trim() === targetIdentifier ||
+        String(i.id || '').trim() === targetIdentifier
       );
 
       if (found) {
@@ -95,6 +112,11 @@ const InmatesDetail = () => {
         navigate('/login', { replace: true });
         return;
       }
+      if (err?.status === 403) {
+        setAccessDenied(true);
+        setInmate(null);
+        return;
+      }
       console.log('[InmatesDetail] Error load inmate:', err);
       setInmate(null);
     } finally {
@@ -111,6 +133,26 @@ const InmatesDetail = () => {
       <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/80">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         <p className="text-xs text-slate-500 mt-2 font-semibold">Memuat data narapidana...</p>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/80 max-w-xl mx-auto p-6 shadow-sm">
+        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <h2 className="text-base font-bold text-slate-800">Anda tidak memiliki akses ke data ini</h2>
+        <p className="text-xs text-slate-500 mt-1">
+          Role akun Anda tidak memiliki izin untuk melihat rincian data narapidana pada server backend.
+        </p>
+        <Link 
+          to={backRoute} 
+          className="inline-flex items-center gap-2 mt-5 px-4 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-sm transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
+        </Link>
       </div>
     );
   }

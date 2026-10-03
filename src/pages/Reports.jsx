@@ -18,6 +18,7 @@ import {
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 import { getSummaryReport } from '../services/reportService';
 import { logout } from '../services/api';
+import { USE_MOCK_SUPERADMIN } from '../services/mockStorage';
 import { exportToExcel } from '../utils/exportUtils';
 import { useAuth } from '../context/AuthContext';
 
@@ -55,7 +56,7 @@ const Reports = () => {
       const data = await getSummaryReport({ period: periodFilter });
       setReportData(data);
     } catch (err) {
-      if (err?.status === 401) {
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;

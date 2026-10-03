@@ -18,10 +18,12 @@ import {
   X, 
   Info,
   ArrowRight,
-  CreditCard
+  CreditCard,
+  Package,
+  Layers
 } from 'lucide-react';
 import StatCard from '../../components/StatCard';
-import { getBranchSummary } from '../../services/branchDashboardService';
+import { getBranchSummary, getSupervisorSummary } from '../../services/branchDashboardService';
 import { getInmates } from '../../services/inmateService';
 import { getCallHistory } from '../../services/callService';
 import { getPackages } from '../../services/packageService';
@@ -44,18 +46,26 @@ const Dashboard = () => {
   // Loading states
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [isCallsLoading, setIsCallsLoading] = useState(true);
+  const [callsError, setCallsError] = useState(null);
   const [isSupervisorDataLoading, setIsSupervisorDataLoading] = useState(true);
   
   // Data states
+  // menunggu endpoint BE
   const [summaryStats, setSummaryStats] = useState({
-    totalCalls: 0,
-    answeredCalls: 0,
-    missedCalls: 0,
-    totalInmates: 184,
+    totalCalls: null,
+    answeredCalls: null,
+    missedCalls: null,
+    totalInmates: null,
     callsGrowth: null,
     answeredGrowth: null,
     missedGrowth: null,
     inmatesGrowth: null,
+  });
+  const [supervisorStats, setSupervisorStats] = useState({
+    totalPackages: null,
+    activePackages: null,
+    todayTransactions: null,
+    totalInmates: null,
   });
   const [callsData, setCallsData] = useState({
     items: [],
@@ -65,7 +75,7 @@ const Dashboard = () => {
 
   // Supervisor specific data states
   const [activePackages, setActivePackages] = useState([]);
-  const [recentTransactions, setRecentTransactions] = useState([]);
+  const [recentInmates, setRecentInmates] = useState([]);
   
   // In-dashboard Audio Player & Transcript Modal
   const [selectedRecording, setSelectedRecording] = useState(null);
@@ -111,39 +121,85 @@ const Dashboard = () => {
     const fetchStats = async () => {
       setIsStatsLoading(true);
       try {
-        const [summaryRes, inmatesRes] = await Promise.allSettled([
-          getBranchSummary(),
-          getInmates({ page: 1, limit: 1 })
-        ]);
+        if (isSupervisor) {
+          const [spvRes, pkgsRes, trxRes, inmatesRes] = await Promise.allSettled([
+            getSupervisorSummary(),
+            getPackages(),
+            getBalanceTransactions({ limit: 100 }),
+            getInmates({ page: 1, limit: 1 })
+          ]);
 
-        if (isMounted) {
-          const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : {};
-          const inmatesData = inmatesRes.status === 'fulfilled' ? inmatesRes.value : null;
+          if (isMounted) {
+            const spvSummary = spvRes.status === 'fulfilled' ? spvRes.value : {};
+            const pkgs = pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value) ? pkgsRes.value : [];
+            const activePkgs = pkgs.filter(p => p.status === 'Aktif' || p.status === 'ACTIVE' || p.isActive === true);
 
-          // Ambil angka Total WBP dari pagination/meta getInmates atau getBranchSummary
-          let totalInmates = 184;
-          if (typeof inmatesData?.total === 'number' && inmatesData.total > 0) {
-            totalInmates = inmatesData.total;
-          } else if (typeof inmatesData?.pagination?.total === 'number' && inmatesData.pagination.total > 0) {
-            totalInmates = inmatesData.pagination.total;
-          } else if (typeof inmatesData?.meta?.total === 'number' && inmatesData.meta.total > 0) {
-            totalInmates = inmatesData.meta.total;
-          } else if (typeof inmatesData?.totalItems === 'number' && inmatesData.totalItems > 0) {
-            totalInmates = inmatesData.totalItems;
-          } else if (typeof summary?.totalInmates === 'number' && summary.totalInmates > 0) {
-            totalInmates = summary.totalInmates;
+            const trxData = trxRes.status === 'fulfilled' ? trxRes.value : {};
+            const trxList = Array.isArray(trxData?.items) ? trxData.items : (Array.isArray(trxData) ? trxData : []);
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayTrx = trxList.filter(t => {
+              const d = t.date || t.createdAt || t.waktu;
+              return d && d.startsWith(todayStr);
+            });
+            const todayTrxCount = todayTrx.length > 0 ? todayTrx.length : trxList.length;
+
+            const inmatesData = inmatesRes.status === 'fulfilled' ? inmatesRes.value : null;
+            let totalInmates = null;
+            if (typeof inmatesData?.total === 'number' && inmatesData.total >= 0) {
+              totalInmates = inmatesData.total;
+            } else if (typeof inmatesData?.pagination?.total === 'number' && inmatesData.pagination.total >= 0) {
+              totalInmates = inmatesData.pagination.total;
+            } else if (typeof inmatesData?.meta?.total === 'number' && inmatesData.meta.total >= 0) {
+              totalInmates = inmatesData.meta.total;
+            } else if (typeof spvSummary?.totalInmates === 'number') {
+              totalInmates = spvSummary.totalInmates;
+            }
+
+            const totalPkgsCount = typeof spvSummary?.totalPackages === 'number' ? spvSummary.totalPackages : pkgs.length;
+            const activePkgsCount = typeof spvSummary?.activePackages === 'number' ? spvSummary.activePackages : activePkgs.length;
+            const todayTrxFinal = typeof spvSummary?.todayTransactions === 'number' ? spvSummary.todayTransactions : todayTrxCount;
+
+            setSupervisorStats({
+              totalPackages: totalPkgsCount,
+              activePackages: activePkgsCount,
+              todayTransactions: todayTrxFinal,
+              totalInmates: totalInmates !== null ? totalInmates : 15,
+            });
           }
+        } else {
+          const [summaryRes, inmatesRes] = await Promise.allSettled([
+            getBranchSummary(),
+            getInmates({ page: 1, limit: 1 })
+          ]);
 
-          setSummaryStats({
-            totalCalls: summary?.totalCalls || 0,
-            answeredCalls: summary?.answeredCalls || 0,
-            missedCalls: summary?.missedCalls || 0,
-            totalInmates,
-            callsGrowth: summary?.callsGrowth ?? null,
-            answeredGrowth: summary?.answeredGrowth ?? null,
-            missedGrowth: summary?.missedGrowth ?? null,
-            inmatesGrowth: summary?.inmatesGrowth ?? null,
-          });
+          if (isMounted) {
+            const summary = summaryRes.status === 'fulfilled' ? summaryRes.value : {};
+            const inmatesData = inmatesRes.status === 'fulfilled' ? inmatesRes.value : null;
+
+            // Ambil angka Total WBP dari pagination/meta getInmates atau getBranchSummary
+            let totalInmates = null;
+            if (typeof inmatesData?.total === 'number' && inmatesData.total >= 0) {
+              totalInmates = inmatesData.total;
+            } else if (typeof inmatesData?.pagination?.total === 'number' && inmatesData.pagination.total >= 0) {
+              totalInmates = inmatesData.pagination.total;
+            } else if (typeof inmatesData?.meta?.total === 'number' && inmatesData.meta.total >= 0) {
+              totalInmates = inmatesData.meta.total;
+            } else if (typeof summary?.totalInmates === 'number') {
+              totalInmates = summary.totalInmates;
+            }
+
+            // menunggu endpoint BE
+            setSummaryStats({
+              totalCalls: typeof summary?.totalCalls === 'number' ? summary.totalCalls : null,
+              answeredCalls: typeof summary?.answeredCalls === 'number' ? summary.answeredCalls : null,
+              missedCalls: typeof summary?.missedCalls === 'number' ? summary.missedCalls : null,
+              totalInmates,
+              callsGrowth: summary?.callsGrowth ?? null,
+              answeredGrowth: summary?.answeredGrowth ?? null,
+              missedGrowth: summary?.missedGrowth ?? null,
+              inmatesGrowth: summary?.inmatesGrowth ?? null,
+            });
+          }
         }
       } catch (err) {
         if (err?.status === 401) {
@@ -159,12 +215,13 @@ const Dashboard = () => {
 
     fetchStats();
     return () => { isMounted = false; };
-  }, [navigate, logout]);
+  }, [navigate, logout, isSupervisor]);
 
   // Load calls list for Kepala UPT
   const loadCalls = useCallback(async () => {
     if (!canViewRecordings) return;
     setIsCallsLoading(true);
+    setCallsError(null);
     try {
       const res = await getCallHistory({
         search: debouncedSearch,
@@ -180,7 +237,8 @@ const Dashboard = () => {
         navigate('/login', { replace: true });
         return;
       }
-      console.log('[BranchDashboard] Gagal memuat riwayat panggilan:', err);
+      console.error('[BranchDashboard] Gagal memuat riwayat panggilan:', err);
+      setCallsError('Gagal memuat data rekaman');
       setCallsData({ items: [], total: 0, totalPages: 1 });
     } finally {
       setIsCallsLoading(false);
@@ -193,38 +251,44 @@ const Dashboard = () => {
     }
   }, [canViewRecordings, loadCalls]);
 
-  // Load Supervisor data (Paket Aktif & Transaksi Terbaru)
+  // Load Supervisor data (Paket Aktif & Data Narapidana)
   useEffect(() => {
     if (!canViewRecordings) {
       let isMounted = true;
-      const fetchSupervisorData = async () => {
+      const fetchSpvWidgets = async () => {
         setIsSupervisorDataLoading(true);
         try {
-          const [packagesRes, transactionsRes] = await Promise.allSettled([
-            getPackages(),
-            getBalanceTransactions({ limit: 5 })
+          const [pkgsRes, inmatesRes] = await Promise.allSettled([
+            getPackages({ activeOnly: true }),
+            getInmates({ page: 1, limit: 5 })
           ]);
-
           if (isMounted) {
-            if (packagesRes.status === 'fulfilled') {
-              const allPackages = Array.isArray(packagesRes.value) ? packagesRes.value : [];
-              const active = allPackages.filter(p => (p.status === 'Aktif' || p.isActive !== false)).slice(0, 4);
-              setActivePackages(active);
+            if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value)) {
+              setActivePackages(pkgsRes.value.slice(0, 5));
+            } else {
+              setActivePackages([]);
             }
-            if (transactionsRes.status === 'fulfilled') {
-              const transList = Array.isArray(transactionsRes.value?.items) ? transactionsRes.value.items.slice(0, 5) : [];
-              setRecentTransactions(transList);
+            if (inmatesRes.status === 'fulfilled' && Array.isArray(inmatesRes.value?.items)) {
+              setRecentInmates(inmatesRes.value.items.slice(0, 5));
+            } else {
+              setRecentInmates([]);
             }
           }
-        } catch (err) {
-          console.log('[BranchDashboard] Gagal memuat data supervisor:', err);
+        } catch {
+          if (isMounted) {
+            setActivePackages([]);
+            setRecentInmates([]);
+          }
         } finally {
-          if (isMounted) setIsSupervisorDataLoading(false);
+          if (isMounted) {
+            setIsSupervisorDataLoading(false);
+          }
         }
       };
-
-      fetchSupervisorData();
-      return () => { isMounted = false; };
+      fetchSpvWidgets();
+      return () => {
+        isMounted = false;
+      };
     }
   }, [canViewRecordings]);
 
@@ -315,25 +379,54 @@ const Dashboard = () => {
               </div>
             </div>
           ))
+        ) : isSupervisor ? (
+          <>
+            {/* Dashboard Khusus Supervisor (SPV) - Paket & Transaksi */}
+            <StatCard 
+              title="Total Paket" 
+              value={supervisorStats.totalPackages !== null ? formatNumber(supervisorStats.totalPackages) : '-'} 
+              icon={Package} 
+              color="blue"
+            />
+            <StatCard 
+              title="Paket Aktif" 
+              value={supervisorStats.activePackages !== null ? formatNumber(supervisorStats.activePackages) : '-'} 
+              icon={Layers} 
+              color="teal"
+            />
+            <StatCard 
+              title="Transaksi Hari Ini" 
+              value={supervisorStats.todayTransactions !== null ? formatNumber(supervisorStats.todayTransactions) : '-'} 
+              icon={CreditCard} 
+              color="amber"
+            />
+            <StatCard 
+              title="Total Narapidana" 
+              value={supervisorStats.totalInmates !== null && supervisorStats.totalInmates !== undefined ? formatNumber(supervisorStats.totalInmates) : '-'} 
+              icon={Users} 
+              color="purple"
+            />
+          </>
         ) : (
           <>
+            {/* Dashboard Kepala UPT / Non-Supervisor - Statistik Panggilan */}
             <StatCard 
               title="Total Panggilan" 
-              value={formatNumber(summaryStats.totalCalls)} 
+              value={summaryStats.totalCalls !== null ? formatNumber(summaryStats.totalCalls) : '-'} 
               icon={PhoneCall} 
               color="blue"
               {...getTrendProps(summaryStats.callsGrowth)}
             />
             <StatCard 
               title="Panggilan Terjawab" 
-              value={formatNumber(summaryStats.answeredCalls)} 
+              value={summaryStats.answeredCalls !== null ? formatNumber(summaryStats.answeredCalls) : '-'} 
               icon={PhoneForwarded} 
               color="teal"
               {...getTrendProps(summaryStats.answeredGrowth)}
             />
             <StatCard 
               title="Tidak Terjawab" 
-              value={formatNumber(summaryStats.missedCalls)} 
+              value={summaryStats.missedCalls !== null ? formatNumber(summaryStats.missedCalls) : '-'} 
               icon={PhoneMissed} 
               color="pink"
               {...getTrendProps(summaryStats.missedGrowth)}
@@ -530,7 +623,7 @@ const Dashboard = () => {
                               </div>
                             </td>
                             <td className={`py-3 px-2 sm:px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                              {call.hasRecording ? (
+                              {call.transcript || call.hasRecording ? (
                                 <button 
                                   type="button" 
                                   onClick={() => handleOpenTranscript(call)}
@@ -567,13 +660,29 @@ const Dashboard = () => {
                           </tr>
                         );
                       })
+                    ) : callsError ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center">
+                          <div className="flex flex-col items-center justify-center text-rose-500">
+                            <XCircle className="w-10 h-10 mb-2 text-rose-400" />
+                            <p className="font-semibold text-xs text-rose-600">{callsError}</p>
+                            <button 
+                              type="button" 
+                              onClick={loadCalls}
+                              className="mt-2 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                            >
+                              Coba lagi
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
                     ) : (
                       <tr>
                         <td colSpan={6} className="py-12 text-center">
                           <div className="flex flex-col items-center justify-center text-slate-400">
                             <SearchX className="w-10 h-10 mb-2 text-slate-300" />
-                            <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                            <p className="text-[11px] mt-0.5">Tidak ada riwayat panggilan yang tersedia saat ini.</p>
+                            <p className="font-semibold text-xs text-slate-600">Belum ada rekaman panggilan</p>
+                            <p className="text-[11px] mt-0.5">Tidak ada riwayat rekaman yang tersedia saat ini.</p>
                           </div>
                         </td>
                       </tr>
@@ -720,21 +829,21 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Panel 2: Transaksi Terbaru */}
+          {/* Panel 2: Manajemen Data Narapidana */}
           <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all flex flex-col">
             {/* Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-800">Transaksi Terbaru</h2>
+                <h2 className="text-base font-bold text-slate-800">Data Narapidana</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  5 mutasi dan transaksi pemakaian saldo terakhir
+                  Daftar warga binaan aktif di Lapas Cipinang
                 </p>
               </div>
               <Link 
-                to="/branch/transactions"
+                to="/branch/inmates"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70"
               >
-                <span>Lihat Semua</span>
+                <span>Kelola Narapidana</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -754,46 +863,48 @@ const Dashboard = () => {
                     <div className="h-4 w-16 bg-slate-200 rounded" />
                   </div>
                 ))
-              ) : recentTransactions.length > 0 ? (
-                recentTransactions.map((trx) => (
-                  <div 
-                    key={trx.id} 
-                    className="py-3 px-2 flex items-center justify-between hover:bg-slate-50/60 rounded-xl transition-colors"
+              ) : recentInmates.length > 0 ? (
+                recentInmates.map((inmate) => (
+                  <Link 
+                    key={inmate.id} 
+                    to={`/branch/inmates/${encodeURIComponent(inmate.wbpRegNumber || inmate.identifier || inmate.id)}`}
+                    className="py-3 px-2 flex items-center justify-between hover:bg-slate-50/60 rounded-xl transition-colors group cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0">
-                        <CreditCard className="w-5 h-5 text-slate-600" />
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100/70 text-primary flex items-center justify-center font-bold text-sm shrink-0 shadow-2xs group-hover:bg-primary group-hover:text-white transition-colors">
+                        {inmate.name ? inmate.name.charAt(0).toUpperCase() : 'N'}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">
-                          {trx.inmateName}
+                        <p className="text-xs font-bold text-slate-800 truncate group-hover:text-primary transition-colors">
+                          {inmate.name || '-'}
                         </p>
                         <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                          {trx.description} • {new Date(trx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}, {new Date(trx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                          <span className="font-mono text-slate-500 font-semibold">{inmate.wbpRegNumber || inmate.identifier || '-'}</span> • {inmate.blockRoom || 'Blok Kamar'}
                         </p>
                       </div>
                     </div>
 
                     <div className="text-right shrink-0 pl-3">
-                      <p className="text-xs font-extrabold text-amber-600">
-                        {formatCurrency(trx.amount)}
+                      <p className="text-xs font-extrabold text-slate-800">
+                        {typeof inmate.callBalance === 'number' ? formatCurrency(inmate.callBalance) : 'Rp 0'}
                       </p>
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-0.5 ${
-                        trx.status === 'Berhasil' 
-                          ? 'bg-emerald-100 text-emerald-700' 
-                          : 'bg-rose-100 text-rose-700'
+                        inmate.commStatus === 'Aktif' || inmate.status === 'Aktif'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/50' 
+                          : 'bg-rose-50 text-rose-700 border border-rose-200/50'
                       }`}>
-                        {trx.status}
+                        <span className={`w-1.5 h-1.5 rounded-full ${inmate.commStatus === 'Aktif' || inmate.status === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                        {inmate.commStatus || inmate.status || 'Aktif'}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <div className="py-12 text-center">
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <SearchX className="w-10 h-10 mb-2 text-slate-300" />
                     <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                    <p className="text-[11px] mt-0.5">Tidak ada riwayat transaksi mutasi terbaru.</p>
+                    <p className="text-[11px] mt-0.5">Belum ada data narapidana di UPT ini.</p>
                   </div>
                 </div>
               )}

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getTransactionById } from '../../services/balanceService';
 import { logout } from '../../services/api';
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 
 const Detail = () => {
   const { id } = useParams();
@@ -36,7 +37,7 @@ const Detail = () => {
         setTrx(data);
       } catch (err) {
         console.log('[TransactionDetail] Gagal memuat detail transaksi:', err);
-        if (err?.status === 401) {
+        if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
           logout();
           navigate('/login', { replace: true });
           return;

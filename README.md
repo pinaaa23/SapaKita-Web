@@ -1,16 +1,80 @@
-# React + Vite
+﻿# PasCall — Sistem Layanan Komunikasi Lembaga Pemasyarakatan
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Aplikasi web terpadu untuk manajemen layanan komunikasi narapidana.
 
-Currently, two official plugins are available:
+## Cara Menjalankan
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev
+```
 
-## React Compiler
+## Role & Akses
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Satu halaman login dipakai bersama semua role. Setelah login, pengguna diarahkan ke dashboard sesuai role:
 
-## Expanding the Oxlint configuration
+| Role | Nilai (BE) | Dashboard |
+|------|------------|-----------|
+| Super Administrator | `SUPERADMIN` | `/dashboard` |
+| Kepala UPT | `BRANCH_ADMIN` | `/branch/dashboard` |
+| Supervisor | (belum ada di BE — mock: `supervisor`) | `/branch/dashboard` |
+| Operator Kantin | `CANTEEN_STAFF` | `/kantin` |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Halaman Kantin (Operator Kantin)
+
+Halaman kantin terintegrasi di dalam proyek PasCall dan hanya dapat diakses oleh role **Operator Kantin**.
+
+### Route
+
+| URL | Deskripsi |
+|-----|-----------|
+| `/kantin` | Katalog Paket Komunikasi (Halaman utama) |
+| `/kantin/status-wartel` | Status ketersediaan wartel lapas |
+| `/kantin/riwayat` | Rekap & riwayat transaksi kasir |
+| `/kantin/voucher/:id` | Voucher transaksi (setelah beli paket) |
+| `/kantin/struk/:id` | Struk bukti transaksi |
+
+### Struktur File Kantin
+
+```
+src/
+  pages/kantin/          # Halaman kantin
+  components/kantin/     # Komponen kantin
+  services/kantin/       # Service kantin (kantinService, wartelService)
+  data/kantin/           # Data dummy (paket, napi)
+  utils/formatKantin.js  # Utility format angka & tanggal
+  layouts/KantinLayout.jsx    # Layout sidebar khusus kantin
+  components/KantinProtectedRoute.jsx  # Guard route kantin
+```
+
+### localStorage Keys Kantin
+
+- `pascall_kantin_transaksi` — data transaksi dummy
+- `pascall_wartel_status_v2` — status wartel dummy
+
+Kunci ini **tidak bertabrakan** dengan localStorage PasCall yang menggunakan `token`, `pascall_token`, `user`, `pascall_user`.
+
+### Data Kantin
+
+Saat ini semua data Kantin masih **dummy** (localStorage). Menunggu endpoint BE:
+- `GET /api/kantin/paket` — daftar paket
+- `GET /api/kantin/wartel/status` — status wartel
+- `GET /api/kantin/transaksi` — riwayat transaksi
+- `POST /api/kantin/transaksi` — buat transaksi baru
+
+### Akun Demo (Mode Offline)
+
+Login dengan email yang mengandung kata:
+- `kantin.*` atau `*canteen*` → masuk sebagai Operator Kantin
+- `supervisor.*` atau `*spv*` → masuk sebagai Supervisor
+- `kepala.*` → masuk sebagai Kepala UPT
+- `superadmin.*` atau `pusat@pascall.id` → masuk sebagai Super Admin
+
+## Manajemen Pengguna (Kepala UPT)
+
+Kepala UPT dapat membuat dan mengelola akun:
+- **Supervisor** — akses dashboard UPT
+- **Operator Kantin** — akses halaman `/kantin`
+
+Format email yang disarankan: `peran.wilayah@pascall.id`
+Contoh: `kantin.cipinang@pascall.id`, `supervisor.cipinang@pascall.id`

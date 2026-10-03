@@ -239,6 +239,52 @@ export const endCallApi = async (callId) => {
   });
 };
 
+/**
+ * API Recording & Transcript Endpoints
+ */
+export const getRecordingsApi = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', params.page.toString());
+  if (params.limit) query.append('limit', params.limit.toString());
+  if (params.search && params.search.trim()) query.append('search', params.search.trim());
+  if (params.status && ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'].includes(params.status.toUpperCase())) {
+    query.append('status', params.status.toUpperCase());
+  }
+  if (params.startDate) {
+    try {
+      query.append('startDate', new Date(params.startDate).toISOString());
+    } catch (e) {
+      // ignore invalid date
+    }
+  }
+  if (params.endDate) {
+    try {
+      const endD = new Date(params.endDate);
+      if (!params.endDate.includes('T')) {
+        endD.setHours(23, 59, 59, 999);
+      }
+      query.append('endDate', endD.toISOString());
+    } catch (e) {
+      // ignore invalid date
+    }
+  }
+  if (params.branchId && params.branchId !== 'All') {
+    query.append('branchId', params.branchId);
+  }
+
+  const queryString = query.toString();
+  const endpoint = queryString ? `/api/recordings?${queryString}` : '/api/recordings';
+  return await apiFetch(endpoint);
+};
+
+export const getRecordingByIdApi = async (id) => {
+  return await apiFetch(`/api/recordings/${id}`);
+};
+
+export const getRecordingStreamUrlApi = async (id) => {
+  return await apiFetch(`/api/recordings/${id}/stream-url`);
+};
+
 export default {
   API_BASE_URL,
   getAuthToken,
@@ -258,6 +304,9 @@ export default {
   initiateCallApi,
   acceptCallApi,
   rejectCallApi,
-  endCallApi
+  endCallApi,
+  getRecordingsApi,
+  getRecordingByIdApi,
+  getRecordingStreamUrlApi
 };
 

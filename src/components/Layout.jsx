@@ -23,9 +23,9 @@ const Layout = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E4EFFC] via-[#EFF5FC] to-[#F8FAFC] font-sans text-slate-900 flex relative overflow-x-hidden">
       <Sidebar isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
-      <div className={`flex flex-col min-h-screen w-full transition-all duration-300 py-6 pr-6 ${isSidebarOpen ? 'pl-[264px]' : 'pl-[120px]'}`}>
+      <div className={`flex flex-col min-h-screen w-full min-w-0 transition-all duration-300 py-6 pr-6 ${isSidebarOpen ? 'pl-[264px]' : 'pl-[120px]'}`}>
         <Topbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
-        <main className="flex-1 pt-2 pb-0">
+        <main className="flex-1 pt-2 pb-0 min-w-0 w-full">
           <Outlet />
         </main>
       </div>

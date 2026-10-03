@@ -17,6 +17,9 @@ const RoleGuard = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.SUPERADMIN) {
         return <Navigate to="/dashboard" replace />;
       }
+      if (currentRole === ROLES.OPERATOR_KANTIN) {
+        return <Navigate to="/kantin" replace />;
+      }
       return (
         <Navigate 
           to="/branch/dashboard" 

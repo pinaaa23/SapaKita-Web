@@ -61,10 +61,10 @@ export const permissions = {
     return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN;
   },
 
-  // Kepala UPT dan Supervisor dapat mengelola paket
+  // Hanya Supervisor yang dapat mengelola paket
   canManagePackages: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERVISOR || norm === ROLES.SUPERADMIN;
+    return norm === ROLES.SUPERVISOR;
   },
 };
 
@@ -85,14 +85,13 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Kepala UPT (Dashboard, Data Napi, Rekaman Panggilan, Kelola Pengguna, Kelola Paket, Transaksi, Laporan)
+  // Menu untuk Kepala UPT (Dashboard, Data Napi, Rekaman Panggilan, Kelola Pengguna, Transaksi, Laporan)
   if (normRole === ROLES.KEPALA_UPT) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
       { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Kelola Pengguna', icon: UserCog, path: '/branch/users' },
-      { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];

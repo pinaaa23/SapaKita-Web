@@ -17,6 +17,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { getCallHistory } from '../../services/callService';
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { downloadTextFile, downloadTranscriptPDF } from '../../utils/exportUtils';
@@ -36,6 +37,7 @@ const Recordings = () => {
   const [limit] = useState(10); // 10 baris per halaman
 
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [callsData, setCallsData] = useState({
     items: [],
     total: 0,
@@ -58,6 +60,7 @@ const Recordings = () => {
   // Fetch calls with filters & pagination (DO NOT depend on selectedRecording to avoid refetch loops)
   const fetchCalls = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await getCallHistory({
         search: debouncedSearch,
@@ -81,12 +84,13 @@ const Recordings = () => {
         window.history.replaceState({}, document.title);
       }
     } catch (err) {
-      if (err?.status === 401) {
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;
       }
-      console.log('[Recordings] Gagal memuat daftar rekaman:', err);
+      console.error('[Recordings] Gagal memuat daftar rekaman:', err);
+      setError('Gagal memuat data rekaman');
       setCallsData({ items: [], total: 0, totalPages: 1 });
     } finally {
       setIsLoading(false);
@@ -400,7 +404,7 @@ const Recordings = () => {
 
                           {/* Transkrip Button */}
                           <td className={`py-3 px-2 sm:px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                            {call.hasRecording ? (
+                            {call.transcript || call.hasRecording ? (
                               <button 
                                 type="button"
                                 onClick={() => setTranscriptModalCall(call)}
@@ -439,12 +443,28 @@ const Recordings = () => {
                         </tr>
                       );
                     })
+                  ) : error ? (
+                    <tr>
+                      <td colSpan={6} className="py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-rose-500">
+                          <XCircle className="w-10 h-10 mb-2 text-rose-400" />
+                          <p className="font-semibold text-xs text-rose-600">{error}</p>
+                          <button 
+                            type="button" 
+                            onClick={fetchCalls}
+                            className="mt-2 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                          >
+                            Coba lagi
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
                   ) : (
                     <tr>
                       <td colSpan={6} className="py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-400">
                           <SearchX className="w-10 h-10 mb-2 text-slate-300" />
-                          <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
+                          <p className="font-semibold text-xs text-slate-600">Belum ada rekaman panggilan</p>
                           <p className="text-[11px] mt-0.5">Tidak ada riwayat rekaman yang sesuai dengan filter.</p>
                         </div>
                       </td>

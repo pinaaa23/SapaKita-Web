@@ -1,4 +1,5 @@
 import { apiFetch, logout } from './api';
+import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta di atas file agar mudah disesuaikan
 export const BRANCH_REPORT_ENDPOINT = '/api/reports/branch-summary';
@@ -12,11 +13,11 @@ export const mapReportData = (raw) => {
 
   const totalRevenue = typeof data.totalRevenue === 'number' 
     ? data.totalRevenue 
-    : (Number(data.totalRevenue ?? data.revenue) || 0);
+    : (Number(data.totalRevenue ?? data.revenue ?? data.summary?.totalRevenue) || 0);
 
   const totalCalls = typeof data.totalCalls === 'number' 
     ? data.totalCalls 
-    : (Number(data.totalCalls ?? data.calls) || 0);
+    : (Number(data.totalCalls ?? data.calls ?? data.summary?.totalCalls) || 0);
 
   const avgCallDurationSeconds = typeof data.avgCallDurationSeconds === 'number' 
     ? data.avgCallDurationSeconds 
@@ -24,7 +25,7 @@ export const mapReportData = (raw) => {
 
   const successRate = typeof data.successRate === 'number' 
     ? data.successRate 
-    : (Number(data.successRate) || 0);
+    : (Number(data.successRate ?? data.summary?.successRate) || 0);
 
   const rawRevenueTrend = Array.isArray(data.revenueTrend) 
     ? data.revenueTrend 
@@ -75,8 +76,8 @@ export const mapReportData = (raw) => {
     callsGrowth,
     successRateGrowth,
     compliance: {
-      recordedRate,
-      avgSearchTime,
+      recordedRate: recordedRate || 100,
+      avgSearchTime: avgSearchTime || 3.2,
     }
   };
 };
@@ -96,19 +97,50 @@ const normalizePeriod = (period) => {
  * Mengambil data laporan cabang (Admin Cabang)
  */
 export const getBranchReport = async ({ period = '30' } = {}) => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const stats = dummyStore.getBranchStats('b1');
+    return mapReportData({
+      totalRevenue: stats.totalTopup,
+      totalCalls: stats.totalCalls,
+      avgCallDurationSeconds: 650,
+      successRate: stats.totalCalls > 0 ? Math.round((stats.answeredCalls / stats.totalCalls) * 100) : 100,
+      revenueGrowth: 14.5,
+      callsGrowth: 10.2,
+      successRateGrowth: 2.0,
+      revenueTrend: [
+        { date: '28 Sep', amount: 23976 },
+        { date: '29 Sep', amount: 35964 },
+        { date: '30 Sep', amount: 17982 },
+        { date: '01 Okt', amount: 29970 },
+        { date: '02 Okt', amount: stats.totalTopup },
+      ],
+      callVolumeTrend: [
+        { date: '28 Sep', count: 2 },
+        { date: '29 Sep', count: 3 },
+        { date: '30 Sep', count: 1 },
+        { date: '01 Okt', count: 4 },
+        { date: '02 Okt', count: stats.totalCalls },
+      ],
+      compliance: {
+        recordedRate: 100,
+        avgSearchTime: 2.8,
+      },
+    });
+  }
+
   const normPeriod = normalizePeriod(period);
   const url = `${BRANCH_REPORT_ENDPOINT}?period=${normPeriod}`;
 
   try {
     const res = await apiFetch(url);
-    console.log(`[ReportService] Response GET ${url}:`, res);
     return mapReportData(res);
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    console.log(`[ReportService] Fallback data kosong laporan cabang (${url}):`, error?.message || error);
+    console.log(`[ReportService] Gagal mengambil laporan cabang:`, error?.message || error);
     return mapReportData({});
   }
 };
@@ -117,19 +149,50 @@ export const getBranchReport = async ({ period = '30' } = {}) => {
  * Mengambil data laporan agregat nasional / pusat (Superadmin)
  */
 export const getSummaryReport = async ({ period = '30' } = {}) => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const stats = dummyStore.getSuperadminStats();
+    return mapReportData({
+      totalRevenue: stats.totalRevenue,
+      totalCalls: stats.totalCalls,
+      avgCallDurationSeconds: 710,
+      successRate: stats.successRate,
+      revenueGrowth: 18.2,
+      callsGrowth: 12.8,
+      successRateGrowth: 3.1,
+      revenueTrend: [
+        { date: '28 Sep', amount: 35964 },
+        { date: '29 Sep', amount: 47952 },
+        { date: '30 Sep', amount: 29970 },
+        { date: '01 Okt', amount: 53946 },
+        { date: '02 Okt', amount: stats.totalRevenue },
+      ],
+      callVolumeTrend: [
+        { date: '28 Sep', count: 3 },
+        { date: '29 Sep', count: 4 },
+        { date: '30 Sep', count: 2 },
+        { date: '01 Okt', count: 5 },
+        { date: '02 Okt', count: stats.totalCalls },
+      ],
+      compliance: {
+        recordedRate: 99.4,
+        avgSearchTime: 3.5,
+      },
+    });
+  }
+
   const normPeriod = normalizePeriod(period);
   const url = `${SUMMARY_REPORT_ENDPOINT}?period=${normPeriod}`;
 
   try {
     const res = await apiFetch(url);
-    console.log(`[ReportService] Response GET ${url}:`, res);
     return mapReportData(res);
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    console.log(`[ReportService] Fallback data kosong laporan pusat (${url}):`, error?.message || error);
+    console.log(`[ReportService] Gagal mengambil laporan pusat:`, error?.message || error);
     return mapReportData({});
   }
 };
@@ -141,3 +204,4 @@ export default {
   getBranchReport,
   getSummaryReport,
 };
+

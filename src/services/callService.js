@@ -1,117 +1,93 @@
-import { apiFetch, logout } from './api';
-import { mockRecordings } from './mockRecordings';
+import { apiFetch, logout, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi } from './api';
+import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan
-export const CALL_HISTORY_ENDPOINT = '/api/call/history';
-export const CALL_DETAIL_ENDPOINT = (id) => `/api/call/history/${id}`;
+export const RECORDINGS_ENDPOINT = '/api/recordings';
+export const RECORDING_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
+export const CALL_HISTORY_ENDPOINT = '/api/recordings';
+export const CALL_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
 /**
- * Mapper fleksibel untuk menstandarisasi setiap item riwayat panggilan
+ * Mapper fleksibel untuk menstandarisasi setiap item rekaman & transkrip panggilan
  */
 export const mapCallItem = (item) => {
   if (!item) return null;
 
-  const rawStatus = (item.status || 'NO_ANSWER').toUpperCase();
-  let normalizedStatus = 'Missed';
-  if (rawStatus === 'ANSWERED' || rawStatus === 'COMPLETED') normalizedStatus = 'Answered';
-  else if (rawStatus === 'BUSY') normalizedStatus = 'Busy';
-  else if (rawStatus === 'MISSED' || rawStatus === 'NO_ANSWER') normalizedStatus = 'Missed';
-  else normalizedStatus = item.status || 'Missed';
+  // Mendukung struktur prisma Recording { id, callId, storageUrl, transcriptText, transcriptStatus, call: { ... } }
+  // maupun response BE standar / dummy
+  const call = item.call || item;
 
-  const rawType = (item.callType || item.type || 'AUDIO').toUpperCase();
+  const rawStatus = (call.status || (call.connectedAt ? 'COMPLETED' : 'NO_ANSWER')).toUpperCase();
+  let normalizedStatus = 'Missed';
+  if (rawStatus === 'ANSWERED' || rawStatus === 'COMPLETED' || (call.durationSeconds && call.durationSeconds > 0)) {
+    normalizedStatus = 'Answered';
+  } else if (rawStatus === 'BUSY') {
+    normalizedStatus = 'Busy';
+  } else if (rawStatus === 'MISSED' || rawStatus === 'NO_ANSWER') {
+    normalizedStatus = 'Missed';
+  } else {
+    normalizedStatus = item.status || 'Missed';
+  }
+
+  const rawType = (call.type || call.callType || item.callType || 'AUDIO').toUpperCase();
   const isVideo = rawType.includes('VIDEO');
   const callType = isVideo ? 'Video' : 'Voice';
   const backendType = isVideo ? 'VIDEO' : 'AUDIO';
 
+  const recordingId = item.id || item.recordingId || call.recordingId || call.id;
+  const storageUrl = item.storageUrl || call.storageUrl;
+  const isDemo = isDummyMode();
+  const sampleAudio = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+
+  const transcript = item.transcriptText || item.transcript || call.transcriptText || call.transcript || '';
+  const transcriptStatus = item.transcriptStatus || call.transcriptStatus || (transcript ? 'COMPLETED' : null);
+
+  const hasRecording = Boolean(
+    storageUrl || 
+    item.recordingUrl || 
+    call.recordingUrl || 
+    item.hasRecording || 
+    call.hasRecording || 
+    (isDemo && normalizedStatus === 'Answered')
+  );
+
+  const recordingUrl = storageUrl 
+    ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream`)
+    : (item.recordingUrl || call.recordingUrl || (isDemo && hasRecording ? sampleAudio : ''));
+
   return {
-    id: item.id || item.callId || item._id,
-    branchId: item.branchId || item.inmate?.branchId || 'b1',
-    branchName: item.branch?.name || item.branchName || 'Cabang Cipinang',
-    inmateId: item.inmate?.identifier || item.inmateId || item.inmateIdentifier || item.wbpRegNumber || '-',
-    inmateName: item.inmate?.name || item.inmateName || 'Narapidana',
-    familyId: item.familyId || item.family?.id || '',
-    familyName: item.family?.name || item.familyName || 'Keluarga',
-    familyPhone: item.family?.phone || item.familyPhone || item.family?.email || '-',
-    date: item.date || item.createdAt || new Date().toISOString(),
-    durationSeconds: typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0),
-    cost: typeof item.cost === 'number' ? item.cost : (Number(item.amount ?? item.cost) || 0),
+    id: recordingId,
+    callId: item.callId || call.id || recordingId,
+    recordingId,
+    branchId: call.inmate?.branchId || item.branchId || call.branchId || '',
+    branchName: call.inmate?.branch?.name || item.branchName || call.branchName || '-',
+    inmateId: call.inmate?.identifier || item.inmateId || call.inmateId || item.inmateIdentifier || item.wbpRegNumber || '-',
+    inmateName: call.inmate?.name || item.inmateName || call.inmateName || 'Narapidana',
+    familyId: call.family?.id || item.familyId || call.familyId || '',
+    familyName: call.family?.name || item.familyName || call.familyName || 'Keluarga',
+    familyPhone: call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
+    date: item.createdAt || call.connectedAt || call.date || item.date || new Date().toISOString(),
+    durationSeconds: typeof call.durationSeconds === 'number' 
+      ? call.durationSeconds 
+      : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0)),
+    cost: typeof item.cost === 'number' 
+      ? item.cost 
+      : (typeof call.cost === 'number' ? call.cost : (Number(item.amount ?? item.cost) || Math.round((call.durationSeconds || item.durationSeconds || 0) * 25))),
     status: normalizedStatus,
     rawStatus,
     callType,
     backendType,
-    hasRecording: Boolean(item.hasRecording ?? item.recordingUrl ?? false),
-    recordingUrl: item.recordingUrl || '',
-    transcript: item.transcript || '',
-    transcriptStatus: item.transcriptStatus || (item.transcript ? 'Ready' : null),
+    hasRecording,
+    recordingUrl,
+    transcript,
+    transcriptStatus,
   };
 };
 
 /**
- * Helper untuk filter mock recordings secara lokal
- */
-const getFilteredMockRecordings = ({
-  search = '',
-  status = '',
-  callType = '',
-  startDate = '',
-  endDate = '',
-  page = 1,
-  limit = 20,
-}) => {
-  let list = [...mockRecordings];
-
-  // Filter tipe panggilan (voice / video)
-  if (callType && callType !== 'All' && callType !== 'all') {
-    const isVideoReq = callType.toLowerCase().includes('video');
-    list = list.filter((c) => isVideoReq ? c.callType === 'Video' : c.callType === 'Voice');
-  }
-
-  // Filter status (Answered / Missed)
-  if (status && status !== 'All' && status !== 'all') {
-    const normStat = status.toLowerCase();
-    list = list.filter((c) => c.status.toLowerCase() === normStat);
-  }
-
-  // Filter pencarian teks
-  if (search && search.trim()) {
-    const q = search.trim().toLowerCase();
-    list = list.filter((c) =>
-      (c.inmateName || '').toLowerCase().includes(q) ||
-      (c.inmateId || '').toLowerCase().includes(q) ||
-      (c.familyName || '').toLowerCase().includes(q) ||
-      (c.familyPhone || '').toLowerCase().includes(q)
-    );
-  }
-
-  // Filter rentang tanggal
-  if (startDate) {
-    const start = new Date(startDate);
-    start.setHours(0, 0, 0, 0);
-    list = list.filter((c) => new Date(c.date) >= start);
-  }
-
-  if (endDate) {
-    const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999);
-    list = list.filter((c) => new Date(c.date) <= end);
-  }
-
-  const total = list.length;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const startIndex = (page - 1) * limit;
-  const paginatedItems = list.slice(startIndex, startIndex + limit).map(mapCallItem);
-
-  return {
-    items: paginatedItems,
-    total,
-    page: Number(page),
-    limit: Number(limit),
-    totalPages,
-  };
-};
-
-/**
- * Mengambil daftar riwayat panggilan dengan parameter pencarian, rentang tanggal, dan pagination
+ * Mengambil daftar rekaman & transkrip dari backend /api/recordings
  */
 export const getCallHistory = async ({
   search = '',
@@ -123,25 +99,43 @@ export const getCallHistory = async ({
   startDate = '',
   endDate = '',
 } = {}) => {
-  const params = new URLSearchParams();
-  if (search && search.trim()) params.append('search', search.trim());
-  if (page) params.append('page', page.toString());
-  if (limit) params.append('limit', limit.toString());
-  if (status && status !== 'All') params.append('status', status.toUpperCase());
-  if (branchId && branchId !== 'All') params.append('branchId', branchId);
-  if (startDate) params.append('startDate', startDate);
-  if (endDate) params.append('endDate', endDate);
-  if (callType && callType !== 'All') {
-    const normalizedType = callType.toUpperCase().includes('VIDEO') ? 'VIDEO' : 'AUDIO';
-    params.append('type', normalizedType);
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    let calls = dummyStore.getCalls({
+      branchId: branchId || null,
+      status: status || '',
+      search: search || '',
+    });
+
+    if (callType && callType !== 'All' && callType !== 'all') {
+      const isVideoReq = callType.toLowerCase().includes('video');
+      calls = calls.filter((c) => isVideoReq ? c.callType === 'Video' : c.callType === 'Voice');
+    }
+
+    const total = calls.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const startIndex = (page - 1) * limit;
+    const paginated = calls.slice(startIndex, startIndex + limit).map(mapCallItem);
+
+    return {
+      items: paginated,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+    };
   }
 
-  const queryString = params.toString();
-  const url = queryString ? `${CALL_HISTORY_ENDPOINT}?${queryString}` : CALL_HISTORY_ENDPOINT;
-
   try {
-    const res = await apiFetch(url);
-    console.log('[CallService] Response GET /api/call/history:', res);
+    const res = await getRecordingsApi({
+      search,
+      page,
+      limit,
+      status: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'].includes(status?.toUpperCase()) ? status : undefined,
+      branchId,
+      startDate,
+      endDate,
+    });
 
     const rawList = Array.isArray(res)
       ? res
@@ -149,20 +143,29 @@ export const getCallHistory = async ({
         ? res.data
         : Array.isArray(res?.items)
           ? res.items
-          : Array.isArray(res?.calls)
-            ? res.calls
+          : Array.isArray(res?.recordings)
+            ? res.recordings
             : [];
 
-    if (rawList.length === 0) {
-      // Jika backend belum menyediakan data, gunakan mockRecordings
-      return getFilteredMockRecordings({ search, status, callType, startDate, endDate, page, limit });
+    let mappedItems = rawList.map(mapCallItem).filter(Boolean);
+
+    // Filter callType lokal jika diperlukan
+    if (callType && callType !== 'All' && callType !== 'all') {
+      const isVideoReq = callType.toLowerCase().includes('video');
+      mappedItems = mappedItems.filter((c) => isVideoReq ? c.callType === 'Video' : c.callType === 'Voice');
+    }
+
+    // Filter status lokal (Answered/Missed) jika status filter bukan enum backend
+    if (status && status !== 'All' && !['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'].includes(status.toUpperCase())) {
+      const normStat = status.toLowerCase();
+      mappedItems = mappedItems.filter((c) => c.status.toLowerCase() === normStat);
     }
 
     const total = typeof res?.total === 'number'
       ? res.total
       : typeof res?.pagination?.total === 'number'
         ? res.pagination.total
-        : rawList.length;
+        : mappedItems.length;
 
     const totalPages = typeof res?.totalPages === 'number'
       ? res.totalPages
@@ -171,7 +174,7 @@ export const getCallHistory = async ({
         : Math.max(1, Math.ceil(total / limit));
 
     return {
-      items: rawList.map(mapCallItem).filter(Boolean),
+      items: mappedItems,
       total,
       page: Number(res?.page || res?.pagination?.page || page),
       limit: Number(res?.limit || res?.pagination?.limit || limit),
@@ -180,41 +183,66 @@ export const getCallHistory = async ({
   } catch (error) {
     if (error?.status === 401) {
       logout();
-      throw error;
     }
-    console.log('[CallService] Menggunakan mock data riwayat panggilan:', error?.message || error);
-    return getFilteredMockRecordings({ search, status, callType, startDate, endDate, page, limit });
-  }
-};
-
-/**
- * Mengambil detail riwayat panggilan berdasarkan ID
- */
-export const getCallById = async (id) => {
-  if (!id) throw new Error('ID Panggilan diperlukan');
-
-  const endpoint = CALL_DETAIL_ENDPOINT(id);
-  try {
-    const res = await apiFetch(endpoint);
-    console.log(`[CallService] Response GET ${endpoint}:`, res);
-    const item = res?.data || res?.item || res?.call || res;
-    return mapCallItem(item);
-  } catch (error) {
-    if (error?.status === 401) {
-      logout();
-      throw error;
-    }
-    // Fallback dari mock data
-    const found = mockRecordings.find(c => c.id === id);
-    if (found) return mapCallItem(found);
+    console.error('[CallService] Gagal memuat data rekaman:', error?.message || error);
     throw error;
   }
 };
 
+/**
+ * Mengambil detail rekaman dan transkrip lengkap berdasarkan ID
+ */
+export const getCallById = async (id) => {
+  if (!id) throw new Error('ID Panggilan / Rekaman diperlukan');
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const item = dummyStore.getCallById(id);
+    if (item) return mapCallItem(item);
+    throw new Error('Data rekaman tidak ditemukan');
+  }
+
+  try {
+    const res = await getRecordingByIdApi(id);
+    const item = res?.data || res?.item || res?.recording || res;
+    if (item) return mapCallItem(item);
+    throw new Error('Data rekaman tidak ditemukan');
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+    }
+    console.error(`[CallService] Gagal fetch detail rekaman ${id}:`, error?.message || error);
+    throw error;
+  }
+};
+
+/**
+ * Mengambil presigned streaming URL untuk pemutaran audio
+ */
+export const getAudioStreamUrl = async (recordingId) => {
+  if (!recordingId) return null;
+
+  if (isDummyMode()) {
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  }
+
+  try {
+    const res = await getRecordingStreamUrlApi(recordingId);
+    return res?.data?.streamUrl || res?.data?.directStreamUrl || null;
+  } catch (err) {
+    console.error('[CallService] Gagal mengambil streaming URL:', err?.message || err);
+    return null;
+  }
+};
+
 export default {
+  RECORDINGS_ENDPOINT,
+  RECORDING_DETAIL_ENDPOINT,
   CALL_HISTORY_ENDPOINT,
   CALL_DETAIL_ENDPOINT,
   mapCallItem,
   getCallHistory,
   getCallById,
+  getAudioStreamUrl,
 };
+

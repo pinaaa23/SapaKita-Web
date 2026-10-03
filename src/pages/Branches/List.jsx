@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle } from 'lucide-react';
 import { getBranches } from '../../services/branchService';
 import { logout } from '../../services/api';
+// TODO: ganti ke API BE saat endpoint tersedia
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { exportToExcel } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
 
@@ -43,7 +45,8 @@ const List = () => {
       const res = await getBranches({ search: debouncedSearch, page, limit });
       setBranchesData(res);
     } catch (err) {
-      if (err?.status === 401) {
+      // TODO: ganti ke API BE saat endpoint tersedia
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;
@@ -218,7 +221,7 @@ const List = () => {
                           <Building2 className="w-5 h-5" />
                         </div>
                         <div>
-                          <p className="font-bold text-slate-800 text-sm">{branch.name}</p>
+                          <p className="font-bold text-slate-800 text-sm whitespace-nowrap">{branch.name}</p>
                           <p className="text-[11px] text-slate-400 font-medium">{branch.phone || '-'}</p>
                         </div>
                       </div>

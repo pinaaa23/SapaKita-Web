@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getCallById } from '../../services/callService';
 import { logout } from '../../services/api';
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 
 const Detail = () => {
@@ -49,7 +50,7 @@ const Detail = () => {
         setCall(data);
       } catch (err) {
         console.log('[CallDetail] Gagal memuat detail panggilan:', err);
-        if (err?.status === 401) {
+        if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
           logout();
           navigate('/login', { replace: true });
           return;

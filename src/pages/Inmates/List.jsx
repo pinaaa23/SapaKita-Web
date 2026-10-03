@@ -18,16 +18,22 @@ import {
 } from 'lucide-react';
 import { getInmates, BACKEND_SUPPORTS_INMATE_FILTERS } from '../../services/inmateService';
 import { getBranches } from '../../services/branchService';
+// TODO: ganti ke API BE saat endpoint tersedia
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { exportToExcel } from '../../utils/exportUtils';
 import { logout, getAuthUser } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 
 const InmatesList = () => {
   const navigate = useNavigate();
-  const { userName } = useAuth();
+  const { userName, role, isSuperadmin } = useAuth();
   const authUser = getAuthUser();
-  const rawRole = (authUser?.role || '').toUpperCase();
-  const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
+  const rawRole = (authUser?.role || role || '').toUpperCase();
+  const isSuperAdmin = isSuperadmin || rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
+
+  // Flag filter didukung (backend atau mock FE)
+  // TODO: ganti ke API BE saat endpoint tersedia
+  const isFilterSupported = BACKEND_SUPPORTS_INMATE_FILTERS || USE_MOCK_SUPERADMIN;
 
   // State for filters & pagination
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,12 +72,17 @@ const InmatesList = () => {
         setBranchesMap(map);
       } catch (err) {
         console.log('[SuperadminInmatesList] Gagal memuat daftar cabang:', err);
+        if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
+          logout();
+          navigate('/login', { replace: true });
+          return;
+        }
         setBranches([]);
         setBranchesMap({});
       }
     };
     fetchBranchesList();
-  }, []);
+  }, [navigate]);
 
   // Fetch Inmates with debounce ~400ms for search
   const debounceTimer = useRef(null);
@@ -94,7 +105,8 @@ const InmatesList = () => {
       setTotalPages(res?.totalPages || Math.max(1, Math.ceil((res?.total || items.length) / limit)));
     } catch (err) {
       console.log('[SuperadminInmatesList] Gagal memuat data narapidana:', err);
-      if (err?.status === 401) {
+      // TODO: ganti ke API BE saat endpoint tersedia
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;
@@ -259,16 +271,17 @@ const InmatesList = () => {
             </span>
 
             {/* Cabang Filter Dropdown */}
-            <div className="relative" title={!BACKEND_SUPPORTS_INMATE_FILTERS ? 'Belum didukung sistem backend' : undefined}>
+            {/* TODO: ganti ke API BE saat endpoint tersedia */}
+            <div className="relative" title={!isFilterSupported ? 'Belum didukung sistem backend' : undefined}>
               <select 
                 value={branchFilter} 
-                disabled={!BACKEND_SUPPORTS_INMATE_FILTERS}
+                disabled={!isFilterSupported}
                 onChange={(e) => {
                   setBranchFilter(e.target.value);
                   setPage(1);
                 }}
                 className={`pl-3 pr-8 py-1.5 rounded-xl border text-xs font-semibold appearance-none transition-all ${
-                  !BACKEND_SUPPORTS_INMATE_FILTERS
+                  !isFilterSupported
                     ? 'bg-slate-100/80 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
                     : branchFilter !== 'All' 
                       ? 'bg-blue-50/90 border-blue-200 text-primary font-bold shadow-2xs cursor-pointer' 
@@ -284,13 +297,14 @@ const InmatesList = () => {
             </div>
 
             {/* Status Segmented Tabs */}
+            {/* TODO: ganti ke API BE saat endpoint tersedia */}
             <div 
               className={`flex items-center p-0.5 rounded-xl border ${
-                !BACKEND_SUPPORTS_INMATE_FILTERS 
+                !isFilterSupported 
                   ? 'bg-slate-100/50 border-slate-200/50 opacity-60 cursor-not-allowed' 
                   : 'bg-slate-100/90 border-slate-200/60'
               }`}
-              title={!BACKEND_SUPPORTS_INMATE_FILTERS ? 'Belum didukung sistem backend' : undefined}
+              title={!isFilterSupported ? 'Belum didukung sistem backend' : undefined}
             >
               {[
                 { key: 'All', label: 'Semua Status' },
@@ -300,15 +314,15 @@ const InmatesList = () => {
                 <button
                   type="button"
                   key={item.key}
-                  disabled={!BACKEND_SUPPORTS_INMATE_FILTERS}
+                  disabled={!isFilterSupported}
                   onClick={() => {
-                    if (BACKEND_SUPPORTS_INMATE_FILTERS) {
+                    if (isFilterSupported) {
                       setStatusFilter(item.key);
                       setPage(1);
                     }
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                    !BACKEND_SUPPORTS_INMATE_FILTERS
+                    !isFilterSupported
                       ? item.key === 'All' ? 'bg-slate-200 text-slate-500 font-bold' : 'text-slate-400 cursor-not-allowed'
                       : statusFilter === item.key 
                         ? 'bg-white text-slate-900 shadow-2xs font-bold cursor-pointer' 
@@ -320,7 +334,7 @@ const InmatesList = () => {
               ))}
             </div>
 
-            {!BACKEND_SUPPORTS_INMATE_FILTERS && (
+            {!isFilterSupported && (
               <span className="text-[10px] text-slate-400 italic bg-slate-100 px-2 py-0.5 rounded-md">
                 Filter cabang & status belum didukung sistem backend
               </span>
@@ -347,16 +361,16 @@ const InmatesList = () => {
 
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[850px]">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-xs uppercase tracking-wider">
-                <th className="px-6 py-4 font-bold text-left">Nama Lengkap</th>
-                <th className="px-4 py-4 font-bold text-center">NIP</th>
-                <th className="px-4 py-4 font-bold text-center">Cabang</th>
-                <th className="px-4 py-4 font-bold text-center">Saldo Panggilan</th>
-                <th className="px-4 py-4 font-bold text-center">Status</th>
-                <th className="px-6 py-4 font-bold text-center">Aksi</th>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
+                <th className="py-3.5 px-4 font-bold text-left">Nama Lengkap</th>
+                <th className="py-3.5 px-3 font-bold text-center">NIP</th>
+                <th className="py-3.5 px-3 font-bold text-center">Cabang</th>
+                <th className="py-3.5 px-3 font-bold text-center">Saldo Panggilan</th>
+                <th className="py-3.5 px-3 font-bold text-center">Status</th>
+                <th className="py-3.5 px-4 font-bold text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -364,46 +378,46 @@ const InmatesList = () => {
                 // Skeletons
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className="px-6 py-4 text-left">
-                      <div className="h-4 bg-slate-200 rounded w-36 mb-1.5"></div>
-                      <div className="h-3 bg-slate-100 rounded w-24"></div>
+                    <td className="py-3.5 px-4 text-left">
+                      <div className="h-4 bg-slate-200 rounded w-32 mb-1.5"></div>
+                      <div className="h-3 bg-slate-100 rounded w-20"></div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="h-5 bg-slate-200 rounded-full w-24 mx-auto"></div>
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="h-5 bg-slate-200 rounded-full w-20 mx-auto"></div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="h-4 bg-slate-200 rounded w-32 mx-auto"></div>
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="h-4 bg-slate-200 rounded w-28 mx-auto"></div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="h-4 bg-slate-200 rounded w-20 mx-auto"></div>
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="h-4 bg-slate-200 rounded w-16 mx-auto"></div>
                     </td>
-                    <td className="px-4 py-4 text-center">
-                      <div className="h-5 bg-slate-200 rounded-full w-16 mx-auto"></div>
+                    <td className="py-3.5 px-3 text-center">
+                      <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto"></div>
                     </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="h-8 bg-slate-200 rounded-xl w-24 mx-auto"></div>
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="h-7 bg-slate-200 rounded-lg w-20 mx-auto"></div>
                     </td>
                   </tr>
                 ))
               ) : inmates.length > 0 ? (
                 inmates.map((inmate) => {
-                  const resolvedBranchName = (inmate.branchId && branchesMap[inmate.branchId]) ? branchesMap[inmate.branchId] : '-';
+                  const resolvedBranchName = (inmate.branchId && branchesMap[inmate.branchId]) ? branchesMap[inmate.branchId] : (inmate.branchName || '-');
                   const nipIdentifier = inmate.wbpRegNumber || inmate.identifier;
 
                   return (
                     <tr key={inmate.id || nipIdentifier} className="hover:bg-slate-50/70 transition-colors group">
                       {/* Nama Lengkap (Rata Kiri Rapi) */}
-                      <td className="px-6 py-4 text-left">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                      <td className="py-3.5 px-4 text-left">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 border border-blue-100 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                             {inmate.name && inmate.name !== '-' ? inmate.name.charAt(0).toUpperCase() : 'N'}
                           </div>
-                          <div>
-                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-primary transition-colors">
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-primary transition-colors whitespace-nowrap">
                               {inmate.name || '-'}
                             </p>
                             {inmate.blockRoom && (
-                              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                              <p className="text-[10px] text-slate-400 font-medium mt-0.5 whitespace-nowrap">
                                 {inmate.blockRoom}
                               </p>
                             )}
@@ -412,24 +426,24 @@ const InmatesList = () => {
                       </td>
 
                       {/* NIP (Rata Tengah) */}
-                      <td className="px-4 py-4 text-center">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono text-[11px] font-bold border border-slate-200/80">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[10px] font-bold border border-slate-200/80 whitespace-nowrap shadow-2xs">
                           {nipIdentifier || '-'}
                         </span>
                       </td>
 
                       {/* Cabang (Rata Tengah) */}
-                      <td className="px-4 py-4 text-center">
-                        <div className="inline-flex items-center justify-center gap-1.5 text-slate-700 font-medium">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <div className="inline-flex items-center justify-center gap-1 text-slate-700 font-medium text-xs">
                           {resolvedBranchName !== '-' && <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
                           <span>{resolvedBranchName}</span>
                         </div>
                       </td>
 
                       {/* Saldo Panggilan (Rata Tengah) */}
-                      <td className="px-4 py-4 text-center">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         {typeof inmate.callBalance === 'number' && !isNaN(inmate.callBalance) ? (
-                          <div className="inline-flex items-center justify-center gap-1.5 font-bold text-emerald-700">
+                          <div className="inline-flex items-center justify-center gap-1 font-bold text-emerald-700 text-xs">
                             <Wallet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                             <span>{formatCurrency(inmate.callBalance)}</span>
                           </div>
@@ -439,19 +453,29 @@ const InmatesList = () => {
                       </td>
 
                       {/* Status (Rata Tengah) */}
-                      <td className="px-4 py-4 text-center">
-                        <span className="text-slate-400 font-medium">-</span>
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        {inmate.status ? (
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            (inmate.status || '').toLowerCase() === 'aktif'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}>
+                            {inmate.status}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 font-medium">-</span>
+                        )}
                       </td>
 
                       {/* Aksi (Rata Tengah) */}
-                      <td className="px-6 py-4 text-center">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <button 
                           type="button"
                           onClick={() => navigate(`/inmates/${encodeURIComponent(nipIdentifier || inmate.id)}`)}
-                          className="px-3.5 py-1.5 bg-white hover:bg-primary hover:text-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs hover:border-primary"
+                          className="px-3 py-1 bg-white hover:bg-primary hover:text-white border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all inline-flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs hover:shadow-xs hover:border-primary whitespace-nowrap shrink-0"
                           title="Lihat Rincian Narapidana"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Eye className="w-3.5 h-3.5 shrink-0" />
                           <span>Lihat Detail</span>
                         </button>
                       </td>

@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { exportToExcel } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
 import StatCard from '../../components/StatCard';
@@ -83,7 +84,7 @@ const List = () => {
       });
       setTransactionsData(res);
     } catch (err) {
-      if (err?.status === 401) {
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;
@@ -385,26 +386,26 @@ const List = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">ID Transaksi & Waktu</th>
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Warga Binaan & NIP</th>
-                <th className="py-3.5 px-4 lg:px-5">Kategori & Keterangan</th>
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Petugas / Sistem</th>
-                <th className="py-3.5 px-4 lg:px-5 text-right whitespace-nowrap">Nominal</th>
-                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Aksi</th>
+                <th className="py-3 pl-4 pr-2 whitespace-nowrap">ID Transaksi & Waktu</th>
+                <th className="py-3 px-2.5 whitespace-nowrap">Warga Binaan & NIP</th>
+                <th className="py-3 px-2.5">Kategori & Keterangan</th>
+                <th className="py-3 px-2.5 whitespace-nowrap">Petugas / Sistem</th>
+                <th className="py-3 px-2.5 text-right whitespace-nowrap">Nominal</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap">Status</th>
+                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-24">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-3.5 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
-                    <td className="py-3.5 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                    <td className="py-3.5 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-24" /></td>
-                    <td className="py-3.5 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                    <td className="py-3.5 px-4 lg:px-5 text-right"><div className="h-4 bg-slate-200 rounded w-20 ml-auto" /></td>
-                    <td className="py-3.5 px-4 lg:px-5 text-center"><div className="h-6 bg-slate-200 rounded-full w-16 mx-auto" /></td>
-                    <td className="py-3.5 px-4 lg:px-5 text-center"><div className="h-6 bg-slate-200 rounded-lg w-12 mx-auto" /></td>
+                    <td className="py-3.5 pl-4 pr-2"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-24" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-24" /></td>
+                    <td className="py-3.5 px-2.5 text-right"><div className="h-4 bg-slate-200 rounded w-20 ml-auto" /></td>
+                    <td className="py-3.5 px-2.5 text-center"><div className="h-6 bg-slate-200 rounded-full w-16 mx-auto" /></td>
+                    <td className="py-3.5 pl-2 pr-4 text-center"><div className="h-6 bg-slate-200 rounded-lg w-12 mx-auto" /></td>
                   </tr>
                 ))
               ) : transactionsData.items.length > 0 ? (
@@ -413,29 +414,29 @@ const List = () => {
                   return (
                     <tr key={trx.id} className="hover:bg-slate-50/60 transition-colors">
                       {/* ID Transaksi & Waktu */}
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                      <td className="py-3 pl-4 pr-2 whitespace-nowrap">
                         <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100/90 px-2 py-0.5 rounded-lg border border-slate-200/70">
                           {trx.id}
                         </span>
-                        <p className="text-slate-400 text-[11px] font-medium mt-1">
+                        <p className="text-slate-400 text-[10.5px] font-medium mt-1">
                           {new Date(trx.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} • {new Date(trx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                         </p>
                       </td>
 
                       {/* Warga Binaan & NIP */}
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
                         <p className="font-bold text-slate-800 text-xs">
                           {trx.inmateName}
                         </p>
-                        <div className="flex items-center gap-1.5 text-[11px] text-slate-500 mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 mt-0.5">
                           <span className="font-mono text-slate-400">NIP: {trx.inmateId}</span>
                         </div>
                       </td>
 
                       {/* Kategori & Keterangan */}
-                      <td className="py-3.5 px-4 lg:px-5">
+                      <td className="py-3 px-2.5">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-bold border ${cat.badgeBg}`}>
+                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${cat.badgeBg}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
                             {cat.label}
                           </span>
@@ -446,7 +447,7 @@ const List = () => {
                       </td>
 
                       {/* Petugas / Sistem */}
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium text-xs">
                           <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           {trx.officerName || 'Sistem (Otomatis)'}
@@ -454,34 +455,34 @@ const List = () => {
                       </td>
 
                       {/* Nominal */}
-                      <td className="py-3.5 px-4 lg:px-5 text-right whitespace-nowrap">
+                      <td className="py-3 px-2.5 text-right whitespace-nowrap">
                         <span className="text-rose-600 font-extrabold text-xs tracking-tight">
                           -{formatCurrency(trx.amount)}
                         </span>
                       </td>
 
                       {/* Status */}
-                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
+                      <td className="py-3 px-2.5 text-center whitespace-nowrap">
                         {trx.status === 'Berhasil' ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Berhasil
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10.5px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                             <XCircle className="w-3 h-3 text-rose-600" /> Gagal
                           </span>
                         )}
                       </td>
 
                       {/* Aksi */}
-                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
+                      <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
                         <button 
                           type="button"
                           onClick={() => showToast('Fitur detail mutasi lengkap belum tersedia di server.')}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-primary rounded-lg text-xs font-bold transition-all border border-slate-200/80 cursor-pointer shadow-2xs hover:border-primary/30"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-primary rounded-lg text-xs font-bold transition-all border border-slate-200/80 cursor-pointer shadow-2xs hover:border-primary/30"
                           title="Lihat Detail Transaksi"
                         >
-                          <FileText className="w-3 h-3 text-slate-500" /> Detail
+                          <FileText className="w-3.5 h-3.5 text-slate-500" /> Detail
                         </button>
                       </td>
                     </tr>

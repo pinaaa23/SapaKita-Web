@@ -41,6 +41,15 @@ import BranchInmatesCreate from './pages/branch/inmates/Create';
 import BranchInmatesDetail from './pages/branch/inmates/Detail';
 import BranchInmatesEdit from './pages/branch/inmates/Edit';
 
+// Kantin Pages (Operator Kantin only -- route /kantin/*)
+import KantinLayout from './layouts/KantinLayout';
+import KantinProtectedRoute from './components/KantinProtectedRoute';
+import KantinPaket from './pages/kantin/PaketPage';
+import KantinStatusWartel from './pages/kantin/StatusWartelPage';
+import KantinRiwayat from './pages/kantin/RiwayatPage';
+import KantinVoucher from './pages/kantin/VoucherPage';
+import KantinStruk from './pages/kantin/StrukPage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -49,98 +58,115 @@ function App() {
           {/* Langsung redirect root ke halaman login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
-        
-        {/* Admin Dashboard Routes wrapped in ProtectedRoute & Layout */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<Layout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            
-            {/* Branches Routes */}
-            <Route path="branches">
-              <Route index element={<BranchesList />} />
-              <Route path="create" element={<BranchCreate />} />
-              <Route path=":id" element={<BranchDetail />} />
-              <Route path=":id/edit" element={<BranchEdit />} />
-            </Route>
 
-            {/* Superadmin Inmates Routes (Read-Only) */}
-            <Route path="inmates">
-              <Route index element={<InmatesList />} />
-              <Route path=":id" element={<BranchInmatesDetail />} />
-            </Route>
+          {/* Admin Dashboard Routes wrapped in ProtectedRoute & Layout */}
+          <Route element={<ProtectedRoute />}>
+            <Route element={<Layout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
 
-            {/* Calls Routes */}
-            <Route path="calls">
-              <Route index element={<CallsList />} />
-              <Route path=":id" element={<CallDetail />} />
-            </Route>
-
-            {/* Transactions Routes */}
-            <Route path="transactions">
-              <Route index element={<TransactionsList />} />
-              <Route path=":id" element={<TransactionDetail />} />
-            </Route>
-
-            <Route path="reports" element={<Reports />} />
-            <Route path="profile" element={<Profile />} />
-
-            {/* Branch Admin Routes */}
-            <Route path="branch">
-              <Route index element={<Navigate to="/branch/dashboard" replace />} />
-              <Route path="dashboard" element={<BranchDashboard />} />
-              <Route path="inmates">
-                <Route index element={<BranchInmatesList />} />
-                <Route path="create" element={<BranchInmatesCreate />} />
-                <Route path=":id" element={<BranchInmatesDetail />} />
-                <Route path=":id/edit" element={<BranchInmatesEdit />} />
+              {/* Branches Routes */}
+              <Route path="branches">
+                <Route index element={<BranchesList />} />
+                <Route path="create" element={<BranchCreate />} />
+                <Route path=":id" element={<BranchDetail />} />
+                <Route path=":id/edit" element={<BranchEdit />} />
               </Route>
-              
-              {/* Rekaman Panggilan - Khusus Kepala UPT & Superadmin */}
-              <Route 
-                path="recordings" 
-                element={
-                  <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
-                    <BranchRecordings />
-                  </RoleGuard>
-                } 
-              />
 
-              {/* Kelola Pengguna - Hanya Kepala UPT & Superadmin */}
-              <Route 
-                path="users" 
-                element={
-                  <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
-                    <BranchUsers />
-                  </RoleGuard>
-                } 
-              />
+              {/* Superadmin Inmates Routes (Read-Only) */}
+              <Route path="inmates">
+                <Route index element={<InmatesList />} />
+                <Route path=":id" element={<BranchInmatesDetail />} />
+              </Route>
 
-              {/* Kelola Paket - Kepala UPT & Supervisor */}
-              <Route 
-                path="packages" 
-                element={
-                  <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR, ROLES.SUPERADMIN]}>
-                    <BranchPackages />
-                  </RoleGuard>
-                } 
-              />
+              {/* Calls Routes */}
+              <Route path="calls">
+                <Route index element={<CallsList />} />
+                <Route path=":id" element={<CallDetail />} />
+              </Route>
 
-              {/* Persetujuan Kontak - Kepala UPT, Supervisor & Superadmin */}
-              <Route 
-                path="contacts" 
-                element={
-                  <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR, ROLES.SUPERADMIN]}>
-                    <BranchContacts />
-                  </RoleGuard>
-                } 
-              />
-              <Route path="transactions" element={<BranchTransactions />} />
-              <Route path="reports" element={<BranchReports />} />
-              <Route path="profile" element={<BranchProfile />} />
+              {/* Transactions Routes */}
+              <Route path="transactions">
+                <Route index element={<TransactionsList />} />
+                <Route path=":id" element={<TransactionDetail />} />
+              </Route>
+
+              <Route path="reports" element={<Reports />} />
+              <Route path="profile" element={<Profile />} />
+
+              {/* Branch Admin Routes */}
+              <Route path="branch">
+                <Route index element={<Navigate to="/branch/dashboard" replace />} />
+                <Route path="dashboard" element={<BranchDashboard />} />
+                <Route path="inmates">
+                  <Route index element={<BranchInmatesList />} />
+                  <Route path="create" element={<BranchInmatesCreate />} />
+                  <Route path=":id" element={<BranchInmatesDetail />} />
+                  <Route path=":id/edit" element={<BranchInmatesEdit />} />
+                </Route>
+
+                {/* Rekaman Panggilan - Khusus Kepala UPT & Superadmin */}
+                <Route
+                  path="recordings"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
+                      <BranchRecordings />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Kelola Pengguna - Hanya Kepala UPT & Superadmin */}
+                <Route
+                  path="users"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
+                      <BranchUsers />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Kelola Paket - Khusus Supervisor */}
+                <Route
+                  path="packages"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
+                      <BranchPackages />
+                    </RoleGuard>
+                  }
+                />
+
+                {/* Persetujuan Kontak - Kepala UPT, Supervisor & Superadmin */}
+                <Route
+                  path="contacts"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR, ROLES.SUPERADMIN]}>
+                      <BranchContacts />
+                    </RoleGuard>
+                  }
+                />
+                <Route path="transactions" element={<BranchTransactions />} />
+                <Route path="reports" element={<BranchReports />} />
+                <Route path="profile" element={<BranchProfile />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-        
+
+          {/* ============================================================
+              KANTIN ROUTES -- /kantin/* (Operator Kantin only)
+              Menggunakan KantinProtectedRoute + KantinLayout tersendiri.
+              Tidak menyentuh Layout dashboard role lain.
+              ============================================================ */}
+          <Route element={<KantinProtectedRoute />}>
+            <Route element={<KantinLayout />}>
+              <Route path="/kantin" element={<KantinPaket />} />
+              <Route path="/kantin/status-wartel" element={<KantinStatusWartel />} />
+              <Route path="/kantin/riwayat" element={<KantinRiwayat />} />
+              <Route path="/kantin/voucher/:id" element={<KantinVoucher />} />
+              <Route path="/kantin/struk/:id" element={<KantinStruk />} />
+              {/* Fallback di dalam kantin -> kembali ke paket */}
+              <Route path="/kantin/*" element={<Navigate to="/kantin" replace />} />
+            </Route>
+          </Route>
+
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </AuthProvider>

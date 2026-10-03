@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { downloadTextFile, downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
+import { getAudioStreamUrl } from '../../services/callService';
 
 const AudioPlayerPanel = ({ call, onClose }) => {
   const { isSupervisor, uptName, userName, roleLabel } = useAuth();
@@ -25,6 +26,7 @@ const AudioPlayerPanel = ({ call, onClose }) => {
   const [duration, setDuration] = useState(call?.durationSeconds || 0);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [audioSrc, setAudioSrc] = useState(call?.recordingUrl || null);
 
   // Keyboard Escape listener to close panel
   useEffect(() => {
@@ -61,21 +63,54 @@ const AudioPlayerPanel = ({ call, onClose }) => {
     setDuration(call.durationSeconds || 0);
     setPlaybackSpeed(1);
 
-    if (audioRef.current) {
-      audioRef.current.playbackRate = 1;
-      audioRef.current.currentTime = 0;
-      // Auto play on select
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
+    let isMounted = true;
+
+    const setupAudio = async () => {
+      let resolvedSrc = call.recordingUrl || null;
+
+      // Jika ID rekaman dari backend, coba ambil presigned stream URL
+      if (call.id && !call.id.startsWith('c')) {
+        try {
+          const streamUrl = await getAudioStreamUrl(call.id);
+          if (streamUrl && isMounted) {
+            resolvedSrc = streamUrl;
+          }
+        } catch (err) {
+          console.log('[AudioPlayerPanel] Stream URL fallback:', err?.message || err);
+        }
       }
-    }
+
+      if (!isMounted) return;
+      setAudioSrc(resolvedSrc);
+
+      if (audioRef.current) {
+        if (resolvedSrc) {
+          audioRef.current.src = resolvedSrc;
+          audioRef.current.playbackRate = 1;
+          audioRef.current.currentTime = 0;
+          // Auto play on select if valid URL exists
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise
+              .then(() => { if (isMounted) setIsPlaying(true); })
+              .catch(() => { if (isMounted) setIsPlaying(false); });
+          }
+        } else {
+          audioRef.current.src = '';
+          setIsPlaying(false);
+        }
+      }
+    };
+
+    setupAudio();
+
+    return () => {
+      isMounted = false;
+    };
   }, [call?.id]);
 
   const togglePlay = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !audioSrc) return;
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
@@ -148,9 +183,13 @@ const AudioPlayerPanel = ({ call, onClose }) => {
 
   // Unduh rekaman audio dalam format .mp3
   const handleDownloadAudio = () => {
+    if (!audioSrc && !call?.recordingUrl) {
+      alert('File rekaman belum tersedia untuk diunduh.');
+      return;
+    }
     const name = (call?.inmateName || 'Panggilan').replace(/[^a-zA-Z0-9_-]/g, '_');
     const filename = `Rekaman_${name}_${call?.id || Date.now()}.mp3`;
-    downloadAudioFile(call?.recordingUrl, filename);
+    downloadAudioFile(audioSrc || call?.recordingUrl, filename);
   };
 
   // Unduh transkrip ke format PDF resmi
@@ -188,13 +227,15 @@ const AudioPlayerPanel = ({ call, onClose }) => {
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-100/90 overflow-hidden flex flex-col max-h-[calc(100vh-140px)]">
       {/* Hidden native audio element */}
-      <audio 
-        ref={audioRef}
-        src={call.recordingUrl || 'https://cdn.freesound.org/previews/612/612042_5674468-lq.mp3'}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-      />
+      {audioSrc && (
+        <audio 
+          ref={audioRef}
+          src={audioSrc}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+        />
+      )}
 
       {/* Header Panel */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
@@ -264,71 +305,81 @@ const AudioPlayerPanel = ({ call, onClose }) => {
 
       {/* Audio Player Controls */}
       <div className="p-4 bg-slate-50/50 border-b border-slate-100 flex flex-col items-center shrink-0">
-        {/* Play/Pause Button */}
-        <button
-          type="button"
-          onClick={togglePlay}
-          className="w-13 h-13 rounded-full bg-primary hover:bg-primary-dark text-white shadow-md shadow-blue-500/20 flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 mb-3"
-          title={isPlaying ? 'Jeda Audio' : 'Putar Audio'}
-        >
-          {isPlaying ? (
-            <Pause className="w-5 h-5 fill-current" />
-          ) : (
-            <Play className="w-5 h-5 ml-0.5 fill-current" />
-          )}
-        </button>
+        {audioSrc ? (
+          <>
+            {/* Play/Pause Button */}
+            <button
+              type="button"
+              onClick={togglePlay}
+              className="w-13 h-13 rounded-full bg-primary hover:bg-primary-dark text-white shadow-md shadow-blue-500/20 flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 mb-3"
+              title={isPlaying ? 'Jeda Audio' : 'Putar Audio'}
+            >
+              {isPlaying ? (
+                <Pause className="w-5 h-5 fill-current" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5 fill-current" />
+              )}
+            </button>
 
-        {/* Progress Bar (Scrubber) */}
-        <div className="w-full px-1">
-          <input
-            type="range"
-            min="0"
-            max={duration || 100}
-            step="0.5"
-            value={currentTime}
-            onChange={handleSeekChange}
-            onMouseDown={handleSeekMouseDown}
-            onMouseUp={handleSeekMouseUp}
-            onTouchStart={handleSeekMouseDown}
-            onTouchEnd={handleSeekMouseUp}
-            className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
-          />
-          <div className="flex justify-between items-center text-[11px] text-slate-500 font-semibold mt-1">
-            <span>{formatSeconds(currentTime)}</span>
-            <span>{formatSeconds(duration)}</span>
-          </div>
-        </div>
+            {/* Progress Bar (Scrubber) */}
+            <div className="w-full px-1">
+              <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                step="0.5"
+                value={currentTime}
+                onChange={handleSeekChange}
+                onMouseDown={handleSeekMouseDown}
+                onMouseUp={handleSeekMouseUp}
+                onTouchStart={handleSeekMouseDown}
+                onTouchEnd={handleSeekMouseUp}
+                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+              />
+              <div className="flex justify-between items-center text-[11px] text-slate-500 font-semibold mt-1">
+                <span>{formatSeconds(currentTime)}</span>
+                <span>{formatSeconds(duration)}</span>
+              </div>
+            </div>
 
-        {/* Speed Controls & Download Audio Button (.mp3) */}
-        <div className="flex items-center justify-between w-full mt-3 pt-3 border-t border-slate-200/60">
-          <div className="flex items-center gap-1">
-            <span className="text-[11px] font-bold text-slate-400 mr-1">Kecepatan:</span>
-            {[1, 1.5, 2].map((spd) => (
+            {/* Speed Controls & Download Audio Button (.mp3) */}
+            <div className="flex items-center justify-between w-full mt-3 pt-3 border-t border-slate-200/60">
+              <div className="flex items-center gap-1">
+                <span className="text-[11px] font-bold text-slate-400 mr-1">Kecepatan:</span>
+                {[1, 1.5, 2].map((spd) => (
+                  <button
+                    key={spd}
+                    type="button"
+                    onClick={() => handleSpeedChange(spd)}
+                    className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
+                      playbackSpeed === spd
+                        ? 'bg-primary text-white shadow-2xs'
+                        : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200/70'
+                    }`}
+                  >
+                    {spd}x
+                  </button>
+                ))}
+              </div>
+
               <button
-                key={spd}
                 type="button"
-                onClick={() => handleSpeedChange(spd)}
-                className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
-                  playbackSpeed === spd
-                    ? 'bg-primary text-white shadow-2xs'
-                    : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200/70'
-                }`}
+                onClick={handleDownloadAudio}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-dark transition-colors px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                title="Unduh Rekaman Suara"
               >
-                {spd}x
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Rekaman</span>
               </button>
-            ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-5 text-slate-400">
+            <Volume2 className="w-7 h-7 mx-auto mb-1.5 text-slate-300" />
+            <p className="font-bold text-xs text-slate-700">Rekaman belum tersedia</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">File rekaman audio belum diunggah atau tidak ditemukan.</p>
           </div>
-
-          <button
-            type="button"
-            onClick={handleDownloadAudio}
-            className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-dark transition-colors px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 cursor-pointer"
-            title="Unduh Rekaman Suara"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Unduh Rekaman</span>
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Transcript Section with Download (.txt) button */}

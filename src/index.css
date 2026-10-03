@@ -332,3 +332,136 @@
   }
 }
 
+
+:root {
+  --lebar-kertas-thermal: 80mm;
+  --lebar-cetak-thermal: 72mm;
+}
+
+/* ===================================================================
+   KANTIN -- Print styles untuk Struk & Voucher (Printer Thermal 80mm)
+   =================================================================== */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 80mm !important;
+    font-size: 11px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sembunyikan semua elemen layout, sidebar, navbar, tombol */
+  body * {
+    visibility: hidden;
+  }
+
+  #struk-cetak, #struk-cetak *,
+  #voucher-cetak, #voucher-cetak * {
+    visibility: visible;
+  }
+
+  #struk-cetak, #voucher-cetak {
+    position: static !important;
+    display: block !important;
+    margin: 0 auto !important;
+    width: var(--lebar-cetak-thermal, 72mm) !important;
+    max-width: var(--lebar-cetak-thermal, 72mm) !important;
+    min-width: unset !important;
+    padding: 4mm 2mm !important;
+    box-sizing: border-box !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Monochrome thermal text & borders */
+  #voucher-cetak *,
+  #struk-cetak * {
+    color: #000000 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Voucher: Hapus background gradient, ganti dengan border hitam tegas */
+  #voucher-cetak > div:first-child {
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: 2px solid #000000 !important;
+    border-radius: 6px !important;
+    padding: 8px 4px !important;
+  }
+
+  /* Kode voucher: Besar, tebal, dengan border hitam tebal agar kontras */
+  #voucher-cetak .font-mono,
+  #voucher-cetak .select-all {
+    color: #000000 !important;
+    font-size: 26px !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px !important;
+    border: 2px solid #000000 !important;
+    padding: 4px 10px !important;
+    margin: 4px 0 !important;
+    display: inline-block !important;
+    background: #ffffff !important;
+  }
+
+  #voucher-cetak span.uppercase {
+    background: #000000 !important;
+    color: #ffffff !important;
+    font-weight: 800 !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+  }
+
+  /* Struk container */
+  #struk-cetak .bg-blue-50,
+  #struk-cetak .bg-blue-50\/70,
+  #struk-cetak .bg-slate-100,
+  #struk-cetak .bg-emerald-100 {
+    background: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+  }
+
+  #struk-cetak .border-dashed {
+    border-color: #000000 !important;
+  }
+
+  .no-print,
+  nav,
+  aside,
+  header,
+  footer {
+    display: none !important;
+  }
+}
+
+/* Custom smooth scrollbar (dipakai KantinLayout) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

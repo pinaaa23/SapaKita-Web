@@ -19,7 +19,7 @@ import {
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
 import Modal from '../../components/Modal';
-import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
+import { exportToExcel, exportToPDF, exportToCSV } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
 
 const Transactions = () => {
@@ -33,15 +33,16 @@ const Transactions = () => {
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Data state
   const [transactionsData, setTransactionsData] = useState({
     items: [],
     total: 0,
     totalPages: 1,
-    totalPemakaian: 0,
-    totalPanggilan: 0,
-    totalKantin: 0,
+    totalPemakaian: null,
+    totalPanggilan: null,
+    totalKantin: null,
   });
 
   // Interactive Modals & Toast State
@@ -65,6 +66,7 @@ const Transactions = () => {
 
   const loadTransactions = useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await getBalanceTransactions({
         search: debouncedSearch,
@@ -86,13 +88,15 @@ const Transactions = () => {
       } else if (err?.isNetworkError || err?.status === 0) {
         showToast('Server tidak dapat dihubungi.', 'error');
       }
+      console.error('[BranchTransactions] Gagal memuat data transaksi:', err);
+      setError('Gagal memuat data transaksi');
       setTransactionsData({
         items: [],
         total: 0,
         totalPages: 1,
-        totalPemakaian: 0,
-        totalPanggilan: 0,
-        totalKantin: 0,
+        totalPemakaian: null,
+        totalPanggilan: null,
+        totalKantin: null,
       });
     } finally {
       setIsLoading(false);
@@ -228,9 +232,9 @@ const Transactions = () => {
     setIsDetailModalOpen(true);
   };
 
-  const computedTotalPemakaian = transactionsData.totalPemakaian ?? transactionsData.items.filter(t => t.status === 'Berhasil').reduce((sum, t) => sum + t.amount, 0);
-  const computedTotalPanggilan = transactionsData.totalPanggilan ?? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Panggilan').reduce((sum, t) => sum + t.amount, 0);
-  const computedTotalKantin = transactionsData.totalKantin ?? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Kantin').reduce((sum, t) => sum + t.amount, 0);
+  const computedTotalPemakaian = transactionsData.totalPemakaian ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil').reduce((sum, t) => sum + t.amount, 0) : null);
+  const computedTotalPanggilan = transactionsData.totalPanggilan ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Panggilan').reduce((sum, t) => sum + t.amount, 0) : null);
+  const computedTotalKantin = transactionsData.totalKantin ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Kantin').reduce((sum, t) => sum + t.amount, 0) : null);
 
   return (
     <div className="space-y-5">
@@ -248,7 +252,7 @@ const Transactions = () => {
           <div>
             <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi</h3>
             <p className="text-2xl font-extrabold text-white">
-              {isLoading ? '...' : (transactionsData.total || transactionsData.items.length).toString()}
+              {isLoading ? '...' : (error || transactionsData.items.length === 0 ? '-' : (transactionsData.total || transactionsData.items.length).toString())}
             </p>
           </div>
         </div>
@@ -264,15 +268,18 @@ const Transactions = () => {
           <div>
             <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Total Pemakaian Saldo</h3>
             <p className="text-2xl font-extrabold text-[#0B3D91]">
-              {isLoading ? '...' : `-${formatCurrency(computedTotalPemakaian)}`}
+              {isLoading ? '...' : (error || computedTotalPemakaian === null || transactionsData.items.length === 0 ? '-' : `-${formatCurrency(computedTotalPemakaian)}`)}
             </p>
             <p className="text-[10px] text-[#0B3D91]/75 font-semibold mt-1">
-              Panggilan: -{formatCurrency(computedTotalPanggilan)} • Kantin: -{formatCurrency(computedTotalKantin)}
+              {computedTotalPanggilan !== null && computedTotalKantin !== null && transactionsData.items.length > 0
+                ? `Panggilan: -${formatCurrency(computedTotalPanggilan)} • Kantin: -${formatCurrency(computedTotalKantin)}`
+                : 'Panggilan: - • Kantin: -'}
             </p>
           </div>
         </div>
 
         {/* Card 3: Estimasi Hari Ini */}
+        {/* menunggu keputusan tim & endpoint BE */}
         <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
@@ -283,7 +290,7 @@ const Transactions = () => {
           <div>
             <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Estimasi Hari Ini</h3>
             <p className="text-2xl font-extrabold text-white">
-              {isLoading ? '...' : `-${formatCurrency(computedTotalPemakaian > 0 ? computedTotalPemakaian * 0.25 : 0)}`}
+              {isLoading ? '...' : '-'}
             </p>
             <p className="text-[10px] text-emerald-200 font-semibold mt-1">Estimasi pemakaian harian cabang</p>
           </div>
@@ -366,26 +373,26 @@ const Transactions = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">ID Transaksi</th>
-                <th className="py-3.5 px-4 lg:px-5">WBP / NIP</th>
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Nominal</th>
-                <th className="py-3.5 px-4 lg:px-5">Keterangan</th>
-                <th className="py-3.5 px-4 lg:px-5 whitespace-nowrap">Petugas</th>
-                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Status</th>
-                <th className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">Aksi</th>
+                <th className="py-3 pl-4 pr-2 whitespace-nowrap">ID Transaksi</th>
+                <th className="py-3 px-2.5 whitespace-nowrap">WBP / NIP</th>
+                <th className="py-3 px-2.5 whitespace-nowrap">Nominal</th>
+                <th className="py-3 px-2.5">Keterangan</th>
+                <th className="py-3 px-2.5 whitespace-nowrap">Petugas</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap">Status</th>
+                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-20">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100/90 text-xs">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-4 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
-                    <td className="py-4 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                    <td className="py-4 px-4 lg:px-5"><div className="h-5 bg-slate-200 rounded w-20" /></td>
-                    <td className="py-4 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-36" /></td>
-                    <td className="py-4 px-4 lg:px-5"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                    <td className="py-4 px-4 lg:px-5 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
-                    <td className="py-4 px-4 lg:px-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-8 mx-auto" /></td>
+                    <td className="py-3.5 pl-4 pr-2"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-5 bg-slate-200 rounded w-20" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-36" /></td>
+                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-24" /></td>
+                    <td className="py-3.5 px-2.5 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
+                    <td className="py-3.5 pl-2 pr-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-8 mx-auto" /></td>
                   </tr>
                 ))
               ) : transactionsData.items.length > 0 ? (
@@ -393,45 +400,45 @@ const Transactions = () => {
                   const cat = getTransactionCategory(trx);
                   return (
                     <tr key={trx.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
-                        <div className="font-bold text-slate-800 font-mono">{trx.id}</div>
-                        <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+                      <td className="py-3 pl-4 pr-2 whitespace-nowrap">
+                        <div className="font-bold text-slate-800 font-mono text-[11px]">{trx.id}</div>
+                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
                           {new Date(trx.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})} WIB
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
                         <div className="font-bold text-slate-800">{trx.inmateName}</div>
-                        <div className="text-[11px] text-slate-400 font-mono mt-0.5">NIP: {trx.inmateId}</div>
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">NIP: {trx.inmateId}</div>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
-                        <div className={`font-extrabold text-sm ${cat.textColor}`}>
+                      <td className="py-3 px-2.5 whitespace-nowrap">
+                        <div className={`font-extrabold text-xs ${cat.textColor}`}>
                           {cat.sign}{formatCurrency(trx.amount)}
                         </div>
-                        <div className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
+                        <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
                           <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
                           {cat.label}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5">
+                      <td className="py-3 px-2.5">
                         <span className="text-xs font-medium text-slate-600 block">
                           {trx.description || '-'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5 whitespace-nowrap">
+                      <td className="py-3 px-2.5 whitespace-nowrap">
                         <span className="text-xs font-medium text-slate-700">
                           {trx.officerName || 'Sistem (Otomatis)'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           trx.status === 'Berhasil' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 
                           'bg-rose-50 text-rose-700 border border-rose-200/60'
                         }`}>
-                          {trx.status === 'Berhasil' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> : <XCircle className="w-3.5 h-3.5 text-rose-600" />}
+                          {trx.status === 'Berhasil' ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <XCircle className="w-3 h-3 text-rose-600" />}
                           {trx.status}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 lg:px-5 text-center whitespace-nowrap">
+                      <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
                         <div className="flex justify-center">
                           <button 
                             type="button" 
@@ -446,13 +453,29 @@ const Transactions = () => {
                     </tr>
                   );
                 })
+              ) : error ? (
+                <tr>
+                  <td colSpan="7" className="py-16 text-center">
+                    <div className="flex flex-col items-center justify-center text-rose-500">
+                      <XCircle className="w-12 h-12 mb-3 text-rose-400" />
+                      <p className="font-bold text-rose-700">{error}</p>
+                      <button 
+                        type="button" 
+                        onClick={loadTransactions}
+                        className="mt-2 text-xs font-bold text-primary hover:underline cursor-pointer"
+                      >
+                        Coba lagi
+                      </button>
+                    </div>
+                  </td>
+                </tr>
               ) : (
                 <tr>
                   <td colSpan="7" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
-                      <p className="font-bold text-slate-700">Belum ada data</p>
-                      <p className="text-xs mt-1 text-slate-400">Belum ada catatan mutasi transaksi saldo.</p>
+                      <p className="font-bold text-slate-700">Belum ada transaksi</p>
+                      <p className="text-xs mt-1 text-slate-400">Tidak ada catatan mutasi transaksi saldo.</p>
                     </div>
                   </td>
                 </tr>

@@ -1,103 +1,92 @@
-import { apiFetch, logout } from './api';
+import { apiFetch, logout, getAuthUser } from './api';
+import { isDummyMode } from '../dummy';
 
 export const PACKAGES_ENDPOINT = '/api/packages';
 export const PACKAGE_DETAIL_ENDPOINT = (id) => `/api/packages/${id}`;
 
-const STORAGE_KEY = 'pascall_upt_packages_v6';
+// Storage key untuk data paket per cabang
+const STORAGE_KEY = 'pascall_upt_packages_v7';
 
 /**
- * Konfigurasi Tarif PasCall
- * Tarif per detik: Telepon = Rp15/detik, Video Call = Rp25/detik
- * PPN = 11%
+ * Mendapatkan nama/ID cabang dari user yang sedang login
  */
-export const TARIFF = {
-  ratesPerSecond: {
-    telepon: 15,
-    video: 25,
-  },
-  ppnRate: 0.11,
-  presets: [15, 30, 50, 60, 100],
+export const getCurrentBranch = () => {
+  const user = getAuthUser();
+  if (!user) return 'Lapas Cipinang';
+  return (
+    user.branch?.name ||
+    user.branchName ||
+    (typeof user.branch === 'string' ? user.branch : 'Lapas Cipinang')
+  );
 };
 
-export function calcPrice(type, minutes) {
-  const typeKey = (type || 'telepon').toLowerCase();
-  const rateKey = typeKey.includes('video') ? 'video' : 'telepon';
-  const rate = TARIFF.ratesPerSecond[rateKey] || (typeKey.includes('video') ? 25 : 15);
-
-  const dpp = Math.round(Number(minutes) * 60 * rate);
-  const ppn = Math.round(dpp * TARIFF.ppnRate);
-  const total = dpp + ppn;
-
-  return { dpp, ppn, total };
-}
-
 /**
- * Data paket komunikasi PasCall (Tersedia untuk Kepala UPT & Supervisor)
+ * Data paket komunikasi default untuk cabang
  */
 export const defaultPackages = [
-  // 1. Paket Telepon 50 Menit (Rp25.000)
   {
-    id: 'pkt-telp-50',
-    nama: 'Paket Telepon 50 Menit',
+    id: 'pkt-telp-6',
+    nama: 'Paket Telepon 6 Menit',
     kategori: 'telepon',
-    durasi: 50,
-    harga: 25000,
+    durasi: 6,
+    harga: 5994,
     status: 'Aktif',
+    branch: 'Lapas Cipinang',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
-  // 2. Paket Telepon 100 Menit (Rp50.000)
   {
-    id: 'pkt-telp-100',
-    nama: 'Paket Telepon 100 Menit',
+    id: 'pkt-telp-12',
+    nama: 'Paket Telepon 12 Menit',
     kategori: 'telepon',
-    durasi: 100,
-    harga: 50000,
+    durasi: 12,
+    harga: 11988,
     status: 'Aktif',
+    branch: 'Lapas Cipinang',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
-  // 3. Paket Video Call 30 Menit (Rp30.000)
   {
-    id: 'pkt-video-30',
-    nama: 'Paket Video Call 30 Menit',
-    kategori: 'video',
+    id: 'pkt-telp-18',
+    nama: 'Paket Telepon 18 Menit',
+    kategori: 'telepon',
+    durasi: 18,
+    harga: 17982,
+    status: 'Aktif',
+    branch: 'Lapas Cipinang',
+    createdAt: '2026-01-01T08:00:00.000Z',
+  },
+  {
+    id: 'pkt-telp-24',
+    nama: 'Paket Telepon 24 Menit',
+    kategori: 'telepon',
+    durasi: 24,
+    harga: 23976,
+    status: 'Aktif',
+    branch: 'Lapas Cipinang',
+    createdAt: '2026-01-01T08:00:00.000Z',
+  },
+  {
+    id: 'pkt-telp-30',
+    nama: 'Paket Telepon 30 Menit',
+    kategori: 'telepon',
     durasi: 30,
-    harga: 30000,
+    harga: 29970,
     status: 'Aktif',
+    branch: 'Lapas Cipinang',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
-  // 4. Paket Video Call 60 Menit (Rp60.000)
   {
-    id: 'pkt-video-60',
-    nama: 'Paket Video Call 60 Menit',
-    kategori: 'video',
-    durasi: 60,
-    harga: 60000,
-    status: 'Aktif',
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  // 5. Paket Telepon 15 Menit (Rp10.000)
-  {
-    id: 'pkt-telp-15',
-    nama: 'Paket Telepon 15 Menit',
+    id: 'pkt-telp-36',
+    nama: 'Paket Telepon 36 Menit',
     kategori: 'telepon',
-    durasi: 15,
-    harga: 10000,
+    durasi: 36,
+    harga: 35964,
     status: 'Aktif',
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  // 6. Paket Video Call 15 Menit (Rp18.000)
-  {
-    id: 'pkt-video-15',
-    nama: 'Paket Video Call 15 Menit',
-    kategori: 'video',
-    durasi: 15,
-    harga: 18000,
-    status: 'Aktif',
+    branch: 'Lapas Cipinang',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
 ];
 
-const getStoredPackages = () => {
+export const getStoredPackages = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
@@ -112,48 +101,42 @@ const getStoredPackages = () => {
   }
 };
 
-const saveStoredPackages = (items) => {
+export const saveStoredPackages = (items) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pascall_packages_updated', { detail: items }));
+    }
   } catch (err) {
     console.error('Error menyimpan storage paket:', err);
   }
 };
 
 /**
- * Mengambil daftar paket komunikasi dengan filter kategori, status, dan pencarian
+ * Mengambil daftar paket komunikasi
  */
 export const getPackages = async ({
+  branchId,
   search = '',
   kategori = 'semua',
   status = 'semua',
+  activeOnly = false,
 } = {}) => {
-  try {
-    const params = new URLSearchParams();
-    if (search && search.trim()) params.append('search', search.trim());
-    if (kategori && kategori !== 'semua') params.append('kategori', kategori);
-    if (status && status !== 'semua') params.append('status', status);
-
-    const queryString = params.toString();
-    const url = queryString ? `${PACKAGES_ENDPOINT}?${queryString}` : PACKAGES_ENDPOINT;
-
-    // Coba request ke backend terlebih dahulu
-    try {
-      const res = await apiFetch(url);
-      if (res && (Array.isArray(res) || Array.isArray(res?.data))) {
-        return Array.isArray(res) ? res : res.data;
-      }
-    } catch {
-      // Fallback ke localStorage mock
-    }
-
-    let list = getStoredPackages();
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    let list = dummyStore.getPackages();
 
     if (kategori && kategori !== 'semua') {
-      list = list.filter((p) => (p.kategori || '').toLowerCase() === kategori.toLowerCase());
+      const katLower = kategori.toLowerCase();
+      list = list.filter((p) => {
+        const itemKat = (p.kategori || '').toLowerCase();
+        return itemKat === katLower;
+      });
     }
 
-    if (status && status !== 'semua') {
+    if (activeOnly) {
+      list = list.filter((p) => p.status === 'Aktif' || p.isActive !== false);
+    } else if (status && status !== 'semua') {
       list = list.filter((p) => (p.status || '').toLowerCase() === status.toLowerCase());
     }
 
@@ -168,26 +151,97 @@ export const getPackages = async ({
     }
 
     return list;
+  }
+
+  try {
+    const activeBranch = branchId || getCurrentBranch();
+    const params = new URLSearchParams();
+    if (activeBranch) params.append('branch', activeBranch);
+    if (search && search.trim()) params.append('search', search.trim());
+    if (kategori && kategori !== 'semua') params.append('kategori', kategori);
+    if (status && status !== 'semua') params.append('status', status);
+
+    const queryString = params.toString();
+    const url = queryString ? `${PACKAGES_ENDPOINT}?${queryString}` : PACKAGES_ENDPOINT;
+
+    // Coba request ke backend terlebih dahulu
+    try {
+      const res = await apiFetch(url);
+      if (res && (Array.isArray(res) || Array.isArray(res?.data))) {
+        let beList = Array.isArray(res) ? res : res.data;
+        if (activeOnly) {
+          beList = beList.filter((p) => p.status === 'Aktif' || p.isActive !== false);
+        }
+        return beList;
+      }
+    } catch {
+      // Return empty list if BE fails
+      return [];
+    }
+
+    return [];
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    return getStoredPackages();
+    return [];
   }
 };
 
+
 /**
- * Membuat paket baru
+ * Mengambil paket aktif khusus untuk Halaman Paket Kantin
+ * Menghasilkan struktur data yang siap dikonsumsi oleh kartu dan modal kantin.
+ * TODO: ganti dengan endpoint BE untuk paket per cabang
+ */
+export const getPaketKantin = async ({ branchId, kategori = 'telepon' } = {}) => {
+  const activeBranch = branchId || getCurrentBranch();
+  const list = await getPackages({
+    branchId: activeBranch,
+    kategori,
+    activeOnly: true,
+  });
+
+  return list.map((pkg) => {
+    const hargaTotal = Number(pkg.harga || 0);
+    const dpp = Math.round(hargaTotal / 1.11);
+    const ppn = hargaTotal - dpp;
+
+    return {
+      id: pkg.id,
+      nama: pkg.nama,
+      kategori: pkg.kategori || 'telepon',
+      menit: Number(pkg.durasi || 0),
+      durasi: `${pkg.durasi || 0} Menit`,
+      keterangan: 'Semua Operator',
+      harga: hargaTotal,
+      total: hargaTotal,
+      dpp,
+      ppn,
+      status: pkg.status || 'Aktif',
+      branch: pkg.branch || activeBranch,
+    };
+  });
+};
+
+/**
+ * Membuat paket baru oleh Supervisor
+ * TODO: ganti dengan endpoint BE untuk paket per cabang
  */
 export const createPackage = async (data) => {
+  const branch = data.branch || getCurrentBranch();
+  const durasiNum = Number(data.durasi);
+  const hargaNum = Number(data.harga);
+
   const newPackage = {
-    id: `pkt-${Date.now()}`,
+    id: `pkt-${data.kategori || 'telp'}-${Date.now()}`,
     nama: data.nama.trim(),
     kategori: data.kategori || 'telepon',
-    durasi: Number(data.durasi),
-    harga: Number(data.harga),
+    durasi: durasiNum,
+    harga: hargaNum,
     status: data.status || 'Aktif',
+    branch,
     createdAt: new Date().toISOString(),
   };
 
@@ -208,24 +262,34 @@ export const createPackage = async (data) => {
 };
 
 /**
- * Memperbarui paket yang ada
+ * Memperbarui paket yang ada oleh Supervisor
+ * TODO: ganti dengan endpoint BE untuk paket per cabang
  */
 export const updatePackage = async (id, data) => {
+  const durasiNum = data.durasi !== undefined ? Number(data.durasi) : undefined;
+  const hargaNum = data.harga !== undefined ? Number(data.harga) : undefined;
+
+  const patchData = {
+    ...data,
+    ...(durasiNum !== undefined ? { durasi: durasiNum } : {}),
+    ...(hargaNum !== undefined ? { harga: hargaNum } : {}),
+  };
+
   try {
     const res = await apiFetch(PACKAGE_DETAIL_ENDPOINT(id), {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(patchData),
     });
     const current = getStoredPackages();
     const updated = current.map((item) =>
-      item.id === id ? { ...item, ...data, id } : item
+      item.id === id ? { ...item, ...patchData, id } : item
     );
     saveStoredPackages(updated);
     return res || updated.find((i) => i.id === id);
   } catch {
     const current = getStoredPackages();
     const updated = current.map((item) =>
-      item.id === id ? { ...item, ...data, id } : item
+      item.id === id ? { ...item, ...patchData, id } : item
     );
     saveStoredPackages(updated);
     return updated.find((i) => i.id === id);
@@ -233,7 +297,9 @@ export const updatePackage = async (id, data) => {
 };
 
 /**
- * Mengubah status paket (Aktif / Nonaktif)
+ * Mengubah status paket (Aktif <-> Nonaktif)
+ * Tidak ada penghapusan permanen agar transaksi lama tetap aman.
+ * TODO: ganti dengan endpoint BE untuk paket per cabang
  */
 export const togglePackageStatus = async (id) => {
   const current = getStoredPackages();
@@ -247,10 +313,12 @@ export const togglePackageStatus = async (id) => {
 export default {
   PACKAGES_ENDPOINT,
   PACKAGE_DETAIL_ENDPOINT,
-  TARIFF,
-  calcPrice,
+  getCurrentBranch,
   defaultPackages,
+  getStoredPackages,
+  saveStoredPackages,
   getPackages,
+  getPaketKantin,
   createPackage,
   updatePackage,
   togglePackageStatus,

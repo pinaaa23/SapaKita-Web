@@ -21,6 +21,7 @@ import {
 import StatCard from '../components/StatCard';
 import { getDashboardSummary } from '../services/dashboardService';
 import { logout } from '../services/api';
+import { USE_MOCK_SUPERADMIN } from '../services/mockStorage';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -49,7 +50,7 @@ const Dashboard = () => {
           setSummaryData(data);
         }
       } catch (err) {
-        if (err?.status === 401) {
+        if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
           logout();
           navigate('/login', { replace: true });
           return;

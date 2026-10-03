@@ -1,4 +1,13 @@
 import { apiFetch, logout } from './api';
+import { isDummyMode } from '../dummy';
+// TODO: ganti ke API BE saat endpoint tersedia
+import { 
+  USE_MOCK_SUPERADMIN, 
+  getMockNapi, 
+  addMockNapi, 
+  updateMockNapi, 
+  deleteMockNapi 
+} from './mockStorage';
 
 // Endpoint path disimpan dalam konstanta di atas file agar mudah diganti/disesuaikan
 export const INMATES_ENDPOINT = '/api/inmates';
@@ -9,7 +18,7 @@ export const INMATE_STATUS_ENDPOINT = (id) => `/api/inmates/${id}/status`;
 export const BACKEND_SUPPORTS_INMATE_FILTERS = false;
 
 /**
- * Mapper murni: hanya membaca data yang benar-benar dikirim backend (tanpa menyuntikkan nilai dummy palsu)
+ * Mapper fleksibel: membaca data yang dikirim backend maupun mock FE
  */
 export const mapInmateItem = (item) => {
   if (!item) return null;
@@ -17,20 +26,25 @@ export const mapInmateItem = (item) => {
   const rawIdentifier = item.identifier || item.wbpRegNumber || item.nip || item.id || '-';
   const rawName = item.name || '-';
 
-  // Saldo panggilan: gunakan jika dikirim backend (termasuk 0)
+  // Saldo panggilan
   let callBalance = null;
   if (typeof item.balance === 'number') {
     callBalance = item.balance;
+  } else if (typeof item.callBalance === 'number') {
+    callBalance = item.callBalance;
   } else if (item.balance !== undefined && item.balance !== null && item.balance !== '') {
     const parsed = parseFloat(item.balance);
+    callBalance = isNaN(parsed) ? null : parsed;
+  } else if (item.callBalance !== undefined && item.callBalance !== null && item.callBalance !== '') {
+    const parsed = parseFloat(item.callBalance);
     callBalance = isNaN(parsed) ? null : parsed;
   }
 
   // Nama cabang jika dikirim
   const branchName = item.branch?.name || item.branchName || (typeof item.branch === 'string' ? item.branch : null);
 
-  // Status & status akun (hanya jika ada di balasan backend)
-  const status = item.status || null;
+  // Status & status akun
+  const status = item.status || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Suspended') : null);
   const commStatus = item.commStatus || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Nonaktif') : null);
 
   return {
@@ -47,123 +61,41 @@ export const mapInmateItem = (item) => {
     isActive: item.isActive !== undefined ? Boolean(item.isActive) : undefined,
     branchId: item.branchId || item.branch?.id || item.branch?._id || '',
     branchName,
+    isMock: Boolean(item.isMock),
     raw: item
   };
 };
 
-const STORAGE_KEY = 'pascall_inmates_v2';
-
-export const defaultMockInmates = [
-  {
-    id: 'inm-1001',
-    identifier: 'NAPI-1001',
-    wbpRegNumber: 'NAPI-1001',
-    name: 'Ahmad Pratama',
-    initialPin: '1234',
-    callBalance: 75000,
-    blockRoom: 'Blok B - Kamar 04',
-    entryDate: '2025-11-10T08:30:00.000Z',
-    status: 'Aktif',
-    commStatus: 'Aktif',
-    isActive: true,
-    branchId: 'b1',
-    branchName: 'Lapas Cipinang'
-  },
-  {
-    id: 'inm-1002',
-    identifier: 'NAPI-1002',
-    wbpRegNumber: 'NAPI-1002',
-    name: 'Budi Santoso',
-    initialPin: '1234',
-    callBalance: 45000,
-    blockRoom: 'Blok A - Kamar 02',
-    entryDate: '2025-12-01T10:15:00.000Z',
-    status: 'Aktif',
-    commStatus: 'Aktif',
-    isActive: true,
-    branchId: 'b1',
-    branchName: 'Lapas Cipinang'
-  },
-  {
-    id: 'inm-1003',
-    identifier: 'NAPI-1003',
-    wbpRegNumber: 'NAPI-1003',
-    name: 'Hendra Wijaya',
-    initialPin: '1234',
-    callBalance: 120000,
-    blockRoom: 'Blok C - Kamar 12',
-    entryDate: '2026-01-15T14:20:00.000Z',
-    status: 'Aktif',
-    commStatus: 'Aktif',
-    isActive: true,
-    branchId: 'b1',
-    branchName: 'Lapas Cipinang'
-  },
-  {
-    id: 'inm-1004',
-    identifier: 'NAPI-1004',
-    wbpRegNumber: 'NAPI-1004',
-    name: 'Rian Kurniawan',
-    initialPin: '1234',
-    callBalance: 0,
-    blockRoom: 'Blok A - Kamar 08',
-    entryDate: '2026-02-05T09:00:00.000Z',
-    status: 'Aktif',
-    commStatus: 'Nonaktif',
-    isActive: false,
-    branchId: 'b1',
-    branchName: 'Lapas Cipinang'
-  },
-  {
-    id: 'inm-1005',
-    identifier: 'NAPI-1005',
-    wbpRegNumber: 'NAPI-1005',
-    name: 'Dedi Supriyadi',
-    initialPin: '1234',
-    callBalance: 30000,
-    blockRoom: 'Blok B - Kamar 06',
-    entryDate: '2026-02-20T11:45:00.000Z',
-    status: 'Aktif',
-    commStatus: 'Aktif',
-    isActive: true,
-    branchId: 'b1',
-    branchName: 'Lapas Cipinang'
-  }
-];
-
-const getStoredInmates = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultMockInmates));
-      return defaultMockInmates;
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultMockInmates;
-  } catch {
-    return defaultMockInmates;
-  }
-};
-
-const saveStoredInmates = (items) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  } catch (err) {
-    console.error('Error saving inmates storage:', err);
-  }
-};
-
 /**
- * Mengambil daftar narapidana dengan dukungan parameter search, page, limit
- * Parameter branchId dan status hanya dikirim jika BACKEND_SUPPORTS_INMATE_FILTERS === true
+ * Mengambil daftar narapidana
+ * Di mode demo: membaca langsung dari in-memory dummyStore (tanpa request ke backend)
+ * Di mode normal: request ke backend BE asli
  */
 export const getInmates = async ({ search = '', page = 1, limit = 20, branchId = '', status = '' } = {}) => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const allInmates = dummyStore.getInmates({ branchId, search, status, limit: null });
+    const mapped = allInmates.map(mapInmateItem).filter(Boolean);
+    const numLimit = Number(limit) || 20;
+    const numPage = Number(page) || 1;
+    const startIdx = (numPage - 1) * numLimit;
+    const paginated = mapped.slice(startIdx, startIdx + numLimit);
+
+    return {
+      items: paginated,
+      total: mapped.length,
+      page: numPage,
+      limit: numLimit,
+      totalPages: Math.max(1, Math.ceil(mapped.length / numLimit)),
+    };
+  }
+
   const params = new URLSearchParams();
   if (search && search.trim()) params.append('search', search.trim());
   if (page) params.append('page', page.toString());
   if (limit) params.append('limit', limit.toString());
 
-  // Hanya kirim jika didukung backend
+  // Hanya kirim ke BE jika didukung backend
   if (BACKEND_SUPPORTS_INMATE_FILTERS) {
     if (branchId && branchId !== 'All') params.append('branchId', branchId);
     if (status && status !== 'All') params.append('status', status);
@@ -185,73 +117,102 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
             ? res.inmates
             : [];
 
-    if (rawList.length > 0) {
-      const total = typeof res?.pagination?.total === 'number'
-        ? res.pagination.total
-        : typeof res?.total === 'number'
-          ? res.total
-          : typeof res?.meta?.total === 'number'
-            ? res.meta.total
-            : rawList.length;
+    const items = rawList.map(mapInmateItem).filter(Boolean);
 
-      const totalPages = typeof res?.pagination?.totalPages === 'number'
-        ? res.pagination.totalPages
-        : typeof res?.totalPages === 'number'
-          ? res.totalPages
-          : typeof res?.meta?.totalPages === 'number'
-            ? res.meta.totalPages
-            : Math.max(1, Math.ceil(total / limit));
+    const total = typeof res?.pagination?.total === 'number'
+      ? res.pagination.total
+      : typeof res?.total === 'number'
+        ? res.total
+        : typeof res?.meta?.total === 'number'
+          ? res.meta.total
+          : items.length;
 
-      return {
-        items: rawList.map(mapInmateItem).filter(Boolean),
-        total,
-        page: Number(res?.pagination?.page || res?.page || page),
-        limit: Number(res?.pagination?.limit || res?.limit || limit),
-        totalPages,
-      };
-    }
+    const totalPages = typeof res?.pagination?.totalPages === 'number'
+      ? res.pagination.totalPages
+      : typeof res?.totalPages === 'number'
+        ? res.totalPages
+        : typeof res?.meta?.totalPages === 'number'
+          ? res.meta.totalPages
+          : Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+    };
   } catch (err) {
-    console.log('[InmateService] Backend API not available, using stored mock data:', err?.message || err);
+    if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
+      logout();
+      throw err;
+    }
+    console.error('[InmateService] Gagal memuat data narapidana dari BE:', err?.message || err);
+    throw err;
   }
-
-  // Fallback to local stored inmates
-  let list = getStoredInmates().map(mapInmateItem);
-
-  if (status && status !== 'All') {
-    list = list.filter((i) => i.status === status);
-  }
-
-  if (search && search.trim()) {
-    const q = search.trim().toLowerCase();
-    list = list.filter(
-      (i) =>
-        i.name.toLowerCase().includes(q) ||
-        i.identifier.toLowerCase().includes(q) ||
-        i.wbpRegNumber.toLowerCase().includes(q)
-    );
-  }
-
-  const total = list.length;
-  const totalPages = Math.max(1, Math.ceil(total / limit));
-  const startIndex = (page - 1) * limit;
-  const paginated = list.slice(startIndex, startIndex + limit);
-
-  return {
-    items: paginated,
-    total,
-    page: Number(page),
-    limit: Number(limit),
-    totalPages,
-  };
 };
 
 /**
- * Mendaftarkan narapidana baru ke backend
- * Payload yang didukung backend: { identifier, name, initialPin }
+ * Mengambil detail satu narapidana berdasarkan ID atau Identifier/NIP
  */
-export const createInmate = async ({ identifier, name, initialPin, branchId }) => {
+export const getInmateById = async (idOrIdentifier) => {
+  if (!idOrIdentifier) return null;
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const found = dummyStore.getInmateById(idOrIdentifier);
+    return found ? mapInmateItem(found) : null;
+  }
+
+  const res = await getInmates({ search: idOrIdentifier });
+  const clean = String(idOrIdentifier).trim();
+  return res.items?.find(i => 
+    String(i.identifier || '').trim() === clean || 
+    String(i.wbpRegNumber || '').trim() === clean ||
+    String(i.id || '').trim() === clean
+  ) || null;
+};
+
+/**
+ * Mendaftarkan narapidana baru
+ */
+export const createInmate = async ({ identifier, name, initialPin, branchId, branchName }) => {
   if (!identifier || !name) {
     throw new Error('NIP dan Nama Narapidana wajib diisi');
+  }
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const newNapi = dummyStore.addInmate({
+      identifier: identifier.trim(),
+      wbpRegNumber: identifier.trim(),
+      name: name.trim(),
+      initialPin: (initialPin || '1234').trim(),
+      branchId: branchId || 'b1',
+      branchName: branchName || 'Lapas Kelas I Cipinang',
+      callBalance: 0,
+      status: 'Aktif',
+      commStatus: 'Aktif',
+      isActive: true,
+    });
+    return { success: true, data: mapInmateItem(newNapi) };
+  }
+
+  // Fallback ke mock storage jika diaktifkan manual
+  if (USE_MOCK_SUPERADMIN) {
+    const newNapi = addMockNapi({
+      identifier: identifier.trim(),
+      wbpRegNumber: identifier.trim(),
+      name: name.trim(),
+      initialPin: (initialPin || '1234').trim(),
+      branchId: branchId || '',
+      branchName: branchName || 'Lapas Pusat',
+      callBalance: 0,
+      status: 'Aktif',
+      commStatus: 'Aktif',
+      isActive: true,
+    });
+    return { success: true, data: newNapi };
   }
 
   const payload = {
@@ -281,18 +242,38 @@ export const createInmate = async ({ identifier, name, initialPin, branchId }) =
 };
 
 /**
- * Memperbarui data narapidana ke backend
- * Payload yang didukung backend: { name, identifier, initialPin (opsional) }
+ * Memperbarui data narapidana
  */
-export const updateInmate = async (id, { name, identifier, initialPin }) => {
+export const updateInmate = async (id, { name, identifier, initialPin, ...otherData }) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const updated = dummyStore.updateInmate(id, {
+      ...(name ? { name: name.trim() } : {}),
+      ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
+      ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...otherData,
+    });
+    return { success: true, data: updated ? mapInmateItem(updated) : null };
+  }
+
+  // Fallback ke mock storage jika diaktifkan manual
+  if (USE_MOCK_SUPERADMIN) {
+    const updated = updateMockNapi(id, {
+      ...(name ? { name: name.trim() } : {}),
+      ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
+      ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...otherData,
+    });
+    return { success: true, data: updated };
+  }
 
   const payload = {
     name: name?.trim(),
     identifier: identifier?.trim(),
   };
 
-  // initialPin opsional, hanya dikirim kalau diisi
   if (initialPin && initialPin.trim()) {
     payload.initialPin = initialPin.trim();
   }
@@ -315,11 +296,26 @@ export const updateInmate = async (id, { name, identifier, initialPin }) => {
 };
 
 /**
- * Mengubah status aktif / nonaktif akun narapidana di backend
- * Body: { isActive: boolean }
+ * Mengubah status aktif / nonaktif akun narapidana
  */
 export const updateInmateStatus = async (id, isActive) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const updated = dummyStore.updateInmateStatus(id, Boolean(isActive));
+    return { success: true, data: updated ? mapInmateItem(updated) : null };
+  }
+
+  // Fallback ke mock storage jika diaktifkan manual
+  if (USE_MOCK_SUPERADMIN) {
+    const updated = updateMockNapi(id, {
+      isActive: Boolean(isActive),
+      status: isActive ? 'Aktif' : 'Suspended',
+      commStatus: isActive ? 'Aktif' : 'Nonaktif',
+    });
+    return { success: true, data: updated };
+  }
 
   const endpoint = INMATE_STATUS_ENDPOINT(id);
   try {
@@ -344,6 +340,7 @@ export default {
   INMATE_STATUS_ENDPOINT,
   mapInmateItem,
   getInmates,
+  getInmateById,
   createInmate,
   updateInmate,
   updateInmateStatus,

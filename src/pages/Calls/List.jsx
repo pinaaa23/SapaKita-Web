@@ -22,6 +22,7 @@ import {
 import { getCallHistory } from '../../services/callService';
 import { getBranches } from '../../services/branchService';
 import { logout } from '../../services/api';
+import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, downloadTranscriptPDF } from '../../utils/exportUtils';
@@ -96,7 +97,7 @@ const CallsList = () => {
       });
       setCallsData(res);
     } catch (err) {
-      if (err?.status === 401) {
+      if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
         return;
@@ -505,7 +506,7 @@ const CallsList = () => {
 
                           {/* Transkrip Button */}
                           <td className={`py-3 px-2 sm:px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                            {call.hasRecording ? (
+                            {call.transcript || call.hasRecording ? (
                               <button 
                                 type="button"
                                 onClick={() => setTranscriptModalCall(call)}

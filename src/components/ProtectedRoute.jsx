@@ -26,7 +26,18 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.SUPERADMIN) {
         return <Navigate to="/dashboard" replace />;
       }
+      if (currentRole === ROLES.OPERATOR_KANTIN) {
+        return <Navigate to="/kantin" replace />;
+      }
       return <Navigate to="/branch/dashboard" replace />;
+    }
+  }
+
+  // Operator Kantin tanpa allowedRoles (route admin umum): arahkan ke /kantin
+  {
+    const currentRole = normalizeRole(authUser?.role);
+    if (currentRole === ROLES.OPERATOR_KANTIN) {
+      return <Navigate to="/kantin" replace />;
     }
   }
 

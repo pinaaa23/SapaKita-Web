@@ -291,12 +291,41 @@ export const exportToPDF = ({
       }
     });
 
-    const finalName = filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`;
-    doc.save(finalName);
+    const cleanBase = (filename || 'laporan_pascall.pdf')
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\s+/g, '_')
+      .trim();
+    const finalName = cleanBase.toLowerCase().endsWith('.pdf') ? cleanBase : `${cleanBase}.pdf`;
+
+    const blob = doc.output('blob');
+    saveBlobAsFile(blob, finalName);
     return true;
   } catch (err) {
     console.error('[ExportUtils] Gagal mengekspor PDF:', err);
     alert('Terjadi kesalahan saat mengekspor ke format PDF.');
+    return false;
+  }
+};
+
+/**
+ * Utility helper to safely trigger browser download from a Blob
+ */
+export const saveBlobAsFile = (blob, filename) => {
+  try {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+    }, 2000);
+    return true;
+  } catch (err) {
+    console.error('[ExportUtils] Error saving blob as file:', err);
     return false;
   }
 };
@@ -377,10 +406,10 @@ export const downloadTranscriptPDF = ({
     const infoList = [
       { label: 'Nama WBP', val: inmateInfo.name || callInfo.inmateName || callInfo.from || 'Ahmad Fauzi', isLeft: true, row: 0 },
       { label: 'NIP / Reg WBP', val: inmateInfo.wbpRegNumber || inmateInfo.nip || callInfo.inmateId || 'NIP-7721', isLeft: true, row: 1 },
-      { label: 'Kontak Tujuan', val: callInfo.contactName || callInfo.targetNumber || callInfo.to || 'Siti Aminah (Istri)', isLeft: true, row: 2 },
-      { label: 'Lokasi UPT', val: uptName, isLeft: false, row: 0 },
-      { label: 'Waktu Panggilan', val: callInfo.date || callInfo.timestamp || new Date().toLocaleString('id-ID'), isLeft: false, row: 1 },
-      { label: 'Durasi / Status', val: `${callInfo.duration || '05:20'} | ${callInfo.status || 'Berhasil'}`, isLeft: false, row: 2 },
+      { label: 'Kontak Tujuan', val: callInfo.contactName || callInfo.targetNumber || callInfo.familyName || callInfo.to || 'Siti Aminah (Istri)', isLeft: true, row: 2 },
+      { label: 'Lokasi UPT', val: uptName || callInfo.branchName || 'Lapas Kelas 1', isLeft: false, row: 0 },
+      { label: 'Waktu Panggilan', val: callInfo.date ? new Date(callInfo.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (callInfo.timestamp || new Date().toLocaleString('id-ID')), isLeft: false, row: 1 },
+      { label: 'Durasi / Status', val: `${callInfo.duration || (callInfo.durationSeconds ? `${Math.floor(callInfo.durationSeconds / 60)}m ${callInfo.durationSeconds % 60}s` : '05:20')} | ${callInfo.status || 'Berhasil'}`, isLeft: false, row: 2 },
     ];
 
     infoList.forEach(item => {
@@ -419,14 +448,24 @@ export const downloadTranscriptPDF = ({
       // Parse plain text with timestamps / speaker prefixes
       const rawLines = transcriptText.split('\n').filter(l => l.trim() !== '');
       lines = rawLines.map(raw => {
-        const match = raw.match(/^\[?(\d{2}:\d{2})?\]?\s*([A-Za-z0-9\s()]+)?:\s*(.*)$/);
-        if (match) {
+        const matchWithSpeaker = raw.match(/^\[?([0-9]{2}:[0-9]{2}(?:\s*-\s*[0-9]{2}:[0-9]{2})?)?\]?\s*([A-Za-z0-9\s()_-]+)?:\s*(.*)$/);
+        if (matchWithSpeaker) {
           return {
-            time: match[1] || '',
-            speaker: (match[2] || 'Pembicara').trim(),
-            text: match[3] || ''
+            time: matchWithSpeaker[1] || '',
+            speaker: (matchWithSpeaker[2] || 'Pembicara').trim(),
+            text: matchWithSpeaker[3] || ''
           };
         }
+
+        const matchSegmentOnly = raw.match(/^\[([0-9]{2}:[0-9]{2}(?:\s*-\s*[0-9]{2}:[0-9]{2})?)\]\s*(.*)$/);
+        if (matchSegmentOnly) {
+          return {
+            time: matchSegmentOnly[1] || '',
+            speaker: 'Percakapan',
+            text: matchSegmentOnly[2] || ''
+          };
+        }
+
         return {
           time: '',
           speaker: 'Percakapan',
@@ -449,7 +488,7 @@ export const downloadTranscriptPDF = ({
       margin: { left: margin, right: margin, bottom: 18 },
       theme: 'grid',
       columnStyles: {
-        0: { cellWidth: 18, halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] },
+        0: { cellWidth: 26, halign: 'center', fontStyle: 'bold', textColor: [100, 116, 139] },
         1: { cellWidth: 38, fontStyle: 'bold', textColor: [30, 58, 138] },
         2: { cellWidth: 'auto', textColor: [15, 23, 42] }
       },
@@ -495,8 +534,14 @@ export const downloadTranscriptPDF = ({
       }
     });
 
-    const finalName = filename.toLowerCase().endsWith('.pdf') ? filename : `${filename}.pdf`;
-    doc.save(finalName);
+    const cleanBase = (filename || 'transkrip_panggilan.pdf')
+      .replace(/[/\\?%*:|"<>]/g, '_')
+      .replace(/\s+/g, '_')
+      .trim();
+    const finalName = cleanBase.toLowerCase().endsWith('.pdf') ? cleanBase : `${cleanBase}.pdf`;
+
+    const blob = doc.output('blob');
+    saveBlobAsFile(blob, finalName);
     return true;
   } catch (err) {
     console.error('[ExportUtils] Gagal membuat PDF transkrip:', err);

@@ -1,11 +1,12 @@
 import { apiFetch, logout } from './api';
+import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta di atas file agar mudah diganti
 export const BRANCHES_ENDPOINT = '/api/branches';
 export const BRANCH_DETAIL_ENDPOINT = (id) => `/api/branches/${id}`;
 
 /**
- * Mapper fleksibel untuk menstandarisasi data cabang dari respons backend
+ * Mapper fleksibel untuk menstandarisasi data cabang dari respons backend atau mock
  */
 export const mapBranchItem = (item) => {
   if (!item) return null;
@@ -28,6 +29,7 @@ export const mapBranchItem = (item) => {
     status: isActive ? 'Active' : 'Inactive',
     isActive,
     createdAt: item.createdAt || new Date().toISOString(),
+    isMock: Boolean(item.isMock),
   };
 };
 
@@ -55,9 +57,37 @@ export const buildCreateBranchPayload = (branchData, adminData) => {
 };
 
 /**
- * Mengambil daftar cabang dari backend dengan parameter pencarian dan pagination
+ * Mengambil daftar cabang
  */
 export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    let branches = dummyStore.getBranches().map(mapBranchItem);
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      branches = branches.filter(
+        (b) =>
+          (b.name && b.name.toLowerCase().includes(q)) ||
+          (b.location && b.location.toLowerCase().includes(q)) ||
+          (b.address && b.address.toLowerCase().includes(q))
+      );
+    }
+
+    const total = branches.length;
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    const startIndex = (page - 1) * limit;
+    const paginated = branches.slice(startIndex, startIndex + limit);
+
+    return {
+      items: paginated,
+      total,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages,
+    };
+  }
+
   const params = new URLSearchParams();
   if (search && search.trim()) params.append('search', search.trim());
   if (page) params.append('page', page.toString());
@@ -79,36 +109,37 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
             ? res.branches
             : [];
 
-    const total = typeof res?.total === 'number'
+    const backendItems = rawList.map(mapBranchItem).filter(Boolean);
+    const backendTotal = typeof res?.total === 'number'
       ? res.total
       : typeof res?.pagination?.total === 'number'
         ? res.pagination.total
-        : rawList.length;
+        : backendItems.length;
 
-    const totalPages = typeof res?.totalPages === 'number'
+    const backendTotalPages = typeof res?.totalPages === 'number'
       ? res.totalPages
       : typeof res?.pagination?.totalPages === 'number'
         ? res.pagination.totalPages
-        : Math.max(1, Math.ceil(total / limit));
+        : Math.max(1, Math.ceil(backendTotal / limit));
 
     return {
-      items: rawList.map(mapBranchItem).filter(Boolean),
-      total,
-      page: Number(res?.page || res?.pagination?.page || page),
-      limit: Number(res?.limit || res?.pagination?.limit || limit),
-      totalPages,
+      items: backendItems,
+      total: backendTotal,
+      page: Number(page),
+      limit: Number(limit),
+      totalPages: backendTotalPages,
     };
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    console.log('[BranchService] Fallback data kosong cabang:', error?.message || error);
+    console.log('[BranchService] Gagal mengambil data cabang:', error?.message || error);
     return {
       items: [],
       total: 0,
-      page,
-      limit,
+      page: Number(page),
+      limit: Number(limit),
       totalPages: 1,
     };
   }
@@ -119,10 +150,16 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
  */
 export const getBranchById = async (id) => {
   if (!id) return null;
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const found = dummyStore.getBranchById(id);
+    return found ? mapBranchItem(found) : null;
+  }
+
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint);
-    console.log(`[BranchService] Response GET ${endpoint}:`, res);
     return mapBranchItem(res?.data || res);
   } catch (error) {
     if (error?.status === 401) {
@@ -138,12 +175,25 @@ export const getBranchById = async (id) => {
  * Menambahkan cabang baru
  */
 export const createBranch = async (data) => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const newBranch = dummyStore.addBranch({
+      name: data.name,
+      location: data.location,
+      address: data.address,
+      phone: data.phone,
+      capacity: data.capacity,
+      status: data.status,
+      adminEmail: data.admin?.email,
+    });
+    return { success: true, data: mapBranchItem(newBranch) };
+  }
+
   try {
     const res = await apiFetch(BRANCHES_ENDPOINT, {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    console.log('[BranchService] Response POST /api/branches (success)');
     return res;
   } catch (error) {
     if (error?.status === 401) {
@@ -160,13 +210,19 @@ export const createBranch = async (data) => {
  */
 export const updateBranch = async (id, data) => {
   if (!id) throw new Error('ID Cabang diperlukan');
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const updated = dummyStore.updateBranch(id, data);
+    return { success: true, data: mapBranchItem(updated) };
+  }
+
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint, {
       method: 'PATCH',
       body: JSON.stringify(data),
     });
-    console.log(`[BranchService] Response PATCH ${endpoint}:`, res);
     return res;
   } catch (error) {
     if (error?.status === 401) {
@@ -196,3 +252,4 @@ export default {
   updateBranch,
   updateBranchStatus,
 };
+

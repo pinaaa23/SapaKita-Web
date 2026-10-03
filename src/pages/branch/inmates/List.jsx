@@ -385,86 +385,88 @@ const InmatesList = () => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3.5 px-5">Nama Lengkap</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">NIP</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Blok / Kamar</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Tgl Masuk</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Saldo Panggilan</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Status Penempatan</th>
-                <th className="py-3.5 px-4 whitespace-nowrap">Status Akun</th>
-                <th className="py-3.5 px-5 text-center whitespace-nowrap">Aksi</th>
+                <th className="py-3 pl-4 pr-2 whitespace-nowrap">Nama Lengkap</th>
+                <th className="py-3 px-2 whitespace-nowrap text-center">NIP</th>
+                <th className="py-3 px-2 whitespace-nowrap">Blok / Kamar</th>
+                <th className="py-3 px-2 whitespace-nowrap">Tgl Masuk</th>
+                <th className="py-3 px-2 whitespace-nowrap">Saldo Panggilan</th>
+                <th className="py-3 px-2 whitespace-nowrap text-center">Status Penempatan</th>
+                <th className="py-3 px-2 whitespace-nowrap text-center">Status Akun</th>
+                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-24">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-4 px-5"><div className="h-4 bg-slate-200 rounded w-32" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                    <td className="py-4 px-4"><div className="h-6 bg-slate-200 rounded-full w-16" /></td>
-                    <td className="py-4 px-4"><div className="h-6 bg-slate-200 rounded-full w-16" /></td>
-                    <td className="py-4 px-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-24 mx-auto" /></td>
+                    <td className="py-3.5 pl-4 pr-2"><div className="h-4 bg-slate-200 rounded w-28" /></td>
+                    <td className="py-3.5 px-2 text-center"><div className="h-4 bg-slate-200 rounded w-20 mx-auto" /></td>
+                    <td className="py-3.5 px-2"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                    <td className="py-3.5 px-2"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                    <td className="py-3.5 px-2"><div className="h-4 bg-slate-200 rounded w-16" /></td>
+                    <td className="py-3.5 px-2 text-center"><div className="h-6 bg-slate-200 rounded-full w-14 mx-auto" /></td>
+                    <td className="py-3.5 px-2 text-center"><div className="h-6 bg-slate-200 rounded-full w-14 mx-auto" /></td>
+                    <td className="py-3.5 pl-2 pr-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-20 mx-auto" /></td>
                   </tr>
                 ))
               ) : filteredInmates.length > 0 ? (
                 filteredInmates.map((inmate) => (
                   <tr key={inmate.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-5 font-bold text-slate-800 whitespace-nowrap">
+                    <td className="py-3 pl-4 pr-2 font-bold text-slate-800 whitespace-nowrap">
                       {inmate.name || '-'}
                     </td>
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-600 whitespace-nowrap">
-                      {inmate.wbpRegNumber || inmate.identifier || '-'}
+                    <td className="py-3 px-2 text-center whitespace-nowrap">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-[11px] font-semibold border border-slate-200/80">
+                        {inmate.wbpRegNumber || inmate.identifier || '-'}
+                      </span>
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
+                    <td className="py-3 px-2 font-medium text-slate-700 whitespace-nowrap">
                       {inmate.blockRoom || '-'}
                     </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-600 whitespace-nowrap">
+                    <td className="py-3 px-2 font-medium text-slate-600 whitespace-nowrap">
                       {inmate.entryDate ? new Date(inmate.entryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                     </td>
-                    <td className="py-3.5 px-4 font-extrabold text-slate-800 whitespace-nowrap">
+                    <td className="py-3 px-2 font-extrabold text-slate-800 whitespace-nowrap">
                       {typeof inmate.callBalance === 'number' ? formatCurrency(inmate.callBalance) : '-'}
                     </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3 px-2 text-center whitespace-nowrap">
                       {inmate.status ? (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           inmate.status === 'Aktif' 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
                             : inmate.status === 'Dipindahkan' 
                             ? 'bg-amber-50 text-amber-700 border border-amber-200/60' 
                             : 'bg-slate-100 text-slate-600 border border-slate-200'
                         }`}>
-                          {inmate.status === 'Aktif' && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                          {inmate.status === 'Dipindahkan' && <Clock className="w-3.5 h-3.5 text-amber-600" />}
-                          {inmate.status === 'Sudah Bebas' && <XCircle className="w-3.5 h-3.5 text-slate-400" />}
+                          {inmate.status === 'Aktif' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                          {inmate.status === 'Dipindahkan' && <Clock className="w-3 h-3 text-amber-600" />}
+                          {inmate.status === 'Sudah Bebas' && <XCircle className="w-3 h-3 text-slate-400" />}
                           {inmate.status}
                         </span>
                       ) : (
                         <span className="text-slate-400 font-medium">-</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
+                    <td className="py-3 px-2 text-center whitespace-nowrap">
                       {inmate.commStatus ? (
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           inmate.commStatus === 'Aktif' 
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
                             : 'bg-rose-50 text-rose-700 border border-rose-200/60'
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${inmate.commStatus === 'Aktif' ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`}></span>
+                          <span className={`w-1.5 h-1.5 rounded-full ${inmate.commStatus === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                           {inmate.commStatus === 'Aktif' ? 'Aktif' : 'Nonaktif'}
                         </span>
                       ) : (
                         <span className="text-slate-400 font-medium">-</span>
                       )}
                     </td>
-                    <td className="py-3.5 px-5 text-center whitespace-nowrap">
-                      <div className="flex items-center justify-center gap-1.5">
+                    <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
+                      <div className="flex items-center justify-center gap-1">
                         {/* View Detail */}
                         <Link
                           to={`/branch/inmates/${encodeURIComponent(inmate.wbpRegNumber || inmate.identifier || inmate.id)}`}
-                          className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors cursor-pointer shrink-0"
                           title="Lihat Detail Narapidana"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -474,7 +476,7 @@ const InmatesList = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenEdit(inmate)}
-                          className="p-1.5 bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-primary rounded-lg transition-colors cursor-pointer shrink-0"
                           title="Edit Data Narapidana"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
@@ -484,12 +486,12 @@ const InmatesList = () => {
                         <button
                           type="button"
                           onClick={() => handleOpenPowerModal(inmate)}
-                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer shrink-0 ${
                             inmate.commStatus === 'Aktif' 
                               ? 'bg-rose-50 text-rose-600 hover:bg-rose-100' 
                               : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
                           }`}
-                          title={inmate.commStatus === 'Aktif' ? 'Nonaktifkan Akun Narapidana' : 'Aktifkan Akun Narapidana'}
+                          title={inmate.commStatus === 'Aktif' ? 'Nonaktifkan Akun Komunikasi' : 'Aktifkan Akun Komunikasi'}
                         >
                           <Power className="w-3.5 h-3.5" />
                         </button>

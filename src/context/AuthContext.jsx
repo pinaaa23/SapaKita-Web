@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
   }, [user]);
 
   const roleLabel = useMemo(() => {
-    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : 'Super Administrator'));
+    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : 'Super Administrator')));
   }, [role]);
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke roleLabel jika user.name kosong.
@@ -76,6 +76,7 @@ export const AuthProvider = ({ children }) => {
     isSupervisor: role === ROLES.SUPERVISOR,
     isKepalaUpt: role === ROLES.KEPALA_UPT,
     isSuperadmin: role === ROLES.SUPERADMIN,
+    isOperatorKantin: role === ROLES.OPERATOR_KANTIN,
     canViewRecordings,
     canManageUsers,
     canManagePackages,

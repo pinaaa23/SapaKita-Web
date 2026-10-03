@@ -13,9 +13,9 @@ import {
   X, 
   Info,
   Check,
-  Tag,
+  Building2,
   Clock,
-  AlertTriangle
+  Coins
 } from 'lucide-react';
 import { 
   getPackages, 
@@ -23,8 +23,10 @@ import {
   updatePackage, 
   togglePackageStatus 
 } from '../../services/packageService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function BranchPackages() {
+  const { uptName } = useAuth();
   const [packages, setPackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,6 +54,7 @@ export default function BranchPackages() {
     setIsLoading(true);
     try {
       const data = await getPackages({
+        branchId: uptName,
         search,
         kategori: selectedCategory,
         status: statusFilter,
@@ -66,7 +69,7 @@ export default function BranchPackages() {
 
   useEffect(() => {
     fetchPackagesData();
-  }, [search, selectedCategory, statusFilter]);
+  }, [search, selectedCategory, statusFilter, uptName]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -93,8 +96,8 @@ export default function BranchPackages() {
     setFormData({
       nama: pkg.nama || '',
       kategori: pkg.kategori || 'telepon',
-      durasi: pkg.durasi || '',
-      harga: pkg.harga || '',
+      durasi: String(pkg.durasi || ''),
+      harga: String(pkg.harga || ''),
       status: pkg.status || 'Aktif',
     });
     setFormError('');
@@ -111,15 +114,25 @@ export default function BranchPackages() {
       return;
     }
 
+    if (!formData.kategori) {
+      setFormError('Kategori paket wajib dipilih.');
+      return;
+    }
+
     const durasiNum = Number(formData.durasi);
     if (!formData.durasi || isNaN(durasiNum) || durasiNum <= 0) {
-      setFormError('Durasi harus berupa angka positif (lebih dari 0 menit).');
+      setFormError('Jumlah menit harus berupa angka lebih dari 0.');
       return;
     }
 
     const hargaNum = Number(formData.harga);
     if (!formData.harga || isNaN(hargaNum) || hargaNum <= 0) {
-      setFormError('Harga harus berupa angka positif (lebih dari Rp0).');
+      setFormError('Harga harus berupa angka lebih dari Rp 0.');
+      return;
+    }
+
+    if (!formData.status) {
+      setFormError('Status paket wajib dipilih.');
       return;
     }
 
@@ -132,6 +145,7 @@ export default function BranchPackages() {
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
+          branch: uptName,
         });
         showToast(`Paket "${trimmedName}" berhasil diperbarui.`);
       } else {
@@ -141,8 +155,9 @@ export default function BranchPackages() {
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
+          branch: uptName,
         });
-        showToast(`Paket "${trimmedName}" berhasil dibuat.`);
+        showToast(`Paket "${trimmedName}" berhasil ditambahkan.`);
       }
       setIsModalOpen(false);
       fetchPackagesData();
@@ -200,34 +215,40 @@ export default function BranchPackages() {
       {/* Header Halaman */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white rounded-2xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
         <div>
-          <h2 className="text-xl font-black text-slate-800 tracking-tight">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#1565C0] border border-blue-200/60">
+              <Building2 className="w-3 h-3" />
+              <span>{uptName || 'Lapas Cipinang'}</span>
+            </span>
+          </div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight mt-1.5">
             Kelola Paket
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Atur paket telepon dan video call untuk warga binaan
+          <p className="text-xs text-slate-500 mt-0.5">
+            Atur tarif dan paket layanan komunikasi untuk kasir Kantin dan warga binaan.
           </p>
         </div>
 
         <button
           type="button"
           onClick={handleOpenCreateModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark active:scale-95 text-white font-bold text-xs shadow-md shadow-primary/20 transition-all cursor-pointer shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" />
-          <span>Buat Paket</span>
+          <span>Tambah Paket</span>
         </button>
       </div>
 
       {/* Search & Filter Toolbar */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Category Tabs: Semua, Telepon, Video Call (Tanpa Combo) */}
+        {/* Category Tabs: Semua, Telepon, Video Call */}
         <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full md:w-auto overflow-x-auto">
           <button
             type="button"
             onClick={() => setSelectedCategory('semua')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'semua'
-                ? 'bg-white text-primary shadow-xs'
+                ? 'bg-white text-[#1565C0] shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -238,7 +259,7 @@ export default function BranchPackages() {
             onClick={() => setSelectedCategory('telepon')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'telepon'
-                ? 'bg-primary text-white shadow-xs'
+                ? 'bg-[#1565C0] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -250,7 +271,7 @@ export default function BranchPackages() {
             onClick={() => setSelectedCategory('video')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'video'
-                ? 'bg-primary text-white shadow-xs'
+                ? 'bg-[#1565C0] text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -268,7 +289,7 @@ export default function BranchPackages() {
               placeholder="Cari nama paket..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1565C0] transition shadow-2xs"
             />
           </div>
 
@@ -288,172 +309,163 @@ export default function BranchPackages() {
         </div>
       </div>
 
-      {/* Grid Kartu Paket (3 Kolom Responsif) */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {Array.from({ length: 5 }).map((_, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-2xl p-6 border border-slate-200/80 shadow-xs animate-pulse space-y-4 h-56 flex flex-col justify-between"
-            >
-              <div className="space-y-2">
-                <div className="h-5 bg-slate-200 rounded w-3/4" />
-                <div className="h-4 bg-slate-100 rounded w-1/3 mt-2" />
-              </div>
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <div className="h-3 bg-slate-100 rounded w-1/3" />
-                <div className="h-7 bg-slate-200 rounded w-1/2" />
-              </div>
-              <div className="h-8 bg-slate-200 rounded-xl w-full" />
-            </div>
-          ))}
-        </div>
-      ) : packages.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {packages.map((pkg) => {
-            const isInactive = pkg.status === 'Nonaktif';
-            const isTelepon = pkg.kategori === 'telepon';
-
-            return (
-              <div
-                key={pkg.id}
-                className={`bg-white rounded-2xl p-6 border transition-all duration-200 flex flex-col justify-between relative shadow-xs hover:shadow-md ${
-                  isInactive
-                    ? 'border-slate-200 bg-slate-50/50 opacity-65'
-                    : 'border-slate-200/90 hover:border-blue-300'
-                }`}
-              >
-                {/* Bagian Atas: Kategori, Status, Nama Paket, dan Durasi */}
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    {/* Badge Kategori */}
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                        isTelepon
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
-                          : 'bg-purple-50 text-purple-700 border border-purple-200/60'
-                      }`}
-                    >
-                      {isTelepon ? <Phone className="w-3.5 h-3.5" /> : <Video className="w-3.5 h-3.5" />}
-                      <span>{isTelepon ? 'Telepon' : 'Video Call'}</span>
-                    </span>
-
-                    {/* Badge Status */}
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                        !isInactive
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
-                          : 'bg-slate-100 text-slate-500 border border-slate-200'
-                      }`}
-                    >
-                      <span className={`w-1.5 h-1.5 rounded-full ${!isInactive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                      {pkg.status}
-                    </span>
-                  </div>
-
-                  {/* Nama Paket */}
-                  <h3 className="text-base font-extrabold text-slate-800 tracking-tight leading-snug">
-                    {pkg.nama}
-                  </h3>
-
-                  {/* Durasi Panggilan (Dengan Ikon Centang, tanpa teks Semua Operator) */}
-                  <div className="flex items-center gap-1.5 mt-2.5 text-xs font-bold text-slate-700">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>{pkg.durasi} Menit</span>
-                  </div>
-                </div>
-
-                {/* Bagian Tengah: Harga & Status PPN */}
-                <div className="pt-4 pb-3 border-b border-slate-100 mt-4 mb-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    <span>HARGA</span>
-                    <span className="text-[10px] text-slate-400 font-normal">Termasuk PPN 11%</span>
-                  </div>
-                  <div className="text-2xl font-black text-primary tracking-tight mt-1">
-                    {formatRupiah(pkg.harga)}
-                  </div>
-                </div>
-
-                {/* Bagian Bawah: Toggle Status & Tombol Edit */}
-                <div className="flex items-center justify-between gap-2 pt-2">
-                  {/* Toggle Aktif / Nonaktif */}
-                  <button
-                    type="button"
-                    onClick={() => handleToggleClick(pkg)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      !isInactive
-                        ? 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600'
-                        : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/60'
-                    }`}
-                    title={!isInactive ? "Nonaktifkan Paket" : "Aktifkan Paket"}
-                  >
-                    <Power className="w-3.5 h-3.5" />
-                    <span>{!isInactive ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                  </button>
-
-                  {/* Tombol Edit */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(pkg)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary font-bold text-xs transition cursor-pointer border border-blue-100"
-                    title="Edit Data Paket"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
-                    <span>Edit</span>
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* State Kosong */
-        <div className="bg-white rounded-2xl p-12 border border-slate-200/80 shadow-xs text-center">
-          <div className="max-w-sm mx-auto flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mb-3">
-              <Package className="w-7 h-7" />
-            </div>
-            <h3 className="text-slate-800 font-bold text-base">Belum ada paket</h3>
-            <p className="text-slate-400 text-xs mt-1 mb-5">
-              {search || selectedCategory !== 'semua' || statusFilter !== 'semua'
-                ? 'Tidak ditemukan paket yang cocok dengan filter pencarian.'
-                : 'Buat paket panggilan komunikasi pertama untuk warga binaan di UPT ini.'}
-            </p>
-            <button
-              type="button"
-              onClick={handleOpenCreateModal}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Buat Paket</span>
-            </button>
+      {/* Tabel Daftar Paket */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {isLoading ? (
+          <div className="p-12 text-center text-slate-400">
+            <div className="animate-spin w-6 h-6 border-2 border-[#1565C0] border-t-transparent rounded-full mx-auto mb-2" />
+            <p className="text-xs font-medium">Memuat data paket...</p>
           </div>
-        </div>
-      )}
+        ) : packages.length === 0 ? (
+          <div className="p-12 text-center">
+            <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-bold text-slate-700">Belum Ada Paket</p>
+            <p className="text-xs text-slate-400 mt-1">
+              Tidak ada paket yang sesuai dengan kriteria filter.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                  <th className="py-3.5 px-4">Nama Paket</th>
+                  <th className="py-3.5 px-4">Kategori</th>
+                  <th className="py-3.5 px-4 text-center">Jumlah Menit</th>
+                  <th className="py-3.5 px-4 text-right">Harga</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {packages.map((pkg) => {
+                  const isInactive = pkg.status === 'Nonaktif';
+                  const isTelepon = (pkg.kategori || '').toLowerCase() === 'telepon';
 
-      {/* MODAL 1: Buat / Edit Paket (Kategori 2 Kolom: Telepon & Video Call) */}
+                  return (
+                    <tr
+                      key={pkg.id}
+                      className={`hover:bg-slate-50/60 transition-colors ${
+                        isInactive ? 'bg-slate-50/40 text-slate-400' : ''
+                      }`}
+                    >
+                      {/* Nama Paket */}
+                      <td className="py-3.5 px-4 font-bold text-slate-800">
+                        <div className="flex items-center gap-2">
+                          <Package className="w-4 h-4 text-slate-400" />
+                          <span>{pkg.nama}</span>
+                        </div>
+                      </td>
+
+                      {/* Kategori */}
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            isTelepon
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                              : 'bg-purple-50 text-purple-700 border border-purple-200/60'
+                          }`}
+                        >
+                          {isTelepon ? (
+                            <Phone className="w-3 h-3" />
+                          ) : (
+                            <Video className="w-3 h-3" />
+                          )}
+                          <span>{isTelepon ? 'Telepon' : 'Video Call'}</span>
+                        </span>
+                      </td>
+
+                      {/* Jumlah Menit */}
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-700">
+                        <div className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{pkg.durasi} Menit</span>
+                        </div>
+                      </td>
+
+                      {/* Harga */}
+                      <td className="py-3.5 px-4 text-right font-extrabold text-[#1565C0] text-sm">
+                        {formatRupiah(pkg.harga)}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            !isInactive
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
+                              : 'bg-slate-100 text-slate-500 border border-slate-200'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              !isInactive ? 'bg-emerald-500' : 'bg-slate-400'
+                            }`}
+                          />
+                          {pkg.status}
+                        </span>
+                      </td>
+
+                      {/* Aksi: Ubah & Aktifkan/Nonaktifkan */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(pkg)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1565C0] font-bold text-xs transition cursor-pointer border border-blue-200/60"
+                            title="Ubah Paket"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                            <span>Ubah</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleToggleClick(pkg)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                              !isInactive
+                                ? 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200'
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
+                            }`}
+                            title={!isInactive ? 'Nonaktifkan Paket' : 'Aktifkan Paket'}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                            <span>{!isInactive ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal Tambah / Edit Paket */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
-            <div className="p-5 bg-gradient-to-r from-primary to-blue-700 text-white flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
-                  {editingPackage ? <Edit3 className="w-5 h-5 text-white" /> : <Plus className="w-5 h-5 text-white" />}
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] flex items-center justify-center">
+                  <Package className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base leading-tight">
-                    {editingPackage ? 'Edit Paket Komunikasi' : 'Buat Paket Komunikasi Baru'}
+                  <h3 className="text-sm font-bold text-slate-800">
+                    {editingPackage ? 'Ubah Paket Komunikasi' : 'Tambah Paket Baru'}
                   </h3>
-                  <p className="text-xs text-blue-100 mt-0.5">
-                    {editingPackage ? 'Perbarui informasi tarif dan durasi paket' : 'Tentukan nama, tarif, durasi, dan kategori paket'}
+                  <p className="text-[11px] text-slate-500">
+                    {uptName || 'Lapas Cipinang'}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
+                className="w-7 h-7 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -462,152 +474,125 @@ export default function BranchPackages() {
             {/* Form Modal */}
             <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
               {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
                   <span>{formError}</span>
                 </div>
               )}
 
-              {/* Nama Paket */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              {/* Input Nama Paket */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nama Paket <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="Contoh: Paket Telepon 50 Menit"
+                  placeholder="Contoh: Paket Telepon 15 Menit"
                   value={formData.nama}
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              {/* Kategori Paket: Telepon & Video Call (2 Kolom Lebar Sama Rata) */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+              {/* Kategori Paket */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Kategori Layanan <span className="text-rose-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, kategori: 'telepon' })}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition text-center cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       formData.kategori === 'telepon'
-                        ? 'bg-blue-50 border-primary ring-2 ring-primary/20 text-primary'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-blue-50 border-[#1565C0] text-[#1565C0]'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    <Phone className="w-4 h-4" />
-                    <span className="text-xs font-bold">Telepon</span>
+                    <Phone className="w-3.5 h-3.5" />
+                    <span>Telepon</span>
                   </button>
-
                   <button
                     type="button"
                     onClick={() => setFormData({ ...formData, kategori: 'video' })}
-                    className={`p-3 rounded-xl border flex items-center justify-center gap-2 transition text-center cursor-pointer ${
+                    className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       formData.kategori === 'video'
-                        ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500/20 text-purple-700'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        ? 'bg-purple-50 border-purple-600 text-purple-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
-                    <Video className="w-4 h-4" />
-                    <span className="text-xs font-bold">Video Call</span>
+                    <Video className="w-3.5 h-3.5" />
+                    <span>Video Call</span>
                   </button>
                 </div>
               </div>
 
-              {/* Grid Durasi & Harga */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Durasi dalam Menit */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Durasi (Menit) <span className="text-rose-500">*</span>
+              {/* Durasi & Harga */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Jumlah Menit <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
-                    <Clock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <input
                       type="number"
-                      required
                       min="1"
-                      placeholder="Contoh: 50"
+                      placeholder="15"
                       value={formData.durasi}
                       onChange={(e) => setFormData({ ...formData, durasi: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
                     />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium pointer-events-none">
+                      Mnt
+                    </span>
                   </div>
                 </div>
 
-                {/* Harga dalam Rp */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Harga (Rp) <span className="text-rose-500">*</span>
                   </label>
-                  <div className="relative">
-                    <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <input
-                      type="number"
-                      required
-                      min="100"
-                      step="100"
-                      placeholder="Contoh: 25000"
-                      value={formData.harga}
-                      onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
-                    />
-                  </div>
+                  <input
+                    type="number"
+                    min="1"
+                    step="100"
+                    placeholder="15000"
+                    value={formData.harga}
+                    onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
+                  />
                 </div>
               </div>
 
               {/* Status Paket */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Status Paket
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Status Paket <span className="text-rose-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, status: 'Aktif' })}
-                    className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer ${
-                      formData.status === 'Aktif'
-                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    <span>Aktif</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, status: 'Nonaktif' })}
-                    className={`p-2.5 rounded-xl border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer ${
-                      formData.status === 'Nonaktif'
-                        ? 'bg-rose-50 border-rose-500 text-rose-700 ring-2 ring-rose-500/20'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-slate-400"></span>
-                    <span>Nonaktif</span>
-                  </button>
-                </div>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                >
+                  <option value="Aktif">Aktif (Tampil di Kasir Kantin)</option>
+                  <option value="Nonaktif">Nonaktif (Disembunyikan dari Kantin)</option>
+                </select>
               </div>
 
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="pt-2 flex items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold text-xs transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow-md shadow-primary/20 transition cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-xs transition shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
                 >
-                  {isSubmitting ? 'Menyimpan...' : (editingPackage ? 'Simpan Perubahan' : 'Buat Paket')}
+                  {isSubmitting ? 'Menyimpan...' : editingPackage ? 'Simpan Perubahan' : 'Tambah Paket'}
                 </button>
               </div>
             </form>
@@ -615,55 +600,43 @@ export default function BranchPackages() {
         </div>
       )}
 
-      {/* MODAL 2: Konfirmasi Penonaktifan Paket (Tanpa Hapus) */}
+      {/* Modal Konfirmasi Nonaktifkan */}
       {isConfirmModalOpen && selectedPackageForToggle && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
-            <div className="p-6 text-center space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 mx-auto flex items-center justify-center">
-                <AlertTriangle className="w-7 h-7" />
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-3">
+              <Power className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              Nonaktifkan Paket?
+            </h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Paket <span className="font-bold text-slate-700">"{selectedPackageForToggle.nama}"</span> tidak akan muncul di kasir Kantin. Transaksi lama tetap tersimpan utuh.
+            </p>
 
-              <div>
-                <h3 className="text-base font-bold text-slate-800">
-                  Nonaktifkan Paket Komunikasi?
-                </h3>
-                <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                  Apakah Anda yakin ingin menonaktifkan <strong>"{selectedPackageForToggle.nama}"</strong>?
-                </p>
-                <div className="p-3 bg-amber-50 border border-amber-200/60 rounded-xl text-left mt-3">
-                  <p className="text-[11px] text-amber-800 font-semibold flex items-center gap-1.5">
-                    <Info className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                    <span>Paket tidak akan muncul di kantin, riwayat transaksi tetap tersimpan.</span>
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsConfirmModalOpen(false);
-                    setSelectedPackageForToggle(null);
-                  }}
-                  className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={() => executeToggleStatus(selectedPackageForToggle)}
-                  disabled={isSubmitting}
-                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs shadow-md shadow-rose-600/25 transition cursor-pointer"
-                >
-                  {isSubmitting ? 'Memproses...' : 'Ya, Nonaktifkan'}
-                </button>
-              </div>
+            <div className="mt-5 flex items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsConfirmModalOpen(false);
+                  setSelectedPackageForToggle(null);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => executeToggleStatus()}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-md shadow-rose-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? 'Memproses...' : 'Ya, Nonaktifkan'}
+              </button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

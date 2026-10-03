@@ -1,23 +1,11 @@
 import { apiFetch, logout } from './api';
+import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan bila rute backend berbeda
 export const DASHBOARD_SUMMARY_ENDPOINT = '/api/dashboard/summary';
 
 /**
  * Mapper terpusat untuk menstandarisasi data ringkasan dashboard
- * Format output yang diharapkan:
- * {
- *   totalCalls: number,
- *   totalRevenue: number,
- *   activeBranches: number,
- *   successRate: number,
- *   revenueTrend: [{ date: string, amount: number }],
- *   callVolume: [{ date: string, count: number }],
- *   callsGrowth?: number | null,
- *   revenueGrowth?: number | null,
- *   branchesGrowth?: number | null,
- *   successRateGrowth?: number | null
- * }
  */
 export const mapDashboardSummary = (raw) => {
   const data = raw?.data || raw || {};
@@ -48,11 +36,38 @@ export const mapDashboardSummary = (raw) => {
 
 /**
  * Memanggil endpoint ringkasan dashboard Superadmin
- * Jika respons 401, otomatis memicu logout.
- * Jika endpoint belum ada (404) atau server tidak dapat dihubungi,
- * fungsi akan mengembalikan struktur data kosong default secara aman.
+ * Jika mode demo aktif, memuat data dari dummyStore
  */
 export const getDashboardSummary = async () => {
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    const stats = dummyStore.getSuperadminStats();
+    return {
+      totalCalls: stats.totalCalls,
+      totalRevenue: stats.totalRevenue,
+      activeBranches: stats.activeBranches,
+      successRate: stats.successRate,
+      revenueTrend: [
+        { date: '28 Sep', amount: 35964 },
+        { date: '29 Sep', amount: 47952 },
+        { date: '30 Sep', amount: 29970 },
+        { date: '01 Okt', amount: 53946 },
+        { date: '02 Okt', amount: stats.totalRevenue },
+      ],
+      callVolume: [
+        { date: '28 Sep', count: 3 },
+        { date: '29 Sep', count: 4 },
+        { date: '30 Sep', count: 2 },
+        { date: '01 Okt', count: 5 },
+        { date: '02 Okt', count: stats.totalCalls },
+      ],
+      callsGrowth: 14.2,
+      revenueGrowth: 18.5,
+      branchesGrowth: 0,
+      successRateGrowth: 3.1,
+    };
+  }
+
   try {
     const response = await apiFetch(DASHBOARD_SUMMARY_ENDPOINT);
     return mapDashboardSummary(response);
@@ -61,8 +76,7 @@ export const getDashboardSummary = async () => {
       logout();
       throw error;
     }
-    // Catat log untuk kebutuhan debugging tanpa melempar error teknis ke UI
-    console.log('[DashboardService] Memuat data default/kosong:', error?.message || error);
+    console.log('[DashboardService] Error memuat data ringkasan dashboard:', error?.message || error);
     return mapDashboardSummary({});
   }
 };
