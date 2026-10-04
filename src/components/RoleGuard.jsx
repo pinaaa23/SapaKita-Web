@@ -8,7 +8,11 @@ import { normalizeRole, ROLES } from '../config/menuConfig';
  * Jika role tidak diizinkan, otomatis dialihkan ke Dashboard UPT (tanpa logout).
  */
 const RoleGuard = ({ allowedRoles, children }) => {
-  const { role: currentRole } = useAuth();
+  const { role: currentRole, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated || !currentRole) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (allowedRoles && Array.isArray(allowedRoles) && allowedRoles.length > 0) {
     const isAllowed = allowedRoles.some((r) => normalizeRole(r) === currentRole);
@@ -20,13 +24,16 @@ const RoleGuard = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.OPERATOR_KANTIN) {
         return <Navigate to="/kantin" replace />;
       }
-      return (
-        <Navigate 
-          to="/branch/dashboard" 
-          state={{ unauthorizedAccess: true, message: 'Anda tidak memiliki akses ke halaman ini.' }} 
-          replace 
-        />
-      );
+      if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
+        return (
+          <Navigate 
+            to="/branch/dashboard" 
+            state={{ unauthorizedAccess: true, message: 'Anda tidak memiliki akses ke halaman ini.' }} 
+            replace 
+          />
+        );
+      }
+      return <Navigate to="/login" replace />;
     }
   }
 

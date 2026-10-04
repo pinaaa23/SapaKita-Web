@@ -47,6 +47,19 @@ export const mapInmateItem = (item) => {
   const status = item.status || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Suspended') : null);
   const commStatus = item.commStatus || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Nonaktif') : null);
 
+  // Data keluarga
+  let families = [];
+  if (Array.isArray(item.families)) {
+    families = item.families;
+  } else if (Array.isArray(item.contacts)) {
+    families = item.contacts.map((c, idx) => ({
+      id: c.id || `fam-${idx + 1}`,
+      name: c.name || c.contactName || '-',
+      relationship: c.relationship || c.relation || 'Keluarga',
+      phone: c.phone || '',
+    }));
+  }
+
   return {
     id: item.id || item._id || rawIdentifier,
     identifier: rawIdentifier,
@@ -61,6 +74,7 @@ export const mapInmateItem = (item) => {
     isActive: item.isActive !== undefined ? Boolean(item.isActive) : undefined,
     branchId: item.branchId || item.branch?.id || item.branch?._id || '',
     branchName,
+    families,
     isMock: Boolean(item.isMock),
     raw: item
   };
@@ -176,7 +190,7 @@ export const getInmateById = async (idOrIdentifier) => {
 /**
  * Mendaftarkan narapidana baru
  */
-export const createInmate = async ({ identifier, name, initialPin, branchId, branchName }) => {
+export const createInmate = async ({ identifier, name, initialPin, branchId, branchName, families = [] }) => {
   if (!identifier || !name) {
     throw new Error('NIP dan Nama Narapidana wajib diisi');
   }
@@ -194,6 +208,7 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
       status: 'Aktif',
       commStatus: 'Aktif',
       isActive: true,
+      families: Array.isArray(families) ? families : [],
     });
     return { success: true, data: mapInmateItem(newNapi) };
   }
@@ -211,6 +226,7 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
       status: 'Aktif',
       commStatus: 'Aktif',
       isActive: true,
+      families: Array.isArray(families) ? families : [],
     });
     return { success: true, data: newNapi };
   }
@@ -219,6 +235,7 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
     identifier: identifier.trim(),
     name: name.trim(),
     initialPin: (initialPin || '1234').trim(),
+    families: Array.isArray(families) ? families : [],
   };
 
   if (branchId) {
@@ -244,7 +261,7 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
 /**
  * Memperbarui data narapidana
  */
-export const updateInmate = async (id, { name, identifier, initialPin, ...otherData }) => {
+export const updateInmate = async (id, { name, identifier, initialPin, families, ...otherData }) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
 
   if (isDummyMode()) {
@@ -253,6 +270,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, ...otherD
       ...(name ? { name: name.trim() } : {}),
       ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
     return { success: true, data: updated ? mapInmateItem(updated) : null };
@@ -264,6 +282,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, ...otherD
       ...(name ? { name: name.trim() } : {}),
       ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
     return { success: true, data: updated };
@@ -272,6 +291,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, ...otherD
   const payload = {
     name: name?.trim(),
     identifier: identifier?.trim(),
+    ...(families !== undefined ? { families } : {}),
   };
 
   if (initialPin && initialPin.trim()) {

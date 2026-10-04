@@ -124,7 +124,7 @@ const Topbar = () => {
   const handleLogout = () => {
     setIsDropdownOpen(false);
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   const markAllAsRead = () => {

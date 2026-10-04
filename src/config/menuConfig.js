@@ -34,15 +34,15 @@ export const ROLE_LABELS = {
  * Normalisasi role dari berbagai format string backend / localStorage
  */
 export const normalizeRole = (rawRole) => {
-  if (!rawRole) return ROLES.KEPALA_UPT; // Default fallback aman untuk dashboard UPT
+  if (!rawRole) return '';
   const str = String(rawRole).trim().toLowerCase();
 
   if (str === 'superadmin' || str === 'admin_pusat') return ROLES.SUPERADMIN;
-  if (str === 'kepala_upt' || str === 'branch_admin' || str === 'admin_cabang' || str === 'kepala') return ROLES.KEPALA_UPT;
+  if (str === 'kepala_upt' || str === 'branch_admin' || str === 'admin_cabang' || str === 'kepala' || str === 'admin') return ROLES.KEPALA_UPT;
   if (str === 'supervisor' || str === 'spv') return ROLES.SUPERVISOR;
   if (str === 'operator_kantin' || str === 'canteen_staff' || str === 'kantin') return ROLES.OPERATOR_KANTIN;
 
-  return ROLES.KEPALA_UPT;
+  return '';
 };
 
 /**

@@ -161,6 +161,10 @@ export const INITIAL_MOCK_NAPI = [
     entryDate: '2026-01-10T08:30:00.000Z',
     createdAt: '2026-01-10T08:30:00.000Z',
     isMock: true,
+    families: [
+      { id: 'fam-m1-1', name: 'Siti Rohayati', relationship: 'Istri', phone: '081298765431' },
+      { id: 'fam-m1-2', name: 'Dodi Pratama', relationship: 'Anak', phone: '081298765432' },
+    ],
   },
   {
     id: 'mock-napi-002',
@@ -177,6 +181,10 @@ export const INITIAL_MOCK_NAPI = [
     entryDate: '2026-01-15T10:15:00.000Z',
     createdAt: '2026-01-15T10:15:00.000Z',
     isMock: true,
+    families: [
+      { id: 'fam-m2-1', name: 'Ratna Dewi', relationship: 'Orang Tua', phone: '081311223344' },
+      { id: 'fam-m2-2', name: 'Indah Permatasari', relationship: 'Saudara', phone: '081311223355' },
+    ],
   },
   {
     id: 'mock-napi-003',
@@ -193,6 +201,9 @@ export const INITIAL_MOCK_NAPI = [
     entryDate: '2026-02-01T14:20:00.000Z',
     createdAt: '2026-02-01T14:20:00.000Z',
     isMock: true,
+    families: [
+      { id: 'fam-m3-1', name: 'Agus Gunawan', relationship: 'Saudara', phone: '081922334455' },
+    ],
   },
   {
     id: 'mock-napi-004',
@@ -209,6 +220,9 @@ export const INITIAL_MOCK_NAPI = [
     entryDate: '2026-02-10T09:00:00.000Z',
     createdAt: '2026-02-10T09:00:00.000Z',
     isMock: true,
+    families: [
+      { id: 'fam-m4-1', name: 'Tuti Hartati', relationship: 'Istri', phone: '082133445566' },
+    ],
   },
   {
     id: 'mock-napi-005',
@@ -225,6 +239,10 @@ export const INITIAL_MOCK_NAPI = [
     entryDate: '2026-02-25T11:45:00.000Z',
     createdAt: '2026-02-25T11:45:00.000Z',
     isMock: true,
+    families: [
+      { id: 'fam-m5-1', name: 'Halimah', relationship: 'Orang Tua', phone: '081244556677' },
+      { id: 'fam-m5-2', name: 'Farhan Ridwan', relationship: 'Saudara', phone: '081244556688' },
+    ],
   },
 ];
 
@@ -274,6 +292,7 @@ export const addMockNapi = (napiData) => {
     isActive: napiData.isActive !== undefined ? Boolean(napiData.isActive) : true,
     entryDate: napiData.entryDate || createdAt,
     createdAt,
+    families: Array.isArray(napiData.families) ? napiData.families : [],
     isMock: true,
   };
 

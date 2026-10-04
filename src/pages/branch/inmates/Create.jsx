@@ -8,11 +8,13 @@ import {
   Camera, 
   Wallet,
   AlertCircle,
-  ChevronDown
+  ChevronDown,
+  Users
 } from 'lucide-react';
 import { createInmate } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
 import { logout, getAuthUser } from '../../../services/api';
+import FamilyMembersEditor, { validateFamilies } from '../../../components/FamilyMembersEditor';
 
 const InmatesCreate = () => {
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ const InmatesCreate = () => {
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [manualBranchName, setManualBranchName] = useState('');
+  const [familyErrors, setFamilyErrors] = useState([]);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -38,7 +41,8 @@ const InmatesCreate = () => {
     entryDate: new Date().toISOString().split('T')[0],
     status: 'Aktif',
     callBalance: 0,
-    commStatus: 'Aktif'
+    commStatus: 'Aktif',
+    families: []
   });
 
   useEffect(() => {
@@ -85,6 +89,15 @@ const InmatesCreate = () => {
       return;
     }
 
+    // Validasi keluarga
+    const { isValid, errors } = validateFamilies(formData.families);
+    if (!isValid) {
+      setFamilyErrors(errors);
+      setErrorMsg('Terdapat kesalahan pada data keluarga terdaftar. Mohon periksa kembali.');
+      return;
+    }
+    setFamilyErrors([]);
+
     const branchIdToSend = isSuperadmin 
       ? (selectedBranchId || manualBranchName.trim() || undefined)
       : undefined;
@@ -103,6 +116,7 @@ const InmatesCreate = () => {
         identifier: formData.wbpRegNumber,
         name: formData.name,
         initialPin: formData.initialPin,
+        families: formData.families,
         ...(branchIdToSend ? { branchId: branchIdToSend } : {})
       });
       
@@ -417,6 +431,30 @@ const InmatesCreate = () => {
                 <span className="text-[11px] text-slate-400">Klik untuk mengubah status aktif akun</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Section 4 - Keluarga Terdaftar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Section 4 — Keluarga Terdaftar</h2>
+              <p className="text-[11px] text-slate-500">Daftar kontak keluarga yang berhak menerima panggilan narapidana</p>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <FamilyMembersEditor 
+              families={formData.families} 
+              onChange={(newFamilies) => {
+                setFormData(prev => ({ ...prev, families: newFamilies }));
+                if (familyErrors.length > 0) setFamilyErrors([]);
+              }}
+              errors={familyErrors}
+            />
           </div>
         </div>
 

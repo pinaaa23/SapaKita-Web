@@ -59,13 +59,18 @@ export const dummyStore = {
     }
 
     if (search) {
-      const q = search.toLowerCase();
+      const q = search.toLowerCase().trim();
       list = list.filter(
         (i) =>
           i.name?.toLowerCase().includes(q) ||
           i.identifier?.toLowerCase().includes(q) ||
           i.wbpRegNumber?.toLowerCase().includes(q) ||
-          i.blockRoom?.toLowerCase().includes(q)
+          i.blockRoom?.toLowerCase().includes(q) ||
+          i.families?.some(
+            (f) =>
+              f.name?.toLowerCase().includes(q) ||
+              f.phone?.replace(/[-\s]/g, '').includes(q.replace(/[-\s]/g, ''))
+          )
       );
     }
 
@@ -102,6 +107,7 @@ export const dummyStore = {
       isActive: inmateData.isActive !== false,
       branchId: inmateData.branchId || 'b1',
       branchName: inmateData.branchName || 'Lapas Kelas I Cipinang',
+      families: Array.isArray(inmateData.families) ? inmateData.families : [],
     };
     state.inmates.unshift(newInmate);
     return newInmate;
@@ -113,6 +119,9 @@ export const dummyStore = {
       Object.assign(inmate, updateData);
       if (updateData.identifier) {
         inmate.wbpRegNumber = updateData.identifier;
+      }
+      if (updateData.families) {
+        inmate.families = Array.isArray(updateData.families) ? [...updateData.families] : [];
       }
       return inmate;
     }

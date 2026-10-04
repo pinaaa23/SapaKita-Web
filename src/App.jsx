@@ -62,63 +62,80 @@ function App() {
           {/* Admin Dashboard Routes wrapped in ProtectedRoute & Layout */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+              {/* Superadmin Only Routes */}
+              <Route element={<ProtectedRoute allowedRoles={[ROLES.SUPERADMIN]} />}>
+                <Route path="/dashboard" element={<Dashboard />} />
 
-              {/* Branches Routes */}
-              <Route path="branches">
-                <Route index element={<BranchesList />} />
-                <Route path="create" element={<BranchCreate />} />
-                <Route path=":id" element={<BranchDetail />} />
-                <Route path=":id/edit" element={<BranchEdit />} />
+                {/* Branches Routes */}
+                <Route path="branches">
+                  <Route index element={<BranchesList />} />
+                  <Route path="create" element={<BranchCreate />} />
+                  <Route path=":id" element={<BranchDetail />} />
+                  <Route path=":id/edit" element={<BranchEdit />} />
+                </Route>
+
+                {/* Superadmin Inmates Routes (Read-Only) */}
+                <Route path="inmates">
+                  <Route index element={<InmatesList />} />
+                  <Route path=":id" element={<BranchInmatesDetail />} />
+                </Route>
+
+                {/* Calls Routes */}
+                <Route path="calls">
+                  <Route index element={<CallsList />} />
+                  <Route path=":id" element={<CallDetail />} />
+                </Route>
+
+                {/* Transactions Routes */}
+                <Route path="transactions">
+                  <Route index element={<TransactionsList />} />
+                  <Route path=":id" element={<TransactionDetail />} />
+                </Route>
+
+                <Route path="reports" element={<Reports />} />
+                <Route path="profile" element={<Profile />} />
               </Route>
 
-              {/* Superadmin Inmates Routes (Read-Only) */}
-              <Route path="inmates">
-                <Route index element={<InmatesList />} />
-                <Route path=":id" element={<BranchInmatesDetail />} />
-              </Route>
-
-              {/* Calls Routes */}
-              <Route path="calls">
-                <Route index element={<CallsList />} />
-                <Route path=":id" element={<CallDetail />} />
-              </Route>
-
-              {/* Transactions Routes */}
-              <Route path="transactions">
-                <Route index element={<TransactionsList />} />
-                <Route path=":id" element={<TransactionDetail />} />
-              </Route>
-
-              <Route path="reports" element={<Reports />} />
-              <Route path="profile" element={<Profile />} />
-
-              {/* Branch Admin Routes */}
-              <Route path="branch">
+              {/* Branch Admin Routes (Kepala UPT & Supervisor) */}
+              <Route path="branch" element={<ProtectedRoute allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]} />}>
                 <Route index element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="dashboard" element={<BranchDashboard />} />
                 <Route path="inmates">
                   <Route index element={<BranchInmatesList />} />
-                  <Route path="create" element={<BranchInmatesCreate />} />
+                  <Route 
+                    path="create" 
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
+                        <BranchInmatesCreate />
+                      </RoleGuard>
+                    } 
+                  />
                   <Route path=":id" element={<BranchInmatesDetail />} />
-                  <Route path=":id/edit" element={<BranchInmatesEdit />} />
+                  <Route 
+                    path=":id/edit" 
+                    element={
+                      <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
+                        <BranchInmatesEdit />
+                      </RoleGuard>
+                    } 
+                  />
                 </Route>
 
-                {/* Rekaman Panggilan - Khusus Kepala UPT & Superadmin */}
+                {/* Rekaman Panggilan - Khusus Kepala UPT */}
                 <Route
                   path="recordings"
                   element={
-                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT]}>
                       <BranchRecordings />
                     </RoleGuard>
                   }
                 />
 
-                {/* Kelola Pengguna - Hanya Kepala UPT & Superadmin */}
+                {/* Kelola Pengguna - Hanya Kepala UPT */}
                 <Route
                   path="users"
                   element={
-                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERADMIN]}>
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT]}>
                       <BranchUsers />
                     </RoleGuard>
                   }
@@ -134,11 +151,11 @@ function App() {
                   }
                 />
 
-                {/* Persetujuan Kontak - Kepala UPT, Supervisor & Superadmin */}
+                {/* Persetujuan Kontak - Kepala UPT & Supervisor */}
                 <Route
                   path="contacts"
                   element={
-                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR, ROLES.SUPERADMIN]}>
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]}>
                       <BranchContacts />
                     </RoleGuard>
                   }

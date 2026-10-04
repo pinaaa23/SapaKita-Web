@@ -8,7 +8,9 @@ import {
   Building2, 
   Wallet, 
   Calendar, 
-  AlertCircle
+  AlertCircle,
+  Users,
+  Phone
 } from 'lucide-react';
 import { getInmates, updateInmateStatus } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
@@ -20,6 +22,7 @@ const InmatesDetail = () => {
   const authUser = getAuthUser();
   const rawRole = (authUser?.role || '').toUpperCase();
   const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
+  const isSupervisor = rawRole === 'SUPERVISOR' || rawRole === 'SPV';
   const backRoute = isSuperAdmin ? '/inmates' : '/branch/inmates';
 
   const [inmate, setInmate] = useState(null);
@@ -101,7 +104,8 @@ const InmatesDetail = () => {
           status: found.status || null,
           commStatus: found.commStatus || null,
           isActive: found.isActive,
-          branchName: resolvedBranchName
+          branchName: resolvedBranchName,
+          families: Array.isArray(found.families) ? found.families : [],
         });
       } else {
         setInmate(null);
@@ -127,6 +131,17 @@ const InmatesDetail = () => {
   useEffect(() => {
     loadInmate();
   }, [id]);
+
+  useEffect(() => {
+    if (window.location.hash === '#families') {
+      const el = document.getElementById('families');
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+  }, [inmate]);
 
   if (isLoading) {
     return (
@@ -205,8 +220,8 @@ const InmatesDetail = () => {
           <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
         </Link>
 
-        {/* Action buttons only visible for Branch Admin, hidden for Superadmin (Read-only) */}
-        {!isSuperAdmin && (
+        {/* Action buttons ONLY visible for Supervisor (SPV). Hidden for Superadmin & Kepala UPT (Read-Only) */}
+        {isSupervisor && (
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -341,6 +356,60 @@ const InmatesDetail = () => {
             <span className="font-bold text-emerald-700">{typeof inmate.callBalance === 'number' ? formatCurrency(inmate.callBalance) : '-'}</span>
           </div>
         </div>
+      </div>
+
+      {/* Keluarga Terdaftar Card */}
+      <div id="families" className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 scroll-mt-6">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" /> Keluarga Terdaftar ({inmate.families?.length || 0})
+          </h3>
+          <span className="text-[11px] text-slate-400 font-medium">
+            Daftar kontak keluarga resmi untuk layanan komunikasi narapidana
+          </span>
+        </div>
+
+        {inmate.families && inmate.families.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {inmate.families.map((fam, idx) => (
+              <div
+                key={fam.id || idx}
+                className="p-4 rounded-2xl bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 transition-all space-y-2.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-7 h-7 rounded-xl bg-blue-50 border border-blue-100 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-slate-800 text-xs truncate" title={fam.name}>
+                        {fam.name}
+                      </p>
+                      <span className="inline-block mt-0.5 px-2 py-0.5 bg-blue-50 text-primary border border-blue-200/60 rounded-full text-[10px] font-bold">
+                        {fam.relationship || 'Keluarga'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-200/60 flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
+                  <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{fam.phone}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 rounded-2xl bg-slate-50/60 border border-slate-100 text-center space-y-1.5">
+            <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+              <Users className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-slate-700">Belum ada keluarga terdaftar</p>
+            <p className="text-[11px] text-slate-400">
+              Belum ada kontak keluarga yang didaftarkan pada profil narapidana ini.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -160,6 +160,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1001-1',
+          name: 'Siti Rohayati',
+          relationship: 'Istri',
+          phone: '081298765431',
+        },
+        {
+          id: 'fam-1001-2',
+          name: 'Dodi Pratama',
+          relationship: 'Anak',
+          phone: '081298765432',
+        },
+      ],
     },
     {
       id: 'napi-002',
@@ -175,6 +189,26 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1002-1',
+          name: 'Ratna Dewi',
+          relationship: 'Orang Tua',
+          phone: '081311223344',
+        },
+        {
+          id: 'fam-1002-2',
+          name: 'Indah Permatasari',
+          relationship: 'Saudara',
+          phone: '081311223355',
+        },
+        {
+          id: 'fam-1002-3',
+          name: 'Dimas Santoso',
+          relationship: 'Saudara',
+          phone: '081311223366',
+        },
+      ],
     },
     {
       id: 'napi-003',
@@ -190,6 +224,14 @@ export const getInitialDummyData = () => {
       isActive: false,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1003-1',
+          name: 'Endang Kusuma',
+          relationship: 'Saudara',
+          phone: '085744556677',
+        },
+      ],
     },
     {
       id: 'napi-004',
@@ -205,6 +247,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1004-1',
+          name: 'Nurul Hidayati',
+          relationship: 'Istri',
+          phone: '087812345678',
+        },
+        {
+          id: 'fam-1004-2',
+          name: 'Bayu Prasetyo',
+          relationship: 'Anak',
+          phone: '087812345679',
+        },
+      ],
     },
     {
       id: 'napi-005',
@@ -220,6 +276,14 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1005-1',
+          name: 'Slamet Riyadi',
+          relationship: 'Orang Tua',
+          phone: '081277889900',
+        },
+      ],
     },
     {
       id: 'napi-006',
@@ -235,6 +299,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1006-1',
+          name: 'Tuti Hartati',
+          relationship: 'Istri',
+          phone: '082133445566',
+        },
+        {
+          id: 'fam-1006-2',
+          name: 'Rian Wibisono',
+          relationship: 'Anak',
+          phone: '082133445577',
+        },
+      ],
     },
     {
       id: 'napi-007',
@@ -250,6 +328,14 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1007-1',
+          name: 'Agus Gunawan',
+          relationship: 'Saudara',
+          phone: '081922334455',
+        },
+      ],
     },
     {
       id: 'napi-008',
@@ -265,6 +351,20 @@ export const getInitialDummyData = () => {
       isActive: false,
       branchId: 'b1',
       branchName: 'Lapas Kelas I Cipinang',
+      families: [
+        {
+          id: 'fam-1008-1',
+          name: 'Dewi Astuti',
+          relationship: 'Orang Tua',
+          phone: '085266778899',
+        },
+        {
+          id: 'fam-1008-2',
+          name: 'Hadi Maulana',
+          relationship: 'Saudara',
+          phone: '085266778800',
+        },
+      ],
     },
 
     // Lapas Pemuda Tangerang (b2) - 2 WBP
@@ -282,6 +382,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b2',
       branchName: 'Lapas Pemuda Kelas IIA Tangerang',
+      families: [
+        {
+          id: 'fam-1009-1',
+          name: 'Rina Anggraini',
+          relationship: 'Anak',
+          phone: '081388990011',
+        },
+        {
+          id: 'fam-1009-2',
+          name: 'Tri Wahyuni',
+          relationship: 'Istri',
+          phone: '081388990022',
+        },
+      ],
     },
     {
       id: 'napi-010',
@@ -297,6 +411,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b2',
       branchName: 'Lapas Pemuda Kelas IIA Tangerang',
+      families: [
+        {
+          id: 'fam-1010-1',
+          name: 'Bambang Sudiro',
+          relationship: 'Suami',
+          phone: '087733221100',
+        },
+        {
+          id: 'fam-1010-2',
+          name: 'Anisa Putri',
+          relationship: 'Anak',
+          phone: '087733221111',
+        },
+      ],
     },
 
     // Lapas Narkotika Jakarta (b3) - 2 WBP
@@ -314,6 +442,14 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b3',
       branchName: 'Lapas Narkotika Kelas IIA Jakarta',
+      families: [
+        {
+          id: 'fam-1011-1',
+          name: 'Wahyu Saputra',
+          relationship: 'Lainnya',
+          phone: '085611223344',
+        },
+      ],
     },
     {
       id: 'napi-012',
@@ -329,6 +465,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b3',
       branchName: 'Lapas Narkotika Kelas IIA Jakarta',
+      families: [
+        {
+          id: 'fam-1012-1',
+          name: 'Halimah',
+          relationship: 'Orang Tua',
+          phone: '081244556677',
+        },
+        {
+          id: 'fam-1012-2',
+          name: 'Farhan Ridwan',
+          relationship: 'Saudara',
+          phone: '081244556688',
+        },
+      ],
     },
 
     // Lapas Sukamiskin (b4) - 2 WBP
@@ -346,6 +496,26 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b4',
       branchName: 'Lapas Kelas I Sukamiskin',
+      families: [
+        {
+          id: 'fam-1013-1',
+          name: 'Lina Marlina',
+          relationship: 'Istri',
+          phone: '081255443322',
+        },
+        {
+          id: 'fam-1013-2',
+          name: 'Fikri Hidayat',
+          relationship: 'Anak',
+          phone: '081255443333',
+        },
+        {
+          id: 'fam-1013-3',
+          name: 'Salma Hidayat',
+          relationship: 'Anak',
+          phone: '081255443344',
+        },
+      ],
     },
     {
       id: 'napi-014',
@@ -361,6 +531,14 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b4',
       branchName: 'Lapas Kelas I Sukamiskin',
+      families: [
+        {
+          id: 'fam-1014-1',
+          name: 'Maya Nirmala',
+          relationship: 'Istri',
+          phone: '081877665544',
+        },
+      ],
     },
 
     // Lapas Perempuan Malang (b5) - 1 WBP
@@ -378,6 +556,20 @@ export const getInitialDummyData = () => {
       isActive: true,
       branchId: 'b5',
       branchName: 'Lapas Perempuan Kelas IIA Malang',
+      families: [
+        {
+          id: 'fam-1015-1',
+          name: 'Budi Handoyo',
+          relationship: 'Suami',
+          phone: '082233445566',
+        },
+        {
+          id: 'fam-1015-2',
+          name: 'Cantika Putri',
+          relationship: 'Anak',
+          phone: '082233445577',
+        },
+      ],
     },
   ];
 

@@ -19,11 +19,12 @@ import {
   AlertCircle
 } from 'lucide-react';
 import Modal from '../../components/Modal';
-import { getAuthUser, logout, changePasswordApi, updateProfileApi } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { changePasswordApi, updateProfileApi } from '../../services/api';
 
 const BranchProfile = () => {
   const navigate = useNavigate();
-  const authUser = getAuthUser();
+  const { user: authUser, logout } = useAuth();
   
   // State for Account Info initialized from logged in BE user without dummy data
   const [isEditingInfo, setIsEditingInfo] = useState(false);
@@ -140,7 +141,7 @@ const BranchProfile = () => {
   const handleLogoutConfirm = () => {
     setIsLogoutModalOpen(false);
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
 
   return (

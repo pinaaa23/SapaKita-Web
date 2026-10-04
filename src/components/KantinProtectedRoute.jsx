@@ -13,21 +13,20 @@ import { Loader2 } from 'lucide-react';
  * Menggunakan mekanisme auth PasCall yang sudah ada.
  */
 const KantinProtectedRoute = () => {
-  let token = getAuthToken();
+  const token = getAuthToken();
   const authUser = getAuthUser();
 
-  // Jika token belum ada tapi authUser ada di session (misal mode mock development), berikan fallback token
-  if (!token && authUser) {
-    token = 'pascall_session_token';
-    localStorage.setItem('token', token);
-  }
-
-  // Belum login sama sekali
-  if (!token && !authUser) {
+  // Belum login sama sekali -> langsung ke login
+  if (!token || !authUser) {
     return <Navigate to="/login" replace />;
   }
 
   const currentRole = normalizeRole(authUser?.role);
+
+  // Role tidak valid -> arahkan ke login
+  if (!currentRole) {
+    return <Navigate to="/login" replace />;
+  }
 
   // Operator Kantin: izinkan masuk
   if (currentRole === ROLES.OPERATOR_KANTIN) {
@@ -40,7 +39,11 @@ const KantinProtectedRoute = () => {
   }
 
   // Kepala UPT dan Supervisor -> branch dashboard
-  return <Navigate to="/branch/dashboard" replace />;
+  if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
+    return <Navigate to="/branch/dashboard" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
 };
 
 export default KantinProtectedRoute;

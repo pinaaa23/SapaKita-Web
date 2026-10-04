@@ -35,6 +35,17 @@ export const clearAuthSession = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('pascall_user');
   localStorage.removeItem('role');
+  try {
+    sessionStorage.clear();
+  } catch (e) {
+    // ignore
+  }
+  // Dispatch custom/storage event to sync any listeners
+  try {
+    window.dispatchEvent(new Event('storage'));
+  } catch (e) {
+    // ignore
+  }
 };
 
 export const logout = () => {

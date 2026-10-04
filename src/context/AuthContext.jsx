@@ -10,11 +10,12 @@ export const AuthProvider = ({ children }) => {
 
   // Normalize role from current user object
   const role = useMemo(() => {
-    return normalizeRole(user?.role);
+    return user?.role ? normalizeRole(user.role) : '';
   }, [user]);
 
   const roleLabel = useMemo(() => {
-    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : 'Super Administrator')));
+    if (!role) return '';
+    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
   }, [role]);
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke roleLabel jika user.name kosong.
@@ -22,18 +23,20 @@ export const AuthProvider = ({ children }) => {
     if (user?.name && user.name.trim() !== '') {
       return user.name.trim();
     }
-    return roleLabel;
+    return roleLabel || '';
   }, [user, roleLabel]);
 
   // Nama UPT / Cabang
   const uptName = useMemo(() => {
-    return user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : 'Lapas Cipinang');
+    return user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '');
   }, [user]);
 
-  // Specific Permission Flags
-  const canViewRecordings = useMemo(() => permissions.canViewRecordings(role), [role]);
-  const canManageUsers = useMemo(() => permissions.canManageUsers(role), [role]);
-  const canManagePackages = useMemo(() => permissions.canManagePackages(role), [role]);
+  // Specific Permission Flags (false jika tidak ada role / belum login)
+  const canViewRecordings = useMemo(() => Boolean(role && permissions.canViewRecordings(role)), [role]);
+  const canManageUsers = useMemo(() => Boolean(role && permissions.canManageUsers(role)), [role]);
+  const canManagePackages = useMemo(() => Boolean(role && permissions.canManagePackages(role)), [role]);
+
+  const isAuthenticated = useMemo(() => Boolean(token && user && role), [token, user, role]);
 
   // Login handler
   const login = useCallback((newToken, newUser) => {
@@ -72,11 +75,11 @@ export const AuthProvider = ({ children }) => {
     roleLabel,
     userName,
     uptName,
-    isAuthenticated: Boolean(token && user),
-    isSupervisor: role === ROLES.SUPERVISOR,
-    isKepalaUpt: role === ROLES.KEPALA_UPT,
-    isSuperadmin: role === ROLES.SUPERADMIN,
-    isOperatorKantin: role === ROLES.OPERATOR_KANTIN,
+    isAuthenticated,
+    isSupervisor: Boolean(isAuthenticated && role === ROLES.SUPERVISOR),
+    isKepalaUpt: Boolean(isAuthenticated && role === ROLES.KEPALA_UPT),
+    isSuperadmin: Boolean(isAuthenticated && role === ROLES.SUPERADMIN),
+    isOperatorKantin: Boolean(isAuthenticated && role === ROLES.OPERATOR_KANTIN),
     canViewRecordings,
     canManageUsers,
     canManagePackages,
@@ -89,6 +92,7 @@ export const AuthProvider = ({ children }) => {
     roleLabel,
     userName,
     uptName,
+    isAuthenticated,
     canViewRecordings,
     canManageUsers,
     canManagePackages,

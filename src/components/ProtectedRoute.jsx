@@ -4,22 +4,23 @@ import { getAuthToken, getAuthUser } from '../services/api';
 import { normalizeRole, ROLES } from '../config/menuConfig';
 
 const ProtectedRoute = ({ allowedRoles, children }) => {
-  let token = getAuthToken();
+  const token = getAuthToken();
   const authUser = getAuthUser();
 
-  // Jika token belum ada tapi authUser ada di session (misal mode mock development), berikan fallback token aman
-  if (!token && authUser) {
-    token = 'pascall_session_token';
-    localStorage.setItem('token', token);
-  }
-
-  // Jika tidak ada token dan tidak ada user, arahkan ke login
-  if (!token && !authUser) {
+  // Jika tidak ada token atau tidak ada user, langsung arahkan ke login
+  if (!token || !authUser) {
     return <Navigate to="/login" replace />;
   }
 
+  const currentRole = normalizeRole(authUser?.role);
+
+  // Jika role tidak valid atau kosong, arahkan ke login
+  if (!currentRole) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Jika ada pembatasan role tertentu
   if (allowedRoles && Array.isArray(allowedRoles) && allowedRoles.length > 0) {
-    const currentRole = normalizeRole(authUser?.role);
     const isAllowed = allowedRoles.some((r) => normalizeRole(r) === currentRole);
 
     if (!isAllowed) {
@@ -29,16 +30,16 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.OPERATOR_KANTIN) {
         return <Navigate to="/kantin" replace />;
       }
-      return <Navigate to="/branch/dashboard" replace />;
+      if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
+        return <Navigate to="/branch/dashboard" replace />;
+      }
+      return <Navigate to="/login" replace />;
     }
   }
 
-  // Operator Kantin tanpa allowedRoles (route admin umum): arahkan ke /kantin
-  {
-    const currentRole = normalizeRole(authUser?.role);
-    if (currentRole === ROLES.OPERATOR_KANTIN) {
-      return <Navigate to="/kantin" replace />;
-    }
+  // Operator Kantin mengakses layout admin utama: arahkan ke /kantin
+  if (currentRole === ROLES.OPERATOR_KANTIN) {
+    return <Navigate to="/kantin" replace />;
   }
 
   return children ? children : <Outlet />;

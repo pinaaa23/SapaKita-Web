@@ -7,10 +7,12 @@ import {
   Building2, 
   Camera, 
   Wallet,
-  AlertCircle
+  AlertCircle,
+  Users
 } from 'lucide-react';
 import { getInmates, updateInmate } from '../../../services/inmateService';
 import { logout, getAuthUser } from '../../../services/api';
+import FamilyMembersEditor, { validateFamilies } from '../../../components/FamilyMembersEditor';
 
 const InmatesEdit = () => {
   const { id } = useParams();
@@ -32,11 +34,13 @@ const InmatesEdit = () => {
     entryDate: '',
     status: 'Aktif',
     callBalance: 0,
-    commStatus: 'Aktif'
+    commStatus: 'Aktif',
+    families: []
   });
 
   const [photoPreview, setPhotoPreview] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [familyErrors, setFamilyErrors] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -57,7 +61,8 @@ const InmatesEdit = () => {
           entryDate: found.entryDate ? new Date(found.entryDate).toISOString().split('T')[0] : '',
           status: found.status || 'Aktif',
           callBalance: found.callBalance || 0,
-          commStatus: found.commStatus || 'Aktif'
+          commStatus: found.commStatus || 'Aktif',
+          families: Array.isArray(found.families) ? found.families : []
         });
       }
     }).catch((err) => {
@@ -84,15 +89,25 @@ const InmatesEdit = () => {
       return;
     }
 
+    // Validasi keluarga
+    const { isValid, errors } = validateFamilies(formData.families);
+    if (!isValid) {
+      setFamilyErrors(errors);
+      setErrorMsg('Terdapat kesalahan pada data keluarga terdaftar. Mohon periksa kembali.');
+      return;
+    }
+    setFamilyErrors([]);
+
     setIsSubmitting(true);
     setErrorMsg('');
     try {
       await updateInmate(id, {
         name: formData.name,
         identifier: formData.wbpRegNumber,
-        initialPin: formData.initialPin
+        initialPin: formData.initialPin,
+        families: formData.families
       });
-      navigate('/branch/inmates', { state: { toast: 'Data narapidana berhasil diperbarui.' } });
+      navigate('/branch/inmates', { state: { toast: 'Data narapidana dan keluarga berhasil diperbarui.' } });
     } catch (err) {
       if (err?.status === 401) {
         logout();
@@ -337,6 +352,30 @@ const InmatesEdit = () => {
           </div>
         </div>
 
+        {/* Section 4 - Keluarga Terdaftar */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-800">Section 4 — Keluarga Terdaftar</h2>
+              <p className="text-[11px] text-slate-500">Daftar kontak keluarga yang berhak menerima panggilan narapidana</p>
+            </div>
+          </div>
+
+          <div className="p-6">
+            <FamilyMembersEditor 
+              families={formData.families} 
+              onChange={(newFamilies) => {
+                setFormData(prev => ({ ...prev, families: newFamilies }));
+                if (familyErrors.length > 0) setFamilyErrors([]);
+              }}
+              errors={familyErrors}
+            />
+          </div>
+        </div>
+
         {/* Action Controls */}
         <div className="flex items-center justify-end gap-3 pt-2">
           <Link 
@@ -347,9 +386,10 @@ const InmatesEdit = () => {
           </Link>
           <button 
             type="submit"
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer"
+            disabled={isSubmitting}
+            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" /> Update Data
+            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Update Data & Keluarga'}
           </button>
         </div>
 

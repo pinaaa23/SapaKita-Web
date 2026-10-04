@@ -21,7 +21,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/login', { replace: true });
   };
   
   const menuItems = getMenuItemsByRole(currentRole);
