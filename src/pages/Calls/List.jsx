@@ -26,6 +26,7 @@ import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, downloadTranscriptPDF } from '../../utils/exportUtils';
+import { CallChannelBadge } from '../../utils/callChannel';
 
 const CallsList = () => {
   const location = useLocation();
@@ -37,6 +38,7 @@ const CallsList = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [branchFilter, setBranchFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [channelFilter, setChannelFilter] = useState('All');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
@@ -146,6 +148,7 @@ const CallsList = () => {
     setDebouncedSearch('');
     setBranchFilter('All');
     setStatusFilter('All');
+    setChannelFilter('All');
     setStartDate('');
     setEndDate('');
     setPage(1);
@@ -155,17 +158,27 @@ const CallsList = () => {
     searchInput !== '' || 
     branchFilter !== 'All' || 
     statusFilter !== 'All' || 
+    (activeTab === 'voice' && channelFilter !== 'All') ||
     startDate !== '' || 
     endDate !== '';
 
   const isSplitView = Boolean(selectedRecording);
 
+  // Client-side filtering terhadap jalur panggilan (Web / GSM)
+  const filteredCalls = React.useMemo(() => {
+    let list = callsData.items || [];
+    if (activeTab === 'voice' && channelFilter !== 'All') {
+      list = list.filter((c) => (c.channel || 'web').toLowerCase() === channelFilter.toLowerCase());
+    }
+    return list;
+  }, [callsData.items, activeTab, channelFilter]);
+
   const handleExport = () => {
-    if (callsData.items.length === 0) {
+    if (filteredCalls.length === 0) {
       showToast('Tidak ada riwayat panggilan untuk diekspor.');
       return;
     }
-    const exportData = callsData.items.map((c, idx) => ({
+    const exportData = filteredCalls.map((c, idx) => ({
       'No': idx + 1,
       'ID Panggilan': c.id,
       'Cabang UPT': c.branchName || c.branchId || 'Pusat',
@@ -175,13 +188,14 @@ const CallsList = () => {
       'Nomor Telp': c.familyPhone,
       'Durasi': `${Math.floor((c.durationSeconds || 0) / 60)}m ${(c.durationSeconds || 0) % 60}s`,
       'Biaya': `Rp ${new Intl.NumberFormat('id-ID').format(c.cost || 0)}`,
+      'Jalur': c.callType === 'Video' ? 'Web' : (c.channel === 'gsm' ? 'GSM' : 'Web'),
       'Status': c.status,
       'Waktu Panggilan': new Date(c.date).toLocaleString('id-ID'),
       'Ketersediaan Rekaman': c.hasRecording ? 'Tersedia' : 'Tidak Ada'
     }));
 
-    const answeredCount = callsData.items.filter(c => c.status === 'Answered' || c.status === 'Terjawab').length;
-    const totalCost = callsData.items.reduce((sum, c) => sum + (c.cost || 0), 0);
+    const answeredCount = filteredCalls.filter(c => c.status === 'Answered' || c.status === 'Terjawab').length;
+    const totalCost = filteredCalls.reduce((sum, c) => sum + (c.cost || 0), 0);
 
     const filename = `Riwayat_Panggilan_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
     const success = exportToExcel(exportData, filename, 'Riwayat Panggilan', {
@@ -191,10 +205,11 @@ const CallsList = () => {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
         'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+        'Jalur Filter': activeTab === 'voice' ? (channelFilter === 'All' ? 'Semua Jalur' : channelFilter.toUpperCase()) : 'Web',
         'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
       summaryMetrics: [
-        { label: 'Total Panggilan', value: `${callsData.items.length} Data` },
+        { label: 'Total Panggilan', value: `${filteredCalls.length} Data` },
         { label: 'Panggilan Terjawab', value: `${answeredCount} Panggilan` },
         { label: 'Total Biaya Pemakaian', value: `Rp ${new Intl.NumberFormat('id-ID').format(totalCost)}` },
       ]
@@ -333,6 +348,29 @@ const CallsList = () => {
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
 
+            {/* Filter Jalur Dropdown (Hanya di tab Voice Call) */}
+            {activeTab === 'voice' && (
+              <div className="relative">
+                <select
+                  value={channelFilter}
+                  onChange={(e) => {
+                    setChannelFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className={`pl-3 pr-7 py-2 rounded-xl text-xs font-bold border transition appearance-none cursor-pointer ${
+                    channelFilter !== 'All'
+                      ? 'bg-blue-50 border-blue-200 text-primary'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/70'
+                  }`}
+                >
+                  <option value="All">Semua Jalur</option>
+                  <option value="web">Web</option>
+                  <option value="gsm">GSM</option>
+                </select>
+                <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+            )}
+
             {/* Date Range Filters */}
             <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1.5 border border-slate-200 rounded-xl text-xs">
               <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -432,8 +470,8 @@ const CallsList = () => {
                         <td className="py-4 px-3 sm:px-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-7 mx-auto" /></td>
                       </tr>
                     ))
-                  ) : callsData.items.length > 0 ? (
-                    callsData.items.map((call) => {
+                  ) : filteredCalls.length > 0 ? (
+                    filteredCalls.map((call) => {
                       const isSelected = selectedRecording?.id === call.id;
                       const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                       const statusText = isAnswered ? 'Terjawab' : 'Tidak Terjawab';
@@ -476,7 +514,7 @@ const CallsList = () => {
                             </span>
                           </td>
 
-                          {/* Durasi & Biaya */}
+                          {/* Durasi & Biaya + Badge Jalur */}
                           <td className={`py-3 px-3 sm:px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                             <div className="font-semibold text-slate-800">
                               {formatDuration(call.durationSeconds)}
@@ -484,6 +522,11 @@ const CallsList = () => {
                             <div className="text-[11px] font-bold text-amber-600 mt-0.5">
                               {formatCurrency(call.cost)}
                             </div>
+                            {activeTab === 'voice' && (
+                              <div className="mt-1">
+                                <CallChannelBadge channel={call.channel} />
+                              </div>
+                            )}
                           </td>
 
                           {/* Status Badge */}

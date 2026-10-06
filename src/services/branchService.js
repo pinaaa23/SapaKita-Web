@@ -23,9 +23,10 @@ export const mapBranchItem = (item) => {
     address: item.address || item.location || '-',
     phone: item.phone || item.telephone || item.contact || '-',
     capacity: typeof item.capacity === 'number' ? item.capacity : (Number(item.capacity) || 500),
-    inmateCount: typeof item.inmateCount === 'number' ? item.inmateCount : (Number(item.inmatesCount ?? item.inmates) || 0),
-    adminCount: typeof item.adminCount === 'number' ? item.adminCount : (Number(item.adminsCount ?? item.usersCount) || 0),
-    adminEmail: item.adminEmail || item.admin?.email || item.email || null,
+    inmateCount: typeof item.inmateCount === 'number' ? item.inmateCount : (Number(item.inmatesCount ?? item.inmates ?? item.stats?.totalInmates) || 0),
+    adminCount: typeof item.adminCount === 'number' ? item.adminCount : (Number(item.adminsCount ?? item.totalUsers ?? item.usersCount) || (item.headAdmin ? 1 : 0)),
+    adminEmail: item.adminEmail || item.headAdmin?.email || item.admin?.email || item.email || null,
+    headName: item.headName || item.headAdmin?.name || null,
     status: isActive ? 'Active' : 'Inactive',
     isActive,
     createdAt: item.createdAt || new Date().toISOString(),
@@ -35,23 +36,38 @@ export const mapBranchItem = (item) => {
 
 /**
  * Fungsi pembentuk payload pembuatan cabang beserta akun admin cabang
+ * Menyesuaikan dengan schema BE POST /api/branches (Atomic Transaction)
  */
 export const buildCreateBranchPayload = (branchData, adminData) => {
+  let statusVal = 'Aktif';
+  if (branchData.status) {
+    const s = String(branchData.status).toLowerCase();
+    if (s === 'active' || s === 'aktif') statusVal = 'Aktif';
+    else if (s === 'draft') statusVal = 'Draft';
+    else if (s === 'inactive' || s === 'nonaktif') statusVal = 'Nonaktif';
+  }
+
+  const defaultHeadName = branchData.headName?.trim() || `Kepala ${branchData.name?.trim() || 'UPT'}`;
+  const emailVal = adminData?.email?.trim() || branchData.headEmail?.trim() || '';
+  const passwordVal = adminData?.password || branchData.headPassword || '';
+
   const payload = {
     name: branchData.name?.trim(),
-    location: branchData.location?.trim(),
+    location: branchData.location?.trim() || '',
     address: branchData.address?.trim() || '',
     phone: branchData.phone?.trim() || '',
     capacity: parseInt(branchData.capacity, 10) || 500,
-    status: branchData.status || 'Active',
+    status: statusVal,
+    headName: defaultHeadName,
+    headEmail: emailVal,
+    headPassword: passwordVal,
+    headPhone: branchData.headPhone?.trim() || branchData.phone?.trim() || '',
+    admin: {
+      name: defaultHeadName,
+      email: emailVal,
+      password: passwordVal,
+    },
   };
-
-  if (adminData && adminData.email && adminData.email.trim()) {
-    payload.admin = {
-      email: adminData.email.trim(),
-      password: adminData.password || '',
-    };
-  }
 
   return payload;
 };
@@ -60,34 +76,6 @@ export const buildCreateBranchPayload = (branchData, adminData) => {
  * Mengambil daftar cabang
  */
 export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) => {
-  if (isDummyMode()) {
-    const { dummyStore } = await import('../dummy/store');
-    let branches = dummyStore.getBranches().map(mapBranchItem);
-
-    if (search && search.trim()) {
-      const q = search.trim().toLowerCase();
-      branches = branches.filter(
-        (b) =>
-          (b.name && b.name.toLowerCase().includes(q)) ||
-          (b.location && b.location.toLowerCase().includes(q)) ||
-          (b.address && b.address.toLowerCase().includes(q))
-      );
-    }
-
-    const total = branches.length;
-    const totalPages = Math.max(1, Math.ceil(total / limit));
-    const startIndex = (page - 1) * limit;
-    const paginated = branches.slice(startIndex, startIndex + limit);
-
-    return {
-      items: paginated,
-      total,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages,
-    };
-  }
-
   const params = new URLSearchParams();
   if (search && search.trim()) params.append('search', search.trim());
   if (page) params.append('page', page.toString());
@@ -151,12 +139,6 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
 export const getBranchById = async (id) => {
   if (!id) return null;
 
-  if (isDummyMode()) {
-    const { dummyStore } = await import('../dummy/store');
-    const found = dummyStore.getBranchById(id);
-    return found ? mapBranchItem(found) : null;
-  }
-
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint);
@@ -175,20 +157,6 @@ export const getBranchById = async (id) => {
  * Menambahkan cabang baru
  */
 export const createBranch = async (data) => {
-  if (isDummyMode()) {
-    const { dummyStore } = await import('../dummy/store');
-    const newBranch = dummyStore.addBranch({
-      name: data.name,
-      location: data.location,
-      address: data.address,
-      phone: data.phone,
-      capacity: data.capacity,
-      status: data.status,
-      adminEmail: data.admin?.email,
-    });
-    return { success: true, data: mapBranchItem(newBranch) };
-  }
-
   try {
     const res = await apiFetch(BRANCHES_ENDPOINT, {
       method: 'POST',
@@ -211,12 +179,6 @@ export const createBranch = async (data) => {
 export const updateBranch = async (id, data) => {
   if (!id) throw new Error('ID Cabang diperlukan');
 
-  if (isDummyMode()) {
-    const { dummyStore } = await import('../dummy/store');
-    const updated = dummyStore.updateBranch(id, data);
-    return { success: true, data: mapBranchItem(updated) };
-  }
-
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint, {
@@ -236,9 +198,59 @@ export const updateBranch = async (id, data) => {
 
 /**
  * Mengubah status aktif/nonaktif cabang
+ * Endpoint: PATCH /api/branches/:id/status
+ * Payload: { status: 'Aktif' | 'Nonaktif' | 'Draft' }
  */
-export const updateBranchStatus = async (id, isActive) => {
-  return updateBranch(id, { isActive: Boolean(isActive), status: isActive ? 'ACTIVE' : 'INACTIVE' });
+export const updateBranchStatus = async (id, statusOrIsActive) => {
+  if (!id) throw new Error('ID Cabang diperlukan');
+
+  let statusPayload = 'Aktif';
+  if (typeof statusOrIsActive === 'boolean') {
+    statusPayload = statusOrIsActive ? 'Aktif' : 'Nonaktif';
+  } else if (typeof statusOrIsActive === 'string') {
+    const s = statusOrIsActive.toLowerCase();
+    if (s === 'aktif' || s === 'active') statusPayload = 'Aktif';
+    else if (s === 'draft') statusPayload = 'Draft';
+    else statusPayload = 'Nonaktif';
+  }
+
+  const endpoint = `/api/branches/${id}/status`;
+  try {
+    const res = await apiFetch(endpoint, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: statusPayload }),
+    });
+    return res;
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    console.log(`[BranchService] Gagal ubah status cabang (${id}):`, error?.message || error);
+    throw error;
+  }
+};
+
+/**
+ * Menghapus data UPT / Cabang
+ */
+export const deleteBranch = async (id) => {
+  if (!id) throw new Error('ID Cabang diperlukan');
+
+  const endpoint = BRANCH_DETAIL_ENDPOINT(id);
+  try {
+    const res = await apiFetch(endpoint, {
+      method: 'DELETE',
+    });
+    return res;
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    console.log(`[BranchService] Gagal menghapus cabang (${id}):`, error?.message || error);
+    throw error;
+  }
 };
 
 export default {
@@ -251,5 +263,7 @@ export default {
   createBranch,
   updateBranch,
   updateBranchStatus,
+  deleteBranch,
 };
+
 

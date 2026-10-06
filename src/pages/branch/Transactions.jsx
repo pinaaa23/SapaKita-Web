@@ -176,7 +176,7 @@ const Transactions = () => {
         rows,
         orientation: 'landscape',
         metadata: {
-          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
           'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
           'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -209,7 +209,7 @@ const Transactions = () => {
         title: 'LAPORAN MUTASI & TRANSAKSI SALDO PASCALL',
         subtitle: 'Rekapitulasi riwayat mutasi saldo komunikasi dan kantin warga binaan',
         metadata: {
-          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
           'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
           'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -419,13 +419,13 @@ const Transactions = () => {
                           {cat.label}
                         </div>
                       </td>
-                      <td className="py-3 px-2.5">
-                        <span className="text-xs font-medium text-slate-600 block">
+                      <td className="py-3 px-2.5 max-w-[200px]">
+                        <span className="text-xs font-medium text-slate-600 block line-clamp-2" title={trx.description}>
                           {trx.description || '-'}
                         </span>
                       </td>
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <span className="text-xs font-medium text-slate-700">
+                      <td className="py-3 px-2.5 max-w-[140px] whitespace-nowrap">
+                        <span className="text-xs font-medium text-slate-700 block truncate" title={trx.officerName}>
                           {trx.officerName || 'Sistem (Otomatis)'}
                         </span>
                       </td>

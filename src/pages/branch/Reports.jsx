@@ -130,7 +130,7 @@ const BranchReports = () => {
           headers,
           rows,
           metadata: {
-            'Lokasi UPT': uptName || 'Lapas Cipinang',
+            'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
             'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
             'Rentang Waktu': periodLabel,
             'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -186,7 +186,7 @@ const BranchReports = () => {
           title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
           subtitle: 'Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan',
           metadata: {
-            'Lokasi UPT': uptName || 'Lapas Cipinang',
+            'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
             'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
             'Rentang Waktu': periodLabel,
             'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),

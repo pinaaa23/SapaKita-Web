@@ -57,6 +57,21 @@ export const mapCallItem = (item) => {
     ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream`)
     : (item.recordingUrl || call.recordingUrl || (isDemo && hasRecording ? sampleAudio : ''));
 
+  // Jalur panggilan (Web / GSM)
+  // TODO: ganti dengan field dari backend saat endpoint backend menyediakan field channel
+  const rawChannel = (call.channel || call.via || call.source || item.channel || item.via || item.source || '').toString().toLowerCase();
+  let channel = 'web';
+  if (rawChannel.includes('gsm') || rawChannel.includes('cellular') || rawChannel.includes('phone') || rawChannel.includes('pstn') || rawChannel.includes('seluler')) {
+    channel = 'gsm';
+  } else if (rawChannel.includes('web') || rawChannel.includes('webrtc') || rawChannel.includes('sip') || rawChannel.includes('voip')) {
+    channel = 'web';
+  } else {
+    // Penentuan deterministik untuk data dummy/mock agar stabil
+    const idStr = String(recordingId || call.id || 'rec-0');
+    const charCode = idStr.charCodeAt(idStr.length - 1) || 0;
+    channel = charCode % 2 === 0 ? 'web' : 'gsm';
+  }
+
   return {
     id: recordingId,
     callId: item.callId || call.id || recordingId,
@@ -79,6 +94,7 @@ export const mapCallItem = (item) => {
     rawStatus,
     callType,
     backendType,
+    channel,
     hasRecording,
     recordingUrl,
     transcript,

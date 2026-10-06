@@ -2,13 +2,11 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { useStatusWartel } from '../../hooks/useStatusWartel';
-import { isDummyMode } from '../../dummy';
 
 export default function WartelBadgeSidebar() {
-  const { summary } = useStatusWartel();
-  const dummyActive = isDummyMode();
-  const { total = 10, digunakan = 0 } = summary;
-  const isBanyakDigunakan = dummyActive && digunakan > total / 2;
+  const { summary, isLoading } = useStatusWartel();
+  const { total = 8, digunakan = 0 } = summary;
+  const isBanyakDigunakan = total > 0 && digunakan > total / 2;
 
   return (
     <NavLink
@@ -17,8 +15,6 @@ export default function WartelBadgeSidebar() {
         `block p-3 rounded-2xl border transition-all duration-150 group ${
           isActive
             ? 'bg-[#E3F2FD] border-blue-200 shadow-2xs'
-            : !dummyActive
-            ? 'bg-slate-50/80 hover:bg-slate-100/80 border-slate-200'
             : isBanyakDigunakan
             ? 'bg-rose-50/70 hover:bg-rose-50 border-rose-200/80 hover:border-rose-300'
             : 'bg-emerald-50/70 hover:bg-emerald-50 border-emerald-200/80 hover:border-emerald-300'
@@ -28,7 +24,7 @@ export default function WartelBadgeSidebar() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="relative flex h-2.5 w-2.5 shrink-0">
-            {dummyActive && (
+            {digunakan > 0 && (
               <span
                 className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
                   isBanyakDigunakan ? 'bg-rose-400' : 'bg-emerald-400'
@@ -37,7 +33,7 @@ export default function WartelBadgeSidebar() {
             )}
             <span
               className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                !dummyActive
+                isLoading
                   ? 'bg-slate-400'
                   : isBanyakDigunakan
                   ? 'bg-rose-500'
@@ -48,17 +44,13 @@ export default function WartelBadgeSidebar() {
           <div className="truncate">
             <span
               className={`text-xs font-bold leading-tight block truncate ${
-                !dummyActive
-                  ? 'text-slate-600'
-                  : isBanyakDigunakan
-                  ? 'text-rose-800'
-                  : 'text-emerald-800'
+                isBanyakDigunakan ? 'text-rose-800' : 'text-emerald-800'
               }`}
             >
-              {dummyActive ? `${digunakan} dari ${total} Wartel Digunakan` : '- dari - Wartel Digunakan'}
+              {isLoading ? 'Memuat status...' : `${digunakan} dari ${total} Wartel Digunakan`}
             </span>
             <span className="text-[10px] text-slate-500 font-medium block">
-              {dummyActive ? 'Klik untuk pantau bilik' : 'Menunggu koneksi server'}
+              Klik untuk pantau bilik
             </span>
           </div>
         </div>

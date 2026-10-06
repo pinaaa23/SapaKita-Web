@@ -15,13 +15,16 @@ import {
   Check,
   Building2,
   Clock,
-  Coins
+  Coins,
+  Trash2
 } from 'lucide-react';
 import { 
   getPackages, 
   createPackage, 
   updatePackage, 
-  togglePackageStatus 
+  updatePackageStatus,
+  togglePackageStatus,
+  deletePackage
 } from '../../services/packageService';
 import { useAuth } from '../../context/AuthContext';
 
@@ -36,7 +39,9 @@ export default function BranchPackages() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedPackageForToggle, setSelectedPackageForToggle] = useState(null);
+  const [packageToDelete, setPackageToDelete] = useState(null);
   const [editingPackage, setEditingPackage] = useState(null);
 
   const [formData, setFormData] = useState({
@@ -47,6 +52,7 @@ export default function BranchPackages() {
     status: 'Aktif',
   });
   const [formError, setFormError] = useState('');
+  const [deleteError, setDeleteError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -94,14 +100,20 @@ export default function BranchPackages() {
   const handleOpenEditModal = (pkg) => {
     setEditingPackage(pkg);
     setFormData({
-      nama: pkg.nama || '',
+      nama: pkg.nama || pkg.name || '',
       kategori: pkg.kategori || 'telepon',
-      durasi: String(pkg.durasi || ''),
-      harga: String(pkg.harga || ''),
+      durasi: String(pkg.durasi || pkg.durationMinutes || ''),
+      harga: String(pkg.harga || pkg.price || ''),
       status: pkg.status || 'Aktif',
     });
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  const handleOpenDeleteModal = (pkg) => {
+    setPackageToDelete(pkg);
+    setDeleteError('');
+    setIsDeleteModalOpen(true);
   };
 
   const handleFormSubmit = async (e) => {
@@ -140,7 +152,7 @@ export default function BranchPackages() {
     try {
       if (editingPackage) {
         await updatePackage(editingPackage.id, {
-          nama: trimmedName,
+          name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,
           harga: hargaNum,
@@ -150,7 +162,7 @@ export default function BranchPackages() {
         showToast(`Paket "${trimmedName}" berhasil diperbarui.`);
       } else {
         await createPackage({
-          nama: trimmedName,
+          name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,
           harga: hargaNum,
@@ -182,15 +194,31 @@ export default function BranchPackages() {
     if (!target) return;
     setIsSubmitting(true);
     try {
-      const updated = await togglePackageStatus(target.id);
+      const updated = await togglePackageStatus(target.id, target.status);
       showToast(
-        `Paket "${target.nama}" berhasil ${updated.status === 'Aktif' ? 'diaktifkan' : 'dinonaktifkan'}.`
+        `Paket "${target.nama || target.name}" berhasil ${updated.status === 'Aktif' ? 'diaktifkan' : 'dinonaktifkan'}.`
       );
       setIsConfirmModalOpen(false);
       setSelectedPackageForToggle(null);
       fetchPackagesData();
     } catch (err) {
-      alert(err.message || 'Gagal mengubah status paket');
+      showToast(err.message || 'Gagal mengubah status paket');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleExecuteDeletePackage = async () => {
+    if (!packageToDelete) return;
+    setIsSubmitting(true);
+    setDeleteError('');
+    try {
+      await deletePackage(packageToDelete.id);
+      showToast(`Paket "${packageToDelete.nama || packageToDelete.name}" berhasil dihapus.`);
+      setIsDeleteModalOpen(false);
+      fetchPackagesData();
+    } catch (err) {
+      setDeleteError(err.message || 'Gagal menghapus paket.');
     } finally {
       setIsSubmitting(false);
     }
@@ -218,7 +246,7 @@ export default function BranchPackages() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-[#1565C0] border border-blue-200/60">
               <Building2 className="w-3 h-3" />
-              <span>{uptName || 'Lapas Cipinang'}</span>
+              <span>{uptName || 'UPT Pemasyarakatan'}</span>
             </span>
           </div>
           <h2 className="text-xl font-black text-slate-800 tracking-tight mt-1.5">
@@ -334,7 +362,7 @@ export default function BranchPackages() {
                   <th className="py-3.5 px-4 text-center">Jumlah Menit</th>
                   <th className="py-3.5 px-4 text-right">Harga</th>
                   <th className="py-3.5 px-4 text-center">Status</th>
-                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                  <th className="py-3.5 px-4 text-center w-36">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -353,7 +381,7 @@ export default function BranchPackages() {
                       <td className="py-3.5 px-4 font-bold text-slate-800">
                         <div className="flex items-center gap-2">
                           <Package className="w-4 h-4 text-slate-400" />
-                          <span>{pkg.nama}</span>
+                          <span>{pkg.nama || pkg.name}</span>
                         </div>
                       </td>
 
@@ -379,13 +407,13 @@ export default function BranchPackages() {
                       <td className="py-3.5 px-4 text-center font-bold text-slate-700">
                         <div className="inline-flex items-center gap-1">
                           <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{pkg.durasi} Menit</span>
+                          <span>{pkg.durasi || pkg.durationMinutes} Menit</span>
                         </div>
                       </td>
 
                       {/* Harga */}
                       <td className="py-3.5 px-4 text-right font-extrabold text-[#1565C0] text-sm">
-                        {formatRupiah(pkg.harga)}
+                        {formatRupiah(pkg.harga || pkg.price)}
                       </td>
 
                       {/* Status */}
@@ -406,23 +434,22 @@ export default function BranchPackages() {
                         </span>
                       </td>
 
-                      {/* Aksi: Ubah & Aktifkan/Nonaktifkan */}
+                      {/* Aksi: Ubah, Aktifkan/Nonaktifkan & Hapus */}
                       <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1.5">
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(pkg)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1565C0] font-bold text-xs transition cursor-pointer border border-blue-200/60"
+                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1565C0] transition cursor-pointer border border-blue-200/60"
                             title="Ubah Paket"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
-                            <span>Ubah</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => handleToggleClick(pkg)}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg font-bold text-xs transition cursor-pointer ${
+                            className={`p-1.5 rounded-lg transition cursor-pointer ${
                               !isInactive
                                 ? 'bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200'
                                 : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
@@ -430,7 +457,15 @@ export default function BranchPackages() {
                             title={!isInactive ? 'Nonaktifkan Paket' : 'Aktifkan Paket'}
                           >
                             <Power className="w-3.5 h-3.5" />
-                            <span>{!isInactive ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDeleteModal(pkg)}
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 transition cursor-pointer border border-slate-200"
+                            title="Hapus Paket"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -458,7 +493,7 @@ export default function BranchPackages() {
                     {editingPackage ? 'Ubah Paket Komunikasi' : 'Tambah Paket Baru'}
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    {uptName || 'Lapas Cipinang'}
+                    {uptName || 'UPT Pemasyarakatan'}
                   </p>
                 </div>
               </div>
@@ -611,7 +646,7 @@ export default function BranchPackages() {
               Nonaktifkan Paket?
             </h3>
             <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-              Paket <span className="font-bold text-slate-700">"{selectedPackageForToggle.nama}"</span> tidak akan muncul di kasir Kantin. Transaksi lama tetap tersimpan utuh.
+              Paket <span className="font-bold text-slate-700">"{selectedPackageForToggle.nama || selectedPackageForToggle.name}"</span> tidak akan muncul di kasir Kantin. Transaksi lama tetap tersimpan utuh.
             </p>
 
             <div className="mt-5 flex items-center justify-center gap-2.5">
@@ -632,6 +667,52 @@ export default function BranchPackages() {
                 className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-md shadow-rose-600/20 cursor-pointer disabled:opacity-50"
               >
                 {isSubmitting ? 'Memproses...' : 'Ya, Nonaktifkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus Paket */}
+      {isDeleteModalOpen && packageToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 p-6 text-center animate-in zoom-in-95 duration-200">
+            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+              <Trash2 className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-slate-800">
+              Hapus Paket?
+            </h3>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Apakah Anda yakin ingin menghapus paket <span className="font-bold text-slate-700">"{packageToDelete.nama || packageToDelete.name}"</span>?
+            </p>
+
+            {deleteError && (
+              <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold text-left flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                <p className="leading-tight">{deleteError}</p>
+              </div>
+            )}
+
+            <div className="mt-5 flex items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteModalOpen(false);
+                  setPackageToDelete(null);
+                  setDeleteError('');
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:bg-slate-50 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteDeletePackage}
+                disabled={isSubmitting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition shadow-md shadow-rose-600/20 cursor-pointer disabled:opacity-50"
+              >
+                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus Paket'}
               </button>
             </div>
           </div>

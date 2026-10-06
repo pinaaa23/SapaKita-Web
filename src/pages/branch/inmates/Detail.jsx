@@ -10,9 +10,13 @@ import {
   Calendar, 
   AlertCircle,
   Users,
-  Phone
+  Phone,
+  KeyRound,
+  Lock,
+  X,
+  Check
 } from 'lucide-react';
-import { getInmates, updateInmateStatus } from '../../../services/inmateService';
+import { getInmates, updateInmateStatus, resetInmatePin } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
 import { logout, getAuthUser } from '../../../services/api';
 
@@ -23,6 +27,8 @@ const InmatesDetail = () => {
   const rawRole = (authUser?.role || '').toUpperCase();
   const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
   const isSupervisor = rawRole === 'SUPERVISOR' || rawRole === 'SPV';
+  const isBranchAdmin = rawRole === 'BRANCH_ADMIN' || rawRole === 'KEPALA_UPT' || rawRole === 'ADMIN';
+  const canEditInmate = isSupervisor || isBranchAdmin || isSuperAdmin;
   const backRoute = isSuperAdmin ? '/inmates' : '/branch/inmates';
 
   const [inmate, setInmate] = useState(null);
@@ -30,6 +36,12 @@ const InmatesDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+  // State Reset PIN
+  const [isResetPinModalOpen, setIsResetPinModalOpen] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [resetPinError, setResetPinError] = useState('');
+  const [isResettingPin, setIsResettingPin] = useState(false);
 
   const showToast = (text, type = 'error') => {
     setToastMessage({ text, type });
@@ -220,7 +232,7 @@ const InmatesDetail = () => {
           <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar
         </Link>
 
-        {/* Action buttons ONLY visible for Supervisor (SPV). Hidden for Superadmin & Kepala UPT (Read-Only) */}
+        {/* Action Buttons (Khusus Supervisor / SPV) */}
         {isSupervisor && (
           <div className="flex items-center gap-2.5">
             <button
@@ -246,7 +258,7 @@ const InmatesDetail = () => {
                   } else if (err?.status === 400) {
                     showToast(err?.message || 'Permintaan gagal.', 'error');
                   } else {
-                    showToast('Fitur ini belum tersedia di sistem backend.', 'error');
+                    showToast(err?.message || 'Gagal mengubah status narapidana.', 'error');
                   }
                 } finally {
                   setIsTogglingStatus(false);
@@ -259,7 +271,19 @@ const InmatesDetail = () => {
               }`}
             >
               <Power className="w-3.5 h-3.5" />
-              {isTogglingStatus ? 'Memproses...' : (inmate.commStatus === 'Aktif' ? 'Nonaktifkan Akun Komunikasi' : 'Aktifkan Akun Komunikasi')}
+              {isTogglingStatus ? 'Memproses...' : (inmate.commStatus === 'Aktif' ? 'Nonaktifkan Akun' : 'Aktifkan Akun')}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setNewPin('');
+                setResetPinError('');
+                setIsResetPinModalOpen(true);
+              }}
+              className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+            >
+              <KeyRound className="w-3.5 h-3.5" /> Reset PIN
             </button>
 
             <Link
@@ -411,8 +435,114 @@ const InmatesDetail = () => {
           </div>
         )}
       </div>
+
+      {/* Modal Reset PIN */}
+      {isResetPinModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-800">Reset PIN Narapidana</h3>
+                  <p className="text-[11px] text-slate-400">Atur ulang PIN panggilan untuk {inmate.name}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsResetPinModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!newPin || newPin.length < 4) {
+                  setResetPinError('PIN baru harus minimal 4 digit angka.');
+                  return;
+                }
+                setIsResettingPin(true);
+                setResetPinError('');
+                try {
+                  await resetInmatePin(inmate.id, newPin);
+                  showToast('PIN narapidana berhasil direset.', 'success');
+                  setIsResetPinModalOpen(false);
+                  setNewPin('');
+                } catch (err) {
+                  console.error('[InmatesDetail] Reset PIN failed:', err);
+                  setResetPinError(err?.message || 'Gagal mereset PIN. Pastikan PIN minimal 4 digit.');
+                } finally {
+                  setIsResettingPin(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  PIN Baru (Minimal 4 Digit) <span className="text-rose-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={10}
+                  required
+                  placeholder="Masukkan 4-10 digit PIN baru"
+                  value={newPin}
+                  onChange={(e) => {
+                    setNewPin(e.target.value.replace(/\D/g, ''));
+                    setResetPinError('');
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                />
+                {resetPinError && (
+                  <p className="text-[11px] text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {resetPinError}
+                  </p>
+                )}
+                <p className="text-[11px] text-slate-400 mt-1">
+                  PIN ini digunakan oleh narapidana untuk login dan melakukan panggilan di bilik telepon.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsResetPinModalOpen(false)}
+                  disabled={isResettingPin}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isResettingPin}
+                  className="px-4 py-2 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {isResettingPin ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      Simpan PIN Baru
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default InmatesDetail;
+

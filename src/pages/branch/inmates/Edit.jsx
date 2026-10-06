@@ -105,6 +105,7 @@ const InmatesEdit = () => {
         name: formData.name,
         identifier: formData.wbpRegNumber,
         initialPin: formData.initialPin,
+        blockRoom: formData.blockRoom,
         families: formData.families
       });
       navigate('/branch/inmates', { state: { toast: 'Data narapidana dan keluarga berhasil diperbarui.' } });
@@ -115,13 +116,13 @@ const InmatesEdit = () => {
         return;
       }
       if (err?.status === 403) {
-        setErrorMsg('Anda tidak memiliki akses.');
-      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
-        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+        setErrorMsg('Anda tidak memiliki akses untuk mengubah data narapidana.');
+      } else if (err?.status === 404) {
+        setErrorMsg('Data narapidana tidak ditemukan di server.');
       } else if (err?.status === 400) {
         setErrorMsg(err?.message || 'Data yang dimasukkan tidak valid.');
       } else {
-        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+        setErrorMsg(err?.message || 'Gagal menyimpan perubahan data narapidana.');
       }
     } finally {
       setIsSubmitting(false);

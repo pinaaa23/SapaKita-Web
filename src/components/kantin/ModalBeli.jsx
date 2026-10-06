@@ -13,6 +13,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
   const [idInput, setIdInput] = useState('');
   const [wbpTerpilih, setWbpTerpilih] = useState(null);
   const [errorPencarian, setErrorPencarian] = useState('');
+  const [errorSubmit, setErrorSubmit] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [metodeBayar, setMetodeBayar] = useState('Tunai');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,10 +37,14 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
         setWbpTerpilih(data);
         setErrorPencarian('');
       } else {
-        setErrorPencarian('Data tidak ditemukan, periksa kembali NIP atau nomor telepon.');
+        setErrorPencarian('Narapidana tidak ditemukan, periksa kembali NIP / No. Telepon.');
       }
     } catch (err) {
-      setErrorPencarian('Terjadi kesalahan saat mencari data.');
+      if (err.isInactive || err.message?.includes('dinonaktifkan')) {
+        setErrorPencarian('Akun komunikasi narapidana sedang dinonaktifkan oleh petugas lapas.');
+      } else {
+        setErrorPencarian(err.message || 'Terjadi kesalahan saat mencari data narapidana.');
+      }
     } finally {
       setIsSearching(false);
     }
@@ -47,17 +52,20 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
 
   const handleLanjutKeMetode = () => {
     if (!wbpTerpilih) return;
+    setErrorSubmit('');
     setStep(2);
   };
 
   const handleKembaliKeStep1 = () => {
+    setErrorSubmit('');
     setStep(1);
   };
 
   const handleKonfirmasiPembayaran = async () => {
-    if (!wbpTerpilih || !paket) return;
+    if (!wbpTerpilih || !paket || isSubmitting) return;
 
     setIsSubmitting(true);
+    setErrorSubmit('');
     try {
       const transaksi = await buatTransaksi({
         napi: wbpTerpilih,
@@ -68,17 +76,20 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
       onClose();
       navigate(`/kantin/voucher/${transaksi.id}`);
     } catch (err) {
-      alert('Gagal menyimpan transaksi. Silakan coba lagi.');
+      const msg = err.data?.message || err.message || 'Gagal memproses transaksi. Silakan coba lagi.';
+      setErrorSubmit(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleCloseModal = () => {
+    if (isSubmitting) return;
     setStep(1);
     setIdInput('');
     setWbpTerpilih(null);
     setErrorPencarian('');
+    setErrorSubmit('');
     setMetodeBayar('Tunai');
     onClose();
   };
@@ -96,12 +107,13 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
               {step === 1 ? 'Pengisian Paket - Langkah 1' : 'Pengisian Paket - Langkah 2'}
             </h3>
             <p className="text-xs text-slate-500">
-              {step === 1 ? 'Pencarian NIP / Nomor Telepon' : 'Konfirmasi & Metode Pembayaran'}
+              {step === 1 ? 'Pencarian NIP / Nomor Registrasi' : 'Konfirmasi & Pembayaran Tunai'}
             </p>
           </div>
           <button
             onClick={handleCloseModal}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer"
+            disabled={isSubmitting}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer disabled:opacity-40"
             aria-label="Tutup modal"
           >
             <X className="w-5 h-5" />
@@ -120,7 +132,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 1
               </div>
               <span className={`text-xs font-semibold ${step >= 1 ? 'text-[#1565C0]' : 'text-slate-400'}`}>
-                NIP / No. Telp
+                NIP / WBP
               </span>
             </div>
 
@@ -135,7 +147,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 2
               </div>
               <span className={`text-xs font-semibold ${step === 2 ? 'text-[#1565C0]' : 'text-slate-400'}`}>
-                Metode Bayar
+                Pembayaran Tunai
               </span>
             </div>
           </div>
@@ -149,12 +161,12 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
               <span className="text-[10px] font-bold uppercase tracking-wider text-[#1565C0] block">
                 Paket Terpilih
               </span>
-              <p className="text-sm font-bold text-slate-800">{paket.nama}</p>
-              {paket.keterangan && <p className="text-xs text-slate-500">{paket.keterangan}</p>}
+              <p className="text-sm font-bold text-slate-800">{paket.nama || paket.name}</p>
+              {paket.durasi && <p className="text-xs text-slate-500">Durasi: {paket.durasi}</p>}
             </div>
             <div className="text-right">
               <span className="text-base font-extrabold text-[#1565C0]">
-                {formatRupiah(paket.harga)}
+                {formatRupiah(paket.harga || paket.price)}
               </span>
             </div>
           </div>
@@ -164,7 +176,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  NIP atau No. Telepon <span className="text-red-500">*</span>
+                  NIP / Nomor Registrasi Narapidana <span className="text-red-500">*</span>
                 </label>
                 <form onSubmit={handleCariWbp} className="flex gap-2">
                   <div className="relative flex-1">
@@ -175,7 +187,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                         setIdInput(e.target.value);
                         if (errorPencarian) setErrorPencarian('');
                       }}
-                      placeholder="Contoh: NIP-0001 atau 081234567801"
+                      placeholder="Contoh: NAPI-1001 atau Ahmad Pratama"
                       className="w-full pl-3.5 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-blue-500/20"
                       autoFocus
                     />
@@ -194,7 +206,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                   </button>
                 </form>
                 <p className="text-[11px] text-slate-400 mt-1.5">
-                  Cari berdasarkan NIP (<span className="font-mono text-slate-600 font-semibold">NIP-0001</span>) atau No. HP (<span className="font-mono text-slate-600 font-semibold">081234567801</span>)
+                  Ketik NIP / Nomor Registrasi WBP (<span className="font-mono text-slate-600 font-semibold">NAPI-1001</span>) untuk memuat profil.
                 </p>
               </div>
 
@@ -213,30 +225,37 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
             </div>
           )}
 
-          {/* STEP 2: Metode Pembayaran */}
+          {/* STEP 2: Metode Pembayaran & Konfirmasi */}
           {step === 2 && (
             <div className="space-y-4">
               {/* Ringkasan Lengkap */}
               <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Nama Pelanggan:</span>
+                  <span className="text-slate-500">Nama Warga Binaan:</span>
                   <span className="font-bold text-slate-800">{wbpTerpilih?.nama}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-500">NIP / No. Telp:</span>
+                  <span className="text-slate-500">NIP / Kamar:</span>
                   <span className="font-mono font-bold text-slate-800">
-                    {wbpTerpilih?.id} {wbpTerpilih?.noTelp ? `• ${wbpTerpilih.noTelp}` : ''}
+                    {wbpTerpilih?.identifier || wbpTerpilih?.id} {wbpTerpilih?.blok ? `(${wbpTerpilih.blok})` : ''}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Paket:</span>
-                  <span className="font-medium text-slate-800">{paket.nama}</span>
+                  <span className="font-medium text-slate-800">{paket.nama || paket.name}</span>
                 </div>
                 <div className="flex justify-between pt-1.5 border-t border-slate-200 text-sm">
-                  <span className="font-bold text-slate-700">Total Tagihan:</span>
-                  <span className="font-extrabold text-[#1565C0]">{formatRupiah(paket.harga)}</span>
+                  <span className="font-bold text-slate-700">Total Pembayaran Tunai:</span>
+                  <span className="font-extrabold text-[#1565C0]">{formatRupiah(paket.harga || paket.price)}</span>
                 </div>
               </div>
+
+              {errorSubmit && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-red-600 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{errorSubmit}</span>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-2">
@@ -258,7 +277,8 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleCloseModal}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
@@ -279,7 +299,8 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleKembaliKeStep1}
-                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
+                  disabled={isSubmitting}
+                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
                 >
                   <ArrowLeft className="w-4 h-4 shrink-0" />
                   <span>Kembali</span>
@@ -287,7 +308,8 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-3 py-2.5 rounded-xl text-slate-500 hover:text-slate-700 text-sm font-medium transition cursor-pointer whitespace-nowrap"
+                  disabled={isSubmitting}
+                  className="px-3 py-2.5 rounded-xl text-slate-500 hover:text-slate-700 text-sm font-medium transition cursor-pointer whitespace-nowrap disabled:opacity-50"
                 >
                   Batal
                 </button>

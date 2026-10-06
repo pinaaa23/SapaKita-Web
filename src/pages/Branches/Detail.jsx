@@ -87,7 +87,7 @@ const Detail = () => {
     if (!branch) return;
     const nextStatus = !branch.isActive;
     try {
-      await updateBranchStatus(id, nextStatus);
+      await updateBranchStatus(id, nextStatus ? 'Aktif' : 'Nonaktif');
       showToast(nextStatus ? 'Cabang berhasil diaktifkan.' : 'Cabang berhasil dinonaktifkan.');
       await loadBranchDetail();
     } catch (err) {
@@ -96,7 +96,7 @@ const Detail = () => {
         navigate('/login', { replace: true });
         return;
       }
-      showToast('Fitur ini belum tersedia di sistem backend');
+      showToast(err?.data?.message || err?.message || 'Gagal mengubah status cabang.');
     }
   };
 

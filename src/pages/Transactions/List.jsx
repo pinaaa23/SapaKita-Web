@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { 
   Search, 
   Filter, 
@@ -18,8 +18,10 @@ import {
   PhoneCall,
   ShoppingBag,
   SearchX,
-  AlertCircle
+  AlertCircle,
+  Receipt
 } from 'lucide-react';
+import Modal from '../../components/Modal';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
@@ -43,6 +45,10 @@ const List = () => {
   const [entriesPerPage] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState({ text: '', type: '' });
+
+  // Pop-up Detail Modal State
+  const [selectedTrx, setSelectedTrx] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
   // Data state
   const [transactionsData, setTransactionsData] = useState({
@@ -383,16 +389,16 @@ const List = () => {
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3 pl-4 pr-2 whitespace-nowrap">ID Transaksi & Waktu</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">Warga Binaan & NIP</th>
-                <th className="py-3 px-2.5">Kategori & Keterangan</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">Petugas / Sistem</th>
-                <th className="py-3 px-2.5 text-right whitespace-nowrap">Nominal</th>
-                <th className="py-3 px-2.5 text-center whitespace-nowrap">Status</th>
-                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-24">Aksi</th>
+                <th className="py-3 pl-4 pr-2 whitespace-nowrap w-44">ID Transaksi & Waktu</th>
+                <th className="py-3 px-2.5 whitespace-nowrap w-40">Warga Binaan & NIP</th>
+                <th className="py-3 px-2.5 min-w-[160px]">Kategori & Keterangan</th>
+                <th className="py-3 px-2.5 whitespace-nowrap w-36">Petugas / Sistem</th>
+                <th className="py-3 px-2.5 text-right whitespace-nowrap w-28">Nominal</th>
+                <th className="py-3 px-2.5 text-center whitespace-nowrap w-24">Status</th>
+                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-20">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -424,33 +430,35 @@ const List = () => {
                       </td>
 
                       {/* Warga Binaan & NIP */}
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <p className="font-bold text-slate-800 text-xs">
+                      <td className="py-3 px-2.5 max-w-[150px]">
+                        <p className="font-bold text-slate-800 text-xs truncate" title={trx.inmateName}>
                           {trx.inmateName}
                         </p>
                         <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 mt-0.5">
-                          <span className="font-mono text-slate-400">NIP: {trx.inmateId}</span>
+                          <span className="font-mono text-slate-400 truncate" title={`NIP: ${trx.inmateId}`}>
+                            NIP: {trx.inmateId && trx.inmateId.length > 16 ? `${trx.inmateId.slice(0, 13)}...` : trx.inmateId}
+                          </span>
                         </div>
                       </td>
 
                       {/* Kategori & Keterangan */}
-                      <td className="py-3 px-2.5">
+                      <td className="py-3 px-2.5 max-w-[180px]">
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${cat.badgeBg}`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
                             {cat.label}
                           </span>
                         </div>
-                        <p className="text-xs text-slate-700 font-medium leading-snug">
+                        <p className="text-xs text-slate-700 font-medium leading-snug line-clamp-2" title={trx.description}>
                           {trx.description || '-'}
                         </p>
                       </td>
 
                       {/* Petugas / Sistem */}
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium text-xs">
+                      <td className="py-3 px-2.5 max-w-[140px]">
+                        <span className="inline-flex items-center gap-1.5 text-slate-700 font-medium text-xs truncate" title={trx.officerName}>
                           <Users className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          {trx.officerName || 'Sistem (Otomatis)'}
+                          <span className="truncate">{trx.officerName || 'Sistem (Otomatis)'}</span>
                         </span>
                       </td>
 
@@ -464,11 +472,11 @@ const List = () => {
                       {/* Status */}
                       <td className="py-3 px-2.5 text-center whitespace-nowrap">
                         {trx.status === 'Berhasil' ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                             <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Berhasil
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                             <XCircle className="w-3 h-3 text-rose-600" /> Gagal
                           </span>
                         )}
@@ -478,9 +486,12 @@ const List = () => {
                       <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
                         <button 
                           type="button"
-                          onClick={() => showToast('Fitur detail mutasi lengkap belum tersedia di server.')}
+                          onClick={() => {
+                            setSelectedTrx(trx);
+                            setIsDetailModalOpen(true);
+                          }}
                           className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-100 hover:bg-blue-50 text-slate-700 hover:text-primary rounded-lg text-xs font-bold transition-all border border-slate-200/80 cursor-pointer shadow-2xs hover:border-primary/30"
-                          title="Lihat Detail Transaksi"
+                          title="Lihat Rincian Transaksi"
                         >
                           <FileText className="w-3.5 h-3.5 text-slate-500" /> Detail
                         </button>
@@ -530,6 +541,81 @@ const List = () => {
           </div>
         )}
       </div>
+
+      {/* Pop-up Simple Detail Transaksi */}
+      <Modal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        title="Rincian Mutasi Transaksi"
+        confirmText="Tutup"
+        cancelText="Batal"
+        onConfirm={() => setIsDetailModalOpen(false)}
+      >
+        {selectedTrx && (() => {
+          const cat = getTransactionCategory(selectedTrx);
+          return (
+            <div className="space-y-4 text-xs">
+              {/* Header Card Nominal */}
+              <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 text-center space-y-1">
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-primary flex items-center justify-center mx-auto mb-2">
+                  <Receipt className="w-5 h-5" />
+                </div>
+                <p className="text-slate-400 text-[11px] font-medium uppercase tracking-wider">Nominal Transaksi</p>
+                <p className="text-2xl font-black text-rose-600 tracking-tight">
+                  -{formatCurrency(selectedTrx.amount)}
+                </p>
+                <div>
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    selectedTrx.status === 'Berhasil' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+                  }`}>
+                    {selectedTrx.status === 'Berhasil' ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <XCircle className="w-3 h-3 text-rose-600" />}
+                    {selectedTrx.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Rincian List */}
+              <div className="space-y-2.5 border-t border-slate-100 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">ID Transaksi</span>
+                  <span className="font-bold text-slate-800 font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded">{selectedTrx.id}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Warga Binaan (WBP)</span>
+                  <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Nomor Induk (NIP)</span>
+                  <span className="font-bold font-mono text-slate-700">{selectedTrx.inmateId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Kategori Transaksi</span>
+                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
+                    {cat.label}
+                  </span>
+                </div>
+                <div className="flex justify-between items-start">
+                  <span className="text-slate-400 font-medium">Keterangan</span>
+                  <span className="font-bold text-slate-800 text-right max-w-[220px] leading-snug">{selectedTrx.description || '-'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Petugas Pencatat</span>
+                  <span className="font-bold text-slate-800">{selectedTrx.officerName || 'Sistem (Otomatis)'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Metode Pembayaran</span>
+                  <span className="font-bold text-slate-800">{selectedTrx.method || 'Potong Saldo'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Waktu Transaksi</span>
+                  <span className="font-semibold text-slate-700">{new Date(selectedTrx.date).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })} WIB</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
     </div>
   );
 };

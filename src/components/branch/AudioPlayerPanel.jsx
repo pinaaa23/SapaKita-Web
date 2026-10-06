@@ -205,7 +205,7 @@ const AudioPlayerPanel = ({ call, onClose }) => {
       transcriptData: call.transcriptData,
       callInfo: call,
       inmateInfo: { name: call.inmateName, wbpRegNumber: call.inmateId },
-      uptName: uptName || 'Lapas Cipinang',
+      uptName: uptName || 'UPT Pemasyarakatan',
       printedBy: `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
       filename
     });

@@ -45,7 +45,7 @@ export default function KantinLayout() {
   const displayEmail = user?.email || '';
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex flex-col md:flex-row text-[#1E293B]">
+    <div className="min-h-screen bg-[#F5F7FA] flex flex-col md:flex-row text-[#1E293B] w-full max-w-full overflow-x-hidden">
 
       {/* SIDEBAR DESKTOP / TABLET (Hidden on Mobile) */}
       <aside className="no-print hidden md:flex flex-col w-64 bg-white border-r border-[#E2E8F0] shrink-0 sticky top-0 h-screen z-30">
@@ -142,7 +142,7 @@ export default function KantinLayout() {
       </aside>
 
       {/* AREA KONTEN UTAMA */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 md:pb-6">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full pb-20 md:pb-6 overflow-x-hidden">
         {/* TOPBAR */}
         <header className="no-print bg-white border-b border-[#E2E8F0] sticky top-0 z-20 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs">
           <div className="flex items-center gap-3">

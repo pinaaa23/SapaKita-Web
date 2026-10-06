@@ -7,9 +7,11 @@ import {
   EyeOff, 
   ArrowRight, 
   AlertCircle, 
-  Check 
+  Check,
+  X,
+  KeyRound
 } from 'lucide-react';
-import { login as loginApi, clearAuthSession } from '../services/api';
+import { login as loginApi, forgotPasswordApi, clearAuthSession } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -23,6 +25,17 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Forgot Password Modal State
+  const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotNewPassword, setForgotNewPassword] = useState('');
+  const [forgotConfirmPassword, setForgotConfirmPassword] = useState('');
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
+  const [showForgotConfirmPassword, setShowForgotConfirmPassword] = useState(false);
+  const [isSubmittingForgot, setIsSubmittingForgot] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,113 +60,19 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      let responseData = null;
-      const idLower = identifier.trim().toLowerCase();
+      const responseData = await loginApi(identifier, password);
 
-      // Check for dummy mock login accounts for testing & offline support
-      if (idLower.includes('kantin') || idLower.includes('canteen')) {
-        // Mock login Operator Kantin — role resmi BE: CANTEEN_STAFF
-        let branchName = 'Lapas Kelas I Cipinang';
-        let operatorName = 'Petugas Kantin Lapas Cipinang';
-        if (idLower.includes('salemba')) { branchName = 'Lapas Kelas IIA Salemba'; operatorName = 'Petugas Kantin Lapas Salemba'; }
-        else if (idLower.includes('sukamiskin')) { branchName = 'Lapas Kelas I Sukamiskin'; operatorName = 'Petugas Kantin Lapas Sukamiskin'; }
-        else if (idLower.includes('kerobokan')) { branchName = 'Lapas Kelas IIA Kerobokan'; operatorName = 'Petugas Kantin Lapas Kerobokan'; }
-        responseData = {
-          token: 'mock-token-kantin-operator',
-          user: {
-            id: 'usr-ktn-mock',
-            name: operatorName,
-            email: identifier.trim(),
-            // BE role: CANTEEN_STAFF — normalizeRole akan mengkonversinya ke operator_kantin
-            role: 'operator_kantin',
-            branch: { id: 'b1', name: branchName },
-            branchName,
-          }
-        };
-      } else if (idLower.includes('supervisor') || idLower.includes('spv')) {
-        responseData = {
-          token: 'mock-token-supervisor-cipinang',
-          user: {
-            id: 'usr-spv-01',
-            name: 'Ahmad Fauzi',
-            email: identifier.trim(),
-            role: 'supervisor',
-            branch: { id: 'b1', name: 'Lapas Cipinang' },
-            branchName: 'Lapas Cipinang'
-          }
-        };
-      } else if (idLower.includes('kepala') || idLower.includes('admin.cipinang') || idLower === 'kepala_upt@pascall.id') {
-        responseData = {
-          token: 'mock-token-kepala-cipinang',
-          user: {
-            id: 'usr-kepala-01',
-            name: 'Budi Santoso',
-            email: identifier.trim(),
-            role: 'kepala_upt',
-            branch: { id: 'b1', name: 'Lapas Cipinang' },
-            branchName: 'Lapas Cipinang'
-          }
-        };
-      } else if (idLower.includes('superadmin') || idLower === 'pusat@pascall.id') {
-        responseData = {
-          token: 'mock-token-superadmin',
-          user: {
-            id: 'usr-admin-01',
-            name: 'Super Administrator',
-            email: identifier.trim(),
-            role: 'superadmin'
-          }
-        };
-      }
-
-      // If not dummy mock or to attempt real backend first
-      if (!responseData) {
-        try {
-          responseData = await loginApi(identifier, password);
-        } catch (apiErr) {
-          // If network error / server offline, fallback to role heuristics if credentials look like admin
-          if (apiErr.status === 0 || apiErr.isNetworkError) {
-            if (idLower.includes('supervisor') || idLower.includes('spv')) {
-              responseData = {
-                token: 'mock-token-supervisor-cipinang',
-                user: {
-                  id: 'usr-spv-01',
-                  name: 'Ahmad Fauzi',
-                  email: identifier.trim(),
-                  role: 'supervisor',
-                  branch: { id: 'b1', name: 'Lapas Cipinang' },
-                  branchName: 'Lapas Cipinang'
-                }
-              };
-            } else if (idLower.includes('kepala') || idLower.includes('branch') || idLower.includes('lapas')) {
-              responseData = {
-                token: 'mock-token-kepala-cipinang',
-                user: {
-                  id: 'usr-kepala-01',
-                  name: 'Budi Santoso',
-                  email: identifier.trim(),
-                  role: 'kepala_upt',
-                  branch: { id: 'b1', name: 'Lapas Cipinang' },
-                  branchName: 'Lapas Cipinang'
-                }
-              };
-            } else {
-              throw apiErr;
-            }
-          } else {
-            throw apiErr;
-          }
-        }
-      }
-
-      // Extract token flexibly
       const token = responseData?.token || 
                     responseData?.data?.token || 
                     responseData?.accessToken || 
-                    responseData?.data?.accessToken ||
-                    'dummy-session-token';
+                    responseData?.data?.accessToken;
 
-      // Extract user & role flexibly
+      if (!token) {
+        clearAuthSession();
+        setError('Respons server tidak valid (token tidak ditemukan).');
+        return;
+      }
+
       const user = responseData?.user || 
                    responseData?.data?.user || 
                    responseData?.data || 
@@ -164,7 +83,7 @@ export default function Login() {
                  responseData?.data?.role;
 
       // Fallback: decode JWT payload if role is embedded in token
-      if (!role && token && typeof token === 'string' && token.split('.').length === 3) {
+      if (!role && typeof token === 'string' && token.split('.').length === 3) {
         try {
           const payloadBase64 = token.split('.')[1];
           const decoded = JSON.parse(atob(payloadBase64));
@@ -179,6 +98,20 @@ export default function Login() {
 
       const normalizedRole = (role || '').toString().trim().toLowerCase();
 
+      // Resolve branch name if user has branchId
+      if (user.branchId && !user.branchName && !user.branch?.name) {
+        try {
+          const { getBranchById } = await import('../services/branchService');
+          const branchObj = await getBranchById(user.branchId);
+          if (branchObj && branchObj.name) {
+            user.branchName = branchObj.name;
+            user.branch = branchObj;
+          }
+        } catch (e) {
+          console.log('[Login] Could not resolve branch details:', e);
+        }
+      }
+
       if (normalizedRole === 'superadmin') {
         setAuthContextSession(token, { ...user, role: 'superadmin' });
         navigate('/dashboard');
@@ -189,7 +122,6 @@ export default function Login() {
         setAuthContextSession(token, { ...user, role: 'supervisor' });
         navigate('/branch/dashboard');
       } else if (normalizedRole === 'operator_kantin' || normalizedRole === 'canteen_staff' || normalizedRole === 'kantin') {
-        // Operator Kantin: redirect ke halaman Kantin
         setAuthContextSession(token, { ...user, role: 'operator_kantin' });
         navigate('/kantin');
       } else {
@@ -198,14 +130,15 @@ export default function Login() {
         setError('Akun ini tidak memiliki hak akses ke dashboard ini.');
       }
     } catch (err) {
+      clearAuthSession();
       console.error('Login error:', err);
-      if (err.status === 401) {
-        setError('Email/nomor atau password salah');
+      if (err.status === 401 || err.status === 400) {
+        setError('Email atau password salah');
       } else if (err.status === 0 || err.isNetworkError) {
         setError('Server tidak dapat dihubungi, coba lagi nanti');
       } else {
         const errorMsg = err.data?.message || err.data?.error || err.message;
-        setError(errorMsg || 'Terjadi kesalahan pada sistem, silakan coba lagi');
+        setError(errorMsg || 'Email atau password salah');
       }
     } finally {
       setIsLoading(false);
@@ -413,12 +346,20 @@ export default function Login() {
                 <span className="text-[11px]">Ingat saya</span>
               </button>
 
-              <Link
-                to="/forgot-password"
-                className="text-[11px] font-bold text-[#2f6fed] hover:text-[#1a5fd4] transition-colors"
+              <button
+                type="button"
+                onClick={() => {
+                  setForgotEmail('');
+                  setForgotNewPassword('');
+                  setForgotConfirmPassword('');
+                  setForgotError('');
+                  setForgotSuccess('');
+                  setIsForgotModalOpen(true);
+                }}
+                className="text-[11px] font-bold text-[#2f6fed] hover:text-[#1a5fd4] transition-colors cursor-pointer"
               >
                 Lupa kata sandi?
-              </Link>
+              </button>
             </div>
 
             {/* 4. Primary Button */}
@@ -456,6 +397,223 @@ export default function Login() {
           &copy; {new Date().getFullYear()} PasCall. Sistem Layanan Terpadu Lembaga Pemasyarakatan.
         </footer>
       </div>
+
+      {/* ================================================================
+          MODAL LUPA KATA SANDI
+          ================================================================ */}
+      {isForgotModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+          <div 
+            className="w-full max-w-md rounded-2xl p-6 sm:p-7 shadow-2xl border border-white/60 relative animate-in zoom-in-95 duration-150"
+            style={{ backgroundColor: '#e9f0fc' }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <div className="flex items-center gap-2.5">
+                <div 
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-[#2f6fed]"
+                  style={{
+                    backgroundColor: '#dce6f8',
+                    boxShadow: '3px 3px 7px #b6c9e4, -3px -3px 7px #ffffff',
+                  }}
+                >
+                  <KeyRound size={18} />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-[#101828]">Reset Kata Sandi</h2>
+                  <p className="text-[11px] text-[#475467]">Atur ulang kata sandi akun petugas Anda</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsForgotModalOpen(false)}
+                className="p-1.5 text-[#64748b] hover:text-[#101828] rounded-xl hover:bg-white/60 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {forgotError && (
+              <div className="mt-3 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle size={15} className="shrink-0 text-rose-500" />
+                <span>{forgotError}</span>
+              </div>
+            )}
+
+            {forgotSuccess && (
+              <div className="mt-3 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <Check size={15} className="shrink-0 text-emerald-600" />
+                <span>{forgotSuccess}</span>
+              </div>
+            )}
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setForgotError('');
+                setForgotSuccess('');
+
+                const cleanEmail = forgotEmail.trim();
+                if (!cleanEmail) {
+                  setForgotError('Alamat email atau nomor HP akun wajib diisi.');
+                  return;
+                }
+
+                if (!forgotNewPassword || forgotNewPassword.length < 6) {
+                  setForgotError('Kata sandi baru minimal harus terdiri dari 6 karakter.');
+                  return;
+                }
+
+                if (forgotNewPassword !== forgotConfirmPassword) {
+                  setForgotError('Konfirmasi kata sandi tidak cocok dengan kata sandi baru.');
+                  return;
+                }
+
+                setIsSubmittingForgot(true);
+                try {
+                  const res = await forgotPasswordApi({
+                    email: cleanEmail,
+                    newPassword: forgotNewPassword,
+                    confirmPassword: forgotConfirmPassword,
+                  });
+
+                  setForgotSuccess(res?.message || 'Kata sandi berhasil diperbarui. Mengarahkan ke form login...');
+                  setTimeout(() => {
+                    setIdentifier(cleanEmail);
+                    setPassword('');
+                    setIsForgotModalOpen(false);
+                  }, 1800);
+                } catch (err) {
+                  console.error('[Login] Forgot password error:', err);
+                  if (err?.status === 400 || err?.status === 404) {
+                    setForgotError(err?.message || 'Akun dengan email tersebut tidak ditemukan.');
+                  } else if (err?.isNetworkError || err?.status === 0) {
+                    setForgotError('Server tidak dapat dihubungi. Pastikan backend aktif.');
+                  } else {
+                    setForgotError(err?.message || 'Gagal mereset kata sandi. Silakan coba lagi.');
+                  }
+                } finally {
+                  setIsSubmittingForgot(false);
+                }
+              }}
+              className="mt-4 space-y-3.5 text-xs"
+            >
+              <div>
+                <label className="block text-[11px] font-bold text-[#344054] mb-1">
+                  Email Akun Terdaftar <span className="text-rose-500">*</span>
+                </label>
+                <div
+                  className="flex items-center rounded-xl"
+                  style={{
+                    backgroundColor: '#dce6f8',
+                    boxShadow: 'inset 2px 2px 5px #b6c9e4, inset -2px -2px 5px #ffffff',
+                  }}
+                >
+                  <div className="pl-3 text-[#2f6fed]"><Mail size={15} /></div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="email@pascall.id / 0812xxxxxx"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    className="w-full py-2 pl-2 pr-3 bg-transparent text-xs font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#344054] mb-1">
+                  Kata Sandi Baru <span className="text-rose-500">*</span>
+                </label>
+                <div
+                  className="relative flex items-center rounded-xl"
+                  style={{
+                    backgroundColor: '#dce6f8',
+                    boxShadow: 'inset 2px 2px 5px #b6c9e4, inset -2px -2px 5px #ffffff',
+                  }}
+                >
+                  <div className="pl-3 text-[#2f6fed]"><Lock size={15} /></div>
+                  <input
+                    type={showForgotNewPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Minimal 6 karakter"
+                    value={forgotNewPassword}
+                    onChange={(e) => setForgotNewPassword(e.target.value)}
+                    className="w-full py-2 pl-2 pr-9 bg-transparent text-xs font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                    className="absolute right-2.5 p-1 text-[#64748b] hover:text-[#2f6fed] cursor-pointer"
+                  >
+                    {showForgotNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-[#344054] mb-1">
+                  Konfirmasi Kata Sandi Baru <span className="text-rose-500">*</span>
+                </label>
+                <div
+                  className="relative flex items-center rounded-xl"
+                  style={{
+                    backgroundColor: '#dce6f8',
+                    boxShadow: 'inset 2px 2px 5px #b6c9e4, inset -2px -2px 5px #ffffff',
+                  }}
+                >
+                  <div className="pl-3 text-[#2f6fed]"><Lock size={15} /></div>
+                  <input
+                    type={showForgotConfirmPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    placeholder="Ulangi kata sandi baru"
+                    value={forgotConfirmPassword}
+                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                    className="w-full py-2 pl-2 pr-9 bg-transparent text-xs font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                    className="absolute right-2.5 p-1 text-[#64748b] hover:text-[#2f6fed] cursor-pointer"
+                  >
+                    {showForgotConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => setIsForgotModalOpen(false)}
+                  disabled={isSubmittingForgot}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-white/60 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingForgot}
+                  className="px-4 py-2 bg-[#2f6fed] hover:bg-[#1a5fd4] text-white text-xs font-bold rounded-xl shadow-md transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                >
+                  {isSubmittingForgot ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Memproses...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={15} />
+                      Simpan Kata Sandi
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

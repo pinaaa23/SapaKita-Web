@@ -157,6 +157,16 @@ export default function StrukTransaksi({ transaksi }) {
               {transaksi.metode}
             </span>
           </div>
+
+          <div className="flex items-center justify-between">
+            <span className="text-slate-500 text-xs flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-slate-400" />
+              Petugas Kasir
+            </span>
+            <span className="font-semibold text-slate-700 text-xs">
+              {transaksi.petugas || transaksi.cashier?.name || 'Petugas Kantin'}
+            </span>
+          </div>
         </div>
 
         {/* Rincian Subtotal, PPN 11%, dan Total Pembayaran */}

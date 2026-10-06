@@ -24,8 +24,9 @@ import Profile from './pages/Profile';
 // Branch Admin Pages
 import BranchDashboard from './pages/branch/Dashboard';
 import BranchRecordings from './pages/branch/Recordings';
-import BranchPackages from './pages/branch/Packages';
 import BranchUsers from './pages/branch/Users';
+import BranchUsersCreate from './pages/branch/users/Create';
+import BranchPackages from './pages/branch/Packages';
 import BranchContacts from './pages/branch/Contacts';
 import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
@@ -137,6 +138,14 @@ function App() {
                   element={
                     <RoleGuard allowedRoles={[ROLES.KEPALA_UPT]}>
                       <BranchUsers />
+                    </RoleGuard>
+                  }
+                />
+                <Route
+                  path="users/create"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT]}>
+                      <BranchUsersCreate />
                     </RoleGuard>
                   }
                 />

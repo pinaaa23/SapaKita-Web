@@ -291,7 +291,7 @@ const InmatesList = () => {
         rows,
         orientation: 'landscape',
         metadata: {
-          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
           'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
           'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
@@ -322,7 +322,7 @@ const InmatesList = () => {
         title: 'LAPORAN DATA REGISTRASI NARAPIDANA (WBP)',
         subtitle: 'Data master warga binaan pemasyarakatan dan status layanan komunikasi',
         metadata: {
-          'Lokasi UPT': uptName || 'Lapas Cipinang',
+          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
           'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
           'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),

@@ -4,6 +4,7 @@ import { isDummyMode } from '../dummy';
 
 export const USERS_ENDPOINT = '/api/users';
 export const USER_DETAIL_ENDPOINT = (id) => `/api/users/${id}`;
+export const USER_STATUS_ENDPOINT = (id) => `/api/users/${id}/status`;
 export const USER_RESET_PASSWORD_ENDPOINT = (id) => `/api/users/${id}/reset-password`;
 
 /**
@@ -223,9 +224,16 @@ export const updateUser = async (id, data) => {
     return null;
   }
 
+  const payload = {
+    ...(data.name ? { name: data.name.trim() } : {}),
+    ...(data.email ? { email: data.email.trim() } : {}),
+    ...(data.phone ? { phone: data.phone.trim() } : {}),
+    ...(data.role ? { role: (data.role || '').toUpperCase() } : {}),
+  };
+
   const res = await apiFetch(USER_DETAIL_ENDPOINT(id), {
     method: 'PATCH',
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   return mapUserItem(res?.data || res);
 };
@@ -233,8 +241,14 @@ export const updateUser = async (id, data) => {
 /**
  * Mengubah status aktif/nonaktif pengguna
  */
-export const updateUserStatus = async (id, isActive) => {
+export const updateUserStatus = async (id, isActiveOrStatus) => {
   if (!id) throw new Error('ID Pengguna diperlukan');
+
+  const isActive = typeof isActiveOrStatus === 'boolean' 
+    ? isActiveOrStatus 
+    : (isActiveOrStatus === 'ACTIVE' || isActiveOrStatus === 'Active' || isActiveOrStatus === 'Aktif');
+
+  const statusEnum = isActive ? 'ACTIVE' : 'SUSPENDED';
 
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
@@ -242,18 +256,61 @@ export const updateUserStatus = async (id, isActive) => {
     return mapUserItem(updated);
   }
 
-  return await updateUser(id, {
-    isActive,
-    status: isActive ? 'ACTIVE' : 'SUSPENDED',
-  });
+  try {
+    const res = await apiFetch(USER_STATUS_ENDPOINT(id), {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: statusEnum,
+        isActive,
+      }),
+    });
+    return mapUserItem(res?.data || res);
+  } catch {
+    // Fallback ke general patch jika status endpoint ditolak
+    const res = await apiFetch(USER_DETAIL_ENDPOINT(id), {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: statusEnum,
+        isActive,
+      }),
+    });
+    return mapUserItem(res?.data || res);
+  }
+};
+
+/**
+ * Menghapus akun pengguna/staf UPT
+ */
+export const deleteUser = async (id) => {
+  if (!id) throw new Error('ID Pengguna diperlukan');
+
+  if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    dummyStore.deleteUser(id);
+    return { success: true, message: 'Pengguna berhasil dihapus' };
+  }
+
+  try {
+    const res = await apiFetch(USER_DETAIL_ENDPOINT(id), {
+      method: 'DELETE',
+    });
+    return res;
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    console.error(`[UserService] Gagal menghapus pengguna (${id}):`, error?.message || error);
+    throw error;
+  }
 };
 
 /**
  * Reset password pengguna dengan password acak baru
  */
-export const resetUserPassword = async (id) => {
+export const resetUserPassword = async (id, password) => {
   if (!id) throw new Error('ID Pengguna diperlukan');
-  const newPassword = generateRandomPassword();
+  const newPassword = password || generateRandomPassword();
 
   if (isDummyMode()) {
     return {
@@ -263,21 +320,22 @@ export const resetUserPassword = async (id) => {
     };
   }
 
-  await apiFetch(USER_RESET_PASSWORD_ENDPOINT(id), {
+  const res = await apiFetch(USER_RESET_PASSWORD_ENDPOINT(id), {
     method: 'POST',
     body: JSON.stringify({ password: newPassword }),
   });
 
   return {
     success: true,
-    newPassword,
-    message: 'Kata sandi berhasil direset.',
+    newPassword: res?.data?.temporaryPassword || newPassword,
+    message: res?.message || 'Kata sandi berhasil direset.',
   };
 };
 
 export default {
   USERS_ENDPOINT,
   USER_DETAIL_ENDPOINT,
+  USER_STATUS_ENDPOINT,
   USER_RESET_PASSWORD_ENDPOINT,
   mapUserItem,
   getUsers,
@@ -285,6 +343,7 @@ export default {
   createUser,
   updateUser,
   updateUserStatus,
+  deleteUser,
   resetUserPassword,
   generateRandomPassword,
 };

@@ -31,6 +31,7 @@ import { getBalanceTransactions } from '../../services/balanceService';
 import { useAuth } from '../../context/AuthContext';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { downloadTextFile, downloadTranscriptPDF } from '../../utils/exportUtils';
+import { CallChannelBadge } from '../../utils/callChannel';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ const Dashboard = () => {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [channelFilter, setChannelFilter] = useState('All');
   const [limit] = useState(8);
   
   // Loading states
@@ -244,6 +246,15 @@ const Dashboard = () => {
       setIsCallsLoading(false);
     }
   }, [canViewRecordings, debouncedSearch, statusFilter, activeTab, limit, navigate, logout]);
+
+  // Client-side filtering terhadap jalur panggilan (Web / GSM)
+  const filteredCalls = React.useMemo(() => {
+    let list = callsData.items || [];
+    if (activeTab === 'voice' && channelFilter !== 'All') {
+      list = list.filter((c) => (c.channel || 'web').toLowerCase() === channelFilter.toLowerCase());
+    }
+    return list;
+  }, [callsData.items, activeTab, channelFilter]);
 
   useEffect(() => {
     if (canViewRecordings) {
@@ -470,7 +481,7 @@ const Dashboard = () => {
                     </p>
                   </div>
                   
-                  {/* Search & Status Filter */}
+                  {/* Search & Status Filter & Channel Filter */}
                   <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full xl:w-auto">
                     <div className="relative flex-1 sm:flex-none">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
@@ -494,6 +505,22 @@ const Dashboard = () => {
                         <option value="Missed">Tidak Terjawab</option>
                       </select>
                     </div>
+
+                    {/* Filter Jalur (Hanya di tab Voice Call) */}
+                    {activeTab === 'voice' && (
+                      <div className="flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs shrink-0">
+                        <Filter className="w-3 h-3 text-slate-400" />
+                        <select 
+                          value={channelFilter}
+                          onChange={(e) => setChannelFilter(e.target.value)}
+                          className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                        >
+                          <option value="All">Semua Jalur</option>
+                          <option value="web">Web</option>
+                          <option value="gsm">GSM</option>
+                        </select>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -580,8 +607,8 @@ const Dashboard = () => {
                           <td className="py-3.5 px-3 sm:px-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-7 mx-auto" /></td>
                         </tr>
                       ))
-                    ) : callsData.items.length > 0 ? (
-                      callsData.items.map((call) => {
+                    ) : filteredCalls.length > 0 ? (
+                      filteredCalls.map((call) => {
                         const isSelected = selectedRecording?.id === call.id;
                         const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                         const statusText = isAnswered ? 'Terjawab' : 'Tidak Terjawab';
@@ -606,9 +633,15 @@ const Dashboard = () => {
                                 <span className="truncate">{call.familyName}</span>
                               </div>
                             </td>
+                            {/* Durasi & Biaya + Badge Jalur */}
                             <td className={`py-3 px-3 sm:px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                               <div className="font-semibold text-slate-800">{Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s</div>
                               <div className="text-[11px] font-bold text-amber-600 mt-0.5">{formatCurrency(call.cost)}</div>
+                              {activeTab === 'voice' && (
+                                <div className="mt-1">
+                                  <CallChannelBadge channel={call.channel} />
+                                </div>
+                              )}
                             </td>
                             <td className="py-3 px-2 sm:px-3 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center">
@@ -836,7 +869,7 @@ const Dashboard = () => {
               <div>
                 <h2 className="text-base font-bold text-slate-800">Data Narapidana</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Daftar warga binaan aktif di Lapas Cipinang
+                  {uptName ? `Daftar warga binaan aktif di ${uptName}` : 'Daftar warga binaan aktif di UPT'}
                 </p>
               </div>
               <Link 

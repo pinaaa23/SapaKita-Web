@@ -21,6 +21,7 @@ import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { downloadTextFile, downloadTranscriptPDF } from '../../utils/exportUtils';
+import { CallChannelBadge } from '../../utils/callChannel';
 
 const Recordings = () => {
   const location = useLocation();
@@ -31,6 +32,7 @@ const Recordings = () => {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [channelFilter, setChannelFilter] = useState('All');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
@@ -116,10 +118,20 @@ const Recordings = () => {
   const handleResetFilters = () => {
     setSearchInput('');
     setStatusFilter('All');
+    setChannelFilter('All');
     setStartDate('');
     setEndDate('');
     setPage(1);
   };
+
+  // Client-side filtering terhadap jalur panggilan (Web / GSM)
+  const filteredCalls = React.useMemo(() => {
+    let list = callsData.items || [];
+    if (activeTab === 'voice' && channelFilter !== 'All') {
+      list = list.filter((c) => (c.channel || 'web').toLowerCase() === channelFilter.toLowerCase());
+    }
+    return list;
+  }, [callsData.items, activeTab, channelFilter]);
 
   const handlePlayRecording = (call) => {
     if (!call.hasRecording) {
@@ -165,7 +177,7 @@ const Recordings = () => {
                     Daftar Rekaman Panggilan
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">
-                    {callsData.total} panggilan tercatat di sistem
+                    {filteredCalls.length} panggilan tercatat di sistem
                   </p>
                 </div>
 
@@ -201,6 +213,22 @@ const Recordings = () => {
                     </select>
                   </div>
 
+                  {/* Filter Jalur Dropdown (Hanya di tab Voice Call) */}
+                  {activeTab === 'voice' && (
+                    <div className="flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-2.5 py-1.5 shadow-2xs shrink-0">
+                      <Filter className="w-3.5 h-3.5 text-slate-400" />
+                      <select 
+                        value={channelFilter}
+                        onChange={(e) => { setChannelFilter(e.target.value); setPage(1); }}
+                        className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
+                      >
+                        <option value="All">Semua Jalur</option>
+                        <option value="web">Web</option>
+                        <option value="gsm">GSM</option>
+                      </select>
+                    </div>
+                  )}
+
                   {/* Date Range Filters (Indonesian Labels) */}
                   <div className="flex items-center gap-1 bg-slate-50/80 border border-slate-200 rounded-xl px-2 py-1 shadow-2xs">
                     <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -223,7 +251,7 @@ const Recordings = () => {
                   </div>
 
                   {/* Reset Filter Button */}
-                  {(searchInput || statusFilter !== 'All' || startDate || endDate) && (
+                  {(searchInput || statusFilter !== 'All' || (activeTab === 'voice' && channelFilter !== 'All') || startDate || endDate) && (
                     <button
                       type="button"
                       onClick={handleResetFilters}
@@ -338,8 +366,8 @@ const Recordings = () => {
                         <td className="py-4 px-3 sm:px-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-7 mx-auto" /></td>
                       </tr>
                     ))
-                  ) : callsData.items.length > 0 ? (
-                    callsData.items.map((call) => {
+                  ) : filteredCalls.length > 0 ? (
+                    filteredCalls.map((call) => {
                       const isSelected = selectedRecording?.id === call.id;
                       const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                       const statusText = isAnswered ? 'Terjawab' : 'Tidak Terjawab';
@@ -374,7 +402,7 @@ const Recordings = () => {
                             </div>
                           </td>
 
-                          {/* Durasi & Biaya */}
+                          {/* Durasi & Biaya + Badge Jalur */}
                           <td className={`py-3 px-3 sm:px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                             <div className="font-semibold text-slate-800">
                               {formatDuration(call.durationSeconds)}
@@ -382,6 +410,11 @@ const Recordings = () => {
                             <div className="text-[11px] font-bold text-amber-600 mt-0.5">
                               {formatCurrency(call.cost)}
                             </div>
+                            {activeTab === 'voice' && (
+                              <div className="mt-1">
+                                <CallChannelBadge channel={call.channel} />
+                              </div>
+                            )}
                           </td>
 
                           {/* Status Badge (Indonesian) */}
@@ -615,7 +648,7 @@ const Recordings = () => {
                         transcriptData: transcriptModalCall.transcriptData,
                         callInfo: transcriptModalCall,
                         inmateInfo: { name: transcriptModalCall.inmateName, wbpRegNumber: transcriptModalCall.inmateId },
-                        uptName: uptName || 'Lapas Cipinang',
+                        uptName: uptName || 'UPT Pemasyarakatan',
                         printedBy: `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
                         filename: `Transkrip_${name}_${transcriptModalCall.id}.pdf`
                       });

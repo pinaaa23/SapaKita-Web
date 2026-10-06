@@ -258,10 +258,39 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
   }
 };
 
+export const resetInmatePin = async (id, newPin) => {
+  if (!id) throw new Error('ID Narapidana diperlukan');
+  if (!newPin || newPin.trim().length < 4) {
+    throw new Error('PIN baru minimal harus 4 digit.');
+  }
+
+  if (isDummyMode()) {
+    return {
+      success: true,
+      message: 'PIN narapidana berhasil direset.',
+    };
+  }
+
+  try {
+    const res = await apiFetch(`${INMATES_ENDPOINT}/${id}/reset-pin`, {
+      method: 'POST',
+      body: JSON.stringify({ newPin: newPin.trim() }),
+    });
+    return res;
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    console.error(`[InmateService] Gagal reset PIN narapidana (${id}):`, error?.message || error);
+    throw error;
+  }
+};
+
 /**
  * Memperbarui data narapidana
  */
-export const updateInmate = async (id, { name, identifier, initialPin, families, ...otherData }) => {
+export const updateInmate = async (id, { name, identifier, initialPin, blockRoom, families, ...otherData }) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
 
   if (isDummyMode()) {
@@ -270,6 +299,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, families,
       ...(name ? { name: name.trim() } : {}),
       ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
       ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
@@ -282,6 +312,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, families,
       ...(name ? { name: name.trim() } : {}),
       ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
+      ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
       ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
@@ -291,6 +322,7 @@ export const updateInmate = async (id, { name, identifier, initialPin, families,
   const payload = {
     name: name?.trim(),
     identifier: identifier?.trim(),
+    ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
     ...(families !== undefined ? { families } : {}),
   };
 
@@ -364,4 +396,5 @@ export default {
   createInmate,
   updateInmate,
   updateInmateStatus,
+  resetInmatePin,
 };

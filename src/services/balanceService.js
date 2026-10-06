@@ -33,7 +33,7 @@ export const mapBalanceTransaction = (item) => {
     category,
     description: item.description || item.keterangan || (category === 'Panggilan' ? 'Pemakaian Durasi Panggilan' : 'Topup / Kantin'),
     officerId: item.officerId || item.officer?.id || item.performedBy || '',
-    officerName: item.officer?.name || item.officerName || (item.performedBy ? `Petugas (${item.performedBy})` : 'Sistem (Otomatis)'),
+    officerName: item.officer?.name || item.officerName || item.performedByUser?.name || (item.performedBy ? (item.performedBy.length > 15 ? 'Petugas Kantin' : `Petugas (${item.performedBy})`) : 'Sistem (Otomatis)'),
     method: item.method || 'Potong Saldo',
     status: normalizedStatus,
     date: item.date || item.createdAt || new Date().toISOString(),

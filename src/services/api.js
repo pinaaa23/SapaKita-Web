@@ -48,8 +48,19 @@ export const clearAuthSession = () => {
   }
 };
 
-export const logout = () => {
-  clearAuthSession();
+export const logout = async () => {
+  try {
+    const token = getAuthToken();
+    if (token) {
+      await apiFetch('/api/auth/logout', {
+        method: 'POST'
+      });
+    }
+  } catch (err) {
+    console.log('[Auth] Server logout request ignored:', err?.message || err);
+  } finally {
+    clearAuthSession();
+  }
 };
 
 /**
@@ -113,6 +124,7 @@ export const apiFetch = async (endpoint, options = {}) => {
  */
 export const CHANGE_PASSWORD_ENDPOINT = '/api/auth/change-password';
 export const UPDATE_PROFILE_ENDPOINT = '/api/auth/me';
+export const FORGOT_PASSWORD_ENDPOINT = '/api/auth/forgot-password';
 
 export const login = async (identifier, password) => {
   return await apiFetch('/api/auth/login', {
@@ -120,6 +132,19 @@ export const login = async (identifier, password) => {
     body: JSON.stringify({
       identifier: identifier.trim(),
       password
+    })
+  });
+};
+
+export const forgotPasswordApi = async ({ email, newPassword, confirmPassword }) => {
+  const cleanEmail = (email || '').trim();
+  return await apiFetch(FORGOT_PASSWORD_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify({
+      email: cleanEmail,
+      identifier: cleanEmail,
+      newPassword,
+      confirmPassword: confirmPassword || newPassword
     })
   });
 };
