@@ -20,13 +20,14 @@ import TransactionDetail from './pages/Transactions/Detail';
 
 import Reports from './pages/Reports';
 import Profile from './pages/Profile';
+import PackagesList from './pages/Packages/List';
+import CanteenTopup from './pages/CanteenTopup';
 
 // Branch Admin Pages
 import BranchDashboard from './pages/branch/Dashboard';
 import BranchRecordings from './pages/branch/Recordings';
 import BranchUsers from './pages/branch/Users';
 import BranchUsersCreate from './pages/branch/users/Create';
-import BranchPackages from './pages/branch/Packages';
 import BranchContacts from './pages/branch/Contacts';
 import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
@@ -48,6 +49,7 @@ import KantinProtectedRoute from './components/KantinProtectedRoute';
 import KantinPaket from './pages/kantin/PaketPage';
 import KantinStatusWartel from './pages/kantin/StatusWartelPage';
 import KantinRiwayat from './pages/kantin/RiwayatPage';
+import KantinTopUpSaldo from './pages/kantin/TopUpSaldoPage';
 import KantinVoucher from './pages/kantin/VoucherPage';
 import KantinStruk from './pages/kantin/StrukPage';
 
@@ -92,6 +94,10 @@ function App() {
                   <Route index element={<TransactionsList />} />
                   <Route path=":id" element={<TransactionDetail />} />
                 </Route>
+
+                {/* Superadmin Packages & Canteen Topup Routes */}
+                <Route path="packages" element={<PackagesList />} />
+                <Route path="canteen-topup" element={<CanteenTopup />} />
 
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
@@ -150,14 +156,10 @@ function App() {
                   }
                 />
 
-                {/* Kelola Paket - Khusus Supervisor */}
+                {/* Redirect /branch/packages ke /branch/dashboard (Kelola paket telah dipindahkan ke Superadmin) */}
                 <Route
                   path="packages"
-                  element={
-                    <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
-                      <BranchPackages />
-                    </RoleGuard>
-                  }
+                  element={<Navigate to="/branch/dashboard" replace />}
                 />
 
                 {/* Persetujuan Kontak - Kepala UPT & Supervisor */}
@@ -186,6 +188,7 @@ function App() {
               <Route path="/kantin" element={<KantinPaket />} />
               <Route path="/kantin/status-wartel" element={<KantinStatusWartel />} />
               <Route path="/kantin/riwayat" element={<KantinRiwayat />} />
+              <Route path="/kantin/top-up-saldo" element={<KantinTopUpSaldo />} />
               <Route path="/kantin/voucher/:id" element={<KantinVoucher />} />
               <Route path="/kantin/struk/:id" element={<KantinStruk />} />
               {/* Fallback di dalam kantin -> kembali ke paket */}

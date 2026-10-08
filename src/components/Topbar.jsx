@@ -25,7 +25,6 @@ const Topbar = () => {
 
     if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan suara dan video warga binaan (WBP)' };
     if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Keluarga', subtitle: 'Verifikasi permohonan nomor kontak keluarga WBP' };
-    if (pathname.startsWith('/branch/packages')) return { title: 'Kelola Paket Komunikasi', subtitle: 'Pilihan tarif, durasi, dan status paket panggilan WBP' };
     if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna UPT', subtitle: 'Manajemen akun Supervisor dan Operator Kantin' };
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran UPT' };
     if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik layanan UPT' };
@@ -45,6 +44,9 @@ const Topbar = () => {
 
     if (pathname.startsWith('/transactions/')) return { title: 'Detail Transaksi', subtitle: 'Rincian transaksi & status pembayaran' };
     if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi keuangan nasional' };
+
+    if (pathname.startsWith('/packages')) return { title: 'Kelola Paket Komunikasi', subtitle: 'Atur tarif, durasi, dan status paket panggilan nasional untuk semua UPT' };
+    if (pathname.startsWith('/canteen-topup')) return { title: 'Top Up Saldo Kantin', subtitle: 'Kelola paket penjualan saldo dan riwayat transaksi top up kasir kantin UPT' };
 
     if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh UPT' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
@@ -82,7 +84,6 @@ const Topbar = () => {
       { title: 'Rekaman Panggilan', category: 'Halaman', link: '/branch/recordings', desc: 'Pemutaran rekaman audio & transkrip panggilan WBP' },
       { title: 'Kelola Pengguna', category: 'Halaman', link: '/branch/users', desc: 'Kelola akun Supervisor & Operator Kantin' },
     ] : []),
-    { title: 'Kelola Paket', category: 'Halaman', link: '/branch/packages', desc: 'Pilihan paket telepon & video call' },
     { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data setoran saldo & pembayaran UPT' },
     { title: 'Laporan & Analitik UPT', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan UPT' },
     { title: 'Profil Pengguna', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan pengguna' },
@@ -91,6 +92,8 @@ const Topbar = () => {
     { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
+    { title: 'Kelola Paket Komunikasi', category: 'Halaman', link: '/packages', desc: 'Pengaturan paket panggilan nasional' },
+    { title: 'Top Up Saldo Kantin', category: 'Halaman', link: '/canteen-topup', desc: 'Pengelolaan saldo kasir kantin' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },
   ];

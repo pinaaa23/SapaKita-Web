@@ -7,7 +7,8 @@ import {
   BarChart3, 
   Package, 
   UserCog,
-  UserCheck 
+  UserCheck,
+  Wallet
 } from 'lucide-react';
 
 /**
@@ -61,10 +62,10 @@ export const permissions = {
     return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN;
   },
 
-  // Hanya Supervisor yang dapat mengelola paket
+  // Hanya Superadmin yang dapat mengelola paket
   canManagePackages: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.SUPERVISOR;
+    return norm === ROLES.SUPERADMIN;
   },
 };
 
@@ -81,6 +82,8 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Data Narapidana', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
+      { name: 'Kelola Paket', icon: Package, path: '/packages' },
+      { name: 'Top Up Saldo Kantin', icon: Wallet, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];
   }
@@ -97,13 +100,12 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data Narapidana, Transaksi, Kelola Paket, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data Narapidana, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
-      { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];
   }

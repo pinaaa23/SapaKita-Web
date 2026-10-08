@@ -772,18 +772,14 @@ const Dashboard = () => {
             {/* Header */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-slate-800">Paket Aktif</h2>
+                <h2 className="text-base font-bold text-slate-800">Paket Komunikasi Aktif</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  Daftar paket komunikasi yang sedang aktif di UPT
+                  Daftar paket panggilan yang berlaku (dikelola oleh Pusat)
                 </p>
               </div>
-              <Link 
-                to="/branch/packages"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70"
-              >
-                <span>Kelola Paket</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/60">
+                <span>{activePackages.length} Paket</span>
+              </span>
             </div>
 
             {/* List */}

@@ -1,9 +1,10 @@
 import React from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingBag, History, PhoneCall, LogOut, User, Store, Calendar } from 'lucide-react';
+import { ShoppingBag, History, PhoneCall, LogOut, User, Store, Calendar, Wallet } from 'lucide-react';
 import { formatTanggal } from '../utils/formatKantin';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
+import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
 
 /**
  * KantinLayout - Layout khusus untuk halaman Operator Kantin.
@@ -22,6 +23,7 @@ export default function KantinLayout() {
     if (path === '/kantin' || path === '/kantin/') return 'Katalog Paket Komunikasi';
     if (path.startsWith('/kantin/status-wartel')) return 'Status Wartel Lapas';
     if (path.startsWith('/kantin/riwayat')) return 'Rekap & Riwayat Transaksi';
+    if (path.startsWith('/kantin/top-up-saldo')) return 'Top Up Saldo Kantin';
     if (path.startsWith('/kantin/struk')) return 'Struk Bukti Transaksi';
     if (path.startsWith('/kantin/voucher')) return 'Voucher Transaksi';
     return 'PasCall Kantin';
@@ -38,6 +40,7 @@ export default function KantinLayout() {
     { to: '/kantin', label: 'Paket', icon: ShoppingBag, end: true },
     { to: '/kantin/status-wartel', label: 'Status Wartel', icon: PhoneCall, end: false },
     { to: '/kantin/riwayat', label: 'Riwayat', icon: History, end: false },
+    { to: '/kantin/top-up-saldo', label: 'Top Up Saldo', icon: Wallet, end: false },
   ];
 
   // Tampilkan email atau nama user
@@ -67,7 +70,7 @@ export default function KantinLayout() {
           </div>
         </div>
 
-        {/* Navigation Menus (Paket, Status Wartel, Riwayat) */}
+        {/* Navigation Menus (Paket, Status Wartel, Riwayat, Top Up Saldo) */}
         <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
           <div className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
             Menu Petugas
@@ -107,6 +110,14 @@ export default function KantinLayout() {
               Ketersediaan Unit
             </div>
             <WartelBadgeSidebar />
+          </div>
+
+          {/* Badge Saldo Kantin */}
+          <div className="pt-2 px-1">
+            <div className="px-2 pb-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Saldo Kantin
+            </div>
+            <SaldoBadgeSidebar />
           </div>
         </nav>
 

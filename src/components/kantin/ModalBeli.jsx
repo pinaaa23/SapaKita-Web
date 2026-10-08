@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Search, ArrowRight, ArrowLeft, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../../utils/formatKantin';
 import { cariWbpByIdAtauTelp, buatTransaksi } from '../../services/kantin/kantinService';
+import { cekDanPotongSaldo } from '../../services/kantin/saldoService';
 import KartuKonfirmasiNapi from './KartuKonfirmasiNapi';
 import PilihMetodeBayar from './PilihMetodeBayar';
 
@@ -72,6 +73,10 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
         paket: paket,
         metode: metodeBayar,
       });
+
+      // Potong saldo kantin setelah transaksi berhasil dibuat
+      const hargaPaket = Number(paket.harga || paket.total || 0);
+      cekDanPotongSaldo(hargaPaket);
 
       onClose();
       navigate(`/kantin/voucher/${transaksi.id}`);
