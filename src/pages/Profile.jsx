@@ -2,21 +2,17 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   UserCircle, 
-  Camera, 
   ShieldCheck, 
   Eye, 
   EyeOff, 
   Save, 
   LogOut, 
-  Clock, 
-  Calendar,
-  Lock,
-  Mail,
-  Phone,
-  User as UserIcon,
-  Building2,
-  CheckCircle2,
-  AlertCircle
+  Lock, 
+  Mail, 
+  Phone, 
+  Building2, 
+  CheckCircle2, 
+  AlertCircle 
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';

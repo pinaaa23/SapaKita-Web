@@ -60,6 +60,27 @@ export const mapUserItem = (item) => {
 };
 
 /**
+ * Konversi role internal frontend ke Enum yang dikenali backend
+ */
+export const toBackendRole = (role) => {
+  if (!role) return 'SUPERVISOR';
+  const r = String(role).trim().toLowerCase();
+  if (r === 'operator_kantin' || r === 'canteen_staff' || r === 'kantin' || r === 'kasir') {
+    return 'CANTEEN_STAFF';
+  }
+  if (r === 'supervisor' || r === 'spv') {
+    return 'SUPERVISOR';
+  }
+  if (r === 'kepala_upt' || r === 'branch_admin' || r === 'admin_cabang' || r === 'kepala') {
+    return 'BRANCH_ADMIN';
+  }
+  if (r === 'superadmin' || r === 'admin_pusat') {
+    return 'SUPERADMIN';
+  }
+  return String(role).trim().toUpperCase();
+};
+
+/**
  * Mengambil daftar pengguna UPT dengan filter pencarian, role, dan pagination
  */
 export const getUsers = async ({
@@ -112,7 +133,7 @@ export const getUsers = async ({
     if (search && search.trim()) params.append('search', search.trim());
     if (page) params.append('page', page.toString());
     if (limit) params.append('limit', limit.toString());
-    if (role && role !== 'All') params.append('role', role);
+    if (role && role !== 'All') params.append('role', toBackendRole(role));
     if (status && status !== 'All') params.append('status', status);
 
     const queryString = params.toString();
@@ -188,7 +209,7 @@ export const createUser = async (data) => {
       email: data.email.trim(),
       phone: data.phone?.trim() || '-',
       role: data.role || ROLES.SUPERVISOR,
-      rawRole: (data.role || ROLES.SUPERVISOR).toUpperCase(),
+      rawRole: toBackendRole(data.role || ROLES.SUPERVISOR),
     });
     return mapUserItem(newUser);
   }
@@ -197,7 +218,7 @@ export const createUser = async (data) => {
     name: data.name.trim(),
     email: data.email.trim(),
     phone: data.phone?.trim() || '-',
-    role: (data.role || ROLES.SUPERVISOR).toUpperCase(),
+    role: toBackendRole(data.role || ROLES.SUPERVISOR),
     password: data.password,
   };
 
@@ -228,7 +249,7 @@ export const updateUser = async (id, data) => {
     ...(data.name ? { name: data.name.trim() } : {}),
     ...(data.email ? { email: data.email.trim() } : {}),
     ...(data.phone ? { phone: data.phone.trim() } : {}),
-    ...(data.role ? { role: (data.role || '').toUpperCase() } : {}),
+    ...(data.role ? { role: toBackendRole(data.role) } : {}),
   };
 
   const res = await apiFetch(USER_DETAIL_ENDPOINT(id), {

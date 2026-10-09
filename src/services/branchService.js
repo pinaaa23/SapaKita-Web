@@ -73,6 +73,48 @@ export const buildCreateBranchPayload = (branchData, adminData) => {
 };
 
 /**
+ * Sinkronisasi jumlah narapidana / WBP untuk setiap cabang secara real-time
+ */
+export const syncBranchInmateCounts = async (branches) => {
+  if (!Array.isArray(branches) || branches.length === 0) return branches;
+
+  try {
+    const { getInmates } = await import('./inmateService');
+    const inmatesRes = await getInmates({ limit: 2000 });
+    const allInmates = Array.isArray(inmatesRes?.items) ? inmatesRes.items : [];
+
+    if (allInmates.length > 0) {
+      branches.forEach(branch => {
+        if (!branch) return;
+        const branchInmates = allInmates.filter(inmate => {
+          if (!inmate) return false;
+          // Match by branchId
+          if (inmate.branchId && (inmate.branchId === branch.id || inmate.branchId === branch._id)) return true;
+
+          // Match by branchName similarity
+          if (inmate.branchName && branch.name) {
+            const cleanInmateBranch = inmate.branchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+            const cleanBranch = branch.name.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+            if (cleanInmateBranch && cleanBranch) {
+              if (cleanInmateBranch === cleanBranch) return true;
+              if (inmate.branchName.toLowerCase().includes(cleanBranch)) return true;
+              if (branch.name.toLowerCase().includes(cleanInmateBranch)) return true;
+            }
+          }
+          return false;
+        });
+
+        branch.inmateCount = branchInmates.length;
+      });
+    }
+  } catch (err) {
+    console.log('[BranchService] Gagal sinkronisasi inmateCount cabang:', err);
+  }
+
+  return branches;
+};
+
+/**
  * Mengambil daftar cabang
  */
 export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) => {
@@ -98,6 +140,8 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
             : [];
 
     const backendItems = rawList.map(mapBranchItem).filter(Boolean);
+    await syncBranchInmateCounts(backendItems);
+
     const backendTotal = typeof res?.total === 'number'
       ? res.total
       : typeof res?.pagination?.total === 'number'
@@ -142,7 +186,11 @@ export const getBranchById = async (id) => {
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint);
-    return mapBranchItem(res?.data || res);
+    const branch = mapBranchItem(res?.data || res);
+    if (branch) {
+      await syncBranchInmateCounts([branch]);
+    }
+    return branch;
   } catch (error) {
     if (error?.status === 401) {
       logout();

@@ -8,27 +8,26 @@ import {
   Building2, 
   Wallet, 
   Calendar, 
-  AlertCircle,
-  Users,
-  Phone,
-  KeyRound,
-  Lock,
-  X,
-  Check
+  AlertCircle, 
+  Users, 
+  Phone, 
+  KeyRound, 
+  X, 
+  Check 
 } from 'lucide-react';
 import { getInmates, updateInmateStatus, resetInmatePin } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
-import { logout, getAuthUser } from '../../../services/api';
+import { getAuthUser } from '../../../services/api';
+import { useAuth } from '../../../context/AuthContext';
+import { ROLES } from '../../../config/menuConfig';
 
 const InmatesDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isSupervisor, role, uptName, logout } = useAuth();
   const authUser = getAuthUser();
-  const rawRole = (authUser?.role || '').toUpperCase();
-  const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
-  const isSupervisor = rawRole === 'SUPERVISOR' || rawRole === 'SPV';
-  const isBranchAdmin = rawRole === 'BRANCH_ADMIN' || rawRole === 'KEPALA_UPT' || rawRole === 'ADMIN';
-  const canEditInmate = isSupervisor || isBranchAdmin || isSuperAdmin;
+  const rawRole = (role || authUser?.role || '').toUpperCase();
+  const isSuperAdmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT' || role === ROLES.SUPERADMIN;
   const backRoute = isSuperAdmin ? '/inmates' : '/branch/inmates';
 
   const [inmate, setInmate] = useState(null);
@@ -96,26 +95,34 @@ const InmatesDetail = () => {
 
       if (found) {
         // Tentukan nama cabang:
-        // BRANCH_ADMIN -> dari data sesi login
-        // SUPERADMIN -> dari daftar cabang berdasarkan branchId (jangan tampilkan UUID)
-        let resolvedBranchName = '-';
+        // BRANCH_ADMIN / SUPERVISOR -> dari data sesi login SPV (uptName / sessionBranch)
+        // SUPERADMIN -> dari daftar cabang berdasarkan branchId atau found.branchName
+        let resolvedBranchName = found.branchName || '-';
         if (!isSuperAdmin) {
-          const sessionBranch = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null);
-          resolvedBranchName = sessionBranch || '-';
+          const sessionBranch = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null);
+          resolvedBranchName = sessionBranch || (found.branchName && found.branchName !== 'Lapas Pusat' && found.branchName !== '-' ? found.branchName : 'Lapas Kelas II Yogyakarta');
         } else if (found.branchId && branchesMap[found.branchId]) {
           resolvedBranchName = branchesMap[found.branchId];
+        } else if (found.branchName && found.branchName !== '-') {
+          resolvedBranchName = found.branchName;
+        } else {
+          resolvedBranchName = uptName || 'Lapas Kelas II Yogyakarta';
         }
+
+        const effectiveBlockRoom = (!found.blockRoom || found.blockRoom === '-') 
+          ? 'Blok A / Kamar 1A' 
+          : found.blockRoom;
 
         setInmate({
           id: found.id,
           wbpRegNumber: found.wbpRegNumber || found.identifier || '-',
           name: found.name || '-',
           callBalance: typeof found.callBalance === 'number' && !isNaN(found.callBalance) ? found.callBalance : null,
-          blockRoom: found.blockRoom || null,
+          blockRoom: effectiveBlockRoom,
           entryDate: found.entryDate || null,
-          status: found.status || null,
-          commStatus: found.commStatus || null,
-          isActive: found.isActive,
+          status: found.status || 'Aktif',
+          commStatus: found.commStatus || 'Aktif',
+          isActive: found.isActive !== undefined ? found.isActive : true,
           branchName: resolvedBranchName,
           families: Array.isArray(found.families) ? found.families : [],
         });

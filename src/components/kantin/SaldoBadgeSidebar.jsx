@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Wallet, ChevronRight, AlertTriangle } from 'lucide-react';
-import { formatRupiah } from '../../utils/formatKantin';
+import { Clock, ChevronRight, AlertTriangle } from 'lucide-react';
 import {
   SALDO_MINIMUM_WARNING,
   getSaldoSync,
@@ -10,15 +9,15 @@ import {
 
 /**
  * Kartu kecil "Saldo Kantin" untuk sidebar.
- * Menampilkan sisa saldo dan tombol menuju halaman Top Up Saldo.
- * Jika saldo di bawah SALDO_MINIMUM_WARNING (Rp 50.000),
- * kartu berubah warna jadi peringatan (kuning/merah) dengan tulisan "Saldo menipis".
+ * Menampilkan sisa kuota menit dan tombol menuju halaman Top Up Saldo.
+ * Jika kuota di bawah SALDO_MINIMUM_WARNING (30 Menit),
+ * kartu berubah warna jadi peringatan (kuning/merah) dengan tulisan "Kuota menipis".
  */
 export default function SaldoBadgeSidebar() {
   const [saldo, setSaldo] = useState(() => getSaldoSync());
 
   useEffect(() => {
-    // Subscribe untuk menerima update saldo realtime
+    // Subscribe untuk menerima update saldo menit realtime
     const unsubscribe = subscribeSaldoUpdate((newSaldo) => {
       setSaldo(newSaldo);
     });
@@ -34,7 +33,7 @@ export default function SaldoBadgeSidebar() {
     <NavLink
       to="/kantin/top-up-saldo"
       className={({ isActive }) =>
-        `block p-3 rounded-2xl border transition-all duration-150 group ${
+        `block p-2.5 rounded-xl border transition-all duration-150 group ${
           isActive
             ? 'bg-[#E3F2FD] border-blue-200 shadow-2xs'
             : saldoRendah
@@ -46,13 +45,13 @@ export default function SaldoBadgeSidebar() {
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           <div
-            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+            className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
               saldoRendah
                 ? 'bg-amber-100 text-amber-600'
                 : 'bg-emerald-100 text-emerald-600'
             }`}
           >
-            <Wallet className="w-3.5 h-3.5" />
+            <Clock className="w-3.5 h-3.5" />
           </div>
           <div className="truncate">
             <span
@@ -60,13 +59,13 @@ export default function SaldoBadgeSidebar() {
                 saldoRendah ? 'text-amber-800' : 'text-emerald-800'
               }`}
             >
-              {formatRupiah(saldo)}
+              {saldo.toLocaleString('id-ID')} Menit
             </span>
-            <span className="text-[10px] font-medium block">
+            <span className="text-[10px] font-medium block leading-none mt-0.5">
               {saldoRendah ? (
                 <span className="text-amber-600 flex items-center gap-1">
                   <AlertTriangle className="w-2.5 h-2.5 inline" />
-                  Saldo menipis
+                  Kuota menipis
                 </span>
               ) : (
                 <span className="text-slate-500">Klik untuk top up</span>

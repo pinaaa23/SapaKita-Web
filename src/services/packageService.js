@@ -261,8 +261,7 @@ export const getPackages = async ({
   activeOnly = false,
 } = {}) => {
   if (isDummyMode()) {
-    const { dummyStore } = await import('../dummy/store');
-    let list = dummyStore.getPackages().map(mapPackageItem);
+    let list = getStoredPackages();
 
     if (kategori && kategori !== 'semua') {
       const katLower = kategori.toLowerCase();
@@ -270,7 +269,7 @@ export const getPackages = async ({
     }
 
     if (activeOnly) {
-      list = list.filter((p) => p.isActive);
+      list = list.filter((p) => p.isActive !== false && p.status !== 'Nonaktif');
     } else if (status && status !== 'semua') {
       list = list.filter((p) => (p.status || '').toLowerCase() === status.toLowerCase());
     }
@@ -307,6 +306,11 @@ export const getPackages = async ({
       beList = res.data;
     }
 
+    if (beList.length === 0) {
+      // Fallback ke stored packages jika BE belum ada data
+      beList = getStoredPackages();
+    }
+
     let mapped = beList.map(mapPackageItem).filter(Boolean);
 
     if (kategori && kategori !== 'semua') {
@@ -315,7 +319,7 @@ export const getPackages = async ({
     }
 
     if (activeOnly) {
-      mapped = mapped.filter((p) => p.isActive);
+      mapped = mapped.filter((p) => p.isActive !== false && p.status !== 'Nonaktif');
     }
 
     return mapped;
@@ -324,40 +328,46 @@ export const getPackages = async ({
       logout();
       throw error;
     }
-    console.error('[PackageService] Gagal memuat data paket dari BE:', error?.message || error);
-    return [];
+    console.warn('[PackageService] Fallback ke stored packages:', error?.message || error);
+    let list = getStoredPackages();
+    if (kategori && kategori !== 'semua') {
+      list = list.filter((p) => (p.kategori || '').toLowerCase() === kategori.toLowerCase());
+    }
+    if (activeOnly) {
+      list = list.filter((p) => p.isActive !== false && p.status !== 'Nonaktif');
+    }
+    return list;
   }
 };
 
 /**
  * Mengambil paket aktif khusus untuk Halaman Paket Kantin
  */
-export const getPaketKantin = async ({ branchId, kategori = 'telepon' } = {}) => {
-  const activeBranch = branchId || getCurrentBranch();
+export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
   const list = await getPackages({
-    branchId: activeBranch,
     kategori,
     activeOnly: true,
   });
 
   return list.map((pkg) => {
-    const hargaTotal = Number(pkg.harga || 0);
+    const hargaTotal = Number(pkg.harga || pkg.price || 0);
     const dpp = Math.round(hargaTotal / 1.11);
     const ppn = hargaTotal - dpp;
+    const durasiMenit = Number(pkg.durasi || pkg.durationMinutes || 0);
 
     return {
       id: pkg.id,
-      nama: pkg.nama,
-      kategori: pkg.kategori || 'telepon',
-      menit: Number(pkg.durasi || 0),
-      durasi: `${pkg.durasi || 0} Menit`,
+      nama: pkg.nama || pkg.name,
+      kategori: (pkg.kategori || pkg.type || 'telepon').toLowerCase().includes('vid') ? 'video' : 'telepon',
+      menit: durasiMenit,
+      durasi: `${durasiMenit} Menit`,
       keterangan: 'Semua Operator',
       harga: hargaTotal,
       total: hargaTotal,
       dpp,
       ppn,
       status: pkg.status || 'Aktif',
-      branch: pkg.branch || activeBranch,
+      isActive: true,
     };
   });
 };

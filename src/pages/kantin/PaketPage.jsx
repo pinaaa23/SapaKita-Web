@@ -73,11 +73,11 @@ export default function PaketPage() {
   }, [kategori]);
 
   const handleBeliPaket = (paket) => {
-    // Cek saldo sebelum membuka modal pembelian
-    const hargaPaket = Number(paket.harga || paket.total || 0);
-    if (saldo < hargaPaket) {
+    // Cek kuota menit kasir sebelum membuka modal pembelian
+    const durasiMenit = Number(paket.menit || parseInt(paket.durasi) || 5);
+    if (saldo < durasiMenit) {
       setSaldoError(
-        `Saldo kantin tidak mencukupi untuk memproses paket "${paket.nama}". Silakan lakukan top up saldo terlebih dahulu.`
+        `Kuota menit kasir tidak mencukupi untuk memproses "${paket.nama}" (${durasiMenit} Menit). Sisa kuota saat ini: ${saldo} Menit. Silakan lakukan top up saldo menit terlebih dahulu.`
       );
       // Scroll to error
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -96,7 +96,7 @@ export default function PaketPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
-      {/* 0. Peringatan Saldo Tidak Cukup saat Beli */}
+      {/* 0. Peringatan Kuota Menit Tidak Cukup saat Beli */}
       {saldoError && (
         <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-3">
@@ -105,7 +105,7 @@ export default function PaketPage() {
             </div>
             <div>
               <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Saldo Tidak Mencukupi
+                Kuota Menit Tidak Mencukupi
               </h4>
               <p className="text-xs text-amber-700 mt-0.5">{saldoError}</p>
             </div>

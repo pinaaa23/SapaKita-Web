@@ -12,7 +12,7 @@ export default function WartelBadgeSidebar() {
     <NavLink
       to="/kantin/status-wartel"
       className={({ isActive }) =>
-        `block p-3 rounded-2xl border transition-all duration-150 group ${
+        `block p-2.5 rounded-xl border transition-all duration-150 group ${
           isActive
             ? 'bg-[#E3F2FD] border-blue-200 shadow-2xs'
             : isBanyakDigunakan
@@ -49,7 +49,7 @@ export default function WartelBadgeSidebar() {
             >
               {isLoading ? 'Memuat status...' : `${digunakan} dari ${total} Wartel Digunakan`}
             </span>
-            <span className="text-[10px] text-slate-500 font-medium block">
+            <span className="text-[10px] text-slate-500 font-medium block leading-none mt-0.5">
               Klik untuk pantau bilik
             </span>
           </div>

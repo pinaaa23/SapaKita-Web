@@ -22,6 +22,7 @@ import {
   PPN_RATE,
   DEFAULT_NOMINAL_SALDO_LIST,
   generateSuperadminRiwayatTopUpDummy,
+  getMenitFromNominal,
 } from '../dummy/saldoDummy';
 
 // Re-export konstanta tarif PPN
@@ -73,8 +74,31 @@ function getStoredNationalHistory() {
 function saveStoredNationalHistory(history) {
   try {
     localStorage.setItem(STORAGE_KEY_NAT_HISTORY, JSON.stringify(history));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+    }
   } catch (err) {
     console.error('Error saving national history to localStorage:', err);
+  }
+}
+
+/**
+ * Mendapatkan jumlah permohonan top up kantin yang masih menunggu persetujuan (sinkron).
+ * Digunakan oleh Sidebar dan Topbar badge.
+ * @returns {number}
+ */
+export function getPendingTopupCountSync() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_NAT_HISTORY);
+    if (!raw) {
+      const initial = generateSuperadminRiwayatTopUpDummy();
+      return Array.isArray(initial) ? initial.filter((item) => item.status === 'Menunggu').length : 0;
+    }
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return 0;
+    return list.filter((item) => item.status === 'Menunggu').length;
+  } catch {
+    return 0;
   }
 }
 
@@ -298,5 +322,117 @@ export async function getSuperadminTopupHistory({
   // if (status && status !== 'semua') params.append('status', status);
   // if (branchId && branchId !== 'semua') params.append('branchId', branchId);
   // const res = await apiFetch(`/api/canteen/topup/history?${params.toString()}`);
+  // return res.data || res;
+}
+
+/**
+ * 8. Superadmin menyetujui transaksi top up kantin.
+ * Saldo kasir operator kantin terkait akan langsung bertambah dan status berubah menjadi 'Berhasil'.
+ *
+ * @param {string} id - ID Transaksi (misal TPU-123456)
+ * @returns {Promise<{ success: boolean, transaction: object }>}
+ */
+export async function approveTopupTransaction(id) {
+  if (!id) throw new Error('ID Transaksi diperlukan.');
+
+  if (isDummyMode() || true) {
+    await delay(200);
+    const history = getStoredNationalHistory();
+    const index = history.findIndex((item) => item.id === id);
+    if (index === -1) throw new Error('Transaksi top up tidak ditemukan.');
+
+    const tx = history[index];
+    if (tx.status === 'Berhasil') {
+      return { success: true, message: 'Transaksi sudah disetujui sebelumnya.', transaction: tx };
+    }
+
+    tx.status = 'Berhasil';
+    tx.approvedAt = new Date().toISOString();
+    saveStoredNationalHistory(history);
+
+    // Update saldo kuota menit operator kantin yang mengajukan
+    if (tx.userKey) {
+      try {
+        const saldoKey = `pascall_kantin_saldo_${tx.userKey}`;
+        const rawSaldo = localStorage.getItem(saldoKey);
+        const currentSaldo = rawSaldo !== null ? JSON.parse(rawSaldo) : 0;
+        const kuotaMenit = Number(tx.menit) || getMenitFromNominal(tx.nominal);
+        const newSaldo = currentSaldo + kuotaMenit;
+        localStorage.setItem(saldoKey, JSON.stringify(newSaldo));
+
+        // Update status di riwayat user
+        const riwayatKey = `pascall_kantin_saldo_riwayat_${tx.userKey}`;
+        const rawRiwayat = localStorage.getItem(riwayatKey);
+        if (rawRiwayat) {
+          const userRiwayat = JSON.parse(rawRiwayat);
+          if (Array.isArray(userRiwayat)) {
+            const userTxIndex = userRiwayat.findIndex((uTx) => uTx.id === tx.id);
+            if (userTxIndex !== -1) {
+              userRiwayat[userTxIndex].status = 'Berhasil';
+              userRiwayat[userTxIndex].approvedAt = tx.approvedAt || new Date().toISOString();
+              userRiwayat[userTxIndex].isUnreadApproval = true;
+              localStorage.setItem(riwayatKey, JSON.stringify(userRiwayat));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memperbarui saldo operator pada approval:', err);
+      }
+    }
+
+    return { success: true, transaction: tx };
+  }
+
+  // TODO BE:
+  // const res = await apiFetch(`/api/canteen/topup/${id}/approve`, { method: 'POST' });
+  // return res.data || res;
+}
+
+/**
+ * 9. Superadmin menolak transaksi top up kantin.
+ * Status transaksi berubah menjadi 'Ditolak' dan saldo kasir tidak bertambah.
+ *
+ * @param {string} id - ID Transaksi
+ * @returns {Promise<{ success: boolean, transaction: object }>}
+ */
+export async function rejectTopupTransaction(id) {
+  if (!id) throw new Error('ID Transaksi diperlukan.');
+
+  if (isDummyMode() || true) {
+    await delay(200);
+    const history = getStoredNationalHistory();
+    const index = history.findIndex((item) => item.id === id);
+    if (index === -1) throw new Error('Transaksi top up tidak ditemukan.');
+
+    const tx = history[index];
+    tx.status = 'Ditolak';
+    tx.rejectedAt = new Date().toISOString();
+    saveStoredNationalHistory(history);
+
+    // Update status di riwayat operator kantin
+    if (tx.userKey) {
+      try {
+        const riwayatKey = `pascall_kantin_saldo_riwayat_${tx.userKey}`;
+        const rawRiwayat = localStorage.getItem(riwayatKey);
+        if (rawRiwayat) {
+          const userRiwayat = JSON.parse(rawRiwayat);
+          if (Array.isArray(userRiwayat)) {
+            const userTxIndex = userRiwayat.findIndex((uTx) => uTx.id === tx.id);
+            if (userTxIndex !== -1) {
+              userRiwayat[userTxIndex].status = 'Ditolak';
+              localStorage.setItem(riwayatKey, JSON.stringify(userRiwayat));
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Gagal memperbarui status riwayat operator pada rejection:', err);
+      }
+    }
+
+    return { success: true, transaction: tx };
+  }
+
+  // TODO BE:
+  // const res = await apiFetch(`/api/canteen/topup/${id}/reject`, { method: 'POST' });
   // return res.data || res;
 }

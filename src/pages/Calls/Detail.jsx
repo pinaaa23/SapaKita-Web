@@ -13,14 +13,12 @@ import {
   Users, 
   SkipBack, 
   SkipForward, 
-  Loader2, 
   Info, 
   Mic, 
   Activity,
   AlertCircle
 } from 'lucide-react';
 import { getCallById } from '../../services/callService';
-import { logout } from '../../services/api';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 

@@ -12,8 +12,6 @@ import {
   Phone, 
   Mail, 
   ShieldCheck, 
-  CheckCircle2, 
-  Activity,
   UserCheck,
   AlertCircle,
   Key,

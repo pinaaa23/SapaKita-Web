@@ -68,15 +68,20 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
     setIsSubmitting(true);
     setErrorSubmit('');
     try {
+      // Cek dan potong kuota menit kasir kantin sesuai durasi paket
+      const durasiMenit = Number(paket.menit || parseInt(paket.durasi) || 5);
+      const potong = cekDanPotongSaldo(durasiMenit);
+      if (!potong.cukup) {
+        throw new Error(
+          `Kuota menit kasir tidak mencukupi (${potong.saldoSekarang} Menit tersisa, dibutuhkan ${durasiMenit} Menit). Silakan lakukan top up saldo menit terlebih dahulu.`
+        );
+      }
+
       const transaksi = await buatTransaksi({
         napi: wbpTerpilih,
         paket: paket,
         metode: metodeBayar,
       });
-
-      // Potong saldo kantin setelah transaksi berhasil dibuat
-      const hargaPaket = Number(paket.harga || paket.total || 0);
-      cekDanPotongSaldo(hargaPaket);
 
       onClose();
       navigate(`/kantin/voucher/${transaksi.id}`);
@@ -192,7 +197,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                         setIdInput(e.target.value);
                         if (errorPencarian) setErrorPencarian('');
                       }}
-                      placeholder="Contoh: NAPI-1001 atau Ahmad Pratama"
+                      placeholder="Contoh: NIP-8192, 8192, atau Nama WBP"
                       className="w-full pl-3.5 pr-3 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1565C0] focus:ring-2 focus:ring-blue-500/20"
                       autoFocus
                     />
@@ -211,7 +216,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                   </button>
                 </form>
                 <p className="text-[11px] text-slate-400 mt-1.5">
-                  Ketik NIP / Nomor Registrasi WBP (<span className="font-mono text-slate-600 font-semibold">NAPI-1001</span>) untuk memuat profil.
+                  Ketik NIP / Nomor Registrasi atau Nama WBP untuk memuat profil.
                 </p>
               </div>
 

@@ -1,22 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Package, 
   Plus, 
   Phone, 
   Video, 
   Search, 
-  Filter,
-  CheckCircle2, 
   Edit3, 
   Power, 
   AlertCircle, 
   X, 
-  Info,
-  Check,
-  Clock,
-  Coins,
-  Trash2,
-  Sparkles
+  Check, 
+  Clock, 
+  Trash2 
 } from 'lucide-react';
 import { 
   getPackages, 
@@ -53,7 +48,7 @@ export default function PackagesList() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  const fetchPackagesData = async () => {
+  const fetchPackagesData = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await getPackages({
@@ -67,11 +62,11 @@ export default function PackagesList() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, selectedCategory, statusFilter]);
 
   useEffect(() => {
     fetchPackagesData();
-  }, [search, selectedCategory, statusFilter]);
+  }, [fetchPackagesData]);
 
   const showToast = (msg) => {
     setToastMessage(msg);

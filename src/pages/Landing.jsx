@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare, Sparkles } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare } from 'lucide-react';
 import mockupPascall from '../assets/mockup_pascall.png';
 import warmConnectionImg from '../assets/warm_connection.jpg';
 import lapasImg from '../assets/lapas.jpg';
@@ -59,20 +59,6 @@ function Squiggle({ className = '', width = 140, height = 32, id: idProp }) {
     </svg>
   );
 }
-
-// ──────────────────────────────────────────────────────────────────
-// SHIELD LINE ART (refined for container block)
-// ──────────────────────────────────────────────────────────────────
-function ShieldArt() {
-  return (
-    <svg width="110" height="128" viewBox="0 0 120 140" fill="none" aria-hidden="true">
-      <path d="M60 8 L106 24 L106 72 C106 100 84 122 60 130 C36 122 14 100 14 72 L14 24 Z" stroke="rgba(255,255,255,0.25)" strokeWidth="2" fill="rgba(255,255,255,0.06)" />
-      <path d="M60 20 L96 33 L96 72 C96 95 79 114 60 122 C41 114 24 95 24 72 L24 33 Z" stroke="rgba(255,255,255,0.15)" strokeWidth="1.5" fill="none" />
-      <rect x="43" y="68" width="34" height="26" rx="4" stroke="rgba(255,255,255,0.35)" strokeWidth="2" fill="rgba(255,255,255,0.06)" />
-      <path d="M48 68 L48 58 Q48 46 60 46 Q72 46 72 58 L72 68" stroke="rgba(255,255,255,0.35)" strokeWidth="2" fill="none" strokeLinecap="round" />
-      <circle cx="60" cy="78" r="4" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" fill="none" />
-      <line x1="60" y1="82" x2="60" y2="88" stroke="rgba(255,255,255,0.4)" strokeWidth="1.5" strokeLinecap="round" />
-      <path d="M90 22 L95 28 L105 16" stroke="rgba(134,239,172,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
     </svg>
   );
 }

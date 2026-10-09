@@ -15,12 +15,14 @@ import { createInmate } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
 import { logout, getAuthUser } from '../../../services/api';
 import FamilyMembersEditor, { validateFamilies } from '../../../components/FamilyMembersEditor';
+import { useAuth } from '../../../context/AuthContext';
 
 const InmatesCreate = () => {
   const navigate = useNavigate();
+  const { uptName } = useAuth();
   const authUser = getAuthUser();
   const isSuperadmin = authUser?.role === 'SUPERADMIN';
-  const currentBranchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
+  const currentBranchName = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas Kelas II Yogyakarta';
 
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState('');
@@ -117,7 +119,9 @@ const InmatesCreate = () => {
         name: formData.name,
         initialPin: formData.initialPin,
         families: formData.families,
-        ...(branchIdToSend ? { branchId: branchIdToSend } : {})
+        blockRoom: formData.blockRoom || 'Blok A / Kamar 1A',
+        branchId: branchIdToSend || authUser?.branchId || authUser?.branch?.id || 'mock-upt-yogyakarta',
+        branchName: currentBranchName,
       });
       
       navigate('/branch/inmates', { 

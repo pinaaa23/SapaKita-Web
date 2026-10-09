@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Building2, 
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole } from '../config/menuConfig';
+import { getPendingTopupCountSync } from '../services/canteenTopupService';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
@@ -18,6 +19,26 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   
   const { role: currentRole, roleLabel, uptName, logout } = useAuth();
   const uptDisplayName = uptName || 'UPT Anda';
+
+  // State hitungan permintaan top up kantin yang menunggu persetujuan
+  const [pendingTopupCount, setPendingTopupCount] = useState(() => getPendingTopupCountSync());
+
+  useEffect(() => {
+    const updateCount = () => {
+      setPendingTopupCount(getPendingTopupCountSync());
+    };
+
+    updateCount();
+    window.addEventListener('canteen_topup_changed', updateCount);
+    window.addEventListener('storage', updateCount);
+    const interval = setInterval(updateCount, 4000);
+
+    return () => {
+      window.removeEventListener('canteen_topup_changed', updateCount);
+      window.removeEventListener('storage', updateCount);
+      clearInterval(interval);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -75,14 +96,17 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                              (item.path !== '/dashboard' || location.pathname === '/dashboard') && 
                              (item.path !== '/branch/dashboard' || location.pathname === '/branch/dashboard');
             
+            const isCanteenTopupMenu = item.path === '/canteen-topup';
+            const showBadge = isCanteenTopupMenu && pendingTopupCount > 0;
+
             return (
               <Link
                 key={item.name}
                 to={item.path}
-                title={!isOpen ? item.name : undefined}
+                title={!isOpen ? (showBadge ? `${item.name} (${pendingTopupCount} permohonan baru)` : item.name) : undefined}
                 className={`flex items-center transition-all duration-300 ${
                   !isOpen 
-                    ? `mx-auto w-11 h-11 justify-center rounded-2xl ${
+                    ? `mx-auto w-11 h-11 justify-center rounded-2xl relative ${
                         isActive 
                           ? 'bg-white text-[#0B3D91] shadow-md font-bold' 
                           : 'text-blue-100 hover:bg-white/10 hover:text-white'
@@ -94,11 +118,29 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                       }`
                 }`}
               >
-                <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
+                  {/* Lingkaran oren kecil saat sidebar tertutup (collapsed) */}
+                  {!isOpen && showBadge && (
+                    <>
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91] animate-ping" />
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91]" />
+                    </>
+                  )}
+                </div>
+
                 {isOpen && (
-                  <span className="whitespace-nowrap text-sm font-medium">
-                    {item.name}
-                  </span>
+                  <>
+                    <span className="whitespace-nowrap text-sm font-medium flex-1 truncate">
+                      {item.name}
+                    </span>
+                    {/* Badge angka / lingkaran oren saat sidebar terbuka */}
+                    {showBadge && (
+                      <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 min-w-[20px] text-[10px] font-black bg-amber-400 text-amber-950 rounded-full shadow-xs animate-pulse">
+                        {pendingTopupCount}
+                      </span>
+                    )}
+                  </>
                 )}
               </Link>
             );

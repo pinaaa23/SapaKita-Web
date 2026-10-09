@@ -11,10 +11,8 @@ import {
   X,
   AlertCircle,
   Wallet,
-  Calendar,
   CheckCircle2,
   Clock,
-  UserCheck,
   XCircle
 } from 'lucide-react';
 import { getInmates, BACKEND_SUPPORTS_INMATE_FILTERS } from '../../services/inmateService';

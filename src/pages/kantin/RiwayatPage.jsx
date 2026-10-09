@@ -43,8 +43,17 @@ export default function RiwayatPage() {
 
     fetchData();
 
+    const handleTransactionUpdate = () => {
+      fetchData();
+    };
+
+    window.addEventListener('canteen_transaction_saved', handleTransactionUpdate);
+    window.addEventListener('storage', handleTransactionUpdate);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('canteen_transaction_saved', handleTransactionUpdate);
+      window.removeEventListener('storage', handleTransactionUpdate);
     };
   }, [periode, tanggal, metodeFilter, pencarian]);
 

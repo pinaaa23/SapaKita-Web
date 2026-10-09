@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft, Wallet } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getNotifications } from '../services/notificationService';
+import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
 import { ROLES } from '../config/menuConfig';
 
 const Topbar = () => {
@@ -63,17 +63,32 @@ const Topbar = () => {
   const notificationRef = useRef(null);
   const searchRef = useRef(null);
 
+  const fetchNotifs = async () => {
+    try {
+      const notifList = await getNotifications();
+      setNotifications(Array.isArray(notifList) ? notifList : []);
+    } catch (err) {
+      console.log('[Topbar] Gagal mengambil notifikasi:', err);
+      setNotifications([]);
+    }
+  };
+
   useEffect(() => {
-    const fetchNotifs = async () => {
-      try {
-        const notifList = await getNotifications();
-        setNotifications(Array.isArray(notifList) ? notifList : []);
-      } catch (err) {
-        console.log('[Topbar] Gagal mengambil notifikasi:', err);
-        setNotifications([]);
-      }
-    };
     fetchNotifs();
+
+    const handleUpdate = () => {
+      fetchNotifs();
+    };
+
+    window.addEventListener('canteen_topup_changed', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    const interval = setInterval(fetchNotifs, 4000);
+
+    return () => {
+      window.removeEventListener('canteen_topup_changed', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      clearInterval(interval);
+    };
   }, []);
 
   // Search Items List (Navigation only)
@@ -131,11 +146,14 @@ const Topbar = () => {
   };
 
   const markAllAsRead = () => {
+    const allIds = notifications.map(n => n.id);
+    markAllNotificationsAsRead(allIds);
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 
   const toggleReadNotif = (id) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: !n.read } : n));
+    markNotificationAsRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
   };
 
   const filteredNotifications = notifications.filter(n => {
@@ -328,16 +346,24 @@ const Topbar = () => {
                         }
                       }}
                       className={`px-4 py-3 hover:bg-slate-50/80 cursor-pointer transition-colors flex items-start gap-3 relative group ${
-                        !n.read ? 'bg-blue-50/40' : ''
+                        !n.read ? (n.type === 'canteen_topup' ? 'bg-amber-50/40' : 'bg-blue-50/40') : ''
                       }`}
                     >
                       {!n.read && (
-                        <span className="absolute left-2 top-4 w-1.5 h-1.5 rounded-full bg-primary"></span>
+                        <span className={`absolute left-2 top-4 w-1.5 h-1.5 rounded-full ${
+                          n.type === 'canteen_topup' ? 'bg-amber-500' : 'bg-primary'
+                        }`}></span>
                       )}
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                        !n.read ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-400'
+                        n.type === 'canteen_topup'
+                          ? (!n.read ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400')
+                          : (!n.read ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-400')
                       }`}>
-                        <Bell className="w-4 h-4" />
+                        {n.type === 'canteen_topup' ? (
+                          <Wallet className="w-4 h-4" />
+                        ) : (
+                          <Bell className="w-4 h-4" />
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">

@@ -13,12 +13,15 @@ import {
 import { getInmates, updateInmate } from '../../../services/inmateService';
 import { logout, getAuthUser } from '../../../services/api';
 import FamilyMembersEditor, { validateFamilies } from '../../../components/FamilyMembersEditor';
+import { useAuth } from '../../../context/AuthContext';
 
 const InmatesEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { uptName, isSupervisor } = useAuth();
   const authUser = getAuthUser();
-  const currentBranchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Cabang Anda');
+  const isSuperadmin = authUser?.role === 'SUPERADMIN';
+  const currentBranchName = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : '') || 'Lapas Kelas II Yogyakarta';
 
   const [formData, setFormData] = useState({
     name: '',
@@ -45,19 +48,19 @@ const InmatesEdit = () => {
 
   useEffect(() => {
     getInmates({ search: id }).then(res => {
-      const found = res?.items?.find(i => i.id === id || i.wbpRegNumber === id);
+      const found = res?.items?.find(i => i.id === id || i.wbpRegNumber === id || i.identifier === id);
       if (found) {
         setFormData({
           name: found.name || '',
-          wbpRegNumber: found.wbpRegNumber || '',
+          wbpRegNumber: found.wbpRegNumber || found.identifier || '',
           initialPin: '',
           nik: '',
           birthPlace: '',
           birthDate: '',
           gender: 'Laki-laki',
           photoUrl: '',
-          branchName: currentBranchName,
-          blockRoom: found.blockRoom || 'Blok A / Kamar 1A',
+          branchName: (isSupervisor || !isSuperadmin || !found.branchName || found.branchName === 'Lapas Pusat' || found.branchName === 'Lapas Kelas I Cipinang' || found.branchName === '-') ? currentBranchName : found.branchName,
+          blockRoom: (!found.blockRoom || found.blockRoom === '-') ? 'Blok A / Kamar 1A' : found.blockRoom,
           entryDate: found.entryDate ? new Date(found.entryDate).toISOString().split('T')[0] : '',
           status: found.status || 'Aktif',
           callBalance: found.callBalance || 0,
@@ -89,6 +92,11 @@ const InmatesEdit = () => {
       return;
     }
 
+    if (!formData.blockRoom?.trim()) {
+      setErrorMsg('Penempatan Blok / Kamar wajib diisi.');
+      return;
+    }
+
     // Validasi keluarga
     const { isValid, errors } = validateFamilies(formData.families);
     if (!isValid) {
@@ -106,6 +114,7 @@ const InmatesEdit = () => {
         identifier: formData.wbpRegNumber,
         initialPin: formData.initialPin,
         blockRoom: formData.blockRoom,
+        branchName: formData.branchName,
         families: formData.families
       });
       navigate('/branch/inmates', { state: { toast: 'Data narapidana dan keluarga berhasil diperbarui.' } });

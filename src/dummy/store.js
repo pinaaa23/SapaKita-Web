@@ -140,6 +140,18 @@ export const dummyStore = {
 
   // PACKAGES
   getPackages(branchId = null) {
+    try {
+      const raw = localStorage.getItem('pascall_upt_packages_v7');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          if (branchId) {
+            return parsed.filter((p) => !p.branchId || p.branchId === branchId || p.branchId === 'all');
+          }
+          return parsed;
+        }
+      }
+    } catch {}
     if (branchId) {
       return state.packages.filter((p) => p.branchId === branchId);
     }
@@ -147,7 +159,8 @@ export const dummyStore = {
   },
 
   getPackageById(id) {
-    return state.packages.find((p) => p.id === id) || null;
+    const pkgs = this.getPackages();
+    return pkgs.find((p) => p.id === id) || null;
   },
 
   // CALL RECORDINGS

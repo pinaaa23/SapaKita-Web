@@ -85,10 +85,36 @@ export const mapInmateItem = (item) => {
  * Di mode demo: membaca langsung dari in-memory dummyStore (tanpa request ke backend)
  * Di mode normal: request ke backend BE asli
  */
-export const getInmates = async ({ search = '', page = 1, limit = 20, branchId = '', status = '' } = {}) => {
+export const getInmates = async ({ search = '', page = 1, limit = 20, branchId = '', branchName = '', status = '' } = {}) => {
+  // Jika branchName/branchId kosong, sesuaikan dengan sesi login jika bukan Superadmin
+  let effectiveBranchName = branchName;
+  let effectiveBranchId = branchId;
+  try {
+    const { getAuthUser } = await import('./api');
+    const authUser = getAuthUser();
+    const rawRole = (authUser?.role || '').toUpperCase();
+    const isSuperadmin = rawRole === 'SUPERADMIN' || rawRole === 'ADMIN_PUSAT';
+
+    if (!isSuperadmin) {
+      if (!effectiveBranchName) {
+        effectiveBranchName = authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : '') || authUser?.uptName || '';
+      }
+      if (!effectiveBranchId) {
+        effectiveBranchId = authUser?.branchId || authUser?.branch?.id || '';
+      }
+    }
+  } catch {}
+
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
-    const allInmates = dummyStore.getInmates({ branchId, search, status, limit: null });
+    let allInmates = dummyStore.getInmates({ branchId: effectiveBranchId, search, status, limit: null });
+    if (effectiveBranchName && effectiveBranchName !== 'All' && effectiveBranchName !== 'ALL' && effectiveBranchName.toLowerCase() !== 'upt anda') {
+      const qBranch = effectiveBranchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+      allInmates = allInmates.filter(i => {
+        const iBranch = (i.branchName || '').toLowerCase();
+        return iBranch.includes(qBranch) || (effectiveBranchId && i.branchId === effectiveBranchId);
+      });
+    }
     const mapped = allInmates.map(mapInmateItem).filter(Boolean);
     const numLimit = Number(limit) || 20;
     const numPage = Number(page) || 1;
@@ -101,6 +127,55 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
       page: numPage,
       limit: numLimit,
       totalPages: Math.max(1, Math.ceil(mapped.length / numLimit)),
+    };
+  }
+
+  // Fallback ke mock storage jika diaktifkan manual
+  if (USE_MOCK_SUPERADMIN) {
+    let mockList = getMockNapi();
+    
+    // Filter berdasarkan Cabang/UPT untuk Supervisor / Kepala UPT
+    if (effectiveBranchName && effectiveBranchName !== 'All' && effectiveBranchName !== 'ALL' && effectiveBranchName.toLowerCase() !== 'upt anda') {
+      const qBranch = effectiveBranchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+      mockList = mockList.filter(item => {
+        const itemBranch = (item.branchName || item.cabang || '').toLowerCase();
+        return itemBranch.includes(qBranch) || (effectiveBranchId && item.branchId === effectiveBranchId);
+      });
+    } else if (effectiveBranchId && effectiveBranchId !== 'All' && effectiveBranchId !== 'ALL') {
+      mockList = mockList.filter(item => item.branchId === effectiveBranchId);
+    }
+
+    if (status && status !== 'All' && status !== 'ALL') {
+      mockList = mockList.filter(item => (item.status && item.status.toLowerCase() === status.toLowerCase()) || (item.commStatus && item.commStatus.toLowerCase() === status.toLowerCase()));
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      const qDigits = q.replace(/[^0-9]/g, '');
+      mockList = mockList.filter(item => {
+        const iIdent = (item.identifier || item.wbpRegNumber || item.nip || item.id || '').toLowerCase();
+        const iIdentDigits = iIdent.replace(/[^0-9]/g, '');
+        const matchIdent = iIdent.includes(q) || (qDigits.length >= 2 && iIdentDigits.includes(qDigits));
+        const matchName = (item.name || '').toLowerCase().includes(q);
+        const matchRoom = (item.blockRoom || '').toLowerCase().includes(q);
+        const matchPhone = item.families && Array.isArray(item.families) && item.families.some(f => 
+          (f.name && f.name.toLowerCase().includes(q)) ||
+          (f.phone && f.phone.includes(q)) ||
+          (qDigits.length >= 4 && (f.phone || '').replace(/[^0-9]/g, '').includes(qDigits))
+        );
+        return matchIdent || matchName || matchRoom || matchPhone;
+      });
+    }
+    const numLimit = Number(limit) || 20;
+    const numPage = Number(page) || 1;
+    const startIdx = (numPage - 1) * numLimit;
+    const paginated = mockList.slice(startIdx, startIdx + numLimit);
+
+    return {
+      items: paginated.map(mapInmateItem).filter(Boolean),
+      total: mockList.length,
+      page: numPage,
+      limit: numLimit,
+      totalPages: Math.max(1, Math.ceil(mockList.length / numLimit)),
     };
   }
 
@@ -190,7 +265,7 @@ export const getInmateById = async (idOrIdentifier) => {
 /**
  * Mendaftarkan narapidana baru
  */
-export const createInmate = async ({ identifier, name, initialPin, branchId, branchName, families = [] }) => {
+export const createInmate = async ({ identifier, name, initialPin, blockRoom, branchId, branchName, families = [] }) => {
   if (!identifier || !name) {
     throw new Error('NIP dan Nama Narapidana wajib diisi');
   }
@@ -202,8 +277,9 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
       wbpRegNumber: identifier.trim(),
       name: name.trim(),
       initialPin: (initialPin || '1234').trim(),
+      blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || 'b1',
-      branchName: branchName || 'Lapas Kelas I Cipinang',
+      branchName: branchName || 'Lapas Kelas II Yogyakarta',
       callBalance: 0,
       status: 'Aktif',
       commStatus: 'Aktif',
@@ -220,8 +296,9 @@ export const createInmate = async ({ identifier, name, initialPin, branchId, bra
       wbpRegNumber: identifier.trim(),
       name: name.trim(),
       initialPin: (initialPin || '1234').trim(),
+      blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || '',
-      branchName: branchName || 'Lapas Pusat',
+      branchName: branchName || 'Lapas Kelas II Yogyakarta',
       callBalance: 0,
       status: 'Aktif',
       commStatus: 'Aktif',

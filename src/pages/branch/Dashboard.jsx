@@ -30,13 +30,13 @@ import { getPackages } from '../../services/packageService';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { useAuth } from '../../context/AuthContext';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
-import { downloadTextFile, downloadTranscriptPDF } from '../../utils/exportUtils';
+import { downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { canViewRecordings, logout, isSupervisor, uptName, userName, roleLabel } = useAuth();
+  const { canViewRecordings, logout, isSupervisor, uptName, userName, roleLabel, user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('voice'); // 'voice' | 'video'
   const [searchInput, setSearchInput] = useState('');
@@ -123,12 +123,17 @@ const Dashboard = () => {
     const fetchStats = async () => {
       setIsStatsLoading(true);
       try {
+        const branchQueryParams = {
+          branchId: user?.branchId || user?.branch?.id || '',
+          branchName: uptName || user?.branchName || ''
+        };
+
         if (isSupervisor) {
           const [spvRes, pkgsRes, trxRes, inmatesRes] = await Promise.allSettled([
             getSupervisorSummary(),
             getPackages(),
             getBalanceTransactions({ limit: 100 }),
-            getInmates({ page: 1, limit: 1 })
+            getInmates({ page: 1, limit: 1, ...branchQueryParams })
           ]);
 
           if (isMounted) {
@@ -165,13 +170,13 @@ const Dashboard = () => {
               totalPackages: totalPkgsCount,
               activePackages: activePkgsCount,
               todayTransactions: todayTrxFinal,
-              totalInmates: totalInmates !== null ? totalInmates : 15,
+              totalInmates: totalInmates !== null ? totalInmates : 0,
             });
           }
         } else {
           const [summaryRes, inmatesRes] = await Promise.allSettled([
             getBranchSummary(),
-            getInmates({ page: 1, limit: 1 })
+            getInmates({ page: 1, limit: 1, ...branchQueryParams })
           ]);
 
           if (isMounted) {
@@ -271,7 +276,12 @@ const Dashboard = () => {
         try {
           const [pkgsRes, inmatesRes] = await Promise.allSettled([
             getPackages({ activeOnly: true }),
-            getInmates({ page: 1, limit: 5 })
+            getInmates({ 
+              page: 1, 
+              limit: 5,
+              branchId: user?.branchId || user?.branch?.id || '',
+              branchName: uptName || user?.branchName || ''
+            })
           ]);
           if (isMounted) {
             if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value)) {

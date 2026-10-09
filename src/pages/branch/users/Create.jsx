@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
   User, 
-  Users, 
+  Users,
   Mail, 
   Phone, 
   Lock, 
@@ -17,15 +17,12 @@ import {
   Power, 
   ShieldCheck, 
   Store, 
-  Info,
-  Building2,
-  X
+  Info
 } from 'lucide-react';
 import { createUser, generateRandomPassword } from '../../../services/userService';
 import { getBranchById, getBranches } from '../../../services/branchService';
 import { ROLES, ROLE_LABELS } from '../../../config/menuConfig';
 import { useAuth } from '../../../context/AuthContext';
-import { logout } from '../../../services/api';
 
 /**
  * Ekstraksi slug cabang yang bersih dari nama cabang, profil user, atau fallback
@@ -36,13 +33,16 @@ export const extractBranchSlug = (branchName, user) => {
     user?.branch?.name,
     user?.branchName,
     typeof user?.branch === 'string' ? user.branch : '',
-    user?.name, // contoh: "Kepala Lapas Cipinang"
-  ].filter(c => Boolean(c && typeof c === 'string' && c.trim() && c.trim().toLowerCase() !== 'upt anda'));
+    user?.branchLocation,
+    user?.branch?.location,
+    user?.branch?.slug,
+    user?.uptName,
+  ].filter(c => Boolean(c && typeof c === 'string' && c.trim() && c.trim().toLowerCase() !== 'upt anda' && c.trim().toLowerCase() !== 'lapas pusat'));
 
   const stopwords = [
-    'kepala', 'admin', 'supervisor', 'spv', 'kasir', 'operator', 'staf', 'staff',
+    'kepala', 'admin', 'supervisor', 'spv', 'kasir', 'operator', 'staf', 'staff', 'petugas', 'pejabat',
     'lapas', 'rutan', 'kelas', 'kls', 'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii',
-    'upt', 'kota', 'kabupaten', 'wilayah', 'kantin', 'wartel'
+    'upt', 'kota', 'kabupaten', 'wilayah', 'kantin', 'wartel', 'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara'
   ];
 
   for (const candidate of candidates) {
@@ -56,17 +56,30 @@ export const extractBranchSlug = (branchName, user) => {
     if (meaningfulWords.length > 0) {
       return meaningfulWords.slice(0, 2).join('-');
     }
-    if (rawWords.length > 0 && candidate !== user?.name) {
+    if (rawWords.length > 0) {
       return rawWords.slice(0, 2).join('-');
     }
   }
 
-  return 'cipinang'; // default fallback UPT
+  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.lapas-yogyakarta@pascall.id -> yogyakarta)
+  if (user?.email && user.email.includes('@')) {
+    const localPart = user.email.split('@')[0];
+    const parts = localPart.split('.');
+    const lastPart = parts[parts.length - 1];
+    if (lastPart) {
+      const cleanSlug = lastPart.replace(/^(lapas|rutan|kls|kelas)-+/i, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (cleanSlug && !stopwords.includes(cleanSlug)) {
+        return cleanSlug;
+      }
+    }
+  }
+
+  return 'yogyakarta';
 };
 
 /**
  * Generator rekomendasi email petugas UPT PasCall
- * Format: peran.nama.cabang@pascall.id (Contoh: spv.salsabila.cipinang@pascall.id)
+ * Format: peran.nama.cabang@pascall.id (Contoh: spv.salsabila.yogyakarta@pascall.id)
  */
 export const generateUserEmail = (name, role, branchName, user) => {
   const roleSlug = role === ROLES.OPERATOR_KANTIN ? 'kantin' : 'spv';
@@ -92,8 +105,8 @@ export const generateUserEmail = (name, role, branchName, user) => {
 
 const Create = () => {
   const navigate = useNavigate();
-  const { uptName, user } = useAuth();
-  const [resolvedBranchName, setResolvedBranchName] = useState(uptName || '');
+  const { uptName, user, logout } = useAuth();
+  const [resolvedBranchName, setResolvedBranchName] = useState(uptName || 'Lapas Kelas II Yogyakarta');
 
   // Form State
   const [name, setName] = useState('');
@@ -101,7 +114,7 @@ const Create = () => {
   const [role, setRole] = useState(ROLES.SUPERVISOR);
   const [status, setStatus] = useState('Active');
   
-  const [email, setEmail] = useState(() => generateUserEmail('', ROLES.SUPERVISOR, uptName, user));
+  const [email, setEmail] = useState(() => generateUserEmail('', ROLES.SUPERVISOR, uptName || 'Lapas Kelas II Yogyakarta', user));
   const [isEmailManuallyEdited, setIsEmailManuallyEdited] = useState(false);
   const [password, setPassword] = useState(() => generateRandomPassword());
   
@@ -126,18 +139,7 @@ const Create = () => {
         .then((b) => {
           if (b?.name) setResolvedBranchName(b.name);
         })
-        .catch(() => {
-          getBranches({ limit: 10 }).then((res) => {
-            const list = res?.items || res || [];
-            const match = list.find((item) => item.id === bId) || list[0];
-            if (match?.name) setResolvedBranchName(match.name);
-          }).catch(() => {});
-        });
-    } else {
-      getBranches({ limit: 10 }).then((res) => {
-        const list = res?.items || res || [];
-        if (list[0]?.name) setResolvedBranchName(list[0].name);
-      }).catch(() => {});
+        .catch(() => {});
     }
   }, [uptName, user]);
 
@@ -239,7 +241,8 @@ const Create = () => {
       } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
         setErrorMsg('Fitur ini belum tersedia di sistem backend.');
       } else if (err?.status === 400) {
-        const msg = err?.data?.message || err?.message || 'Email atau identitas pengguna sudah dipakai, gunakan yang lain.';
+        const errorDetail = err?.data?.errors?.map(e => e.message).join(', ');
+        const msg = errorDetail || err?.data?.message || err?.message || 'Validasi gagal. Periksa kembali isian form.';
         setErrorMsg(msg);
       } else {
         setErrorMsg(err?.data?.message || err?.message || 'Gagal mendaftarkan pengguna baru.');
@@ -371,7 +374,7 @@ const Create = () => {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Kelola data narapidana, verifikasi kontak, kelola paket komunikasi, dan laporan UPT.
+                      Kelola data narapidana, verifikasi kontak, dan operasional warga binaan cabang.
                     </p>
                   </div>
                 </button>
@@ -429,10 +432,21 @@ const Create = () => {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Email Login Petugas <span className="text-rose-500">*</span>
                 </label>
-                {!isEmailManuallyEdited && (
+                {!isEmailManuallyEdited ? (
                   <span className="text-[11px] text-primary font-medium flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Rekomendasi Otomatis
                   </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsEmailManuallyEdited(false);
+                      setEmail(generateUserEmail(name, role, resolvedBranchName, user));
+                    }}
+                    className="text-[11px] text-primary hover:text-primary-dark font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <Sparkles className="w-3 h-3" /> Gunakan Rekomendasi
+                  </button>
                 )}
               </div>
               <div className="relative">

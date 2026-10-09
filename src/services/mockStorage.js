@@ -63,10 +63,26 @@ export const removeStorageItem = (key) => {
 export const getMockUpt = () => {
   const items = getStorageItem(MOCK_UPT_KEY, []);
   if (!Array.isArray(items)) return [];
-  return items.map(item => ({
-    ...item,
-    isMock: true,
-  }));
+  const napiList = getStorageItem(MOCK_NAPI_KEY, INITIAL_MOCK_NAPI);
+
+  return items.map(item => {
+    const branchInmates = Array.isArray(napiList) ? napiList.filter(n => {
+      if (!n) return false;
+      if (n.branchId && (n.branchId === item.id || n.branchId === item._id)) return true;
+      if (!n.branchName || !item.name) return false;
+      const cleanInmateBranch = n.branchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+      const cleanBranch = item.name.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
+      return cleanInmateBranch === cleanBranch || 
+             n.branchName.toLowerCase().includes(cleanBranch) || 
+             item.name.toLowerCase().includes(cleanInmateBranch);
+    }) : [];
+
+    return {
+      ...item,
+      inmateCount: branchInmates.length,
+      isMock: true,
+    };
+  });
 };
 
 /**
@@ -284,9 +300,9 @@ export const addMockNapi = (napiData) => {
     wbpRegNumber: napiData.wbpRegNumber || napiData.identifier || napiData.nip || `WBP-${Date.now().toString().slice(-4)}`,
     name: napiData.name?.trim() || 'Narapidana Baru',
     branchId: napiData.branchId || '',
-    branchName: napiData.branchName || napiData.cabang || napiData.upt || 'Lapas Pusat',
+    branchName: napiData.branchName || napiData.cabang || napiData.upt || 'Lapas Kelas II Yogyakarta',
     callBalance: typeof napiData.callBalance === 'number' ? napiData.callBalance : (Number(napiData.callBalance) || 0),
-    blockRoom: napiData.blockRoom || '-',
+    blockRoom: napiData.blockRoom || 'Blok A / Kamar 1A',
     status: napiData.status || 'Aktif',
     commStatus: napiData.commStatus || 'Aktif',
     isActive: napiData.isActive !== undefined ? Boolean(napiData.isActive) : true,

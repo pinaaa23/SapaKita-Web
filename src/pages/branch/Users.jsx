@@ -40,7 +40,7 @@ import { ROLES, ROLE_LABELS } from '../../config/menuConfig';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BranchUsers() {
-  const { role, canManageUsers } = useAuth();
+  const { canManageUsers } = useAuth();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -662,7 +662,7 @@ export default function BranchUsers() {
                   <input
                     type="email"
                     required
-                    placeholder="Contoh: supervisor.cipinang@pascall.id"
+                    placeholder="Contoh: spv.ucuk.yogyakarta@pascall.id"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs font-mono"
@@ -670,9 +670,9 @@ export default function BranchUsers() {
                 </div>
                 {/* Petunjuk format email — hanya informasi, bukan validasi ketat */}
                 <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Format: <span className="font-mono font-semibold text-slate-500">peran.wilayah@pascall.id</span>
+                  Format: <span className="font-mono font-semibold text-slate-500">peran.nama.cabang@pascall.id</span>
                   <span className="mx-1">·</span>
-                  Contoh: <span className="font-mono font-semibold text-slate-500">kantin.cipinang@pascall.id</span>
+                  Contoh: <span className="font-mono font-semibold text-slate-500">spv.ucuk.yogyakarta@pascall.id</span>
                 </p>
               </div>
 
@@ -694,7 +694,7 @@ export default function BranchUsers() {
                     <ShieldCheck className="w-4 h-4 shrink-0" />
                     <div>
                       <p className="text-xs font-bold">Supervisor</p>
-                      <p className="text-[10px] text-slate-500">Kelola UPT &amp; Paket</p>
+                      <p className="text-[10px] text-slate-500">Kelola Warga Binaan</p>
                     </div>
                   </button>
 

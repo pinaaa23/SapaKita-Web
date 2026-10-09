@@ -28,7 +28,22 @@ export const AuthProvider = ({ children }) => {
 
   // Nama UPT / Cabang
   const uptName = useMemo(() => {
-    return user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '');
+    const direct = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName || user?.branchLocation || '';
+    if (direct && direct.trim() !== '' && direct.trim().toLowerCase() !== 'upt anda') {
+      return direct.trim();
+    }
+    // Jika email user memiliki format peran.nama.cabang@pascall.id (contoh: spv.ucuk.yogyakarta@pascall.id)
+    if (user?.email && user.email.includes('@')) {
+      const parts = user.email.split('@')[0].split('.');
+      if (parts.length >= 3) {
+        const slug = parts[parts.length - 1]; // misal "yogyakarta"
+        if (slug) {
+          const capitalized = slug.charAt(0).toUpperCase() + slug.slice(1);
+          return `Lapas Kelas II ${capitalized}`;
+        }
+      }
+    }
+    return direct || 'Lapas Kelas II Yogyakarta';
   }, [user]);
 
   // Specific Permission Flags (false jika tidak ada role / belum login)
@@ -75,41 +90,20 @@ export const AuthProvider = ({ children }) => {
   // Auto-resolve branch name for branch roles if missing
   useEffect(() => {
     if (!token || !user) return;
-    const currentBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '');
+    const currentBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName;
     const bId = user?.branchId || user?.branch?.id;
 
-    if (!currentBranchName && (bId || role === ROLES.KEPALA_UPT || role === ROLES.SUPERVISOR || role === ROLES.OPERATOR_KANTIN)) {
-      import('../services/branchService').then(({ getBranchById, getBranches }) => {
-        if (bId) {
-          getBranchById(bId)
-            .then((b) => {
-              if (b?.name) {
-                const updated = { ...user, branchName: b.name, branch: b };
-                setUser(updated);
-                setAuthSession(token, updated);
-              }
-            })
-            .catch(() => {
-              getBranches({ limit: 10 }).then((res) => {
-                const list = res?.items || res || [];
-                const match = list.find((item) => item.id === bId) || list[0];
-                if (match?.name) {
-                  const updated = { ...user, branchName: match.name, branch: match };
-                  setUser(updated);
-                  setAuthSession(token, updated);
-                }
-              }).catch(() => {});
-            });
-        } else {
-          getBranches({ limit: 10 }).then((res) => {
-            const list = res?.items || res || [];
-            if (list[0]?.name) {
-              const updated = { ...user, branchName: list[0].name, branch: list[0] };
+    if (!currentBranchName && bId) {
+      import('../services/branchService').then(({ getBranchById }) => {
+        getBranchById(bId)
+          .then((b) => {
+            if (b?.name) {
+              const updated = { ...user, branchName: b.name, branch: b };
               setUser(updated);
               setAuthSession(token, updated);
             }
-          }).catch(() => {});
-        }
+          })
+          .catch(() => {});
       }).catch(() => {});
     }
   }, [token, user, role]);

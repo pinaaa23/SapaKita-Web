@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Volume2, 
   Video, 
   PhoneCall, 
   Search, 
-  Filter, 
   Calendar, 
   Play, 
   FileText, 
@@ -29,7 +28,6 @@ import { exportToExcel, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
 
 const CallsList = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { userName } = useAuth();
 
