@@ -260,25 +260,61 @@ export const INITIAL_MOCK_NAPI = [
       { id: 'fam-m5-2', name: 'Farhan Ridwan', relationship: 'Saudara', phone: '081244556688' },
     ],
   },
+  {
+    id: 'mock-napi-006',
+    identifier: 'NIP-8192',
+    wbpRegNumber: 'NIP-8192',
+    name: 'Putri Wahaha',
+    branchId: 'f628171c-3c38-4c97-909b-a4ec5e2e0fa1',
+    branchName: 'Lapas II Yogyakarta',
+    callBalance: 50000,
+    blockRoom: 'Blok Wanita - Kamar 02',
+    status: 'Aktif',
+    commStatus: 'Aktif',
+    isActive: true,
+    entryDate: '2026-03-01T10:00:00.000Z',
+    createdAt: '2026-03-01T10:00:00.000Z',
+    isMock: true,
+    families: [
+      { id: 'fam-m6-1', name: 'Bambang Wahaha', relationship: 'Orang Tua', phone: '081298768192' },
+    ],
+  },
 ];
 
 /**
  * Mengambil seluruh data mock Narapidana Superadmin dari localStorage
- * Jika belum ada di localStorage, menginisialisasi 5 data contoh awal
+ * Jika belum ada di localStorage, menginisialisasi data contoh awal
  */
 export const getMockNapi = () => {
   try {
     const raw = localStorage.getItem(MOCK_NAPI_KEY);
     if (!raw) {
-      // Inisialisasi awal 5 data contoh saat localStorage masih kosong
       localStorage.setItem(MOCK_NAPI_KEY, JSON.stringify(INITIAL_MOCK_NAPI));
       return INITIAL_MOCK_NAPI;
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.map(item => ({ ...item, isMock: true }));
+      const items = parsed.map(item => ({ ...item, isMock: true }));
+      // Pastikan narapidana contoh default (seperti NIP-8192) tetap tersedia jika belum ada di localStorage
+      let hasNew = false;
+      for (const initItem of INITIAL_MOCK_NAPI) {
+        const exists = items.some(it => 
+          (it.identifier && it.identifier.toLowerCase() === initItem.identifier.toLowerCase()) ||
+          (it.wbpRegNumber && it.wbpRegNumber.toLowerCase() === initItem.wbpRegNumber.toLowerCase()) ||
+          (it.id && it.id === initItem.id)
+        );
+        if (!exists) {
+          items.push(initItem);
+          hasNew = true;
+        }
+      }
+      if (hasNew) {
+        try {
+          localStorage.setItem(MOCK_NAPI_KEY, JSON.stringify(items));
+        } catch {}
+      }
+      return items;
     }
-    // Jika array tersimpan kosong, gunakan default
     return INITIAL_MOCK_NAPI;
   } catch (err) {
     console.warn('[mockStorage] Error membaca mock napi:', err);

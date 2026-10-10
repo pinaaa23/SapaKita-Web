@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Clock, ChevronRight, AlertTriangle } from 'lucide-react';
 import {
   SALDO_MINIMUM_WARNING,
+  getSaldo,
   getSaldoSync,
   subscribeSaldoUpdate,
 } from '../../services/kantin/saldoService';
@@ -17,6 +18,9 @@ export default function SaldoBadgeSidebar() {
   const [saldo, setSaldo] = useState(() => getSaldoSync());
 
   useEffect(() => {
+    // Muat saldo awal dari BE
+    getSaldo().then((s) => setSaldo(s)).catch(() => {});
+
     // Subscribe untuk menerima update saldo menit realtime
     const unsubscribe = subscribeSaldoUpdate((newSaldo) => {
       setSaldo(newSaldo);

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
+  User,
   UserCircle, 
   ShieldCheck, 
   Eye, 
@@ -12,7 +13,8 @@ import {
   Phone, 
   Building2, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import Modal from '../components/Modal';
 import { useAuth } from '../context/AuthContext';
@@ -74,12 +76,15 @@ const Profile = () => {
         navigate('/login', { replace: true });
         return;
       }
-      if (err?.status === 403) {
+      const beError = err?.data?.message || (Array.isArray(err?.data?.errors) ? err.data.errors.map(e => e.message).join(', ') : null);
+      if (beError) {
+        setInfoError(beError);
+      } else if (err?.status === 403) {
         setInfoError('Anda tidak memiliki akses.');
-      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
-        setInfoError('Fitur ini belum tersedia di sistem backend');
+      } else if (err?.isNetworkError) {
+        setInfoError('Server backend tidak dapat dihubungi');
       } else {
-        setInfoError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+        setInfoError(err?.message || 'Gagal memperbarui profil');
       }
     } finally {
       setIsSubmittingInfo(false);
@@ -91,8 +96,8 @@ const Profile = () => {
     setPasswordError('');
     setPasswordSuccess(false);
 
-    if (passwords.new.length < 8) {
-      setPasswordError('Password baru minimal 8 karakter.');
+    if (passwords.new.length < 6) {
+      setPasswordError('Password baru minimal 6 karakter.');
       return;
     }
 
@@ -105,6 +110,7 @@ const Profile = () => {
 
     try {
       await changePasswordApi({
+        oldPassword: passwords.current,
         currentPassword: passwords.current,
         newPassword: passwords.new,
         confirmPassword: passwords.confirm
@@ -114,14 +120,17 @@ const Profile = () => {
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
       console.log('[Profile] Gagal ubah password:', err);
-      if (err?.status === 401) {
-        setPasswordError('Password lama salah');
+      const beError = err?.data?.message || (Array.isArray(err?.data?.errors) ? err.data.errors.map(e => e.message).join(', ') : null);
+      if (beError) {
+        setPasswordError(beError);
+      } else if (err?.status === 401) {
+        setPasswordError('Password lama salah atau sesi Anda telah berakhir.');
       } else if (err?.status === 403) {
         setPasswordError('Anda tidak memiliki akses.');
-      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
-        setPasswordError('Fitur ini belum tersedia di sistem backend');
+      } else if (err?.isNetworkError) {
+        setPasswordError('Server backend tidak dapat dihubungi');
       } else {
-        setPasswordError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+        setPasswordError(err?.message || 'Gagal mengubah kata sandi');
       }
     } finally {
       setIsSubmittingPassword(false);
@@ -214,7 +223,7 @@ const Profile = () => {
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-600">
-                  <UserIcon className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-800">Informasi Akun</h2>

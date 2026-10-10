@@ -1,18 +1,15 @@
-import { apiFetch, logout, getAuthUser } from './api';
-import { formatRupiah } from '../utils/formatKantin';
+/**
+ * Notification Service — PasCall Web Application
+ * ===============================================
+ * Mengelola notifikasi pengguna langsung dari Backend REST API:
+ * - GET   /api/notifications               (Daftar notifikasi & unreadCount)
+ * - PATCH /api/notifications/:id/read      (Tandai 1 notifikasi terbaca)
+ * - POST  /api/notifications/mark-all-read (Tandai seluruh notifikasi terbaca)
+ */
 
-// Endpoint path disimpan dalam konstanta di atas file agar mudah disesuaikan
+import { apiFetch, logout } from './api';
+
 export const NOTIFICATIONS_ENDPOINT = '/api/notifications';
-const STORAGE_READ_NOTIFS_KEY = 'pascall_read_notifications_v1';
-
-function getReadNotifIds() {
-  try {
-    const raw = localStorage.getItem(STORAGE_READ_NOTIFS_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
-}
 
 function formatRelativeTime(dateStr) {
   if (!dateStr) return 'Baru saja';
@@ -35,163 +32,145 @@ function formatRelativeTime(dateStr) {
 }
 
 /**
- * Mapper fleksibel untuk menstandarisasi setiap item notifikasi
+ * Menentukan link navigasi ketika notifikasi diklik sesuai tipenya
+ */
+function resolveNotificationLink(type, data) {
+  const normType = (type || '').toUpperCase();
+  if (normType.includes('TOPUP_REQUESTED') || normType === 'CANTEEN_TOPUP_REQUESTED') {
+    return '/canteen-topup';
+  }
+  if (normType.includes('TOPUP_APPROVED') || normType.includes('TOPUP_REJECTED')) {
+    return '/kantin/top-up-saldo';
+  }
+  if (normType.includes('TRANSACTION')) {
+    return '/kantin/riwayat';
+  }
+  if (normType.includes('RECORDING')) {
+    return '/recordings';
+  }
+  return data?.link || '#';
+}
+
+/**
+ * Mapper untuk menstandarisasi setiap item notifikasi dari Backend
  */
 export const mapNotificationItem = (item) => {
   if (!item) return null;
 
+  const isRead = Boolean(item.isRead ?? item.read ?? false);
+  const type = item.type || 'SYSTEM';
+
   return {
     id: item.id || item._id,
     title: item.title || 'Notifikasi Sistem',
-    desc: item.desc || item.description || item.message || '',
-    time: item.time || (item.createdAt ? formatRelativeTime(item.createdAt) : 'Baru saja'),
-    read: Boolean(item.read ?? item.isRead ?? false),
-    type: item.type || 'system',
-    link: item.link || item.url || '#',
+    desc: item.message || item.desc || item.description || '',
+    time: formatRelativeTime(item.createdAt || item.time),
+    read: isRead,
+    isRead,
+    type,
+    link: item.link || resolveNotificationLink(type, item.data),
+    createdAt: item.createdAt || new Date().toISOString(),
+    data: item.data || null,
   };
 };
 
 /**
- * Mengambil notifikasi top up saldo kantin dari data riwayat lokal (khusus superadmin)
+ * Mengambil daftar notifikasi dari Backend.
+ * Endpoint: GET /api/notifications
+ *
+ * @param {Object} [params] - { page, limit }
+ * @returns {Promise<Array>} List notifikasi yang sudah distandardisasi
  */
-function getCanteenTopupNotifications() {
+export const getNotifications = async (params = {}) => {
+  const query = new URLSearchParams();
+  if (params.page) query.append('page', String(params.page));
+  if (params.limit) query.append('limit', String(params.limit));
+
+  const qs = query.toString();
+  const endpoint = qs ? `${NOTIFICATIONS_ENDPOINT}?${qs}` : NOTIFICATIONS_ENDPOINT;
+
   try {
-    const rawNat = localStorage.getItem('pascall_superadmin_canteen_history_v1');
-    if (!rawNat) return [];
-    const list = JSON.parse(rawNat);
-    if (!Array.isArray(list)) return [];
-
-    const readIds = getReadNotifIds();
-
-    // Ambil transaksi yang statusnya 'Menunggu' atau yang terbaru
-    return list
-      .filter((item) => item.status === 'Menunggu')
-      .map((item) => {
-        const notifId = `canteen-topup-${item.id}`;
-        return {
-          id: notifId,
-          title: `Permintaan Top Up: ${item.branchName || 'Kantin Lapas'}`,
-          desc: `${item.staffName || 'Operator'} mengajukan top up saldo ${formatRupiah(item.nominal)} (Menunggu Konfirmasi)`,
-          time: formatRelativeTime(item.tanggal),
-          read: readIds.includes(notifId),
-          type: 'canteen_topup',
-          link: '/canteen-topup',
-        };
-      });
-  } catch (err) {
-    console.error('Gagal mengambil notifikasi top up kantin:', err);
-    return [];
-  }
-}
-
-/**
- * Mengambil notifikasi status top up saldo untuk operator kantin
- */
-function getCanteenOperatorNotifications() {
-  try {
-    const user = getAuthUser();
-    const identifier = user?.id || user?.email || user?.name || 'default_canteen';
-    const cleanId = String(identifier).toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
-    const riwayatKey = `pascall_kantin_saldo_riwayat_${cleanId}`;
-    
-    const raw = localStorage.getItem(riwayatKey);
-    if (!raw) return [];
-    const list = JSON.parse(raw);
-    if (!Array.isArray(list)) return [];
-
-    const readIds = getReadNotifIds();
-
-    return list
-      .filter((item) => item.status === 'Berhasil' || item.status === 'Ditolak')
-      .map((item) => {
-        const notifId = `kantin-topup-status-${item.id}-${item.status}`;
-        const isApproved = item.status === 'Berhasil';
-        return {
-          id: notifId,
-          title: isApproved ? 'Dana Top Up Masuk!' : 'Pengajuan Top Up Ditolak',
-          desc: isApproved
-            ? `Top up saldo ${formatRupiah(item.nominal)} telah disetujui Superadmin dan ditambahkan ke akun kasir Anda.`
-            : `Pengajuan top up saldo ${formatRupiah(item.nominal)} ditolak oleh Superadmin.`,
-          time: formatRelativeTime(item.approvedAt || item.tanggal),
-          read: readIds.includes(notifId) && !item.isUnreadApproval,
-          type: isApproved ? 'canteen_topup_approved' : 'canteen_topup_rejected',
-          link: '/kantin/top-up-saldo',
-        };
-      });
-  } catch (err) {
-    console.error('Gagal mengambil notifikasi operator kantin:', err);
-    return [];
-  }
-}
-
-/**
- * Mengambil daftar notifikasi dari backend & disinkronkan dengan event lokal
- */
-export const getNotifications = async () => {
-  let backendList = [];
-  try {
-    const res = await apiFetch(NOTIFICATIONS_ENDPOINT);
-    const rawList = Array.isArray(res)
+    const res = await apiFetch(endpoint);
+    const rawList = Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res)
       ? res
-      : Array.isArray(res?.data)
-        ? res.data
-        : Array.isArray(res?.items)
-          ? res.items
-          : Array.isArray(res?.notifications)
-            ? res.notifications
-            : [];
+      : Array.isArray(res?.items)
+      ? res.items
+      : [];
 
-    backendList = rawList.map(mapNotificationItem).filter(Boolean);
+    return rawList.map(mapNotificationItem).filter(Boolean);
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    // console.log('[NotificationService] Fallback notifikasi lokal/kosong:', error?.message || error);
+    console.error('[NotificationService] Gagal memuat notifikasi dari BE:', error?.message || error);
+    return [];
   }
-
-  // Cek peran pengguna
-  const user = getAuthUser();
-  const role = user?.role?.toLowerCase() || '';
-
-  // Jika superadmin, sertakan notifikasi permintaan topup kantin yang menunggu konfirmasi
-  let combined = [...backendList];
-  if (role === 'superadmin' || role.includes('super')) {
-    const topupNotifs = getCanteenTopupNotifications();
-    combined = [...topupNotifs, ...combined];
-  } else if (role === 'kantin' || role.includes('canteen') || role.includes('operator')) {
-    const kantinNotifs = getCanteenOperatorNotifications();
-    combined = [...kantinNotifs, ...combined];
-  }
-
-  return combined;
 };
 
 /**
- * Simpan ID notifikasi yang sudah dibaca
+ * Mengambil unread count langsung dari BE
+ * Endpoint: GET /api/notifications?limit=1
  */
-export const markNotificationAsRead = (id) => {
+export const getUnreadNotificationCount = async () => {
   try {
-    const readIds = getReadNotifIds();
-    if (!readIds.includes(id)) {
-      readIds.push(id);
-      localStorage.setItem(STORAGE_READ_NOTIFS_KEY, JSON.stringify(readIds));
+    const res = await apiFetch(`${NOTIFICATIONS_ENDPOINT}?limit=1`);
+    if (typeof res?.unreadCount === 'number') {
+      return res.unreadCount;
+    }
+    const list = await getNotifications();
+    return list.filter((n) => !n.read).length;
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * Menandai satu notifikasi sebagai sudah dibaca di Backend.
+ * Endpoint: PATCH /api/notifications/:id/read
+ *
+ * @param {string} id
+ */
+export const markNotificationAsRead = async (id) => {
+  if (!id) return;
+  try {
+    await apiFetch(`${NOTIFICATIONS_ENDPOINT}/${id}/read`, {
+      method: 'PATCH',
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pascall_notification_updated'));
     }
   } catch (err) {
-    console.error('Error marking notif as read:', err);
+    console.error(`[NotificationService] Gagal menandai notifikasi ${id} dibaca:`, err?.message || err);
   }
 };
 
 /**
- * Tandai semua notifikasi sebagai dibaca
+ * Menandai semua notifikasi sebagai sudah dibaca di Backend.
+ * Endpoint: POST /api/notifications/mark-all-read
  */
-export const markAllNotificationsAsRead = (allIds = []) => {
+export const markAllNotificationsAsRead = async () => {
   try {
-    const readIds = getReadNotifIds();
-    const merged = Array.from(new Set([...readIds, ...allIds]));
-    localStorage.setItem(STORAGE_READ_NOTIFS_KEY, JSON.stringify(merged));
+    await apiFetch(`${NOTIFICATIONS_ENDPOINT}/mark-all-read`, {
+      method: 'POST',
+    });
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('pascall_notification_updated'));
+    }
   } catch (err) {
-    console.error('Error marking all notifs as read:', err);
+    // Fallback jika backend hanya mendukung PATCH /read-all
+    try {
+      await apiFetch(`${NOTIFICATIONS_ENDPOINT}/read-all`, {
+        method: 'PATCH',
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('pascall_notification_updated'));
+      }
+    } catch (e) {
+      console.error('[NotificationService] Gagal menandai semua notifikasi dibaca:', e?.message || e);
+    }
   }
 };
 
@@ -199,6 +178,7 @@ export default {
   NOTIFICATIONS_ENDPOINT,
   mapNotificationItem,
   getNotifications,
+  getUnreadNotificationCount,
   markNotificationAsRead,
   markAllNotificationsAsRead,
 };

@@ -409,8 +409,8 @@ const Reports = () => {
                   <p className="text-sm font-semibold text-slate-800">Keberhasilan Perekaman Suara</p>
                   <p className="text-xs text-slate-500 mt-0.5">Target: 100%</p>
                 </div>
-                <span className="text-lg font-bold text-green-600">
-                  {reportData.compliance.recordedRate !== null ? `${reportData.compliance.recordedRate}%` : '0%'}
+                <span className={`text-lg font-bold ${reportData.compliance.recordedRate !== null ? 'text-green-600' : 'text-slate-400'}`}>
+                  {reportData.compliance.recordedRate !== null ? `${reportData.compliance.recordedRate}%` : '-'}
                 </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2.5 mb-1 overflow-hidden flex">
@@ -418,8 +418,8 @@ const Reports = () => {
                 <div className="bg-slate-200 h-2.5 rounded-r-full flex-1"></div>
               </div>
               <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5 text-green-500" /> 
-                {reportData.compliance.recordedRate !== null ? 'Memenuhi standar kepatuhan minimum.' : 'Data kepatuhan belum tercatat.'}
+                <CheckCircle2 className="w-3.5 h-3.5 text-slate-400" /> 
+                {reportData.compliance.recordedRate !== null ? 'Memenuhi standar kepatuhan minimum.' : 'Metrik kepatuhan belum disediakan oleh backend.'}
               </p>
             </div>
 
@@ -429,8 +429,8 @@ const Reports = () => {
                   <p className="text-sm font-semibold text-slate-800">Rata-rata Waktu Pencarian Arsip</p>
                   <p className="text-xs text-slate-500 mt-0.5">Target SLA: {'< 10 detik'}</p>
                 </div>
-                <span className="text-lg font-bold text-blue-600">
-                  {reportData.compliance.avgSearchTime !== null ? `${reportData.compliance.avgSearchTime}s` : '0s'}
+                <span className={`text-lg font-bold ${reportData.compliance.avgSearchTime !== null ? 'text-blue-600' : 'text-slate-400'}`}>
+                  {reportData.compliance.avgSearchTime !== null ? `${reportData.compliance.avgSearchTime}s` : '-'}
                 </span>
               </div>
               <div className="flex items-center gap-3">
@@ -440,7 +440,7 @@ const Reports = () => {
                 <p className="text-xs text-slate-600 leading-relaxed">
                   {reportData.compliance.avgSearchTime !== null 
                     ? 'Performa pencarian arsip sangat baik dan memenuhi SLA yang ditentukan.' 
-                    : 'Performa pencarian arsip akan ditampilkan saat data tersedia.'}
+                    : 'Metrik SLA pencarian arsip belum disediakan oleh backend.'}
                 </p>
               </div>
             </div>

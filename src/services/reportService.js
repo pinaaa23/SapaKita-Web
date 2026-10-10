@@ -10,22 +10,23 @@ export const SUMMARY_REPORT_ENDPOINT = '/api/reports/summary';
  */
 export const mapReportData = (raw) => {
   const data = raw?.data || raw || {};
+  const summary = data.nationalSummary || data.summary || data;
 
-  const totalRevenue = typeof data.totalRevenue === 'number' 
-    ? data.totalRevenue 
-    : (Number(data.totalRevenue ?? data.revenue ?? data.summary?.totalRevenue) || 0);
+  const totalRevenue = typeof summary.totalRevenue === 'number' 
+    ? summary.totalRevenue 
+    : (Number(summary.totalRevenue ?? data.totalRevenue ?? summary.revenue ?? data.revenue) || 0);
 
-  const totalCalls = typeof data.totalCalls === 'number' 
-    ? data.totalCalls 
-    : (Number(data.totalCalls ?? data.calls ?? data.summary?.totalCalls) || 0);
+  const totalCalls = typeof summary.totalCalls === 'number' 
+    ? summary.totalCalls 
+    : (Number(summary.totalCalls ?? data.totalCalls ?? summary.calls ?? data.calls) || 0);
 
-  const avgCallDurationSeconds = typeof data.avgCallDurationSeconds === 'number' 
-    ? data.avgCallDurationSeconds 
-    : (Number(data.avgCallDurationSeconds ?? data.avgDuration ?? data.avgDurationSeconds) || 0);
+  const avgCallDurationSeconds = typeof summary.avgCallDurationSeconds === 'number' 
+    ? summary.avgCallDurationSeconds 
+    : (Number(summary.avgCallDurationSeconds ?? data.avgCallDurationSeconds ?? summary.avgDuration ?? data.avgDuration) || 0);
 
-  const successRate = typeof data.successRate === 'number' 
-    ? data.successRate 
-    : (Number(data.successRate ?? data.summary?.successRate) || 0);
+  const successRate = typeof summary.successRate === 'number' 
+    ? summary.successRate 
+    : (Number(summary.successRate ?? data.successRate) || 0);
 
   const rawRevenueTrend = Array.isArray(data.revenueTrend) 
     ? data.revenueTrend 
@@ -57,6 +58,7 @@ export const mapReportData = (raw) => {
     ? data.successRateGrowth 
     : (typeof data.successRateGrowthPercent === 'number' ? data.successRateGrowthPercent : null);
 
+  // Field kepatuhan (compliance): jika tidak dikirim BE, kembalikan null agar ditampilkan '-'
   const recordedRate = typeof data.compliance?.recordedRate === 'number' 
     ? data.compliance.recordedRate 
     : (typeof data.recordedRate === 'number' ? data.recordedRate : null);
@@ -75,9 +77,10 @@ export const mapReportData = (raw) => {
     revenueGrowth,
     callsGrowth,
     successRateGrowth,
+    branchComparison: Array.isArray(data.branchComparison) ? data.branchComparison : [],
     compliance: {
-      recordedRate: recordedRate || 100,
-      avgSearchTime: avgSearchTime || 3.2,
+      recordedRate,
+      avgSearchTime,
     }
   };
 };

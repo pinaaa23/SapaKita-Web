@@ -1,87 +1,61 @@
 # Kebutuhan Endpoint API Back End - Web Supervisor (PasCall)
 
-Dokumen ini merangkum seluruh kebutuhan endpoint backend (BE) untuk modul antarmuka **Supervisor (SPV)** pada aplikasi PasCall. Dokumen ini disusun berdasarkan penelusuran kode frontend (FE) aktif pada `src/pages/branch`, `src/config/menuConfig.js`, `src/App.jsx`, dan `src/services`, serta telah dicocokkan dengan kode aktif di `PasCall-BackEnd`.
+Dokumen ini merangkum seluruh hasil *cross-check* dan kebutuhan endpoint backend (BE) untuk modul antarmuka **Supervisor (SPV)** pada aplikasi PasCall. Dokumen ini disusun berdasarkan penelusuran seluruh halaman aktif pada `src/pages/branch/`, komponen `src/components/`, konfigurasi hak akses `src/config/menuConfig.js`, serta rute aplikasi `src/App.jsx`.
 
 ---
 
-### 1. Ringkasan Status Kebutuhan Endpoint
+### 1. Ringkasan Modul & Hak Akses Supervisor (SPV)
 
-Dari total **18 endpoint** yang dibutuhkan untuk modul Supervisor:
-- **ADA**: **0 endpoint**
-- **ADA (Perlu Tambahan)**: **7 endpoint** (Otentikasi login, pendaftaran & detail WBP, reset PIN WBP, dan modul kontak keluarga — endpoint sudah ada di BE namun `authorizeRoles` dan enum `Role` di Prisma belum mengizinkan role `SUPERVISOR`).
-- **BELUM ADA**: **11 endpoint** (Ringkasan statistik dashboard UPT, CRUD & status paket komunikasi, update data/status narapidana, persetujuan status kontak keluarga, riwayat & detail mutasi transaksi saldo, serta laporan kinerja UPT).
+Supervisor bertindak sebagai petugas operasional utama di lapas/UPT yang bertanggung jawab atas **pendaftaran warga binaan (WBP)**, verifikasi data dan kontak keluarga, persetujuan (*approval*) kontak keluarga yang diajukan, pemantauan transaksi pemakaian saldo panggilan, serta evaluasi laporan kinerja UPT.
 
-> **Catatan Hak Akses Khusus:**
-> Role **Supervisor TIDAK memiliki izin** untuk memutar maupun menyalin transkrip rekaman panggilan suara/video (`GET /api/recordings/:id/stream` dan `GET /api/recordings/:id/stream-url`). Hak akses tersebut khusus dibatasi untuk **Kepala UPT** dan **Superadmin**.
+| Modul Halaman | Rute Frontend | Fungsi & Fitur Utama |
+| :--- | :--- | :--- |
+| **Dashboard SPV** | `/branch/dashboard` | Statistik operasional cabang (Total Panggilan, Terjawab, Tidak Terjawab, Total WBP, Tren Panggilan, Widget Transaksi). |
+| **Kelola Data Narapidana** | `/branch/inmates` | CRUD lengkap data narapidana (Pendaftaran WBP baru, edit biodata/kamar blok, status komunikasi aktif/nonaktif, reset PIN, dan daftar kontak keluarga). |
+| **Persetujuan Kontak Keluarga** | `/branch/contacts` | Verifikasi berkas KTP/KK, pengajuan kontak baru, dan persetujuan (*Approval / Rejection*) nomor keluarga yang boleh dihubungi WBP. |
+| **Transaksi Saldo Cabang** | `/branch/transactions` | Rekapitulasi mutasi saldo pemakaian panggilan dan pembelian paket kantin di UPT terkait serta detail struk mutasi. |
+| **Laporan Kinerja UPT** | `/branch/reports` | Analitik performa cabang (omzet, volume panggilan, rata-rata durasi, persentase keberhasilan panggilan, dan ekspor laporan ke PDF). |
+| **Profil & Keamanan** | `/branch/profile` | Profil akun Supervisor, ubah kontak telepon, dan fitur ganti kata sandi (*Change Password*). |
+
+> **⚠️ Batasan Hak Akses Khusus:**
+> - Role **Supervisor TIDAK MEMILIKI IZIN** untuk memutar rekaman audio/video panggilan maupun membaca transkrip percakapan AI (`/branch/recordings`). Hak akses tersebut dibatasi khusus untuk **Kepala UPT** dan **Superadmin**.
+> - Role **Supervisor TIDAK MEMILIKI IZIN** untuk mengelola akun pengguna staf lapas (`/branch/users`).
 
 ---
 
 ### 2. Tabel Daftar Kebutuhan Endpoint Web Supervisor (SPV)
 
-| Method | Path Usulan | Dipakai di Halaman | Role Akses | Request (Field Penting) | Response (Field Penting) | Status di Back End |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Login (`/login`) | Semua Role (`SUPERVISOR`, `BRANCH_ADMIN`, `SUPERADMIN`, dll.) | Body: `identifier` / `email`, `password` | `token` (JWT), `user`: `{ id, name, role, branchId, branchName }` | **ADA (perlu tambahan)** *(Enum `Role` di `schema.prisma` belum memuat `SUPERVISOR`)* |
-| `GET` | `/api/dashboard/branch-summary` | Dashboard Supervisor (`/branch/dashboard`) | `SUPERVISOR`, `BRANCH_ADMIN` | Header: `Authorization: Bearer <token>` *(BE otomatis filter by `user.branchId`)* | `totalCalls`, `answeredCalls`, `missedCalls`, `totalInmates`, `callsGrowth`, `answeredGrowth`, `missedGrowth`, `inmatesGrowth` | **BELUM ADA** *(Saat ini FE menampilkan `-` / fallback)* |
-| `GET` | `/api/packages` | Kelola Paket (`/branch/packages`), Widget Dashboard SPV, & Web Kantin (`/kantin`) | `SUPERVISOR`, `BRANCH_ADMIN`, `CANTEEN_STAFF` | Query: `branchId`, `kategori` (`telepon`/`video`), `status` (`Aktif`/`Nonaktif`), `search` *(BE otomatis filter by `user.branchId`)* | `data`: `[{ id, nama, kategori, durasi, harga, status, branchId, createdAt }]` | **BELUM ADA** *(Tabel/model paket belum ada di Prisma)* |
-| `POST` | `/api/packages` | Tambah Paket Komunikasi (`/branch/packages`) | `SUPERVISOR`, `BRANCH_ADMIN` | Body: `nama`, `kategori` (`telepon`/`video`), `durasi` (menit), `harga` (IDR), `status` (`Aktif`/`Nonaktif`) *(BE set `branchId` dari user login)* | `id`, `nama`, `kategori`, `durasi`, `harga`, `status`, `branchId`, `createdAt` | **BELUM ADA** |
-| `PATCH` | `/api/packages/:id` | Edit Data & Tarif Paket (`/branch/packages`) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id`, Body: `nama`, `kategori`, `durasi`, `harga`, `status` | `id`, `nama`, `kategori`, `durasi`, `harga`, `status`, `updatedAt` | **BELUM ADA** |
-| `PATCH` | `/api/packages/:id/status` | Aktifkan / Nonaktifkan Paket (`/branch/packages`) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id`, Body: `status` (`Aktif`/`Nonaktif`) atau `isActive` (`boolean`) | `id`, `nama`, `status`, `updatedAt` | **BELUM ADA** |
-| `GET` | `/api/inmates` | Data Narapidana (`/branch/inmates`, `/inmates`) | `SUPERVISOR`, `BRANCH_ADMIN`, `SUPERADMIN` *(Hanya Lihat)* | Query: `search`, `page`, `limit`, `status` *(BE filter `branchId`)* | `data`: `[{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [{ id, name, relationship, phone }] }]`, `pagination` | **ADA (perlu tambahan)** *(authorizeRoles di `inmate.routes.ts` belum mengizinkan `SUPERVISOR`, query filter `status` belum didukung, serta perlu include array `families`)* |
-| `POST` | `/api/inmates` | Tambah Narapidana (`/branch/inmates/create`) | `SUPERVISOR`, `BRANCH_ADMIN` *(Khusus Ubah/Tambah)* | Body: `identifier`, `name`, `initialPin`, `blockRoom`, `families`: `[{ name, relationship, phone }]` *(BE otomatis set `branchId`)* | `id`, `identifier`, `name`, `branchId`, `families`: `[...]`, `createdAt` | **ADA (perlu tambahan)** *(authorizeRoles di `inmate.routes.ts` belum mengizinkan `SUPERVISOR` & belum menyimpan array `families`)* |
-| `GET` | `/api/inmates/:id` | Detail Narapidana (`/branch/inmates/:id`, `/inmates/:id`) | `SUPERVISOR`, `BRANCH_ADMIN`, `SUPERADMIN` *(Hanya Lihat)* | Path: `id` (UUID atau Nomor Register WBP) | `id`, `identifier`, `name`, `callBalance`, `blockRoom`, `status`, `commStatus`, `entryDate`, `families`: `[{ id, name, relationship, phone }]`, `branch`: `{ id, name }` | **ADA (perlu tambahan)** *(authorizeRoles di `inmate.routes.ts` belum mengizinkan `SUPERVISOR` & perlu relasi `families`)* |
-| `PATCH` | `/api/inmates/:id` | Edit Data Narapidana & Keluarga (`/branch/inmates/:id/edit`, modal) | `SUPERVISOR`, `BRANCH_ADMIN` *(Khusus SPV)* | Path: `id`, Body: `identifier`, `name`, `initialPin`, `blockRoom`, `families`: `[{ id?, name, relationship, phone }]` | `id`, `identifier`, `name`, `families`: `[...]`, `updatedAt` | **BELUM ADA** *(Endpoint update WBP dan sinkronisasi keluarga belum dibuat di `inmate.routes.ts`)* |
-| `PATCH` | `/api/inmates/:id/status` | Ubah Status Komunikasi WBP (`/branch/inmates`) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id`, Body: `isActive` (`boolean`) atau `commStatus` (`Aktif`/`Nonaktif`) | `id`, `identifier`, `isActive`, `commStatus`, `updatedAt` | **BELUM ADA** |
-| `POST` | `/api/inmates/:id/reset-pin` | Reset PIN Akun Narapidana (`/branch/inmates`) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id`, Body: `initialPin` / `newPin` | `message`: "PIN berhasil direset", `id`, `identifier` | **ADA (perlu tambahan)** *(Rute sudah ada di `inmate.routes.ts`, namun authorizeRoles belum mengizinkan `SUPERVISOR`)* |
-| `GET` | `/api/inmates/:id/families` | Daftar Kontak Keluarga WBP (Detail & Modal) | `SUPERVISOR`, `BRANCH_ADMIN`, `SUPERADMIN` *(Hanya Lihat)* | Path: `id` | `data`: `[{ id, inmateId, name, relationship, phone, createdAt }]` | **BELUM ADA** *(Alternatif jika data keluarga diakses tersendiri)* |
-| `POST` | `/api/inmates/:id/families` | Tambah Kontak Keluarga WBP | `SUPERVISOR`, `BRANCH_ADMIN` *(Khusus SPV)* | Path: `id`, Body: `name`, `relationship`, `phone` | `id`, `inmateId`, `name`, `relationship`, `phone`, `createdAt` | **BELUM ADA** |
-| `PUT` | `/api/inmates/:id/families` | Perbarui Seluruh Kontak Keluarga WBP (Batch Replace) | `SUPERVISOR`, `BRANCH_ADMIN` *(Khusus SPV)* | Path: `id`, Body: `families`: `[{ id?, name, relationship, phone }]` | `data`: `[{ id, name, relationship, phone }]` | **BELUM ADA** |
-| `DELETE` | `/api/inmates/:id/families/:familyId` | Hapus Kontak Keluarga WBP | `SUPERVISOR`, `BRANCH_ADMIN` *(Khusus SPV)* | Path: `id`, `familyId` | `message`: "Keluarga berhasil dihapus", `id` | **BELUM ADA** |
-| `GET` | `/api/contacts` | Daftar Pengajuan Kontak (`/branch/contacts`) | `SUPERVISOR`, `BRANCH_ADMIN`, `SUPERADMIN` | Query: `search`, `status` (`PENDING`/`APPROVED`/`REJECTED`), `page`, `limit` *(BE otomatis filter by `user.branchId`)* | `data`: `[{ id, inmateId, inmateName, wbpRegNumber, contactName, phone, relationship, ktpUrl, status, createdAt }]`, `pagination` | **ADA (perlu tambahan)** *(Rute ada di `contact.routes.ts`, perlu filter UPT & field relasi nama WBP)* |
-| `POST` | `/api/contacts` | Ajukan Kontak Baru oleh Petugas (`/branch/contacts`) | `SUPERVISOR`, `BRANCH_ADMIN`, `INMATE` | Body: `inmateIdentifier`, `relationship`, `ktpUrl`, `phone`, `name` | `id`, `inmateId`, `name`, `phone`, `relationship`, `status`: `PENDING`, `createdAt` | **ADA (perlu tambahan)** *(authorizeRoles di `contact.routes.ts` belum mengizinkan `SUPERVISOR`)* |
-| `PATCH` | `/api/contacts/:id/status` | Persetujuan Kontak Keluarga (`/branch/contacts`) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id`, Body: `status` (`APPROVED` / `REJECTED`) | `id`, `status`, `approvedBy`, `updatedAt` | **BELUM ADA** *(Di `contact.routes.ts` saat ini hanya ada `POST`, `DELETE`, dan `GET`)* |
-| `GET` | `/api/balance/transactions` | Riwayat Transaksi & Widget Dashboard SPV (`/branch/transactions`) | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `search`, `status` (`Berhasil`/`Gagal`), `category` (`Panggilan`/`Kantin`), `startDate`, `endDate`, `page`, `limit` *(BE filter `branchId`)* | `data`: `[{ id, inmateId, inmateName, amount, type, description, performedBy, status, date, balanceBefore, balanceAfter }]`, `totalPemakaian`, `pagination` | **BELUM ADA** *(Model `Transaction` ada di schema Prisma, route/controller belum dibuat)* |
-| `GET` | `/api/balance/transactions/:id` | Detail / Struk Mutasi Saldo (`/branch/transactions` Modal) | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id` | `id`, `amount`, `type`, `balanceBefore`, `balanceAfter`, `performedBy`, `user`: `{ identifier, name }`, `createdAt` | **BELUM ADA** |
-| `GET` | `/api/reports/branch-summary` | Laporan Analitik UPT (`/branch/reports`) | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `period` (`7`, `30`, `90` hari) *(BE otomatis filter by `user.branchId`)* | `totalRevenue`, `totalCalls`, `avgCallDurationSeconds`, `successRate`, `revenueTrend`: `[...]`, `callVolumeTrend`: `[...]` | **BELUM ADA** |
+| No | Modul / Fitur | Method | Path Usulan | Role Akses | Request (Field / Parameter) | Response (Field Penting) | Status di Back End |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :-: |
+| 1 | **Otentikasi Login** | `POST` | `/api/auth/login` | `SUPERVISOR`, `BRANCH_ADMIN`, dll. | Body: `{ identifier, password }` | `token` (JWT), `user`: `{ id, name, email, role: "SUPERVISOR", branchId, branchName }` | 🔄 **Ada (Enum Prisma perlu role `SUPERVISOR`)** |
+| 2 | **Ganti Password Akun** | `POST` | `/api/auth/change-password` | `SUPERVISOR`, `BRANCH_ADMIN` | Body: `{ oldPassword, newPassword }` | `{ success: true, message: "Password berhasil diubah" }` | ⚠️ **Perlu Ditambahkan** |
+| 3 | **Update Profil Petugas** | `PATCH` | `/api/users/profile` | `SUPERVISOR`, `BRANCH_ADMIN` | Body: `{ name, phone }` | `{ success: true, user: { id, name, phone, email } }` | ⚠️ **Belum Ada** |
+| 4 | **Ringkasan Dashboard UPT** | `GET` | `/api/dashboard/branch-summary` | `SUPERVISOR`, `BRANCH_ADMIN` | Header: `Authorization: Bearer <token>` *(BE otomatis filter by `user.branchId`)* | `totalCalls`, `answeredCalls`, `missedCalls`, `totalInmates`, `callsGrowth`, `answeredGrowth`, `missedGrowth`, `inmatesGrowth` | ⚠️ **Belum Ada (Fallback)** |
+| 5 | **Daftar Paket Komunikasi Aktif** | `GET` | `/api/packages` | `SUPERVISOR`, `BRANCH_ADMIN`, `CANTEEN_STAFF` | Query: `status: "Aktif"` | `data`: `[{ id, nama, kategori, durasi, harga, status, branchId }]` | ⚠️ **Belum Ada** |
+| 6 | **Daftar Narapidana Cabang** | `GET` | `/api/inmates` | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `search`, `status`, `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [...] }]`, `pagination` | 🔄 **Ada (Perlu otorisasi `SUPERVISOR` & filter status)** |
+| 7 | **Tambah Data Narapidana Baru** | `POST` | `/api/inmates` | `SUPERVISOR` | Body: `{ identifier, name, initialPin, blockRoom, families: [{ name, relationship, phone }] }` *(BE otomatis set `branchId = user.branchId`)* | `id`, `identifier`, `name`, `branchId`, `families: [...]`, `createdAt` | 🔄 **Ada (Perlu otorisasi `SUPERVISOR` & simpan families)** |
+| 8 | **Detail Profil & Kontak WBP** | `GET` | `/api/inmates/:id` | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id` (UUID / Nomor Register WBP) | `{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [{ id, name, relationship, phone, status }], branch: { id, name } }` | 🔄 **Ada (Perlu otorisasi `SUPERVISOR` & include families)** |
+| 9 | **Edit Data Narapidana & Keluarga** | `PATCH` | `/api/inmates/:id` | `SUPERVISOR` | Path: `id`, Body: `{ identifier, name, initialPin, blockRoom, families: [{ id?, name, relationship, phone }] }` | `id`, `identifier`, `name`, `families: [...]`, `updatedAt` | ⚠️ **Belum Ada** |
+| 10 | **Ubah Status Komunikasi WBP** | `PATCH` | `/api/inmates/:id/status` | `SUPERVISOR` | Path: `id`, Body: `{ isActive: boolean }` atau `{ commStatus: "Aktif"|"Nonaktif" }` | `id`, `identifier`, `isActive`, `commStatus`, `updatedAt` | ⚠️ **Belum Ada** |
+| 11 | **Reset PIN Akun Narapidana** | `POST` | `/api/inmates/:id/reset-pin` | `SUPERVISOR` | Path: `id`, Body: `{ newPin }` | `{ success: true, message: "PIN berhasil direset", id, identifier }` | 🔄 **Ada (Perlu otorisasi `SUPERVISOR`)** |
+| 12 | **Daftar Pengajuan Kontak Keluarga** | `GET` | `/api/contacts` | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `search`, `status` (`PENDING`/`APPROVED`/`REJECTED`), `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, inmateId, inmateName, wbpRegNumber, contactName, phone, relationship, ktpUrl, status, createdAt }]`, `pagination` | 🔄 **Ada (Perlu relasi inmateName & filter branch)** |
+| 13 | **Persetujuan Kontak Keluarga (Approval)** | `PATCH` | `/api/contacts/:id/status` | `SUPERVISOR` | Path: `id`, Body: `{ status: "APPROVED"|"REJECTED", notes: "" }` *(BE catat `approvedBy`)* | `{ id, status, approvedBy, updatedAt }` | ⚠️ **Belum Ada** |
+| 14 | **Tambah Kontak Keluarga oleh Petugas** | `POST` | `/api/contacts` | `SUPERVISOR`, `BRANCH_ADMIN` | Body: `{ inmateIdentifier, relationship, ktpUrl, phone, name }` | `{ id, inmateId, name, phone, relationship, status: "PENDING", createdAt }` | 🔄 **Ada (Perlu otorisasi `SUPERVISOR`)** |
+| 15 | **Daftar Mutasi Transaksi UPT** | `GET` | `/api/balance/transactions` | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `search`, `status`, `category` (`TOPUP_CASH`/`CALL_CHARGE`), `startDate`, `endDate`, `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, inmateId, inmateName, amount, type, description, performedBy, status, createdAt, balanceBefore, balanceAfter }]`, `totalPemakaian`, `pagination` | ⚠️ **Belum Ada** |
+| 16 | **Detail Struk Mutasi Saldo** | `GET` | `/api/balance/transactions/:id` | `SUPERVISOR`, `BRANCH_ADMIN` | Path: `id` | `{ id, amount, type, balanceBefore, balanceAfter, performedBy, user: { identifier, name }, createdAt }` | ⚠️ **Belum Ada** |
+| 17 | **Laporan Kinerja & Keuangan UPT** | `GET` | `/api/reports/branch-summary` | `SUPERVISOR`, `BRANCH_ADMIN` | Query: `period` (`7`/`30`/`90`) *(BE otomatis filter by `user.branchId`)* | `{ totalRevenue, totalCalls, avgCallDurationSeconds, successRate, revenueTrend: [...], callVolumeTrend: [...] }` | ⚠️ **Belum Ada** |
 
 ---
 
-### 3. Keterkaitan Antar Modul (Web Supervisor & Web Kantin)
+### 3. Poin Penting & Aturan Akses Supervisor (SPV)
 
-1. **Sinkronisasi Tarif & Paket Komunikasi**:
-   - Paket komunikasi yang dibuat dan diaktifkan oleh Supervisor melalui `POST /api/packages` dan `PATCH /api/packages/:id/status` pada web PasCall akan langsung dikonsumsi oleh **Operator Kantin** pada halaman Paket Web Kantin (`GET /api/packages?status=Aktif`).
-   - Detail alur transaksi pembelian paket dan cetak voucher oleh kasir kantin dapat dirujuk pada dokumen `ENDPOINT-KANTIN.md`.
+1. **Penambahan Role `SUPERVISOR` di Schema Prisma & Middleware Backend**:
+   - Enum `Role` pada database `schema.prisma` backend wajib memiliki nilai `SUPERVISOR`.
+   - Middleware `authorizeRoles` di backend pada endpoint `/api/inmates/*` dan `/api/contacts/*` wajib mengizinkan role `SUPERVISOR`.
 
 2. **Isolasi Data Multi-Tenant (Per Cabang UPT)**:
-   - Seluruh data yang diakses oleh Supervisor (Data Narapidana, Paket Komunikasi, Kontak Keluarga, Transaksi Saldo, dan Laporan) **wajib difilter otomatis oleh backend** berdasarkan `branchId` dari akun Supervisor yang sedang login (diekstrak dari payload JWT token).
+   - Backend **wajib** memfilter seluruh query data (Narapidana, Kontak Keluarga, Transaksi, dan Laporan) secara otomatis berdasarkan `user.branchId` dari token JWT akun Supervisor yang login.
 
----
-
-### 4. Catatan & Pertanyaan untuk Tim BE
-
-1. **Penambahan Role `SUPERVISOR` di Schema Prisma & Middleware**:
-   - Enum `Role` di `PasCall-BackEnd/prisma/schema.prisma` saat ini baru memiliki `SUPERADMIN`, `BRANCH_ADMIN`, `CANTEEN_STAFF`, `INMATE`, `FAMILY`.
-   - Mohon tambahkan nilai `SUPERVISOR` ke enum `Role` serta perbarui fungsi middleware `authorizeRoles` di `auth.middleware.ts` agar akun Supervisor tidak mengalami penolakan HTTP 403 saat mengakses endpoint `inmates` dan `contacts`.
-
-2. **Perancangan Model Tabel `Package` di Database**:
-   - Saat ini tabel/model untuk paket komunikasi belum ada di database Prisma.
-   - Usulan skema tabel:
-     ```prisma
-     model Package {
-       id        String   @id @default(uuid())
-       branchId  String?  // null jika paket berlaku nasional, atau ID UPT jika per cabang
-       nama      String   // contoh: "Paket Telepon 12 Menit"
-       kategori  String   // "telepon" atau "video"
-       durasi    Int      // jumlah durasi dalam menit
-       harga     Decimal  @db.Decimal(12, 2)
-       status    String   @default("Aktif") // "Aktif" atau "Nonaktif"
-       createdAt DateTime @default(now())
-       updatedAt DateTime @updatedAt
-
-       @@index([branchId])
-     }
-     ```
-   - Mohon konfirmasi apakah tarif paket berlaku per UPT (dikelola oleh SPV UPT masing-masing) atau terdapat paket master nasional.
-
-3. **Status Persetujuan Kontak Keluarga**:
-   - Enum `ContactStatus` di Prisma sudah memiliki `PENDING`, `APPROVED`, dan `REJECTED`.
-   - Mohon disediakan endpoint `PATCH /api/contacts/:id/status` dengan otorisasi `SUPERVISOR` dan `BRANCH_ADMIN` untuk melakukan aksi persetujuan (*approval*) dan penolakan kontak keluarga beserta perekaman ID petugas di field `approvedBy`.
+3. **Inmate-Family Sync (Perekaman Kontak Keluarga Terverifikasi)**:
+   - Saat Supervisor mendaftarkan WBP baru di `POST /api/inmates`, payload menyertakan array data keluarga (`families`).
+   - Backend wajib menyimpan relasi kontak keluarga tersebut ke database agar nomor telepon keluarga langsung dapat digunakan oleh narapidana saat melakukan panggilan telepon di bilik wartel.

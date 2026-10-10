@@ -35,14 +35,12 @@ export default function KantinLayout() {
   const { user, userName, logout } = useAuth();
 
   // State notifikasi & badge dana masuk
-  const [unreadApprovedCount, setUnreadApprovedCount] = useState(() => getUnreadApprovedTopupCountSync());
   const [notifications, setNotifications] = useState([]);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [activeNotifTab, setActiveNotifTab] = useState('all'); // 'all' | 'unread'
   const notifRef = useRef(null);
 
   const fetchNotifData = async () => {
-    setUnreadApprovedCount(getUnreadApprovedTopupCountSync());
     try {
       const list = await getNotifications();
       setNotifications(Array.isArray(list) ? list : []);
@@ -59,8 +57,9 @@ export default function KantinLayout() {
     };
 
     window.addEventListener('canteen_topup_changed', handleUpdate);
+    window.addEventListener('pascall_notification_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
-    const interval = setInterval(fetchNotifData, 4000);
+    const interval = setInterval(fetchNotifData, 6000);
 
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -71,6 +70,7 @@ export default function KantinLayout() {
 
     return () => {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
+      window.removeEventListener('pascall_notification_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
       document.removeEventListener('mousedown', handleClickOutside);
       clearInterval(interval);
@@ -78,10 +78,12 @@ export default function KantinLayout() {
   }, []);
 
   const unreadNotifCount = notifications.filter((n) => !n.read).length;
+  const unreadApprovedCount = notifications.filter(
+    (n) => !n.read && (n.type?.includes('TOPUP_APPROVED') || n.type === 'canteen_topup_approved')
+  ).length;
 
   const handleMarkAllRead = () => {
-    const allIds = notifications.map((n) => n.id);
-    markAllNotificationsAsRead(allIds);
+    markAllNotificationsAsRead();
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 

@@ -22,7 +22,7 @@ const InmatesCreate = () => {
   const { uptName } = useAuth();
   const authUser = getAuthUser();
   const isSuperadmin = authUser?.role === 'SUPERADMIN';
-  const currentBranchName = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas Kelas II Yogyakarta';
+  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas II Yogyakarta');
 
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState('');

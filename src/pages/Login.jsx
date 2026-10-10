@@ -98,8 +98,8 @@ export default function Login() {
 
       const normalizedRole = (role || '').toString().trim().toLowerCase();
 
-      // Resolve branch name if user has branchId
-      if (user.branchId && !user.branchName && !user.branch?.name) {
+      // Resolve branch name via API HANYA untuk role SUPERADMIN (rute /api/branches/* BE hanya untuk SUPERADMIN)
+      if (normalizedRole === 'superadmin' && user.branchId && !user.branchName && !user.branch?.name) {
         try {
           const { getBranchById } = await import('../services/branchService');
           const branchObj = await getBranchById(user.branchId);
@@ -108,7 +108,7 @@ export default function Login() {
             user.branch = branchObj;
           }
         } catch (e) {
-          console.log('[Login] Could not resolve branch details:', e);
+          console.log('[Login] Could not resolve branch details for superadmin:', e);
         }
       }
 

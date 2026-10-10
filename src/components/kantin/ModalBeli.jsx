@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { X, Search, ArrowRight, ArrowLeft, CheckCircle, AlertTriangle, Loader2 } from 'lucide-react';
 import { formatRupiah } from '../../utils/formatKantin';
 import { cariWbpByIdAtauTelp, buatTransaksi } from '../../services/kantin/kantinService';
-import { cekDanPotongSaldo } from '../../services/kantin/saldoService';
+import { getSaldo } from '../../services/kantin/saldoService';
 import KartuKonfirmasiNapi from './KartuKonfirmasiNapi';
 import PilihMetodeBayar from './PilihMetodeBayar';
 
@@ -68,26 +68,31 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
     setIsSubmitting(true);
     setErrorSubmit('');
     try {
-      // Cek dan potong kuota menit kasir kantin sesuai durasi paket
-      const durasiMenit = Number(paket.menit || parseInt(paket.durasi) || 5);
-      const potong = cekDanPotongSaldo(durasiMenit);
-      if (!potong.cukup) {
-        throw new Error(
-          `Kuota menit kasir tidak mencukupi (${potong.saldoSekarang} Menit tersisa, dibutuhkan ${durasiMenit} Menit). Silakan lakukan top up saldo menit terlebih dahulu.`
-        );
-      }
-
+      // Pemotongan kuota menit dan verifikasi saldo dilakukan sepenuhnya oleh Backend
       const transaksi = await buatTransaksi({
         napi: wbpTerpilih,
         paket: paket,
         metode: metodeBayar,
       });
 
+      // Muat ulang sisa saldo menit terbaru dari Backend
+      try {
+        await getSaldo();
+      } catch (e) {
+        console.warn('Gagal memuat ulang saldo setelah transaksi:', e);
+      }
+
       onClose();
       navigate(`/kantin/voucher/${transaksi.id}`);
     } catch (err) {
-      const msg = err.data?.message || err.message || 'Gagal memproses transaksi. Silakan coba lagi.';
-      setErrorSubmit(msg);
+      if (err?.status === 403 || err?.data?.message?.includes('tidak memiliki izin')) {
+        setErrorSubmit(
+          'Akses ditolak: Fitur kasir pengisian paket ini khusus untuk akun Petugas Kasir Kantin (CANTEEN_STAFF). Akun yang sedang aktif saat ini bukan kasir kantin. Silakan login menggunakan akun Operator Kantin.'
+        );
+      } else {
+        const msg = err.data?.message || err.message || 'Gagal memproses transaksi. Silakan coba lagi.';
+        setErrorSubmit(msg);
+      }
     } finally {
       setIsSubmitting(false);
     }

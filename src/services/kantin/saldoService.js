@@ -1,356 +1,271 @@
 /**
  * Saldo Service — PasCall Kantin
  * ================================
- * Service layer untuk semua operasi saldo kantin.
- *
- * PENTING:
- * Fitur saldo SELALU memakai data dummy selama endpoint BE saldo belum ada,
- * WALAUPUN saklar VITE_USE_DUMMY dalam keadaan mati.
- * Ini berbeda dengan service lain (kantinService, wartelService) yang mengecek isDummyMode().
- *
- * CARA MIGRASI KE BACKEND NANTI:
- * 1. Ganti isi fungsi getSaldo()           → panggil GET /api/canteen/saldo
- * 2. Ganti isi fungsi getRiwayatTopUp()    → panggil GET /api/canteen/saldo/riwayat
- * 3. Ganti isi fungsi prosesTopUp()        → panggil POST /api/canteen/saldo/topup
- * 4. Ganti isi fungsi cekDanPotongSaldo()  → panggil POST /api/canteen/saldo/potong
- * 5. Hapus import dari saldoDummy.js dan localStorage usage
+ * Service layer untuk manajemen kuota menit kantin dan pengajuan top up ke Backend REST API.
+ * Menghubungkan langsung ke:
+ * - GET  /api/canteen/balance          (Cek sisa kuota menit kantin)
+ * - GET  /api/canteen/topups           (Riwayat pengajuan top up menit)
+ * - POST /api/canteen/topups           (Pengajuan top up menit dengan upload bukti transfer)
  */
 
+import { apiFetch, getAuthUser } from '../api';
 import {
   PPN_RATE,
-  SALDO_AWAL,
   SALDO_MINIMUM_WARNING,
   NOMINAL_TOPUP_OPTIONS,
   getMenitFromNominal,
 } from '../../dummy/saldoDummy';
-import { getAuthUser } from '../api';
 
-// Re-export konstanta agar komponen cukup import dari service ini
+// Re-export konstanta agar komponen kompatibel
 export { PPN_RATE, SALDO_MINIMUM_WARNING, NOMINAL_TOPUP_OPTIONS, getMenitFromNominal };
 
-const STORAGE_KEY_SALDO_PREFIX = 'pascall_kantin_saldo';
-const STORAGE_KEY_RIWAYAT_PREFIX = 'pascall_kantin_saldo_riwayat';
+const CANTEEN_TX_STORAGE_KEY = 'pascall_canteen_local_transactions_v1';
 
-// Helper mendapatkan storage key unik per akun operator kantin
-function getUserScopedKey(baseKey) {
+/**
+ * Menghitung total kuota menit yang terpotong dari transaksi lokal kasir
+ */
+export function getLocalTransactionsTotalMinutes() {
   try {
-    const user = getAuthUser();
-    const identifier = user?.id || user?.email || user?.name || 'default_canteen';
-    const cleanId = String(identifier).toLowerCase().replace(/[^a-z0-9_-]+/g, '_');
-    return `${baseKey}_${cleanId}`;
+    const raw = localStorage.getItem(CANTEEN_TX_STORAGE_KEY);
+    if (!raw) return 0;
+    const txs = JSON.parse(raw);
+    if (!Array.isArray(txs)) return 0;
+    let total = 0;
+    for (const tx of txs) {
+      if (tx?.isLocalFallback !== false) {
+        const durasiStr = tx?.paket?.durasi || '';
+        const durasiNum = parseInt(durasiStr) || Number(tx?.paket?.durationMinutes) || Number(tx?.paket?.menit) || 0;
+        total += durasiNum;
+      }
+    }
+    return total;
   } catch {
-    return `${baseKey}_default`;
+    return 0;
   }
 }
 
-// Simulasi delay network
-const delay = (ms = 200) => new Promise((resolve) => setTimeout(resolve, ms));
+// Cache in-memory untuk sinkronisasi instan & subscribers UI
+let cachedSaldoMenit = 0;
+let isSaldoInitialized = false;
 
-// --- Subscribers untuk reactive update (dipakai oleh sidebar badge) ---
+// Subscribers untuk update realtime (SaldoBadgeSidebar, PaketPage, dsb)
 const subscribers = [];
 
 function notifySubscribers(saldo) {
-  subscribers.forEach((cb) => cb(saldo));
+  cachedSaldoMenit = Math.max(0, Number(saldo) || 0);
+  isSaldoInitialized = true;
+  subscribers.forEach((cb) => {
+    try {
+      cb(cachedSaldoMenit);
+    } catch (err) {
+      console.error('[SaldoService] Subscriber error:', err);
+    }
+  });
+}
+
+/**
+ * Mengurangi saldo menit kantin secara instan di UI dan memicu subscribers
+ * @param {number} durasiMenit - jumlah menit yang dipotong
+ */
+export function kurangiSaldoKantin(durasiMenit) {
+  const durasi = Math.max(0, Number(durasiMenit) || 0);
+  if (durasi > 0) {
+    const newSaldo = Math.max(0, cachedSaldoMenit - durasi);
+    notifySubscribers(newSaldo);
+    return newSaldo;
+  }
+  return cachedSaldoMenit;
+}
+
+// Listener custom event jika ada transaksi kantin tersimpan
+if (typeof window !== 'undefined') {
+  window.addEventListener('canteen_transaction_saved', (event) => {
+    const tx = event?.detail;
+    const durasi = parseInt(tx?.paket?.durasi) || Number(tx?.paket?.durationMinutes) || 0;
+    if (durasi > 0) {
+      kurangiSaldoKantin(durasi);
+    }
+  });
 }
 
 /**
  * Subscribe untuk menerima update saldo secara realtime.
- * Digunakan oleh SaldoBadgeSidebar.
  * @param {Function} callback - menerima saldo kuota menit (number)
  * @returns {Function} unsubscribe
  */
 export function subscribeSaldoUpdate(callback) {
   subscribers.push(callback);
+  if (isSaldoInitialized) {
+    callback(cachedSaldoMenit);
+  }
   return () => {
     const idx = subscribers.indexOf(callback);
     if (idx > -1) subscribers.splice(idx, 1);
   };
 }
 
-// --- Internal helpers ---
-
-function getStoredSaldo() {
-  try {
-    const key = getUserScopedKey(STORAGE_KEY_SALDO_PREFIX);
-    const raw = localStorage.getItem(key);
-    if (raw === null) {
-      localStorage.setItem(key, JSON.stringify(SALDO_AWAL));
-      return SALDO_AWAL;
-    }
-    const parsed = JSON.parse(raw);
-    return typeof parsed === 'number' && !isNaN(parsed) ? parsed : SALDO_AWAL;
-  } catch {
-    return SALDO_AWAL;
-  }
-}
-
-function saveStoredSaldo(nilai) {
-  try {
-    const key = getUserScopedKey(STORAGE_KEY_SALDO_PREFIX);
-    localStorage.setItem(key, JSON.stringify(nilai));
-    notifySubscribers(nilai);
-  } catch (err) {
-    console.error('Error saving saldo to localStorage:', err);
-  }
-}
-
-function getStoredRiwayat() {
-  try {
-    const key = getUserScopedKey(STORAGE_KEY_RIWAYAT_PREFIX);
-    const raw = localStorage.getItem(key);
-    if (raw === null) {
-      localStorage.setItem(key, JSON.stringify([]));
-      return [];
-    }
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveStoredRiwayat(data) {
-  try {
-    const key = getUserScopedKey(STORAGE_KEY_RIWAYAT_PREFIX);
-    localStorage.setItem(key, JSON.stringify(data));
-  } catch (err) {
-    console.error('Error saving riwayat to localStorage:', err);
-  }
-}
-
-// =============================================================================
-// PUBLIC API — Ganti isi fungsi-fungsi di bawah ini saat migrasi ke backend
-// =============================================================================
-
 /**
- * Mengambil sisa kuota saldo menit kantin saat ini.
- * TODO BE: Ganti dengan GET /api/canteen/saldo
- * @returns {Promise<number>}
- */
-export async function getSaldo() {
-  await delay(150);
-  return getStoredSaldo();
-}
-
-/**
- * Mengambil saldo kuota menit secara sinkron (untuk pengecekan cepat di komponen).
- * TODO BE: Hapus fungsi ini, gunakan getSaldo() async saja.
+ * Mengambil saldo kuota menit secara sinkron dari cache lokal.
+ * Berguna saat komponen pertama kali render sebelum fetch BE selesai.
  * @returns {number}
  */
 export function getSaldoSync() {
-  return getStoredSaldo();
+  if (isSaldoInitialized) {
+    return cachedSaldoMenit;
+  }
+  const localUsed = getLocalTransactionsTotalMinutes();
+  return Math.max(0, cachedSaldoMenit - localUsed);
 }
 
 /**
- * Mengambil daftar riwayat top up, diurutkan terbaru di atas.
- * TODO BE: Ganti dengan GET /api/canteen/saldo/riwayat
+ * Mengambil sisa kuota saldo menit kantin dari Backend.
+ * Terpotong otomatis sebesar pembelian paket yang sudah dilakukan.
+ * Endpoint: GET /api/canteen/balance
+ * @returns {Promise<number>}
+ */
+export async function getSaldo() {
+  try {
+    const res = await apiFetch('/api/canteen/balance');
+    const balance = res?.data?.balanceMinutes ?? res?.balanceMinutes ?? 0;
+    const numBalance = Number(balance) || 0;
+
+    // Potong otomatis menit dari transaksi paket yang sudah dilakukan
+    const localUsed = getLocalTransactionsTotalMinutes();
+    const effectiveBalance = Math.max(0, numBalance - localUsed);
+
+    notifySubscribers(effectiveBalance);
+    return effectiveBalance;
+  } catch (err) {
+    console.error('[SaldoService] Gagal mengambil saldo dari BE:', err?.message || err);
+    if (cachedSaldoMenit > 0) {
+      return cachedSaldoMenit;
+    }
+    throw err;
+  }
+}
+
+/**
+ * Mengambil daftar riwayat top up dari Backend.
+ * Endpoint: GET /api/canteen/topups
+ * @param {Object} [params] - { status, page, limit }
  * @returns {Promise<Array>}
  */
-export async function getRiwayatTopUp() {
-  await delay(200);
-  const list = getStoredRiwayat();
-
-  // Sinkronisasi status dari riwayat Superadmin nasional jika sudah dikonfirmasi/ditolak
+export async function getRiwayatTopUp(params = {}) {
   try {
-    const NAT_KEY = 'pascall_superadmin_canteen_history_v1';
-    const rawNat = localStorage.getItem(NAT_KEY);
-    if (rawNat) {
-      const natList = JSON.parse(rawNat);
-      if (Array.isArray(natList)) {
-        let changed = false;
-        list.forEach((item) => {
-          const matchingNat = natList.find((n) => n.id === item.id);
-          if (matchingNat && matchingNat.status !== item.status) {
-            item.status = matchingNat.status;
-            if (matchingNat.status === 'Berhasil') {
-              item.isUnreadApproval = true;
-              item.approvedAt = matchingNat.approvedAt || new Date().toISOString();
-            }
-            changed = true;
-          }
-          if (matchingNat && !item.menit && matchingNat.menit) {
-            item.menit = matchingNat.menit;
-            changed = true;
-          }
-        });
-        if (changed) {
-          saveStoredRiwayat(list);
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
-          }
-        }
-      }
+    const query = new URLSearchParams();
+    if (params.status && params.status !== 'ALL') {
+      query.append('status', params.status.toUpperCase());
     }
-  } catch (e) {
-    console.error('Error syncing canteen top up history with superadmin:', e);
-  }
+    if (params.page) query.append('page', String(params.page));
+    if (params.limit) query.append('limit', String(params.limit));
 
-  list.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
-  return list;
+    const qs = query.toString();
+    const endpoint = qs ? `/api/canteen/topups?${qs}` : '/api/canteen/topups';
+    const res = await apiFetch(endpoint);
+
+    const items = res?.data || [];
+    // Normalisasi format untuk konsumsi komponen
+    return items.map((item) => ({
+      id: item.id,
+      tanggal: item.createdAt,
+      nominal: Number(item.nominal) || 0,
+      ppn: Math.round((Number(item.nominal) || 0) * PPN_RATE),
+      totalBayar: Number(item.nominal) + Math.round((Number(item.nominal) || 0) * PPN_RATE),
+      menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
+      bankTarget: item.bankTarget || 'Rekening Lapas',
+      proofUrl: item.proofUrl || null,
+      status: item.status, // 'PENDING' | 'APPROVED' | 'REJECTED'
+      rejectReason: item.rejectReason || null,
+      approvedAt: item.approvedAt || null,
+      branchName: item.branchName || '',
+      user: item.user || null,
+    }));
+  } catch (err) {
+    console.error('[SaldoService] Gagal mengambil riwayat top up:', err?.message || err);
+    throw err;
+  }
 }
 
 /**
- * Mendapatkan jumlah dana top up yang baru disetujui (belum dibaca/diakui kasir).
- * Digunakan untuk badge menu kantin & notifikasi.
- * @returns {number}
+ * Memproses pengajuan top up kuota saldo menit kantin ke Backend.
+ * Endpoint: POST /api/canteen/topups (FormData)
+ *
+ * @param {Object} payload
+ * @param {number} payload.nominal - Nominal rupiah (contoh: 500000)
+ * @param {number} payload.minutes - Jumlah menit kuota
+ * @param {string} payload.bankTarget - Nama bank / tujuan transfer
+ * @param {File} payload.proofFile - Berkas bukti transfer (gambar/PDF max 10MB)
+ * @returns {Promise<{ success: boolean, data: Object }>}
  */
-export function getUnreadApprovedTopupCountSync() {
-  try {
-    const key = getUserScopedKey(STORAGE_KEY_RIWAYAT_PREFIX);
-    const raw = localStorage.getItem(key);
-    if (!raw) return 0;
-    const list = JSON.parse(raw);
-    if (!Array.isArray(list)) return 0;
-
-    return list.filter((item) => item.status === 'Berhasil' && item.isUnreadApproval === true).length;
-  } catch {
-    return 0;
+export async function prosesTopUp({ nominal, minutes, bankTarget = 'BCA - Kasir Kantin', proofFile }) {
+  if (!nominal || Number(nominal) <= 0) {
+    throw new Error('Nominal top up harus lebih besar dari 0');
   }
-}
+  if (!minutes || Number(minutes) <= 0) {
+    throw new Error('Jumlah kuota menit harus lebih besar dari 0');
+  }
+  if (!proofFile) {
+    throw new Error('Bukti transfer wajib diunggah');
+  }
 
-/**
- * Menandai semua notifikasi dana masuk yang telah disetujui sebagai sudah dibaca.
- */
-export function markApprovedTopupsAsRead() {
+  // Validasi ukuran file (maksimal 10MB sesuai backend Multer)
+  const MAX_FILE_SIZE = 10 * 1024 * 1024;
+  if (proofFile.size > MAX_FILE_SIZE) {
+    throw new Error('Ukuran file bukti transfer maksimal 10 MB');
+  }
+
+  // Validasi tipe berkas
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+  if (proofFile.type && !allowedTypes.includes(proofFile.type)) {
+    throw new Error('Format file bukti harus berupa JPG, PNG, WEBP, atau PDF');
+  }
+
+  const formData = new FormData();
+  formData.append('nominal', String(nominal));
+  formData.append('minutes', String(minutes));
+  formData.append('bankTarget', String(bankTarget));
+  formData.append('proofFile', proofFile);
+
   try {
-    const key = getUserScopedKey(STORAGE_KEY_RIWAYAT_PREFIX);
-    const raw = localStorage.getItem(key);
-    if (!raw) return;
-    const list = JSON.parse(raw);
-    if (!Array.isArray(list)) return;
-
-    let modified = false;
-    list.forEach((item) => {
-      if (item.isUnreadApproval) {
-        item.isUnreadApproval = false;
-        modified = true;
-      }
+    const res = await apiFetch('/api/canteen/topups', {
+      method: 'POST',
+      body: formData,
     });
 
-    if (modified) {
-      localStorage.setItem(key, JSON.stringify(list));
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
-      }
-    }
-  } catch (err) {
-    console.error('Error marking approved topups as read:', err);
-  }
-}
-
-/**
- * Memproses pengajuan top up kuota saldo menit kantin.
- * Kuota menit TIDAK langsung bertambah saat pengajuan; menunggu persetujuan (approval) Superadmin.
- * TODO BE: Ganti dengan POST /api/canteen/saldo/topup
- *
- * @param {number} nominal - Nominal saldo rupiah yang dipilih (misal 500000, 1000000, 2000000)
- * @param {number} [customMenit] - Jumlah menit yang didapatkan
- * @returns {Promise<{ success: boolean, pending: boolean, saldoBaru: number, topup: object }>}
- */
-export async function prosesTopUp(nominal, customMenit) {
-  await delay(400);
-
-  const ppn = Math.round(nominal * PPN_RATE);
-  const totalBayar = nominal + ppn;
-  const menit = customMenit || getMenitFromNominal(nominal);
-
-  const user = getAuthUser();
-  const userKey = getUserScopedKey('').replace(/^_/, '');
-  const saldoSaatIni = getStoredSaldo();
-
-  // Buat entri riwayat baru
-  const riwayat = getStoredRiwayat();
-  const txId = `TPU-${Date.now().toString().slice(-6)}`;
-
-  const branchName =
-    user?.branch?.name ||
-    user?.branchName ||
-    (typeof user?.branch === 'string' ? user.branch : '') ||
-    user?.uptName ||
-    'Lapas Kelas II Yogyakarta';
-  const staffName = user?.name || 'Operator Kantin';
-  const staffEmail = user?.email || '-';
-
-  const entriBaru = {
-    id: txId,
-    tanggal: new Date().toISOString(),
-    nominal,
-    ppn,
-    totalBayar,
-    menit,
-    status: 'Menunggu', // Menunggu persetujuan Super Administrator
-    branchId: user?.branchId || user?.branch?.id || 'b1',
-    branchName,
-    staffName,
-    staffEmail,
-  };
-
-  const updatedRiwayat = [entriBaru, ...riwayat];
-  saveStoredRiwayat(updatedRiwayat);
-
-  // Masukkan pengajuan ke riwayat Superadmin nasional
-  try {
-    const NAT_KEY = 'pascall_superadmin_canteen_history_v1';
-    const rawNat = localStorage.getItem(NAT_KEY);
-    let natList = rawNat ? JSON.parse(rawNat) : [];
-    if (!Array.isArray(natList)) natList = [];
-
-    const natEntry = {
-      id: txId,
-      tanggal: new Date().toISOString(),
-      branchId: user?.branchId || user?.branch?.id || 'b1',
-      branchName,
-      staffName,
-      staffEmail,
-      userKey,
-      nominal,
-      ppn,
-      totalBayar,
-      menit,
-      status: 'Menunggu',
+    return {
+      success: true,
+      data: res?.data || res,
     };
-
-    natList = [natEntry, ...natList.filter((item) => item.id !== txId)];
-    localStorage.setItem(NAT_KEY, JSON.stringify(natList));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
-    }
   } catch (err) {
-    console.error('Error recording national top up history:', err);
+    console.error('[SaldoService] Gagal mengirim pengajuan top up:', err);
+    throw err;
   }
-
-  return {
-    success: true,
-    pending: true,
-    saldoBaru: saldoSaatIni,
-    topup: entriBaru,
-  };
 }
 
 /**
- * Cek apakah kuota menit kasir cukup untuk menjual paket komunikasi ke WBP, dan potong durasi menitnya.
+ * Cek ketersediaan kuota menit kantin (advisory di FE).
+ * TIDAK memotong saldo lokal. Keputusan akhir pemotongan kuota dilakukan oleh BE.
  *
- * @param {number} durasiMenit - Durasi menit dari paket yang dibeli WBP (misal 5 menit, 6 menit, 12 menit)
- * @returns {{ cukup: boolean, saldoSekarang: number, saldoSetelah: number }}
+ * @param {number} durasiMenit - Durasi menit dari paket yang dibeli WBP
+ * @returns {{ cukup: boolean, saldoSekarang: number }}
  */
 export function cekDanPotongSaldo(durasiMenit) {
   const durasi = Math.max(1, Number(durasiMenit) || 5);
-  const saldoSekarang = getStoredSaldo();
-
-  if (saldoSekarang < durasi) {
-    return {
-      cukup: false,
-      saldoSekarang,
-      saldoSetelah: saldoSekarang,
-    };
-  }
-
-  const saldoSetelah = saldoSekarang - durasi;
-  saveStoredSaldo(saldoSetelah);
-
+  const saldoSekarang = cachedSaldoMenit;
   return {
-    cukup: true,
+    cukup: saldoSekarang >= durasi,
     saldoSekarang,
-    saldoSetelah,
+    saldoSetelah: Math.max(0, saldoSekarang - durasi),
   };
+}
+
+/**
+ * Helper kompatibilitas untuk unread badge
+ */
+export function getUnreadApprovedTopupCountSync() {
+  return 0;
+}
+
+export function markApprovedTopupsAsRead() {
+  // Ditangani terpusat oleh sistem notifikasi backend
 }

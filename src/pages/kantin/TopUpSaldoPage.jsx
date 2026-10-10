@@ -12,6 +12,12 @@ import {
   Receipt,
   Sparkles,
   Zap,
+  Upload,
+  FileText,
+  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import {
@@ -23,31 +29,43 @@ import {
   getSaldoSync,
   getRiwayatTopUp,
   prosesTopUp,
-  markApprovedTopupsAsRead,
 } from '../../services/kantin/saldoService';
 
+const BANK_OPTIONS = [
+  'BCA - 0123456789 (a.n PasCall Lapas Pusat)',
+  'BRI - 9876543210 (a.n PasCall Lapas Pusat)',
+  'Mandiri - 1370012345678 (a.n PasCall Lapas Pusat)',
+  'BNI - 0987654321 (a.n PasCall Lapas Pusat)',
+];
+
 export default function TopUpSaldoPage() {
-  // Gunakan getSaldoSync() agar state awal tidak 0 (mencegah bug kartu tiba-tiba berubah warna dari kuning ke biru)
   const [saldo, setSaldo] = useState(() => getSaldoSync());
-  const [isLoadingSaldo, setIsLoadingSaldo] = useState(false);
+  const [isLoadingSaldo, setIsLoadingSaldo] = useState(true);
+  const [saldoError, setSaldoError] = useState('');
+
   const [riwayat, setRiwayat] = useState([]);
   const [isLoadingRiwayat, setIsLoadingRiwayat] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // State pilihan paket (object option)
   const [paketTerpilih, setPaketTerpilih] = useState(null);
 
-  // State modal konfirmasi
+  // State modal konfirmasi & form pengajuan
   const [showKonfirmasi, setShowKonfirmasi] = useState(false);
+  const [bankTarget, setBankTarget] = useState(BANK_OPTIONS[0]);
+  const [proofFile, setProofFile] = useState(null);
+  const [fileError, setFileError] = useState('');
 
   // State proses
   const [isProcessing, setIsProcessing] = useState(false);
   const [pesanSukses, setPesanSukses] = useState('');
+  const [pesanError, setPesanError] = useState('');
 
   // Load data awal & listen real-time
   useEffect(() => {
     loadSaldo();
     loadRiwayat();
-    markApprovedTopupsAsRead();
 
     const handleUpdate = () => {
       loadSaldo();
@@ -61,21 +79,30 @@ export default function TopUpSaldoPage() {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, []);
+  }, [statusFilter]);
 
   const loadSaldo = async () => {
+    setIsLoadingSaldo(true);
+    setSaldoError('');
     try {
       const s = await getSaldo();
       setSaldo(s);
     } catch (err) {
       console.error('Gagal mengambil saldo:', err);
+      setSaldoError('Gagal memuat saldo dari server. Pastikan koneksi internet stabil.');
+    } finally {
+      setIsLoadingSaldo(false);
     }
   };
 
   const loadRiwayat = async () => {
     setIsLoadingRiwayat(true);
     try {
-      const r = await getRiwayatTopUp();
+      const r = await getRiwayatTopUp({
+        status: statusFilter,
+        page: currentPage,
+        limit: 20,
+      });
       setRiwayat(r);
     } catch (err) {
       console.error('Gagal mengambil riwayat top up:', err);
@@ -92,38 +119,83 @@ export default function TopUpSaldoPage() {
 
   const handleTopUpSekarang = () => {
     if (!paketTerpilih) return;
+    setProofFile(null);
+    setFileError('');
+    setPesanError('');
     setShowKonfirmasi(true);
   };
 
   const handleBatal = () => {
+    if (isProcessing) return;
     setShowKonfirmasi(false);
+    setProofFile(null);
+    setFileError('');
+    setPesanError('');
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    setFileError('');
+    if (!file) {
+      setProofFile(null);
+      return;
+    }
+
+    // Validasi ukuran: max 10MB
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+      setFileError('Ukuran file bukti transfer terlalu besar (maksimal 10 MB).');
+      setProofFile(null);
+      return;
+    }
+
+    // Validasi tipe file
+    const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+    if (file.type && !allowed.includes(file.type)) {
+      setFileError('Format file tidak didukung. Harap upload gambar (JPG, PNG, WEBP) atau PDF.');
+      setProofFile(null);
+      return;
+    }
+
+    setProofFile(file);
   };
 
   const handleKonfirmasi = async () => {
-    if (!paketTerpilih) return;
+    if (!paketTerpilih || isProcessing) return;
+
+    if (!proofFile) {
+      setFileError('Silakan unggah foto/struk bukti transfer terlebih dahulu.');
+      return;
+    }
 
     setIsProcessing(true);
+    setPesanError('');
     try {
-      const result = await prosesTopUp(paketTerpilih.nominal, paketTerpilih.menit);
-      if (result.success) {
-        setSaldo(result.saldoBaru);
-        setPesanSukses(
-          `Pengajuan top up kuota ${menitValue.toLocaleString('id-ID')} Menit (${formatRupiah(
-            nominalValue
-          )}) berhasil dikirim! Menunggu konfirmasi persetujuan dari Super Administrator.`
-        );
-        setPaketTerpilih(null);
-        setShowKonfirmasi(false);
+      await prosesTopUp({
+        nominal: paketTerpilih.nominal,
+        minutes: paketTerpilih.menit,
+        bankTarget,
+        proofFile,
+      });
 
-        // Reload riwayat
-        const updatedRiwayat = await getRiwayatTopUp();
-        setRiwayat(updatedRiwayat);
+      setPesanSukses(
+        `Pengajuan top up kuota ${menitValue.toLocaleString('id-ID')} Menit (${formatRupiah(
+          nominalValue
+        )}) berhasil dikirim! Menunggu konfirmasi persetujuan dari Super Administrator.`
+      );
+      setPaketTerpilih(null);
+      setShowKonfirmasi(false);
+      setProofFile(null);
 
-        // Hapus pesan sukses setelah 6 detik
-        setTimeout(() => setPesanSukses(''), 6000);
-      }
+      // Reload saldo dan riwayat terbaru dari BE
+      await loadSaldo();
+      await loadRiwayat();
+
+      // Hapus pesan sukses setelah 8 detik
+      setTimeout(() => setPesanSukses(''), 8000);
     } catch (err) {
       console.error('Gagal memproses top up:', err);
+      setPesanError(err?.message || 'Gagal mengirim pengajuan top up. Silakan coba lagi.');
     } finally {
       setIsProcessing(false);
     }
@@ -152,6 +224,23 @@ export default function TopUpSaldoPage() {
         </div>
       )}
 
+      {/* Pesan Error Saldo */}
+      {saldoError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <p className="text-xs sm:text-sm text-rose-800 font-medium">{saldoError}</p>
+          </div>
+          <button
+            onClick={loadSaldo}
+            className="px-3 py-1.5 text-xs bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Coba Lagi</span>
+          </button>
+        </div>
+      )}
+
       {/* 1. Hero Card: Informasi Saldo Kuota Menit Kantin */}
       <div
         className={`relative overflow-hidden rounded-2xl p-6 sm:p-8 shadow-md text-white transition-all duration-300 ${
@@ -160,7 +249,6 @@ export default function TopUpSaldoPage() {
             : 'bg-gradient-to-r from-[#1565C0] to-[#0D47A1]'
         }`}
       >
-        {/* Background ambient lighting */}
         <div className="absolute -right-8 -bottom-10 w-48 h-48 bg-white/10 rounded-full blur-2xl pointer-events-none" />
         <div className="absolute right-24 top-0 w-32 h-32 bg-blue-300/20 rounded-full blur-xl pointer-events-none" />
 
@@ -179,13 +267,22 @@ export default function TopUpSaldoPage() {
               )}
             </div>
 
-            <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight drop-shadow-xs">
-              {saldo.toLocaleString('id-ID')}{' '}
-              <span className="text-xl sm:text-2xl font-bold opacity-90">Menit</span>
+            <div className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight drop-shadow-xs flex items-center gap-3">
+              {isLoadingSaldo ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-8 h-8 animate-spin opacity-80" />
+                  <span className="text-2xl font-semibold opacity-80">Memuat saldo...</span>
+                </div>
+              ) : (
+                <>
+                  {saldo.toLocaleString('id-ID')}{' '}
+                  <span className="text-xl sm:text-2xl font-bold opacity-90">Menit</span>
+                </>
+              )}
             </div>
 
             <p className="text-blue-100 text-xs sm:text-sm leading-relaxed">
-              Kuota menit operasional aktif untuk pemotongan otomatis setiap penjualan paket komunikasi kepada warga binaan.
+              Kuota menit operasional aktif dikelola langsung oleh Backend server dan terpotong otomatis saat penjualan paket komunikasi kepada warga binaan.
             </p>
           </div>
 
@@ -206,7 +303,7 @@ export default function TopUpSaldoPage() {
         <div>
           <h3 className="text-lg font-bold text-slate-800">Pilih Paket Kuota Menit</h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pilih paket kuota durasi bicara yang ingin ditambahkan ke akun kasir kantin Anda.
+            Pilih paket kuota durasi bicara yang ingin diajukan untuk ditambahkan ke kasir cabang Anda.
           </p>
         </div>
 
@@ -226,7 +323,6 @@ export default function TopUpSaldoPage() {
                     : 'bg-white border-slate-200 hover:border-blue-300 hover:shadow-xs'
                 }`}
               >
-                {/* Header Tag */}
                 <div className="flex items-center justify-between mb-3">
                   <span
                     className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg ${
@@ -255,35 +351,28 @@ export default function TopUpSaldoPage() {
                   </div>
                 </div>
 
-                {/* Kuota & Harga */}
                 <div className="mb-4">
                   <span className="text-[11px] text-slate-400 font-semibold block">Kuota Didapat</span>
-                  <div className="flex items-baseline gap-1.5">
-                    <span
-                      className={`text-2xl sm:text-3xl font-black tracking-tight ${
-                        isSelected ? 'text-[#1565C0]' : 'text-slate-800'
-                      }`}
-                    >
+                  <div className="flex items-baseline gap-1 mt-0.5">
+                    <span className="text-2xl font-black text-slate-800">
                       {option.menit.toLocaleString('id-ID')}
                     </span>
-                    <span className="text-sm font-bold text-slate-500">Menit</span>
+                    <span className="text-xs font-bold text-slate-500">Menit Bicara</span>
                   </div>
-                  <span className="text-xs font-bold text-slate-600 mt-1 block">
-                    Harga: {formatRupiah(option.nominal)}
-                  </span>
                 </div>
 
-                {/* Breakdown Details */}
-                <div className="pt-3 border-t border-slate-100/90 space-y-1.5 text-xs">
-                  <div className="flex justify-between text-slate-500">
-                    <span>PPN 11%</span>
-                    <span className="font-semibold text-slate-700">{formatRupiah(ppn)}</span>
+                <div className="pt-3 border-t border-slate-100 space-y-1">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Harga Paket:</span>
+                    <span className="font-semibold text-slate-700">{formatRupiah(option.nominal)}</span>
                   </div>
-                  <div className="flex justify-between font-bold pt-1 border-t border-dashed border-slate-200">
-                    <span className="text-slate-700">Total Pembayaran</span>
-                    <span className={isSelected ? 'text-[#1565C0] font-black' : 'text-slate-900'}>
-                      {formatRupiah(total)}
-                    </span>
+                  <div className="flex justify-between items-center text-[11px]">
+                    <span className="text-slate-400">PPN (11%):</span>
+                    <span className="text-slate-500 font-medium">{formatRupiah(ppn)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs pt-1 border-t border-dashed border-slate-200">
+                    <span className="font-bold text-slate-700">Total Tagihan:</span>
+                    <span className="font-black text-[#1565C0]">{formatRupiah(total)}</span>
                   </div>
                 </div>
               </div>
@@ -291,12 +380,12 @@ export default function TopUpSaldoPage() {
           })}
         </div>
 
-        {/* Action / Checkout Bar saat paket dipilih */}
-        {paketTerpilih && !showKonfirmasi && (
-          <div className="bg-white rounded-2xl border border-blue-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
+        {/* Action Bar Sticky / Bawah */}
+        {paketTerpilih && (
+          <div className="p-4 sm:p-5 bg-white border border-blue-200 rounded-2xl shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div>
               <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-[#1565C0]" />
+                <Sparkles className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
                   Rincian Pengajuan Top Up
                 </span>
@@ -318,39 +407,50 @@ export default function TopUpSaldoPage() {
               className="px-6 py-3 bg-[#1565C0] hover:bg-[#0D47A1] active:scale-[0.98] text-white font-bold text-sm rounded-xl transition flex items-center justify-center gap-2 shadow-sm shadow-blue-500/20 cursor-pointer shrink-0"
             >
               <ArrowUpCircle className="w-4.5 h-4.5" />
-              <span>Proses Pengajuan Top Up</span>
+              <span>Lanjut Upload Bukti & Kirim</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 3. Modal Konfirmasi Top Up */}
+      {/* 3. Modal Form Pengajuan & Upload Bukti Transfer */}
       {showKonfirmasi && paketTerpilih && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
             {/* Header Modal */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-blue-100 text-[#1565C0] flex items-center justify-center">
                   <Wallet className="w-4.5 h-4.5" />
                 </div>
-                <h4 className="text-base font-bold text-slate-800">Konfirmasi Pengajuan Top Up</h4>
+                <div>
+                  <h4 className="text-base font-bold text-slate-800">Form Pengajuan Top Up Saldo</h4>
+                  <p className="text-[11px] text-slate-500">Unggah bukti transfer untuk diverifikasi Superadmin</p>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={handleBatal}
                 disabled={isProcessing}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Isi Modal */}
-            <div className="p-6 space-y-4">
-              <div className="p-4 bg-slate-50 rounded-xl space-y-2.5 text-sm border border-slate-200/80">
+            {/* Isi Form */}
+            <div className="p-6 overflow-y-auto space-y-4">
+              {pesanError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-start gap-2.5 text-xs text-rose-700">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <span>{pesanError}</span>
+                </div>
+              )}
+
+              {/* Rincian Finansial */}
+              <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-sm border border-slate-200/80">
                 <div className="flex justify-between text-slate-600">
-                  <span>Kuota Menit Masuk</span>
+                  <span>Kuota Menit</span>
                   <span className="font-black text-emerald-600 text-base">
                     {menitValue.toLocaleString('id-ID')} Menit
                   </span>
@@ -360,18 +460,73 @@ export default function TopUpSaldoPage() {
                   <span className="font-bold text-slate-800">{formatRupiah(nominalValue)}</span>
                 </div>
                 <div className="flex justify-between text-slate-500 text-xs">
-                  <span>Pajak Pertambahan Nilai (PPN 11%)</span>
+                  <span>PPN 11%</span>
                   <span className="font-semibold text-slate-700">{formatRupiah(ppnNominal)}</span>
                 </div>
-                <div className="flex justify-between pt-2.5 border-t border-slate-200 text-base">
-                  <span className="font-bold text-slate-800">Total Pembayaran</span>
+                <div className="flex justify-between pt-2 border-t border-slate-200 text-base">
+                  <span className="font-bold text-slate-800">Total Transfer</span>
                   <span className="font-black text-[#1565C0]">{formatRupiah(totalBayar)}</span>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-500 text-center leading-relaxed">
-                Pastikan paket kuota yang diajukan sudah sesuai. Pengajuan saldo menit akan dikirim ke Super Administrator untuk diverifikasi dan disetujui sebelum masuk ke akun kasir kantin Anda.
-              </p>
+              {/* Pilihan Bank Tujuan Transfer */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Rekening Tujuan Transfer (Lapas Pusat)
+                </label>
+                <select
+                  value={bankTarget}
+                  onChange={(e) => setBankTarget(e.target.value)}
+                  disabled={isProcessing}
+                  className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  {BANK_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Upload Bukti Transfer */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700">
+                  Bukti Struk Transfer (JPG, PNG, PDF maks 10MB) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative border-2 border-dashed border-slate-200 hover:border-blue-400 rounded-xl p-4 text-center transition bg-slate-50/50 hover:bg-blue-50/20">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={handleFileChange}
+                    disabled={isProcessing}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                  />
+                  {proofFile ? (
+                    <div className="flex items-center justify-center gap-2 text-emerald-700">
+                      <FileText className="w-5 h-5 text-emerald-600" />
+                      <div className="text-left">
+                        <p className="text-xs font-bold truncate max-w-xs">{proofFile.name}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {(proofFile.size / 1024 / 1024).toFixed(2)} MB - Siap diunggah
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      <Upload className="w-6 h-6 text-slate-400 mx-auto" />
+                      <p className="text-xs font-semibold text-slate-600">
+                        Klik atau seret file bukti transfer ke sini
+                      </p>
+                      <p className="text-[10px] text-slate-400">Mendukung format JPG, PNG, atau PDF (Maksimal 10MB)</p>
+                    </div>
+                  )}
+                </div>
+                {fileError && <p className="text-[11px] text-rose-600 font-medium">{fileError}</p>}
+              </div>
+
+              <div className="p-3 bg-amber-50/60 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 leading-relaxed">
+                Menit akan bertambah otomatis di akun kantin cabang setelah Super Administrator memverifikasi bukti transfer dan menyetujui pengajuan ini.
+              </div>
 
               {/* Tombol Aksi */}
               <div className="flex items-center gap-3 pt-2">
@@ -379,22 +534,27 @@ export default function TopUpSaldoPage() {
                   type="button"
                   onClick={handleBatal}
                   disabled={isProcessing}
-                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer disabled:opacity-50"
+                  className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="button"
                   onClick={handleKonfirmasi}
-                  disabled={isProcessing}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#16A34A] hover:bg-emerald-700 text-white text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-60"
+                  disabled={isProcessing || !proofFile}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-[#16A34A] hover:bg-emerald-700 text-white text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Mengunggah...</span>
+                    </>
                   ) : (
-                    <CheckCircle className="w-4 h-4" />
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Kirim Pengajuan Top Up</span>
+                    </>
                   )}
-                  <span>Kirim Pengajuan Top Up</span>
                 </button>
               </div>
             </div>
@@ -404,16 +564,28 @@ export default function TopUpSaldoPage() {
 
       {/* 4. Tabel Riwayat Top Up */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-lg font-bold text-slate-800">Riwayat Top Up</h3>
+            <h3 className="text-lg font-bold text-slate-800">Riwayat Pengajuan Top Up</h3>
             <p className="text-xs text-slate-500 mt-0.5">
-              Catatan seluruh transaksi penambahan kuota menit kasir kantin.
+              Catatan seluruh transaksi penambahan kuota menit kasir kantin langsung dari server.
             </p>
           </div>
-          <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
-            Total {riwayat.length} Transaksi
-          </span>
+
+          {/* Filter Status */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 font-medium">Filter Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="ALL">Semua Status</option>
+              <option value="PENDING">Menunggu (Pending)</option>
+              <option value="APPROVED">Disetujui (Approved)</option>
+              <option value="REJECTED">Ditolak (Rejected)</option>
+            </select>
+          </div>
         </div>
 
         {isLoadingRiwayat ? (
@@ -430,8 +602,8 @@ export default function TopUpSaldoPage() {
         ) : riwayat.length === 0 ? (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-xs">
             <Clock className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-bold text-slate-700">Belum Ada Riwayat Top Up</p>
-            <p className="text-xs text-slate-400 mt-1">Pilih paket kuota menit di atas untuk melakukan pengajuan top up saldo.</p>
+            <p className="text-sm font-bold text-slate-700">Belum Ada Pengajuan Top Up</p>
+            <p className="text-xs text-slate-400 mt-1">Pilih paket kuota menit di atas untuk mengajukan penambahan kuota.</p>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
@@ -439,57 +611,80 @@ export default function TopUpSaldoPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-4 sm:px-6">ID Top Up</th>
-                    <th className="py-3.5 px-4 sm:px-6">Waktu Transaksi</th>
+                    <th className="py-3.5 px-4 sm:px-6">ID & Tanggal</th>
                     <th className="py-3.5 px-4 sm:px-6 text-right">Kuota Menit</th>
                     <th className="py-3.5 px-4 sm:px-6 text-right">Harga Paket</th>
-                    <th className="py-3.5 px-4 sm:px-6 text-right">PPN (11%)</th>
                     <th className="py-3.5 px-4 sm:px-6 text-right">Total Tagihan</th>
+                    <th className="py-3.5 px-4 sm:px-6">Bukti Transfer</th>
                     <th className="py-3.5 px-4 sm:px-6 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
                   {riwayat.map((item) => {
-                    const kuotaMenit = item.menit || getMenitFromNominal(item.nominal);
+                    const isApproved = item.status === 'APPROVED' || item.status === 'Berhasil';
+                    const isRejected = item.status === 'REJECTED' || item.status === 'Ditolak';
+                    const isPending = item.status === 'PENDING' || item.status === 'Menunggu';
+
                     return (
                       <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                        <td className="py-3.5 px-4 sm:px-6 font-mono font-bold text-slate-700">
-                          {item.id}
-                        </td>
-                        <td className="py-3.5 px-4 sm:px-6 text-slate-600 whitespace-nowrap">
-                          {formatTanggal(item.tanggal)}
+                        <td className="py-3.5 px-4 sm:px-6">
+                          <span className="font-mono font-bold text-slate-700 block text-[11px]">
+                            {item.id.slice(0, 8)}...
+                          </span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">
+                            {formatTanggal(item.tanggal)}
+                          </span>
                         </td>
                         <td className="py-3.5 px-4 sm:px-6 text-right font-black text-emerald-600">
-                          {kuotaMenit.toLocaleString('id-ID')} Menit
+                          {item.menit.toLocaleString('id-ID')} Menit
                         </td>
                         <td className="py-3.5 px-4 sm:px-6 text-right font-bold text-slate-700">
                           {formatRupiah(item.nominal)}
                         </td>
-                        <td className="py-3.5 px-4 sm:px-6 text-right text-slate-500 font-medium">
-                          {formatRupiah(item.ppn)}
-                        </td>
                         <td className="py-3.5 px-4 sm:px-6 text-right font-black text-[#1565C0]">
                           {formatRupiah(item.totalBayar)}
                         </td>
+                        <td className="py-3.5 px-4 sm:px-6">
+                          {item.proofUrl ? (
+                            <a
+                              href={item.proofUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              <span>Lihat Bukti</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                          ) : (
+                            <span className="text-slate-400 text-[11px] italic">Tidak ada file</span>
+                          )}
+                        </td>
                         <td className="py-3.5 px-4 sm:px-6 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                              item.status === 'Berhasil'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                                : item.status === 'Ditolak'
-                                ? 'bg-rose-50 text-rose-700 border-rose-200/80'
-                                : 'bg-amber-50 text-amber-700 border-amber-200/80'
-                            }`}
-                          >
-                            {item.status === 'Berhasil' ? (
-                              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                            ) : item.status === 'Ditolak' ? (
-                              <X className="w-3.5 h-3.5 text-rose-500" />
-                            ) : (
-                              <Clock className="w-3.5 h-3.5 text-amber-500" />
+                          <div className="flex flex-col items-center gap-1">
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${
+                                isApproved
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : isRejected
+                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                              }`}
+                            >
+                              {isApproved ? (
+                                <CheckCircle className="w-3 h-3 text-emerald-500" />
+                              ) : isRejected ? (
+                                <X className="w-3 h-3 text-rose-500" />
+                              ) : (
+                                <Clock className="w-3 h-3 text-amber-500" />
+                              )}
+                              {isApproved ? 'Disetujui' : isRejected ? 'Ditolak' : 'Menunggu'}
+                            </span>
+                            {isRejected && item.rejectReason && (
+                              <span className="text-[10px] text-rose-600 italic font-medium max-w-xs text-center">
+                                Alasan: {item.rejectReason}
+                              </span>
                             )}
-                            {item.status === 'Menunggu' ? 'Menunggu Konfirmasi' : item.status}
-                          </span>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -503,4 +698,3 @@ export default function TopUpSaldoPage() {
     </div>
   );
 }
-

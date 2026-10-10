@@ -8,42 +8,76 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => getAuthToken());
   const [user, setUser] = useState(() => getAuthUser());
 
-  // Normalize role from current user object
+  const tokenPayload = useMemo(() => {
+    if (!token || typeof token !== 'string') return null;
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      try {
+        return JSON.parse(atob(parts[1]));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [token]);
+
+  // Robust cascading normalization role dari user.role, localStorage, token payload, atau route
   const role = useMemo(() => {
-    return user?.role ? normalizeRole(user.role) : '';
-  }, [user]);
+    if (user?.role) {
+      const n = normalizeRole(user.role);
+      if (n) return n;
+    }
+    const storedRole = localStorage.getItem('role');
+    if (storedRole) {
+      const n = normalizeRole(storedRole);
+      if (n) return n;
+    }
+    if (tokenPayload?.role || tokenPayload?.userRole) {
+      const n = normalizeRole(tokenPayload.role || tokenPayload.userRole);
+      if (n) return n;
+    }
+    // Fallback berdasarkan route aktif jika di bawah /branch/
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/branch')) {
+      const hint = (user?.email || tokenPayload?.email || '').toLowerCase();
+      if (hint.includes('spv') || hint.includes('supervisor')) {
+        return ROLES.SUPERVISOR;
+      }
+      return ROLES.KEPALA_UPT;
+    }
+    return '';
+  }, [user, tokenPayload]);
 
   const roleLabel = useMemo(() => {
     if (!role) return '';
     return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
   }, [role]);
 
-  // Nama pengguna akun yang login (bukan label role). Fallback ke roleLabel jika user.name kosong.
+  // Nama pengguna akun yang login (bukan label role). Fallback ke token/email jika user.name kosong.
   const userName = useMemo(() => {
     if (user?.name && user.name.trim() !== '') {
       return user.name.trim();
     }
+    if (tokenPayload?.name && tokenPayload.name.trim() !== '') {
+      return tokenPayload.name.trim();
+    }
+    if (user?.email) {
+      const cleanEmail = user.email.split('@')[0].replace(/[._]/g, ' ');
+      return cleanEmail.charAt(0).toUpperCase() + cleanEmail.slice(1);
+    }
+    if (tokenPayload?.email) {
+      const cleanEmail = tokenPayload.email.split('@')[0].replace(/[._]/g, ' ');
+      return cleanEmail.charAt(0).toUpperCase() + cleanEmail.slice(1);
+    }
     return roleLabel || '';
-  }, [user, roleLabel]);
+  }, [user, tokenPayload, roleLabel]);
 
   // Nama UPT / Cabang
   const uptName = useMemo(() => {
     const direct = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName || user?.branchLocation || '';
-    if (direct && direct.trim() !== '' && direct.trim().toLowerCase() !== 'upt anda') {
+    if (direct && direct.trim() !== '' && direct.trim().toLowerCase() !== 'upt anda' && direct.trim().toLowerCase() !== 'cabang terdaftar' && direct.trim().toLowerCase() !== 'upt terdaftar') {
       return direct.trim();
     }
-    // Jika email user memiliki format peran.nama.cabang@pascall.id (contoh: spv.ucuk.yogyakarta@pascall.id)
-    if (user?.email && user.email.includes('@')) {
-      const parts = user.email.split('@')[0].split('.');
-      if (parts.length >= 3) {
-        const slug = parts[parts.length - 1]; // misal "yogyakarta"
-        if (slug) {
-          const capitalized = slug.charAt(0).toUpperCase() + slug.slice(1);
-          return `Lapas Kelas II ${capitalized}`;
-        }
-      }
-    }
-    return direct || 'Lapas Kelas II Yogyakarta';
+    return '';
   }, [user]);
 
   // Specific Permission Flags (false jika tidak ada role / belum login)
@@ -51,7 +85,7 @@ export const AuthProvider = ({ children }) => {
   const canManageUsers = useMemo(() => Boolean(role && permissions.canManageUsers(role)), [role]);
   const canManagePackages = useMemo(() => Boolean(role && permissions.canManagePackages(role)), [role]);
 
-  const isAuthenticated = useMemo(() => Boolean(token && user && role), [token, user, role]);
+  const isAuthenticated = useMemo(() => Boolean(token && (user || role)), [token, user, role]);
 
   // Login handler
   const login = useCallback((newToken, newUser) => {
@@ -87,26 +121,59 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Auto-resolve branch name for branch roles if missing
-  useEffect(() => {
-    if (!token || !user) return;
-    const currentBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName;
-    const bId = user?.branchId || user?.branch?.id;
+  // Auto-resolve branch name & profil untuk semua role yang login (dieksekusi sekali per session/token)
+  const hasFetchedProfileRef = React.useRef(false);
 
-    if (!currentBranchName && bId) {
-      import('../services/branchService').then(({ getBranchById }) => {
-        getBranchById(bId)
-          .then((b) => {
-            if (b?.name) {
-              const updated = { ...user, branchName: b.name, branch: b };
+  useEffect(() => {
+    if (!token || hasFetchedProfileRef.current) return;
+
+    const currentBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName;
+    const isNeutralPlaceholder = !currentBranchName || 
+      currentBranchName.trim().toLowerCase() === 'cabang terdaftar' || 
+      currentBranchName.trim().toLowerCase() === 'upt terdaftar' || 
+      currentBranchName.trim().toLowerCase() === 'upt anda';
+
+    if (isNeutralPlaceholder || !user?.name) {
+      hasFetchedProfileRef.current = true;
+      // 1. Ambil profile pengguna dari backend (tersedia untuk semua role terautentikasi)
+      import('../services/api').then(({ apiFetch }) => {
+        apiFetch('/api/users/profile')
+          .then((profileRes) => {
+            const profileData = profileRes?.data || profileRes;
+            if (profileData && typeof profileData === 'object') {
+              const bName = profileData.branch?.name || profileData.branchName || '';
+              const resolvedRole = normalizeRole(profileData.role) || role;
+              const updated = {
+                ...(user || {}),
+                ...profileData,
+                role: resolvedRole,
+                branchName: bName || user?.branchName || '',
+                branch: profileData.branch || user?.branch || null,
+              };
               setUser(updated);
               setAuthSession(token, updated);
             }
           })
-          .catch(() => {});
+          .catch(() => {
+            // 2. Fallback khusus SUPERADMIN jika ada branchId
+            const bId = user?.branchId || user?.branch?.id;
+            if (role === ROLES.SUPERADMIN && bId) {
+              import('../services/branchService').then(({ getBranchById }) => {
+                getBranchById(bId)
+                  .then((b) => {
+                    if (b?.name) {
+                      const updated = { ...(user || {}), branchName: b.name, branch: b };
+                      setUser(updated);
+                      setAuthSession(token, updated);
+                    }
+                  })
+                  .catch(() => {});
+              }).catch(() => {});
+            }
+          });
       }).catch(() => {});
     }
-  }, [token, user, role]);
+  }, [token]);
 
   const value = useMemo(() => ({
     token,

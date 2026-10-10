@@ -21,7 +21,7 @@ const InmatesEdit = () => {
   const { uptName, isSupervisor } = useAuth();
   const authUser = getAuthUser();
   const isSuperadmin = authUser?.role === 'SUPERADMIN';
-  const currentBranchName = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : '') || 'Lapas Kelas II Yogyakarta';
+  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : '') || 'Lapas II Yogyakarta');
 
   const [formData, setFormData] = useState({
     name: '',

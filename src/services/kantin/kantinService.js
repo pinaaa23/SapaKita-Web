@@ -1,8 +1,10 @@
 import { apiFetch, logout, getAuthUser } from '../api';
 import { getPaketKantin } from '../packageService';
-import { getInmates } from '../inmateService';
+import { getInmates, mapInmateItem } from '../inmateService';
 import { isDummyMode } from '../../dummy';
-import { USE_MOCK_SUPERADMIN } from '../mockStorage';
+import { USE_MOCK_SUPERADMIN, getMockNapi } from '../mockStorage';
+import { isSameBranch } from '../../utils/branchHelper';
+import { kurangiSaldoKantin } from './saldoService';
 
 /**
  * Mengambil daftar paket komunikasi aktif untuk kasir kantin.
@@ -36,7 +38,7 @@ export async function cariWbpByIdAtauTelp(queryInput) {
 
     let items = Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []);
 
-    // Jika belum ketemu dengan query asli, coba cari berdasarkan angka intinya (misal NAPI-8192 -> 8192)
+    // Jika belum ketemu dengan query asli, coba cari berdasarkan angka intinya (misal NIP-8192 -> 8192)
     if (items.length === 0) {
       const qDigits = rawQuery.replace(/[^0-9]/g, '');
       if (qDigits.length >= 2) {
@@ -50,29 +52,60 @@ export async function cariWbpByIdAtauTelp(queryInput) {
       }
     }
 
+    // Fallback: jika masih belum ketemu, cari langsung di mock storage (pascall_mock_napi)
+    if (items.length === 0) {
+      try {
+        const allMocks = getMockNapi();
+        const qLower = rawQuery.toLowerCase();
+        const qDigits = rawQuery.replace(/[^0-9]/g, '');
+
+        const foundMocks = allMocks.filter((item) => {
+          const itemBranchName = item.branchName || item.cabang || item.branch?.name || '';
+          const itemBranchId = item.branchId || item.branch?.id || '';
+          const matchBranch = isSameBranch(userBranchName, itemBranchName) ||
+            isSameBranch(userBranchId, itemBranchId) ||
+            isSameBranch(userBranchName, itemBranchId) ||
+            isSameBranch(userBranchId, itemBranchName);
+
+          if (!matchBranch && (userBranchName || userBranchId)) return false;
+
+          const ident = (item.identifier || item.wbpRegNumber || item.nip || item.id || '').toLowerCase();
+          const identDigits = ident.replace(/[^0-9]/g, '');
+          const name = (item.name || '').toLowerCase();
+          const hasPhone = item.families && Array.isArray(item.families) && item.families.some(f => (f.phone || '').includes(rawQuery) || (qDigits && (f.phone || '').replace(/[^0-9]/g, '').includes(qDigits)));
+
+          return ident === qLower || ident.includes(qLower) || (qDigits.length >= 2 && identDigits.includes(qDigits)) || name.includes(qLower) || hasPhone;
+        });
+
+        if (foundMocks.length > 0) {
+          items = foundMocks.map(mapInmateItem).filter(Boolean);
+        }
+      } catch (e) {
+        console.warn('[kantinService] Fallback mock search warning:', e);
+      }
+    }
+
     if (items.length === 0) {
       return null;
     }
 
-    // Filter narapidana yang cocok dengan cabang kasir
+    // Filter narapidana yang cocok dengan cabang kasir menggunakan isSameBranch yang fleksibel
     if (userBranchId || (userBranchName && userBranchName !== 'cabang ini')) {
       const branchInmates = items.filter((item) => {
         const itemBranchId = item.branchId || item.branch?.id;
         const itemBranchName = (item.branchName || item.branch?.name || item.cabang || '').toLowerCase();
-        const targetBranchName = userBranchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
 
         const matchId = userBranchId && itemBranchId && String(itemBranchId).toLowerCase() === String(userBranchId).toLowerCase();
-        const matchName = targetBranchName && itemBranchName.includes(targetBranchName);
+        const matchName = isSameBranch(userBranchName, itemBranchName) ||
+          isSameBranch(userBranchId, itemBranchName) ||
+          isSameBranch(userBranchName, itemBranchId);
 
         return matchId || matchName || (!itemBranchId && !itemBranchName);
       });
 
-      if (branchInmates.length === 0) {
-        const error = new Error(`Narapidana dengan nomor registrasi/NIP "${rawQuery}" tidak ditemukan di ${userBranchName}`);
-        error.isWrongBranch = true;
-        throw error;
+      if (branchInmates.length > 0) {
+        items = branchInmates;
       }
-      items = branchInmates;
     }
 
     // Cari yang paling cocok
@@ -158,6 +191,7 @@ export async function buatTransaksi({ napi, paket, metode = 'Tunai', notes = '' 
       status: 'Berhasil',
       metode: 'Tunai',
       waktu: new Date().toISOString(),
+      isLocalFallback: true,
       napi: {
         id: napi.identifier || napi.id,
         nama: napi.nama || napi.name,
@@ -168,6 +202,7 @@ export async function buatTransaksi({ napi, paket, metode = 'Tunai', notes = '' 
         id: paket.id,
         nama: paket.nama || paket.name,
         durasi: `${durasiMenit} Menit`,
+        durationMinutes: durasiMenit,
         harga: hargaTotal,
         total: hargaTotal,
         dpp,
@@ -178,6 +213,7 @@ export async function buatTransaksi({ napi, paket, metode = 'Tunai', notes = '' 
       notes: notes || '',
     };
     saveStoredCanteenTransaction(newTx);
+    kurangiSaldoKantin(durasiMenit);
     return newTx;
   };
 
@@ -235,13 +271,24 @@ export async function buatTransaksi({ napi, paket, metode = 'Tunai', notes = '' 
       logout();
       throw err;
     }
-    // Fallback transaksi jika BE mock / offline
-    const fallbackTx = createLocalTx();
-    try {
-      const { dummyStore } = await import('../../dummy/store');
-      dummyStore.addTransaction(fallbackTx);
-    } catch {}
-    return fallbackTx;
+
+    const errMsg = err?.message || err?.data?.message || '';
+    // Jika WBP belum tersinkron di DB backend (data mock/lokal), lakukan fallback terbitkan voucher lokal agar operasional kasir tidak terhenti
+    const isWbpNotFoundInBe = err?.status === 404 && (
+      errMsg.includes('tidak ditemukan di cabang ini') ||
+      errMsg.includes('tidak ditemukan') ||
+      napi?.isMock
+    );
+
+    if (isWbpNotFoundInBe) {
+      console.warn('[KantinService] WBP belum terdaftar di DB backend (data mock FE). Melakukan fallback transaksi lokal:', errMsg);
+      const localTx = createLocalTx();
+      return localTx;
+    }
+
+    // Jika bukan kasus WBP belum sinkron (misal saldo/kuota menit kasir habis), lempar error asli
+    console.error('[KantinService] Transaksi ditolak atau gagal di BE:', errMsg);
+    throw err;
   }
 }
 
@@ -548,19 +595,129 @@ async function getAllStandardizedTransactions() {
 }
 
 /**
- * Mengambil riwayat transaksi kasir kantin.
- * Memanggil endpoint BE GET /api/canteen/transactions dengan fallback & sinkronisasi local.
+ * Mengambil riwayat transaksi kasir kantin langsung dari Backend REST API.
+ * Endpoint: GET /api/canteen/transactions
  */
 export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'harian', tanggal = new Date(), page = 1, limit = 50 } = {}) {
+  if (isDummyMode()) {
+    try {
+      const all = await getAllStandardizedTransactions();
+      let filtered = all.filter((t) => matchesDate(t.waktu, periode, tanggal));
+      if (metode && metode !== 'Semua') {
+        filtered = filtered.filter((t) => t.metode?.toLowerCase() === metode.toLowerCase());
+      }
+      if (cari && cari.trim()) {
+        const q = cari.toLowerCase().trim();
+        filtered = filtered.filter(
+          (t) =>
+            t.id?.toLowerCase().includes(q) ||
+            t.kodeVoucher?.toLowerCase().includes(q) ||
+            t.napi?.nama?.toLowerCase().includes(q) ||
+            t.napi?.id?.toLowerCase().includes(q) ||
+            t.napi?.noTelp?.includes(q) ||
+            t.paket?.nama?.toLowerCase().includes(q)
+        );
+      }
+      filtered.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
+      return filtered;
+    } catch (err) {
+      console.error('[KantinService] Gagal memuat riwayat transaksi dummy:', err);
+      return [];
+    }
+  }
+
   try {
-    const all = await getAllStandardizedTransactions();
+    const d = tanggal instanceof Date ? tanggal : new Date(tanggal || Date.now());
+    const query = new URLSearchParams();
+    query.append('page', String(page));
+    query.append('limit', String(limit));
 
-    let filtered = all.filter((t) => matchesDate(t.waktu, periode, tanggal));
-
+    if (cari && cari.trim()) {
+      query.append('search', cari.trim());
+    }
     if (metode && metode !== 'Semua') {
-      filtered = filtered.filter((t) => t.metode?.toLowerCase() === metode.toLowerCase());
+      query.append('paymentMethod', metode.toUpperCase());
+    }
+    if (periode) {
+      query.append('periode', periode);
+      if (periode === 'harian') {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        query.append('tanggal', `${y}-${m}-${day}`);
+      } else if (periode === 'bulanan') {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        query.append('bulan', `${y}-${m}`);
+      } else if (periode === 'tahunan') {
+        query.append('tahun', String(d.getFullYear()));
+      }
     }
 
+    const res = await apiFetch(`/api/canteen/transactions?${query.toString()}`);
+    const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+
+    const mappedBe = items.map((t) => ({
+      id: t.id,
+      kodeVoucher: t.kodeVoucher,
+      status: t.status || 'Berhasil',
+      metode: t.paymentMethod === 'TUNAI' ? 'Tunai' : (t.paymentMethod || 'Tunai'),
+      waktu: t.createdAt || t.waktu,
+      napi: {
+        id: t.inmate?.identifier || t.inmate?.id || '-',
+        nama: t.inmate?.name || '-',
+        blok: t.inmate?.blockRoom || 'Blok Lapas',
+        noTelp: t.inmate?.phone || '',
+      },
+      paket: {
+        id: t.package?.id,
+        nama: t.package?.name || '-',
+        harga: Number(t.totalAmount || t.package?.price || 0),
+        total: Number(t.totalAmount || t.package?.price || 0),
+        durasi: `${t.package?.durationMinutes || 0} Menit`,
+      },
+      petugas: t.cashier?.name || 'Petugas Kantin',
+      cashier: t.cashier,
+      notes: t.notes || '',
+    }));
+
+    // Gabungkan dengan transaksi yang baru dilakukan kasir (tersimpan di localStorage)
+    const localList = getStoredCanteenTransactions();
+    const existingIds = new Set(mappedBe.map((i) => i.id));
+    const combined = [...mappedBe];
+
+    for (const localTx of localList) {
+      if (!existingIds.has(localTx.id)) {
+        if (matchesDate(localTx.waktu, periode, d)) {
+          if (!metode || metode === 'Semua' || (localTx.metode || '').toLowerCase() === metode.toLowerCase()) {
+            if (cari && cari.trim()) {
+              const q = cari.toLowerCase().trim();
+              const match =
+                localTx.id?.toLowerCase().includes(q) ||
+                localTx.kodeVoucher?.toLowerCase().includes(q) ||
+                localTx.napi?.nama?.toLowerCase().includes(q) ||
+                localTx.napi?.id?.toLowerCase().includes(q) ||
+                localTx.napi?.noTelp?.includes(q) ||
+                localTx.paket?.nama?.toLowerCase().includes(q);
+              if (match) combined.push(localTx);
+            } else {
+              combined.push(localTx);
+            }
+          }
+        }
+      }
+    }
+
+    combined.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
+    return combined;
+  } catch (err) {
+    console.error('[KantinService] Gagal memuat riwayat transaksi dari BE, fallback ke local storage:', err);
+    const d = tanggal instanceof Date ? tanggal : new Date(tanggal || Date.now());
+    const localList = getStoredCanteenTransactions();
+    let filtered = localList.filter((t) => matchesDate(t.waktu, periode, d));
+    if (metode && metode !== 'Semua') {
+      filtered = filtered.filter((t) => (t.metode || '').toLowerCase() === metode.toLowerCase());
+    }
     if (cari && cari.trim()) {
       const q = cari.toLowerCase().trim();
       filtered = filtered.filter(
@@ -573,48 +730,127 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'haria
           t.paket?.nama?.toLowerCase().includes(q)
       );
     }
-
-    // Urutkan transaksi terbaru di atas
     filtered.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
-
     return filtered;
-  } catch (err) {
-    console.error('[KantinService] Gagal memuat riwayat transaksi:', err);
-    return [];
   }
 }
 
 /**
- * Mengambil ringkasan laporan omset & grafik penjualan kantin.
- * Memanggil endpoint BE GET /api/canteen/reports/summary dengan fallback sinkronisasi realtime.
+ * Mengambil ringkasan laporan omset & grafik penjualan kantin dari Backend.
+ * Endpoint: GET /api/canteen/reports/summary
  */
 export async function getRekap({ periode = 'harian', tanggal = new Date() } = {}) {
-  try {
-    const all = await getAllStandardizedTransactions();
-    const filtered = all.filter((t) => matchesDate(t.waktu, periode, tanggal));
+  const d = tanggal instanceof Date ? tanggal : new Date(tanggal || Date.now());
 
-    const totalRevenue = filtered.reduce((sum, t) => sum + Number(t.paket?.harga || t.paket?.total || 0), 0);
-    const totalTransactions = filtered.length;
-    const chartData = generateChartData(filtered, periode, tanggal);
+  if (isDummyMode()) {
+    try {
+      const all = await getAllStandardizedTransactions();
+      const filtered = all.filter((t) => matchesDate(t.waktu, periode, d));
+      const totalRevenue = filtered.reduce((sum, t) => sum + Number(t.paket?.harga || t.paket?.total || 0), 0);
+      const totalTransactions = filtered.length;
+      const chartData = generateChartData(filtered, periode, d);
+      return {
+        totalPemasukan: totalRevenue,
+        jumlahTransaksi: totalTransactions,
+        revenueGrowth: 0,
+        transactionsGrowth: 0,
+        perMetode: {
+          Tunai: { nominal: totalRevenue, count: totalTransactions },
+        },
+        chartData,
+        periode,
+      };
+    } catch (err) {
+      console.error('[KantinService] Gagal memuat rekap dummy:', err);
+      return {
+        totalPemasukan: 0,
+        jumlahTransaksi: 0,
+        perMetode: { Tunai: { nominal: 0, count: 0 } },
+        chartData: [],
+        periode,
+      };
+    }
+  }
+
+  try {
+    const query = new URLSearchParams();
+    query.append('periode', periode);
+
+    if (periode === 'harian') {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      query.append('tanggal', `${y}-${m}-${day}`);
+    } else if (periode === 'bulanan') {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      query.append('bulan', `${y}-${m}`);
+    } else if (periode === 'tahunan') {
+      query.append('tahun', String(d.getFullYear()));
+    }
+
+    const res = await apiFetch(`/api/canteen/reports/summary?${query.toString()}`);
+    const data = res?.data || res || {};
+    const summary = data.summary || {};
+    let totalRevenue = Number(summary.totalRevenue || 0);
+    let totalTransactions = Number(summary.totalTransactions || 0);
+
+    // Tambahkan transaksi kasir lokal
+    const localList = getStoredCanteenTransactions();
+    let localRev = 0;
+    let localCount = 0;
+    for (const lt of localList) {
+      if (matchesDate(lt.waktu, periode, d)) {
+        localRev += Number(lt.paket?.harga || lt.paket?.total || 0);
+        localCount += 1;
+      }
+    }
+
+    totalRevenue += localRev;
+    totalTransactions += localCount;
+
+    let chartData = (data.salesChart || []).map((c) => ({
+      label: c.label,
+      nominal: Number(c.revenue ?? c.nominal ?? 0),
+      count: Number(c.transactions ?? c.count ?? 0),
+    }));
+
+    if (chartData.length === 0 && localList.length > 0) {
+      chartData = generateChartData(localList.filter((lt) => matchesDate(lt.waktu, periode, d)), periode, d);
+    }
+
+    const perMetode = data.paymentMethods || {
+      TUNAI: { totalAmount: totalRevenue, count: totalTransactions },
+    };
 
     return {
       totalPemasukan: totalRevenue,
       jumlahTransaksi: totalTransactions,
-      revenueGrowth: 0,
-      transactionsGrowth: 0,
+      revenueGrowth: Number(summary.revenueGrowth || 0),
+      transactionsGrowth: Number(summary.transactionsGrowth || 0),
       perMetode: {
-        Tunai: { nominal: totalRevenue, count: totalTransactions },
+        Tunai: {
+          nominal: Number(perMetode.TUNAI?.totalAmount || totalRevenue),
+          count: Number(perMetode.TUNAI?.count || totalTransactions),
+        },
       },
       chartData,
       periode,
     };
   } catch (err) {
-    console.error('[KantinService] Gagal memuat rekap laporan:', err);
+    console.error('[KantinService] Gagal memuat rekap laporan dari BE, kalkulasi dari local:', err);
+    const localList = getStoredCanteenTransactions();
+    const filtered = localList.filter((t) => matchesDate(t.waktu, periode, d));
+    const totalRevenue = filtered.reduce((sum, t) => sum + Number(t.paket?.harga || t.paket?.total || 0), 0);
+    const totalTransactions = filtered.length;
+    const chartData = generateChartData(filtered, periode, d);
     return {
-      totalPemasukan: 0,
-      jumlahTransaksi: 0,
-      perMetode: { Tunai: { nominal: 0, count: 0 } },
-      chartData: [],
+      totalPemasukan: totalRevenue,
+      jumlahTransaksi: totalTransactions,
+      revenueGrowth: 0,
+      transactionsGrowth: 0,
+      perMetode: { Tunai: { nominal: totalRevenue, count: totalTransactions } },
+      chartData,
       periode,
     };
   }

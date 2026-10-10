@@ -120,7 +120,7 @@ const Dashboard = () => {
             />
             <StatCard 
               title="Total Revenue" 
-              value={formatCurrency(summaryData.totalRevenue)} 
+              value={summaryData.totalRevenue !== null ? formatCurrency(summaryData.totalRevenue) : '-'} 
               icon={Wallet} 
               color="green"
               {...getTrendProps(summaryData.revenueGrowth)}
@@ -134,7 +134,7 @@ const Dashboard = () => {
             />
             <StatCard 
               title="Success Rate" 
-              value={`${summaryData.successRate}%`} 
+              value={summaryData.successRate !== null ? `${summaryData.successRate}%` : '-'} 
               icon={Activity} 
               color="accent"
               {...getTrendProps(summaryData.successRateGrowth)}

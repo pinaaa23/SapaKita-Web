@@ -99,14 +99,14 @@ const InmatesDetail = () => {
         // SUPERADMIN -> dari daftar cabang berdasarkan branchId atau found.branchName
         let resolvedBranchName = found.branchName || '-';
         if (!isSuperAdmin) {
-          const sessionBranch = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null);
-          resolvedBranchName = sessionBranch || (found.branchName && found.branchName !== 'Lapas Pusat' && found.branchName !== '-' ? found.branchName : 'Lapas Kelas II Yogyakarta');
+          const sessionBranch = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null));
+          resolvedBranchName = sessionBranch || (found.branchName && found.branchName !== 'Lapas Pusat' && found.branchName !== '-' && found.branchName !== 'Cabang Terdaftar' ? found.branchName : 'Lapas II Yogyakarta');
         } else if (found.branchId && branchesMap[found.branchId]) {
           resolvedBranchName = branchesMap[found.branchId];
-        } else if (found.branchName && found.branchName !== '-') {
+        } else if (found.branchName && found.branchName !== '-' && found.branchName !== 'Cabang Terdaftar') {
           resolvedBranchName = found.branchName;
         } else {
-          resolvedBranchName = uptName || 'Lapas Kelas II Yogyakarta';
+          resolvedBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : 'Lapas II Yogyakarta';
         }
 
         const effectiveBlockRoom = (!found.blockRoom || found.blockRoom === '-') 

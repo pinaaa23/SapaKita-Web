@@ -1,59 +1,85 @@
 # Kebutuhan Endpoint API Back End - Web Kepala UPT (PasCall)
 
-Dokumen ini merangkum seluruh endpoint backend (BE) yang dibutuhkan oleh antarmuka frontend (FE) pada modul **Kepala UPT (Branch Admin)**. Dokumen ini disusun berdasarkan penelusuran kode FE aktif di `src/pages/branch` dan `src/services`, lalu dicocokkan dengan kode aktif di `PasCall-BackEnd`.
+Dokumen ini merangkum seluruh hasil *cross-check* dan kebutuhan endpoint backend (BE) untuk modul antarmuka **Kepala UPT (Branch Admin)** pada aplikasi PasCall. Dokumen ini disusun berdasarkan penelusuran seluruh halaman aktif pada `src/pages/branch/`, komponen `src/components/`, konfigurasi hak akses `src/config/menuConfig.js`, serta rute aplikasi `src/App.jsx`.
 
 ---
 
-### 1. Ringkasan Status Kebutuhan Endpoint
+### 1. Ringkasan Modul & Hak Akses Kepala UPT
 
-Dari total **15 endpoint** yang dibutuhkan untuk modul Kepala UPT:
-- **ADA**: **7 endpoint** (Auth Login, Pendaftaran WBP, Detail & Update WBP, List Rekaman, Detail Rekaman, Presigned Stream URL, Binary Audio Stream)
-- **ADA (Perlu Tambahan)**: **1 endpoint** (`GET /api/inmates` perlu dukungan filter status)
-- **BELUM ADA**: **7 endpoint** (Summary Dashboard UPT, Widget Paket Cabang, List Transaksi, Detail Transaksi, Kelola Akun Pengguna UPT, Reset Password User, Laporan UPT)
+Kepala UPT bertindak sebagai pimpinan operasional lapas di tingkat cabang/UPT. Kepala UPT memiliki wewenang penuh untuk memantau seluruh aktivitas komunikasi warga binaan, **memutar dan menyalin transkrip rekaman panggilan audio/video**, mengelola akun staf UPT (Supervisor dan Operator Kantin), memantau mutasi keuangan transaksi saldo, dan mengevaluasi laporan kinerja cabang.
+
+| Modul Halaman | Rute Frontend | Fungsi & Fitur Utama |
+| :--- | :--- | :--- |
+| **Dashboard UPT** | `/branch/dashboard` | Statistik operasional cabang (Total Panggilan, Panggilan Terjawab/Tak Terjawab, Total WBP, Tren Panggilan, Widget Rekaman & Transaksi). |
+| **Data Narapidana (Read-Only)** | `/branch/inmates` | Monitoring direktori warga binaan di UPT terkait, riwayat kontak keluarga, dan status akun komunikasi (*Read-Only*). |
+| **Rekaman & Transkrip Panggilan** | `/branch/recordings` | Pemutar audio rekaman (*Audio Player Streaming*), analisis transkrip percakapan AI Whisper, dan pengawasan kepatuhan. |
+| **Kelola Pengguna UPT** | `/branch/users` | Manajemen akun staf internal UPT (Pendaftaran Supervisor & Petugas Kantin, edit status aktif/nonaktif, dan reset password). |
+| **Transaksi Saldo Cabang** | `/branch/transactions` | Rekapitulasi mutasi saldo pemakaian panggilan dan pembelian paket kantin di UPT terkait serta detail struk transaksi. |
+| **Laporan Kinerja UPT** | `/branch/reports` | Analitik performa UPT (total omzet, volume panggilan, rata-rata durasi bicara, tingkat keberhasilan, dan ekspor laporan ke PDF). |
+| **Profil & Keamanan** | `/branch/profile` | Tampilan profil pimpinan UPT, ubah kontak telepon, dan fitur ganti kata sandi (*Change Password*). |
 
 ---
 
 ### 2. Tabel Daftar Kebutuhan Endpoint Web Kepala UPT
 
-| Method | Path Usulan | Dipakai di Halaman | Role Akses | Request (Field Penting) | Response (Field Penting) | Status di Back End |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Login (`/login`) | Semua Role (`BRANCH_ADMIN`, `SUPERVISOR`, dll.) | `identifier`, `password` | `token` (JWT), `user` (`id`, `name`, `role`, `branchId`, `branchName`) | **ADA** |
-| `GET` | `/api/dashboard/branch-summary` | Dashboard Kepala UPT (`/branch/dashboard`) | `BRANCH_ADMIN` | Header: `Authorization: Bearer <token>` *(BE otomatis filter by `user.branchId`)* | `totalCalls`, `answeredCalls`, `missedCalls`, `totalInmates`, `callsGrowth`, `answeredGrowth`, `missedGrowth`, `inmatesGrowth` | **BELUM ADA** *(Saat ini FE fallback `-`)* |
-| `GET` | `/api/packages` | Dashboard Widget & Menu Paket (`/branch/packages`) | `BRANCH_ADMIN`, `SUPERVISOR` | Query: `branchId` *(atau otomatis dari token JWT)* | `data`: `[{ id, nama, kategori, durasi, harga, status, branchId }]` | **BELUM ADA** |
-| `GET` | `/api/inmates` | Data Narapidana (`/branch/inmates`) | `BRANCH_ADMIN` *(Hanya Lihat)* | Query: `search`, `page`, `limit`, `status` *(BE otomatis filter by `user.branchId`)* | `data`: `[{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [{ id, name, relationship, phone }] }]`, `pagination`: `{ total, page, totalPages }` | **ADA (perlu tambahan)** *(BE belum mendukung query filter `status` & perlu include array `families`)* |
-| `POST` | `/api/inmates` | Tambah Narapidana (`/branch/inmates/create`) | `SUPERVISOR`, `BRANCH_ADMIN` | Body: `identifier`, `name`, `initialPin` *(BE otomatis set `branchId` dari user login)* | `id`, `identifier`, `name`, `branchId`, `createdAt` | **ADA** |
-| `GET` | `/api/inmates/:id` | Detail Narapidana (`/branch/inmates/:id`) | `BRANCH_ADMIN` *(Hanya Lihat)* | Path: `id` | `id`, `identifier`, `name`, `initialPin`, `callBalance`, `blockRoom`, `status`, `commStatus`, `families`: `[{ id, name, relationship, phone }]`, `branch`: `{ id, name }` | **ADA (perlu tambahan)** *(Perlu include array `families`)* |
-| `PATCH` | `/api/inmates/:id` | Edit Data Narapidana (`/branch/inmates/:id/edit`) | `BRANCH_ADMIN` | Path: `id`, Body: `identifier`, `name`, `initialPin` | `id`, `identifier`, `name`, `initialPin`, `updatedAt` | **ADA** |
-| `PATCH` | `/api/inmates/:id/status` | Ubah Status Komunikasi WBP (`/branch/inmates`) | `BRANCH_ADMIN` | Path: `id`, Body: `isActive` (`boolean`) | `id`, `identifier`, `isActive`, `status`, `updatedAt` | **ADA** |
-| `GET` | `/api/recordings` | Rekaman Panggilan (`/branch/recordings` & Dashboard) | `BRANCH_ADMIN` | Query: `search`, `page`, `limit`, `status`, `startDate`, `endDate` *(BE otomatis filter by `user.branchId`)* | `data`: `[{ id, callId, storageUrl, transcriptText, transcriptStatus, call: { inmate, family, durationSeconds, totalCost } }]`, `pagination` | **ADA** |
-| `GET` | `/api/recordings/:id` | Detail & Transkrip Modal (`/branch/recordings`) | `BRANCH_ADMIN` | Path: `id` | `id`, `callId`, `storageUrl`, `transcriptText`, `transcriptStatus`, `call`: `{ id, inmate, family, durationSeconds, totalCost, connectedAt, endedAt }` | **ADA** |
-| `GET` | `/api/recordings/:id/stream-url` | Pemutar Audio Presigned URL (`AudioPlayerPanel`) | `BRANCH_ADMIN` | Path: `id` | `streamUrl`, `directStreamUrl`, `expiresInSeconds` | **ADA** |
-| `GET` | `/api/recordings/:id/stream` | Proxy Stream Binary Audio (`/branch/recordings`) | `BRANCH_ADMIN` | Path: `id` | Binary Audio Stream *(audio/mp3 dari MinIO)* | **ADA** |
-| `GET` | `/api/balance/transactions` | Riwayat Transaksi (`/branch/transactions`) | `BRANCH_ADMIN` | Query: `search`, `status`, `category` (`TOPUP_CASH`/`CALL_CHARGE`), `startDate`, `endDate`, `page`, `limit` *(BE filter `branchId`)* | `data`: `[{ id, inmateId, inmateName, amount, type, description, performedBy, status, createdAt, balanceBefore, balanceAfter }]`, `totalPemakaian`, `pagination` | **BELUM ADA** *(Tabel `Transaction` ada di Prisma, route/controller belum dibuat)* |
-| `GET` | `/api/balance/transactions/:id` | Detail/Struk Transaksi (`/branch/transactions` Modal) | `BRANCH_ADMIN` | Path: `id` | `id`, `amount`, `type`, `balanceBefore`, `balanceAfter`, `performedBy`, `user`: `{ identifier, name }`, `createdAt` | **BELUM ADA** |
-| `GET` | `/api/users` | Kelola Pengguna UPT (`/branch/users`) | `BRANCH_ADMIN` | Query: `role` (`SUPERVISOR`/`CANTEEN_STAFF`), `search`, `page`, `limit` *(BE filter `branchId`)* | `data`: `[{ id, name, email, phone, role, status, isActive, createdAt }]`, `pagination` | **BELUM ADA** *(Role `SUPERVISOR` juga belum ada di enum Prisma)* |
-| `POST` | `/api/users` | Tambah Supervisor / Petugas Kantin (`/branch/users`) | `BRANCH_ADMIN` | Body: `name`, `email`, `phone`, `password`, `role` (`SUPERVISOR`/`CANTEEN_STAFF`), `branchId` | `id`, `name`, `email`, `role`, `branchId`, `createdAt` | **BELUM ADA** |
-| `PATCH` | `/api/users/:id` | Ubah / Nonaktifkan User (`/branch/users`) | `BRANCH_ADMIN` | Path: `id`, Body: `name`, `email`, `phone`, `role`, `status` / `isActive` | `id`, `name`, `email`, `role`, `isActive`, `updatedAt` | **BELUM ADA** |
-| `POST` | `/api/users/:id/reset-password` | Reset Password Akun Petugas (`/branch/users`) | `BRANCH_ADMIN` | Path: `id`, Body: `newPassword` (opsional) | `message`: "Password berhasil direset", `newTemporaryPassword` | **BELUM ADA** |
-| `GET` | `/api/reports/branch-summary` | Laporan Kinerja UPT (`/branch/reports`) | `BRANCH_ADMIN` | Query: `period` (`7`, `30`, `90` hari) *(BE otomatis filter by `user.branchId`)* | `totalRevenue`, `totalCalls`, `avgCallDurationSeconds`, `successRate`, `revenueTrend`: `[...]`, `callVolumeTrend`: `[...]` | **BELUM ADA** |
+| No | Modul / Fitur | Method | Path Usulan | Role Akses | Request (Field / Parameter) | Response (Field Penting) | Status di Back End |
+| :-: | :--- | :--- | :--- | :--- | :--- | :--- | :-: |
+| 1 | **Otentikasi Login** | `POST` | `/api/auth/login` | `BRANCH_ADMIN`, `KEPALA_UPT`, dll. | Body: `{ identifier, password }` | `token` (JWT), `user`: `{ id, name, email, role: "KEPALA_UPT", branchId, branchName }` | ✅ **Sudah Ada** |
+| 2 | **Ganti Password Akun** | `POST` | `/api/auth/change-password` | `BRANCH_ADMIN`, `KEPALA_UPT` | Body: `{ oldPassword, newPassword }` | `{ success: true, message: "Password berhasil diubah" }` | ⚠️ **Perlu Ditambahkan** |
+| 3 | **Update Profil Pimpinan** | `PATCH` | `/api/users/profile` | `BRANCH_ADMIN`, `KEPALA_UPT` | Body: `{ name, phone }` | `{ success: true, user: { id, name, phone, email } }` | ⚠️ **Belum Ada** |
+| 4 | **Ringkasan Dashboard UPT** | `GET` | `/api/dashboard/branch-summary` | `BRANCH_ADMIN`, `KEPALA_UPT` | Header: `Authorization: Bearer <token>` *(BE otomatis filter by `user.branchId`)* | `totalCalls`, `answeredCalls`, `missedCalls`, `totalInmates`, `callsGrowth`, `answeredGrowth`, `missedGrowth`, `inmatesGrowth` | ⚠️ **Belum Ada (Fallback)** |
+| 5 | **Daftar Paket Aktif UPT** | `GET` | `/api/packages` | `BRANCH_ADMIN`, `SUPERVISOR` | Query: `status: "Aktif"` *(BE otomatis filter paket nasional / UPT)* | `data`: `[{ id, nama, kategori, durasi, harga, status, branchId }]` | ⚠️ **Belum Ada** |
+| 6 | **Daftar WBP Cabang** | `GET` | `/api/inmates` | `BRANCH_ADMIN`, `SUPERVISOR` | Query: `search`, `status`, `page`, `limit` *(BE otomatis filter by `user.branchId`)* | `data`: `[{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [...] }]`, `pagination` | 🔄 **Ada (Perlu Filter status & include families)** |
+| 7 | **Detail Profil & Kontak WBP** | `GET` | `/api/inmates/:id` | `BRANCH_ADMIN`, `SUPERVISOR` | Path: `id` (UUID / Nomor Register WBP) | `{ id, identifier, name, initialPin, callBalance, blockRoom, status, commStatus, entryDate, families: [{ id, name, relationship, phone, status }], branch: { id, name } }` | ✅ **Sudah Ada** |
+| 8 | **Daftar Rekaman Panggilan** | `GET` | `/api/recordings` | `BRANCH_ADMIN`, `SUPERADMIN` | Query: `search`, `status`, `callType`, `startDate`, `endDate`, `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, callId, storageUrl, transcriptText, transcriptStatus, call: { inmate, family, durationSeconds, totalCost } }]`, `pagination` | ✅ **Sudah Ada** |
+| 9 | **Detail Rekaman & Transkrip AI** | `GET` | `/api/recordings/:id` | `BRANCH_ADMIN`, `SUPERADMIN` | Path: `id` | `{ id, callId, storageUrl, transcriptText, transcriptStatus, call: { id, inmate, family, durationSeconds, totalCost, connectedAt, endedAt } }` | ✅ **Sudah Ada** |
+| 10 | **Stream Audio Presigned URL** | `GET` | `/api/recordings/:id/stream-url` | `BRANCH_ADMIN`, `SUPERADMIN` | Path: `id` | `{ streamUrl, directStreamUrl, expiresInSeconds }` | ✅ **Sudah Ada** |
+| 11 | **Stream Audio Binary Proxy** | `GET` | `/api/recordings/:id/stream` | `BRANCH_ADMIN`, `SUPERADMIN` | Path: `id` | Stream binary `audio/mp3` dari storage MinIO | ✅ **Sudah Ada** |
+| 12 | **Daftar Mutasi Transaksi UPT** | `GET` | `/api/balance/transactions` | `BRANCH_ADMIN`, `SUPERVISOR` | Query: `search`, `status`, `category` (`TOPUP_CASH`/`CALL_CHARGE`), `startDate`, `endDate`, `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, inmateId, inmateName, amount, type, description, performedBy, status, createdAt, balanceBefore, balanceAfter }]`, `totalPemakaian`, `pagination` | ⚠️ **Belum Ada** |
+| 13 | **Detail Struk Mutasi Saldo** | `GET` | `/api/balance/transactions/:id` | `BRANCH_ADMIN`, `SUPERVISOR` | Path: `id` | `{ id, amount, type, balanceBefore, balanceAfter, performedBy, user: { identifier, name }, createdAt }` | ⚠️ **Belum Ada** |
+| 14 | **Daftar Staf Pengguna UPT** | `GET` | `/api/users` | `BRANCH_ADMIN` | Query: `role` (`SUPERVISOR`/`CANTEEN_STAFF`), `search`, `page`, `limit` *(BE filter `user.branchId`)* | `data`: `[{ id, name, email, phone, role, status, isActive, createdAt }]`, `pagination` | ⚠️ **Belum Ada** |
+| 15 | **Tambah Akun Staf UPT** | `POST` | `/api/users` | `BRANCH_ADMIN` | Body: `{ name, email, phone, password, role: "SUPERVISOR"|"CANTEEN_STAFF" }` *(BE otomatis set `branchId = user.branchId`)* | `{ id, name, email, role, branchId, status: "Active", createdAt }` | ⚠️ **Belum Ada** |
+| 16 | **Edit Data & Status Staf UPT** | `PATCH` | `/api/users/:id` | `BRANCH_ADMIN` | Path: `id`, Body: `{ name, email, phone, role, status, isActive }` | `{ id, name, email, role, isActive, updatedAt }` | ⚠️ **Belum Ada** |
+| 17 | **Reset Password Akun Staf UPT** | `POST` | `/api/users/:id/reset-password` | `BRANCH_ADMIN` | Path: `id`, Body: `{ newPassword }` (opsional) | `{ success: true, message: "Password berhasil direset", newTemporaryPassword }` | ⚠️ **Belum Ada** |
+| 18 | **Laporan Kinerja & Keuangan UPT** | `GET` | `/api/reports/branch-summary` | `BRANCH_ADMIN`, `SUPERVISOR` | Query: `period` (`7`/`30`/`90`) *(BE otomatis filter by `user.branchId`)* | `{ totalRevenue, totalCalls, avgCallDurationSeconds, successRate, revenueTrend: [...], callVolumeTrend: [...] }` | ⚠️ **Belum Ada** |
 
 ---
 
-### 3. Catatan & Pertanyaan untuk Tim BE
+### 3. Batasan Hak Akses & Aturan Bisnis (Security & Business Logic)
 
-1. **Status Rekaman vs Status Panggilan**:
-   - Nilai status di tabel `Recording` (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`) adalah status proses transkripsi AI Whisper, bukan status panggilan terjawab/tidak terjawab.
-   - Mohon dipastikan bagaimana logika penentuan panggilan terjawab vs tidak terjawab (apakah menggunakan `call.status === 'CONNECTED'`, `call.connectedAt !== null`, atau `call.durationSeconds > 0`).
+1. **Hak Akses Eksklusif Rekaman Panggilan**:
+   - Hanya role **Kepala UPT (`BRANCH_ADMIN`/`KEPALA_UPT`)** dan **Superadmin** yang diizinkan memutar rekaman panggilan dan membaca transkrip percakapan AI (`GET /api/recordings/*`).
+   - Role **Supervisor** dan **Operator Kantin** dilarang keras mengakses endpoint rekaman ini (harus ditolak HTTP 403 oleh middleware backend).
 
-2. **Tipe Transaksi Saldo (`TransactionType`)**:
-   - Di Prisma schema saat ini hanya tersedia enum `TOPUP_CASH` dan `CALL_CHARGE`.
-   - Apakah `CALL_CHARGE` otomatis dicatat saat panggilan berakhir dengan pemotongan saldo?
-   - Apakah transaksi pembelian voucher paket kantin membutuhkan tipe transaksi baru (misal: `CANTEEN_PURCHASE`), atau tetap menggunakan `TOPUP_CASH`?
+2. **Isolasi Data Multi-Tenant (Per Cabang UPT)**:
+   - Backend **wajib** memfilter seluruh query data (Narapidana, Rekaman Panggilan, Transaksi, Laporan, dan Pengguna) secara otomatis berdasarkan `user.branchId` yang diekstrak dari JWT token login Kepala UPT.
+   - Kepala UPT tidak boleh dapat melihat data narapidana maupun rekaman dari cabang lapas lain.
 
-3. **Definisi Kartu "Estimasi Hari Ini" di Transaksi**:
-   - Di antarmuka sebelumnya nilai ini dihitung hardcode $25\% \times \text{Total Pemakaian}$.
-   - Perlu keputusan tim produk/BE apakah kartu ini akan diisi proyeksi pemakaian harian berbasis rata-rata atau realisasi pemakaian per tanggal hari ini ($H+0$).
+3. **Pemisahan Wewenang (Separation of Duties)**:
+   - Kepala UPT fokus pada pengawasan (*supervisory & compliance*), evaluasi laporan keuangan, serta manajemen staf internal UPT.
+   - Pendaftaran dan verifikasi berkas narapidana/kontak keluarga dilakukan oleh role **Supervisor**.
 
-4. **Penambahan Role `SUPERVISOR` di Backend**:
-   - Enum `Role` di `schema.prisma` backend saat ini baru memiliki `SUPERADMIN`, `BRANCH_ADMIN`, `CANTEEN_STAFF`, `INMATE`, `FAMILY`.
-   - Modul manajemen pengguna Kepala UPT membutuhkan role `SUPERVISOR` untuk ditambahkan ke enum Prisma.
+---
+
+### 4. Skema Relasi Database Prisma yang Relevan
+
+```prisma
+// Model Pengguna (Kepala UPT, Supervisor, Operator Kantin)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  phone     String?
+  password  String
+  role      Role     @default(SUPERVISOR) // KEPALA_UPT, SUPERVISOR, CANTEEN_STAFF
+  branchId  String?
+  status    String   @default("Active") // Active, Inactive, Suspended
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, role])
+}
+```

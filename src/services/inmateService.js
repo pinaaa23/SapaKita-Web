@@ -1,5 +1,6 @@
 import { apiFetch, logout } from './api';
 import { isDummyMode } from '../dummy';
+import { isSameBranch } from '../utils/branchHelper';
 // TODO: ganti ke API BE saat endpoint tersedia
 import { 
   USE_MOCK_SUPERADMIN, 
@@ -14,8 +15,8 @@ export const INMATES_ENDPOINT = '/api/inmates';
 export const INMATE_DETAIL_ENDPOINT = (id) => `/api/inmates/${id}`;
 export const INMATE_STATUS_ENDPOINT = (id) => `/api/inmates/${id}/status`;
 
-// Konstanta kontrol dukungan parameter filter di backend (false = backend saat ini hanya mendukung search, page, limit)
-export const BACKEND_SUPPORTS_INMATE_FILTERS = false;
+// Konstanta kontrol dukungan parameter filter di backend (true = backend mendukung search, status, branchId, page, limit)
+export const BACKEND_SUPPORTS_INMATE_FILTERS = true;
 
 /**
  * Mapper fleksibel: membaca data yang dikirim backend maupun mock FE
@@ -134,15 +135,21 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
   if (USE_MOCK_SUPERADMIN) {
     let mockList = getMockNapi();
     
-    // Filter berdasarkan Cabang/UPT untuk Supervisor / Kepala UPT
+    // Filter berdasarkan Cabang/UPT untuk Supervisor / Kepala UPT / Kasir Kantin
     if (effectiveBranchName && effectiveBranchName !== 'All' && effectiveBranchName !== 'ALL' && effectiveBranchName.toLowerCase() !== 'upt anda') {
-      const qBranch = effectiveBranchName.toLowerCase().replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim();
       mockList = mockList.filter(item => {
-        const itemBranch = (item.branchName || item.cabang || '').toLowerCase();
-        return itemBranch.includes(qBranch) || (effectiveBranchId && item.branchId === effectiveBranchId);
+        const itemBranch = item.branchName || item.cabang || item.branch?.name || '';
+        const itemBId = item.branchId || item.branch?.id || '';
+        const matchBranch = isSameBranch(effectiveBranchName, itemBranch) || (effectiveBranchId && isSameBranch(effectiveBranchId, itemBranch));
+        const matchId = effectiveBranchId && itemBId && (effectiveBranchId === itemBId || String(itemBId).toLowerCase() === String(effectiveBranchId).toLowerCase() || isSameBranch(effectiveBranchId, itemBId));
+        return matchBranch || matchId || (!itemBranch && !itemBId);
       });
     } else if (effectiveBranchId && effectiveBranchId !== 'All' && effectiveBranchId !== 'ALL') {
-      mockList = mockList.filter(item => item.branchId === effectiveBranchId);
+      mockList = mockList.filter(item => {
+        const itemBId = item.branchId || item.branch?.id || '';
+        const itemBranch = item.branchName || item.cabang || item.branch?.name || '';
+        return itemBId === effectiveBranchId || isSameBranch(effectiveBranchId, itemBranch) || isSameBranch(effectiveBranchId, itemBId);
+      });
     }
 
     if (status && status !== 'All' && status !== 'ALL') {
@@ -289,9 +296,10 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
     return { success: true, data: mapInmateItem(newNapi) };
   }
 
-  // Fallback ke mock storage jika diaktifkan manual
+  // Simpan ke mock storage sebagai backup lokal
+  let mockResult = null;
   if (USE_MOCK_SUPERADMIN) {
-    const newNapi = addMockNapi({
+    mockResult = addMockNapi({
       identifier: identifier.trim(),
       wbpRegNumber: identifier.trim(),
       name: name.trim(),
@@ -305,7 +313,6 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
       isActive: true,
       families: Array.isArray(families) ? families : [],
     });
-    return { success: true, data: newNapi };
   }
 
   const payload = {
@@ -326,6 +333,9 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
     });
     return res;
   } catch (error) {
+    if (mockResult) {
+      return { success: true, data: mockResult };
+    }
     if (error?.status === 401) {
       logout();
       throw error;

@@ -10,27 +10,38 @@ export const DASHBOARD_SUMMARY_ENDPOINT = '/api/dashboard/summary';
 export const mapDashboardSummary = (raw) => {
   const data = raw?.data || raw || {};
 
+  // Di backend (dashboard.service.ts), totalBranches dihitung dari count({ where: { status: 'Aktif' } })
+  const activeBranches = typeof data.totalBranches === 'number' 
+    ? data.totalBranches 
+    : (typeof data.activeBranches === 'number' ? data.activeBranches : 0);
+
+  // Field yang belum dikirim oleh BE endpoint /api/dashboard/summary diset null agar ditampilkan '-'
+  const totalRevenue = typeof data.totalRevenue === 'number' ? data.totalRevenue : null;
+  const revenueGrowth = typeof data.revenueGrowth === 'number' ? data.revenueGrowth : null;
+  const successRate = typeof data.successRate === 'number' ? data.successRate : null;
+  const successRateGrowth = typeof data.successRateGrowth === 'number' ? data.successRateGrowth : null;
+
   return {
     totalCalls: typeof data.totalCalls === 'number' ? data.totalCalls : (Number(data.totalCalls) || 0),
-    totalRevenue: typeof data.totalRevenue === 'number' ? data.totalRevenue : (Number(data.totalRevenue) || 0),
-    activeBranches: typeof data.activeBranches === 'number' ? data.activeBranches : (Number(data.activeBranches) || 0),
-    successRate: typeof data.successRate === 'number' ? data.successRate : (Number(data.successRate) || 0),
+    totalRevenue,
+    activeBranches,
+    successRate,
     revenueTrend: Array.isArray(data.revenueTrend)
       ? data.revenueTrend.map((item) => ({
           date: item.date || '',
           amount: Number(item.amount ?? item.revenue) || 0,
         }))
       : [],
-    callVolume: Array.isArray(data.callVolume ?? data.callTrend)
-      ? (data.callVolume ?? data.callTrend).map((item) => ({
+    callVolume: Array.isArray(data.callVolume ?? data.callVolumeTrend ?? data.callTrend)
+      ? (data.callVolume ?? data.callVolumeTrend ?? data.callTrend).map((item) => ({
           date: item.date || '',
           count: Number(item.count ?? item.calls) || 0,
         }))
       : [],
     callsGrowth: typeof data.callsGrowth === 'number' ? data.callsGrowth : null,
-    revenueGrowth: typeof data.revenueGrowth === 'number' ? data.revenueGrowth : null,
+    revenueGrowth,
     branchesGrowth: typeof data.branchesGrowth === 'number' ? data.branchesGrowth : null,
-    successRateGrowth: typeof data.successRateGrowth === 'number' ? data.successRateGrowth : null,
+    successRateGrowth,
   };
 };
 

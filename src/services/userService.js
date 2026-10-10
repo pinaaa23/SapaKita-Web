@@ -343,7 +343,7 @@ export const resetUserPassword = async (id, password) => {
 
   const res = await apiFetch(USER_RESET_PASSWORD_ENDPOINT(id), {
     method: 'POST',
-    body: JSON.stringify({ password: newPassword }),
+    body: JSON.stringify({ newPassword }),
   });
 
   return {

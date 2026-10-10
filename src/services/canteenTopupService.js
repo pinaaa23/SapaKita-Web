@@ -2,21 +2,14 @@
  * Canteen Topup Service — PasCall Superadmin
  * ===========================================
  * Service layer untuk pengelolaan Paket Saldo & Riwayat Top Up Kantin Lapas.
- *
- * PENTING:
- * Mengikuti pola saklar isDummyMode() dan fallback localStorage untuk pengujian frontend.
- * Saat backend endpoint siap, cukup ganti pemanggilan fungsi di bawah ini ke REST API.
- *
- * MAPPING ENDPOINT BACKEND (NANTI):
- * - GET    /api/canteen/topup/summary    → getTopupSummary()
- * - GET    /api/canteen/topup/nominals   → getNominalSaldoList()
- * - POST   /api/canteen/topup/nominals   → createNominalSaldo()
- * - PUT    /api/canteen/topup/nominals/:id → updateNominalSaldo()
- * - DELETE /api/canteen/topup/nominals/:id → deleteNominalSaldo()
- * - GET    /api/canteen/topup/history    → getSuperadminTopupHistory()
+ * Terhubung langsung ke Backend REST API:
+ * - GET   /api/canteen/topup/summary
+ * - GET   /api/canteen/topups
+ * - PATCH /api/canteen/topups/:id/approve
+ * - PATCH /api/canteen/topups/:id/reject
  */
 
-import { apiFetch, logout } from './api';
+import { apiFetch } from './api';
 import { isDummyMode } from '../dummy';
 import {
   PPN_RATE,
@@ -31,10 +24,7 @@ export { PPN_RATE };
 const STORAGE_KEY_NOMINALS = 'pascall_superadmin_canteen_nominals_v1';
 const STORAGE_KEY_NAT_HISTORY = 'pascall_superadmin_canteen_history_v1';
 
-// Simulasi delay network
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// --- Helper Local Storage ---
 
 function getStoredNominals() {
   try {
@@ -82,21 +72,13 @@ function saveStoredNationalHistory(history) {
   }
 }
 
-/**
- * Mendapatkan jumlah permohonan top up kantin yang masih menunggu persetujuan (sinkron).
- * Digunakan oleh Sidebar dan Topbar badge.
- * @returns {number}
- */
 export function getPendingTopupCountSync() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY_NAT_HISTORY);
-    if (!raw) {
-      const initial = generateSuperadminRiwayatTopUpDummy();
-      return Array.isArray(initial) ? initial.filter((item) => item.status === 'Menunggu').length : 0;
-    }
+    if (!raw) return 0;
     const list = JSON.parse(raw);
     if (!Array.isArray(list)) return 0;
-    return list.filter((item) => item.status === 'Menunggu').length;
+    return list.filter((item) => item.status === 'PENDING' || item.status === 'Menunggu').length;
   } catch {
     return 0;
   }
@@ -107,58 +89,59 @@ export function getPendingTopupCountSync() {
 // =============================================================================
 
 /**
- * 1. Mengambil ringkasan data statistik top up untuk 3 kartu di atas halaman:
- *    - Total Saldo Terjual (Nominal yang Berhasil)
- *    - Total PPN 11% (PPN yang Berhasil)
- *    - Jumlah Transaksi Top Up (Total & Berhasil)
+ * 1. Mengambil ringkasan data statistik top up dari Backend:
+ *    GET /api/canteen/topup/summary
  *
+ * @param {Object} [params] - { branchId, periode }
  * @returns {Promise<{ totalSaldoTerjual: number, totalPpn: number, totalTopupCount: number, totalPending: number }>}
  */
-export async function getTopupSummary() {
-  if (isDummyMode() || true) {
+export async function getTopupSummary(params = {}) {
+  if (isDummyMode()) {
     await delay(100);
     const history = getStoredNationalHistory();
-    const successful = history.filter((item) => item.status === 'Berhasil');
-
+    const successful = history.filter((item) => item.status === 'Berhasil' || item.status === 'APPROVED');
     const totalSaldoTerjual = successful.reduce((sum, item) => sum + (Number(item.nominal) || 0), 0);
     const totalPpn = successful.reduce((sum, item) => sum + (Number(item.ppn) || 0), 0);
     const totalTopupCount = history.length;
-    const totalPending = history.filter((item) => item.status === 'Menunggu').length;
-
-    return {
-      totalSaldoTerjual,
-      totalPpn,
-      totalTopupCount,
-      totalPending,
-    };
+    const totalPending = history.filter((item) => item.status === 'Menunggu' || item.status === 'PENDING').length;
+    return { totalSaldoTerjual, totalPpn, totalTopupCount, totalPending };
   }
 
-  // TODO BE:
-  // const res = await apiFetch('/api/canteen/topup/summary');
-  // return res.data || res;
+  const query = new URLSearchParams();
+  if (params.branchId && params.branchId !== 'semua' && params.branchId !== 'ALL') {
+    query.append('branchId', params.branchId);
+  }
+  if (params.periode) {
+    query.append('periode', params.periode);
+  }
+
+  const qs = query.toString();
+  const endpoint = qs ? `/api/canteen/topup/summary?${qs}` : '/api/canteen/topup/summary';
+  const res = await apiFetch(endpoint);
+  const data = res?.data || res || {};
+
+  return {
+    totalSaldoTerjual: Number(data.totalSaldoTerjual || data.totalNominalApproved || 0),
+    totalPpn: Number(data.totalPpn || Math.round((data.totalSaldoTerjual || 0) * PPN_RATE)),
+    totalTopupCount: Number(data.totalTopupCount || data.totalCount || 0),
+    totalPending: Number(data.totalPendingCount || data.totalPending || 0),
+  };
 }
 
 /**
  * 2. Mengambil daftar Paket Nominal Saldo yang dijual oleh Superadmin
- *
- * @returns {Promise<Array>}
  */
 export async function getNominalSaldoList() {
-  if (isDummyMode() || true) {
+  if (isDummyMode()) {
     await delay(120);
     return getStoredNominals();
   }
-
-  // TODO BE:
-  // const res = await apiFetch('/api/canteen/topup/nominals');
-  // return res.data || res;
+  // Saat ini BE belum memiliki tabel terpisah untuk preset nominal, gunakan konfigurasi default
+  return getStoredNominals();
 }
 
 /**
  * 3. Menambah paket nominal saldo baru
- *
- * @param {{ nominal: number, status?: string }} data
- * @returns {Promise<object>}
  */
 export async function createNominalSaldo(data) {
   const nominalNum = Number(data.nominal);
@@ -170,81 +153,53 @@ export async function createNominalSaldo(data) {
   const totalBayar = nominalNum + ppn;
   const status = data.status || 'Aktif';
 
-  if (isDummyMode() || true) {
-    await delay(200);
-    const current = getStoredNominals();
-    const newNominal = {
-      id: `nom-${Date.now()}`,
-      nominal: nominalNum,
-      ppn,
-      totalBayar,
-      status,
-      isActive: status === 'Aktif',
-      createdAt: new Date().toISOString(),
-    };
+  const current = getStoredNominals();
+  const newNominal = {
+    id: `nom-${Date.now()}`,
+    nominal: nominalNum,
+    ppn,
+    totalBayar,
+    status,
+    isActive: status === 'Aktif',
+    createdAt: new Date().toISOString(),
+  };
 
-    const updated = [newNominal, ...current];
-    saveStoredNominals(updated);
-    return newNominal;
-  }
-
-  // TODO BE:
-  // const res = await apiFetch('/api/canteen/topup/nominals', {
-  //   method: 'POST',
-  //   body: JSON.stringify({ nominal: nominalNum, status }),
-  // });
-  // return res.data || res;
+  const updated = [newNominal, ...current];
+  saveStoredNominals(updated);
+  return newNominal;
 }
 
 /**
  * 4. Memperbarui paket nominal saldo
- *
- * @param {string} id
- * @param {{ nominal?: number, status?: string }} data
- * @returns {Promise<object>}
  */
 export async function updateNominalSaldo(id, data) {
   if (!id) throw new Error('ID Nominal diperlukan.');
 
-  if (isDummyMode() || true) {
-    await delay(180);
-    const current = getStoredNominals();
-    const existing = current.find((item) => item.id === id);
-    if (!existing) throw new Error('Nominal saldo tidak ditemukan.');
+  const current = getStoredNominals();
+  const existing = current.find((item) => item.id === id);
+  if (!existing) throw new Error('Nominal saldo tidak ditemukan.');
 
-    const nominalNum = data.nominal !== undefined ? Number(data.nominal) : existing.nominal;
-    const ppn = Math.round(nominalNum * PPN_RATE);
-    const totalBayar = nominalNum + ppn;
-    const status = data.status !== undefined ? data.status : existing.status;
+  const nominalNum = data.nominal !== undefined ? Number(data.nominal) : existing.nominal;
+  const ppn = Math.round(nominalNum * PPN_RATE);
+  const totalBayar = nominalNum + ppn;
+  const status = data.status !== undefined ? data.status : existing.status;
 
-    const updatedItem = {
-      ...existing,
-      nominal: nominalNum,
-      ppn,
-      totalBayar,
-      status,
-      isActive: status === 'Aktif',
-    };
+  const updatedItem = {
+    ...existing,
+    nominal: nominalNum,
+    ppn,
+    totalBayar,
+    status,
+    isActive: status === 'Aktif',
+  };
 
-    const updatedList = current.map((item) => (item.id === id ? updatedItem : item));
-    saveStoredNominals(updatedList);
-    return updatedItem;
-  }
-
-  // TODO BE:
-  // const res = await apiFetch(`/api/canteen/topup/nominals/${id}`, {
-  //   method: 'PUT',
-  //   body: JSON.stringify(data),
-  // });
-  // return res.data || res;
+  const updatedList = current.map((item) => (item.id === id ? updatedItem : item));
+  saveStoredNominals(updatedList);
+  return updatedItem;
 }
 
 /**
  * 5. Mengubah status Aktif / Nonaktif nominal saldo
- *
- * @param {string} id
- * @param {string} currentStatus
- * @returns {Promise<object>}
  */
 export async function toggleNominalSaldoStatus(id, currentStatus) {
   const newStatus = currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
@@ -253,52 +208,41 @@ export async function toggleNominalSaldoStatus(id, currentStatus) {
 
 /**
  * 6. Menghapus paket nominal saldo
- *
- * @param {string} id
- * @returns {Promise<boolean>}
  */
 export async function deleteNominalSaldo(id) {
   if (!id) throw new Error('ID Nominal diperlukan.');
-
-  if (isDummyMode() || true) {
-    await delay(200);
-    const current = getStoredNominals();
-    const updated = current.filter((item) => item.id !== id);
-    saveStoredNominals(updated);
-    return true;
-  }
-
-  // TODO BE:
-  // await apiFetch(`/api/canteen/topup/nominals/${id}`, { method: 'DELETE' });
-  // return true;
+  const current = getStoredNominals();
+  const updated = current.filter((item) => item.id !== id);
+  saveStoredNominals(updated);
+  return true;
 }
 
 /**
- * 7. Mengambil daftar riwayat transaksi top up kantin nasional dengan filter & search
+ * 7. Mengambil daftar riwayat transaksi top up kantin dari Backend
+ *    GET /api/canteen/topups
  *
- * @param {{ search?: string, status?: string, branchId?: string }} filter
+ * @param {{ search?: string, status?: string, branchId?: string, page?: number, limit?: number }} filter
  * @returns {Promise<Array>}
  */
 export async function getSuperadminTopupHistory({
   search = '',
   status = 'semua',
   branchId = 'semua',
+  page = 1,
+  limit = 50,
 } = {}) {
-  if (isDummyMode() || true) {
+  if (isDummyMode()) {
     await delay(150);
     let list = getStoredNationalHistory();
 
-    // Filter status
     if (status && status !== 'semua') {
       list = list.filter((item) => item.status.toLowerCase() === status.toLowerCase());
     }
 
-    // Filter cabang / UPT
     if (branchId && branchId !== 'semua') {
       list = list.filter((item) => item.branchId === branchId || item.branchName?.toLowerCase().includes(branchId.toLowerCase()));
     }
 
-    // Search query
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -311,128 +255,119 @@ export async function getSuperadminTopupHistory({
       );
     }
 
-    // Urutkan tanggal terbaru di atas
-    list.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal));
+    list.sort((a, b) => new Date(b.tanggal || b.createdAt) - new Date(a.tanggal || a.createdAt));
     return list;
   }
 
-  // TODO BE:
-  // const params = new URLSearchParams();
-  // if (search) params.append('search', search);
-  // if (status && status !== 'semua') params.append('status', status);
-  // if (branchId && branchId !== 'semua') params.append('branchId', branchId);
-  // const res = await apiFetch(`/api/canteen/topup/history?${params.toString()}`);
-  // return res.data || res;
+  const params = new URLSearchParams();
+  if (search && search.trim()) params.append('search', search.trim());
+  if (status && status !== 'semua' && status !== 'ALL') {
+    params.append('status', status.toUpperCase());
+  }
+  if (branchId && branchId !== 'semua' && branchId !== 'ALL') {
+    params.append('branchId', branchId);
+  }
+  if (page) params.append('page', String(page));
+  if (limit) params.append('limit', String(limit));
+
+  const qs = params.toString();
+  const endpoint = qs ? `/api/canteen/topups?${qs}` : '/api/canteen/topups';
+  const res = await apiFetch(endpoint);
+  const items = res?.data || [];
+
+  return items.map((item) => ({
+    id: item.id,
+    tanggal: item.createdAt,
+    createdAt: item.createdAt,
+    approvedAt: item.approvedAt || null,
+    branchId: item.branchId,
+    branchName: item.branchName || item.branch?.name || 'Cabang Lapas',
+    staffName: item.user?.name || item.staffName || 'Operator Kantin',
+    staffEmail: item.user?.email || item.staffEmail || '-',
+    nominal: Number(item.nominal) || 0,
+    ppn: Math.round((Number(item.nominal) || 0) * PPN_RATE),
+    totalBayar: Number(item.nominal) + Math.round((Number(item.nominal) || 0) * PPN_RATE),
+    menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
+    bankTarget: item.bankTarget || 'Rekening Lapas',
+    proofUrl: item.proofUrl || null,
+    status: item.status, // 'PENDING' | 'APPROVED' | 'REJECTED'
+    rejectReason: item.rejectReason || null,
+    user: item.user || null,
+  }));
 }
 
 /**
  * 8. Superadmin menyetujui transaksi top up kantin.
- * Saldo kasir operator kantin terkait akan langsung bertambah dan status berubah menjadi 'Berhasil'.
+ *    PATCH /api/canteen/topups/:id/approve
  *
- * @param {string} id - ID Transaksi (misal TPU-123456)
- * @returns {Promise<{ success: boolean, transaction: object }>}
+ * @param {string} id - ID Transaksi
+ * @param {string} [notes] - Catatan persetujuan (opsional)
+ * @returns {Promise<{ success: boolean, data: object }>}
  */
-export async function approveTopupTransaction(id) {
+export async function approveTopupTransaction(id, notes = '') {
   if (!id) throw new Error('ID Transaksi diperlukan.');
 
-  if (isDummyMode() || true) {
+  if (isDummyMode()) {
     await delay(200);
     const history = getStoredNationalHistory();
     const index = history.findIndex((item) => item.id === id);
     if (index === -1) throw new Error('Transaksi top up tidak ditemukan.');
 
     const tx = history[index];
-    if (tx.status === 'Berhasil') {
-      return { success: true, message: 'Transaksi sudah disetujui sebelumnya.', transaction: tx };
-    }
-
-    tx.status = 'Berhasil';
+    tx.status = 'APPROVED';
     tx.approvedAt = new Date().toISOString();
     saveStoredNationalHistory(history);
-
-    // Update saldo kuota menit operator kantin yang mengajukan
-    if (tx.userKey) {
-      try {
-        const saldoKey = `pascall_kantin_saldo_${tx.userKey}`;
-        const rawSaldo = localStorage.getItem(saldoKey);
-        const currentSaldo = rawSaldo !== null ? JSON.parse(rawSaldo) : 0;
-        const kuotaMenit = Number(tx.menit) || getMenitFromNominal(tx.nominal);
-        const newSaldo = currentSaldo + kuotaMenit;
-        localStorage.setItem(saldoKey, JSON.stringify(newSaldo));
-
-        // Update status di riwayat user
-        const riwayatKey = `pascall_kantin_saldo_riwayat_${tx.userKey}`;
-        const rawRiwayat = localStorage.getItem(riwayatKey);
-        if (rawRiwayat) {
-          const userRiwayat = JSON.parse(rawRiwayat);
-          if (Array.isArray(userRiwayat)) {
-            const userTxIndex = userRiwayat.findIndex((uTx) => uTx.id === tx.id);
-            if (userTxIndex !== -1) {
-              userRiwayat[userTxIndex].status = 'Berhasil';
-              userRiwayat[userTxIndex].approvedAt = tx.approvedAt || new Date().toISOString();
-              userRiwayat[userTxIndex].isUnreadApproval = true;
-              localStorage.setItem(riwayatKey, JSON.stringify(userRiwayat));
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Gagal memperbarui saldo operator pada approval:', err);
-      }
-    }
-
     return { success: true, transaction: tx };
   }
 
-  // TODO BE:
-  // const res = await apiFetch(`/api/canteen/topup/${id}/approve`, { method: 'POST' });
-  // return res.data || res;
+  const res = await apiFetch(`/api/canteen/topups/${id}/approve`, {
+    method: 'PATCH',
+    body: JSON.stringify({ notes: notes || undefined }),
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+  }
+
+  return { success: true, data: res?.data || res };
 }
 
 /**
  * 9. Superadmin menolak transaksi top up kantin.
- * Status transaksi berubah menjadi 'Ditolak' dan saldo kasir tidak bertambah.
+ *    PATCH /api/canteen/topups/:id/reject
  *
  * @param {string} id - ID Transaksi
- * @returns {Promise<{ success: boolean, transaction: object }>}
+ * @param {string} reason - Alasan penolakan (wajib diisi)
+ * @returns {Promise<{ success: boolean, data: object }>}
  */
-export async function rejectTopupTransaction(id) {
+export async function rejectTopupTransaction(id, reason = '') {
   if (!id) throw new Error('ID Transaksi diperlukan.');
+  if (!reason || !reason.trim()) {
+    throw new Error('Alasan penolakan wajib diisi.');
+  }
 
-  if (isDummyMode() || true) {
+  if (isDummyMode()) {
     await delay(200);
     const history = getStoredNationalHistory();
     const index = history.findIndex((item) => item.id === id);
     if (index === -1) throw new Error('Transaksi top up tidak ditemukan.');
 
     const tx = history[index];
-    tx.status = 'Ditolak';
+    tx.status = 'REJECTED';
+    tx.rejectReason = reason.trim();
     tx.rejectedAt = new Date().toISOString();
     saveStoredNationalHistory(history);
-
-    // Update status di riwayat operator kantin
-    if (tx.userKey) {
-      try {
-        const riwayatKey = `pascall_kantin_saldo_riwayat_${tx.userKey}`;
-        const rawRiwayat = localStorage.getItem(riwayatKey);
-        if (rawRiwayat) {
-          const userRiwayat = JSON.parse(rawRiwayat);
-          if (Array.isArray(userRiwayat)) {
-            const userTxIndex = userRiwayat.findIndex((uTx) => uTx.id === tx.id);
-            if (userTxIndex !== -1) {
-              userRiwayat[userTxIndex].status = 'Ditolak';
-              localStorage.setItem(riwayatKey, JSON.stringify(userRiwayat));
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Gagal memperbarui status riwayat operator pada rejection:', err);
-      }
-    }
-
     return { success: true, transaction: tx };
   }
 
-  // TODO BE:
-  // const res = await apiFetch(`/api/canteen/topup/${id}/reject`, { method: 'POST' });
-  // return res.data || res;
+  const res = await apiFetch(`/api/canteen/topups/${id}/reject`, {
+    method: 'PATCH',
+    body: JSON.stringify({ reason: reason.trim() }),
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+  }
+
+  return { success: true, data: res?.data || res };
 }

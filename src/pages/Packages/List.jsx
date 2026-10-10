@@ -143,6 +143,7 @@ export default function PackagesList() {
     try {
       if (editingPackage) {
         await updatePackage(editingPackage.id, {
+          nama: trimmedName,
           name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,
@@ -152,6 +153,7 @@ export default function PackagesList() {
         showToast(`Paket "${trimmedName}" berhasil diperbarui.`);
       } else {
         await createPackage({
+          nama: trimmedName,
           name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,

@@ -71,8 +71,9 @@ export const apiFetch = async (endpoint, options = {}) => {
     ? endpoint 
     : `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(options.headers || {})
   };
 
@@ -123,7 +124,7 @@ export const apiFetch = async (endpoint, options = {}) => {
  * API Auth Endpoints
  */
 export const CHANGE_PASSWORD_ENDPOINT = '/api/auth/change-password';
-export const UPDATE_PROFILE_ENDPOINT = '/api/auth/me';
+export const UPDATE_PROFILE_ENDPOINT = '/api/users/profile';
 export const FORGOT_PASSWORD_ENDPOINT = '/api/auth/forgot-password';
 
 export const login = async (identifier, password) => {
@@ -162,22 +163,47 @@ export const register = async ({ name, phone, email, password, confirmPassword }
   });
 };
 
-export const changePasswordApi = async ({ currentPassword, newPassword, confirmPassword }) => {
+export const changePasswordApi = async ({ oldPassword, currentPassword, newPassword, confirmPassword }) => {
   return await apiFetch(CHANGE_PASSWORD_ENDPOINT, {
     method: 'POST',
     body: JSON.stringify({
-      currentPassword,
+      oldPassword: oldPassword || currentPassword,
       newPassword,
-      confirmPassword
+      confirmPassword: confirmPassword || newPassword
     })
   });
 };
 
 export const updateProfileApi = async (profileData) => {
-  return await apiFetch(UPDATE_PROFILE_ENDPOINT, {
+  const payload = {
+    ...(profileData.name ? { name: profileData.name.trim() } : {}),
+    ...(profileData.phone !== undefined ? { phone: profileData.phone.trim() } : {})
+  };
+
+  const res = await apiFetch(UPDATE_PROFILE_ENDPOINT, {
     method: 'PATCH',
-    body: JSON.stringify(profileData)
+    body: JSON.stringify(payload)
   });
+
+  // Perbarui data user di localStorage / session jika berhasil
+  const currentUser = getAuthUser();
+  if (currentUser) {
+    const updatedUser = {
+      ...currentUser,
+      ...(res?.data || {}),
+      ...(profileData.name ? { name: profileData.name.trim() } : {}),
+      ...(profileData.phone ? { phone: profileData.phone.trim() } : {})
+    };
+    const token = getAuthToken();
+    setAuthSession(token, updatedUser);
+    try {
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  return res;
 };
 
 /**

@@ -378,18 +378,25 @@ export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
 export const createPackage = async (data) => {
   const durasiNum = Number(data.durasi || data.durationMinutes);
   const hargaNum = Number(data.harga || data.price);
-  const typeEnum = (data.kategori === 'video' || data.type === 'VIDEO') ? 'VIDEO' : 'AUDIO';
-  const statusEnum = (data.status === 'Aktif' || data.status === 'ACTIVE' || data.isActive) ? 'ACTIVE' : 'INACTIVE';
+  const rawKat = (data.kategori || data.type || 'telepon').toString().toLowerCase();
+  const kategoriEnum = rawKat.includes('vid') ? 'video' : 'telepon';
+  const isStatusNonaktif = data.status === 'Nonaktif' || data.status === 'INACTIVE' || data.isActive === false;
+  const statusEnum = isStatusNonaktif ? 'Nonaktif' : 'Aktif';
   const nameStr = (data.nama || data.name || '').trim();
 
   if (isDummyMode()) {
     const newPackage = mapPackageItem({
-      id: `pkt-${data.kategori || 'telp'}-${Date.now()}`,
+      id: `pkt-${kategoriEnum}-${Date.now()}`,
+      nama: nameStr,
       name: nameStr,
-      type: typeEnum,
+      kategori: kategoriEnum,
+      type: kategoriEnum === 'video' ? 'VIDEO' : 'AUDIO',
+      durasi: durasiNum,
       durationMinutes: durasiNum,
+      harga: hargaNum,
       price: hargaNum,
       status: statusEnum,
+      isActive: statusEnum === 'Aktif',
       createdAt: new Date().toISOString(),
     });
     const current = getStoredPackages();
@@ -398,11 +405,12 @@ export const createPackage = async (data) => {
   }
 
   const payload = {
-    name: nameStr,
-    durationMinutes: durasiNum,
-    price: hargaNum,
-    type: typeEnum,
+    nama: nameStr,
+    kategori: kategoriEnum,
+    durasi: durasiNum,
+    harga: hargaNum,
     status: statusEnum,
+    ...(data.branchId ? { branchId: data.branchId } : {}),
   };
 
   const res = await apiFetch(PACKAGES_ENDPOINT, {
@@ -415,7 +423,7 @@ export const createPackage = async (data) => {
 };
 
 /**
- * Memperbarui paket yang ada oleh Supervisor / Petugas Lapas
+ * Memperbarui paket yang ada oleh Supervisor / Petugas Lapas / Superadmin
  */
 export const updatePackage = async (id, data) => {
   if (!id) throw new Error('ID Paket diperlukan');
@@ -432,9 +440,17 @@ export const updatePackage = async (id, data) => {
       ? Number(data.price) 
       : undefined;
 
-  const typeEnum = data.kategori 
-    ? (data.kategori === 'video' ? 'VIDEO' : 'AUDIO') 
-    : data.type;
+  let kategoriEnum = undefined;
+  if (data.kategori || data.type) {
+    const rawKat = (data.kategori || data.type).toString().toLowerCase();
+    kategoriEnum = rawKat.includes('vid') ? 'video' : 'telepon';
+  }
+
+  let statusEnum = undefined;
+  if (data.status !== undefined || data.isActive !== undefined) {
+    const isStatusNonaktif = data.status === 'Nonaktif' || data.status === 'INACTIVE' || data.isActive === false;
+    statusEnum = isStatusNonaktif ? 'Nonaktif' : 'Aktif';
+  }
 
   const nameStr = (data.nama || data.name || '').trim();
 
@@ -442,7 +458,7 @@ export const updatePackage = async (id, data) => {
     const current = getStoredPackages();
     const updated = current.map((item) =>
       item.id === id 
-        ? mapPackageItem({ ...item, ...data, id, name: nameStr || item.name }) 
+        ? mapPackageItem({ ...item, ...data, id, nama: nameStr || item.nama, name: nameStr || item.name }) 
         : item
     );
     saveStoredPackages(updated);
@@ -450,10 +466,12 @@ export const updatePackage = async (id, data) => {
   }
 
   const payload = {
-    ...(nameStr ? { name: nameStr } : {}),
-    ...(durasiNum !== undefined ? { durationMinutes: durasiNum } : {}),
-    ...(hargaNum !== undefined ? { price: hargaNum } : {}),
-    ...(typeEnum ? { type: typeEnum } : {}),
+    ...(nameStr ? { nama: nameStr } : {}),
+    ...(durasiNum !== undefined ? { durasi: durasiNum } : {}),
+    ...(hargaNum !== undefined ? { harga: hargaNum } : {}),
+    ...(kategoriEnum ? { kategori: kategoriEnum } : {}),
+    ...(statusEnum ? { status: statusEnum } : {}),
+    ...(data.branchId !== undefined ? { branchId: data.branchId } : {}),
   };
 
   const res = await apiFetch(PACKAGE_DETAIL_ENDPOINT(id), {
@@ -465,7 +483,7 @@ export const updatePackage = async (id, data) => {
 };
 
 /**
- * Mengubah status paket (ACTIVE <-> INACTIVE)
+ * Mengubah status paket (Aktif <-> Nonaktif)
  */
 export const updatePackageStatus = async (id, statusOrIsActive) => {
   if (!id) throw new Error('ID Paket diperlukan');
@@ -474,13 +492,13 @@ export const updatePackageStatus = async (id, statusOrIsActive) => {
     ? statusOrIsActive
     : (statusOrIsActive === 'Aktif' || statusOrIsActive === 'ACTIVE');
 
-  const statusEnum = isActive ? 'ACTIVE' : 'INACTIVE';
+  const statusEnum = isActive ? 'Aktif' : 'Nonaktif';
 
   if (isDummyMode()) {
     const current = getStoredPackages();
     const target = current.find((i) => i.id === id);
     if (!target) throw new Error('Paket tidak ditemukan');
-    target.status = isActive ? 'Aktif' : 'Nonaktif';
+    target.status = statusEnum;
     target.isActive = isActive;
     saveStoredPackages(current);
     return target;

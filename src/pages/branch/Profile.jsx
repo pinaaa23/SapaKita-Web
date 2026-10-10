@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
+  User,
   UserCircle, 
   ShieldCheck, 
   Eye, 
@@ -12,7 +13,8 @@ import {
   Phone, 
   Building2, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -20,16 +22,31 @@ import { changePasswordApi, updateProfileApi } from '../../services/api';
 
 const BranchProfile = () => {
   const navigate = useNavigate();
-  const { user: authUser, logout } = useAuth();
+  const { user: authUser, roleLabel, isSupervisor, logout } = useAuth();
   
+  const displayRole = roleLabel || (isSupervisor ? 'Supervisor' : 'Kepala UPT');
+
   // State for Account Info initialized from logged in BE user without dummy data
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [accountInfo, setAccountInfo] = useState({
-    name: authUser?.name || 'Kepala UPT',
+    name: authUser?.name || displayRole,
     email: authUser?.email || authUser?.identifier || '-',
     phone: authUser?.phone || '-',
     branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'UPT Lapas')
   });
+
+  // Sinkronisasi data akun ketika authUser dimuat dari backend
+  useEffect(() => {
+    if (authUser && !isEditingInfo) {
+      setAccountInfo({
+        name: authUser?.name || displayRole,
+        email: authUser?.email || authUser?.identifier || '-',
+        phone: authUser?.phone || '-',
+        branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'UPT Lapas')
+      });
+    }
+  }, [authUser, isEditingInfo, displayRole]);
+
   const [infoSuccess, setInfoSuccess] = useState(false);
   const [infoError, setInfoError] = useState('');
   const [isSubmittingInfo, setIsSubmittingInfo] = useState(false);
@@ -73,12 +90,15 @@ const BranchProfile = () => {
         navigate('/login', { replace: true });
         return;
       }
-      if (err?.status === 403) {
+      const beError = err?.data?.message || (Array.isArray(err?.data?.errors) ? err.data.errors.map(e => e.message).join(', ') : null);
+      if (beError) {
+        setInfoError(beError);
+      } else if (err?.status === 403) {
         setInfoError('Anda tidak memiliki akses.');
-      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
-        setInfoError('Fitur ini belum tersedia di sistem backend');
+      } else if (err?.isNetworkError) {
+        setInfoError('Server backend tidak dapat dihubungi');
       } else {
-        setInfoError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+        setInfoError(err?.message || 'Gagal memperbarui profil');
       }
     } finally {
       setIsSubmittingInfo(false);
@@ -90,8 +110,8 @@ const BranchProfile = () => {
     setPasswordError('');
     setPasswordSuccess(false);
 
-    if (passwords.new.length < 8) {
-      setPasswordError('Password baru minimal 8 karakter.');
+    if (passwords.new.length < 6) {
+      setPasswordError('Password baru minimal 6 karakter.');
       return;
     }
 
@@ -104,6 +124,7 @@ const BranchProfile = () => {
 
     try {
       await changePasswordApi({
+        oldPassword: passwords.current,
         currentPassword: passwords.current,
         newPassword: passwords.new,
         confirmPassword: passwords.confirm
@@ -113,14 +134,17 @@ const BranchProfile = () => {
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
       console.log('[BranchProfile] Gagal ubah password:', err);
-      if (err?.status === 401) {
-        setPasswordError('Password lama salah');
+      const beError = err?.data?.message || (Array.isArray(err?.data?.errors) ? err.data.errors.map(e => e.message).join(', ') : null);
+      if (beError) {
+        setPasswordError(beError);
+      } else if (err?.status === 401) {
+        setPasswordError('Password lama salah atau sesi Anda telah berakhir.');
       } else if (err?.status === 403) {
         setPasswordError('Anda tidak memiliki akses.');
-      } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError) {
-        setPasswordError('Fitur ini belum tersedia di sistem backend');
+      } else if (err?.isNetworkError) {
+        setPasswordError('Server backend tidak dapat dihubungi');
       } else {
-        setPasswordError(err?.data?.message || err?.message || 'Fitur ini belum tersedia di sistem backend');
+        setPasswordError(err?.message || 'Gagal mengubah kata sandi');
       }
     } finally {
       setIsSubmittingPassword(false);
@@ -158,7 +182,7 @@ const BranchProfile = () => {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <h2 className="text-2xl font-black text-white tracking-tight">{accountInfo.name}</h2>
               <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-white/20 text-white backdrop-blur-md border border-white/30">
-                <ShieldCheck className="w-3.5 h-3.5" /> Kepala UPT
+                <ShieldCheck className="w-3.5 h-3.5" /> {displayRole}
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Aktif
@@ -213,7 +237,7 @@ const BranchProfile = () => {
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-lg bg-primary/10 text-primary">
-                  <UserIcon className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-800">Informasi Akun</h2>
@@ -293,7 +317,7 @@ const BranchProfile = () => {
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Role Sistem</label>
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Kepala UPT
+                      <ShieldCheck className="w-3.5 h-3.5" /> {displayRole}
                     </span>
                   </div>
 
@@ -421,7 +445,7 @@ const BranchProfile = () => {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-800">Status Akses</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Sesi login aktif (Kepala UPT)</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 font-medium">Sesi login aktif ({displayRole})</p>
                 </div>
               </div>
             </div>
@@ -436,7 +460,7 @@ const BranchProfile = () => {
         onClose={() => setIsLogoutModalOpen(false)}
         onConfirm={handleLogoutConfirm}
         title="Konfirmasi Logout"
-        message="Apakah Anda yakin ingin keluar dari sesi Kepala UPT saat ini?"
+        message={`Apakah Anda yakin ingin keluar dari sesi ${displayRole} saat ini?`}
         confirmText="Logout"
         cancelText="Batal"
         isDanger={true}

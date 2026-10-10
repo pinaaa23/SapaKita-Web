@@ -17,8 +17,8 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
   const navigate = useNavigate();
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   
-  const { role: currentRole, roleLabel, uptName, logout } = useAuth();
-  const uptDisplayName = uptName || 'UPT Anda';
+  const { role: currentRole, roleLabel, uptName, user, logout } = useAuth();
+  const uptDisplayName = uptName || user?.branch?.name || user?.branchName || 'UPT Pemasyarakatan';
 
   // State hitungan permintaan top up kantin yang menunggu persetujuan
   const [pendingTopupCount, setPendingTopupCount] = useState(() => getPendingTopupCountSync());
@@ -45,7 +45,17 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
     navigate('/login', { replace: true });
   };
   
-  const menuItems = getMenuItemsByRole(currentRole);
+  const effectiveRole = currentRole || 
+    (isBranchAdmin 
+      ? (localStorage.getItem('role')?.toLowerCase().includes('spv') || localStorage.getItem('role')?.toLowerCase().includes('supervisor') 
+          ? 'supervisor' 
+          : 'kepala_upt') 
+      : '');
+  
+  const effectiveRoleLabel = roleLabel || 
+    (effectiveRole === 'supervisor' ? 'Supervisor' : (effectiveRole === 'kepala_upt' ? 'Kepala UPT' : ''));
+
+  const menuItems = getMenuItemsByRole(effectiveRole);
 
   return (
     <div className={`fixed left-6 top-6 bottom-6 z-50 transition-all duration-300 ${isOpen ? 'w-56' : 'w-[80px]'}`}>
@@ -78,7 +88,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
             <div className="overflow-hidden whitespace-nowrap">
               <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
               <p className="text-[11px] text-blue-200 font-medium">
-                {roleLabel}
+                {effectiveRoleLabel}
               </p>
             </div>
           )}

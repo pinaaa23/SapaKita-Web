@@ -28,6 +28,17 @@ import { useAuth } from '../../../context/AuthContext';
  * Ekstraksi slug cabang yang bersih dari nama cabang, profil user, atau fallback
  */
 export const extractBranchSlug = (branchName, user) => {
+  const isInvalidCandidate = (c) => {
+    if (!c || typeof c !== 'string' || !c.trim()) return true;
+    const lower = c.trim().toLowerCase();
+    return lower === 'upt anda' || 
+           lower === 'lapas pusat' || 
+           lower === 'cabang terdaftar' || 
+           lower === 'upt terdaftar' || 
+           lower === 'cabang' || 
+           lower === 'upt';
+  };
+
   const candidates = [
     branchName,
     user?.branch?.name,
@@ -37,12 +48,13 @@ export const extractBranchSlug = (branchName, user) => {
     user?.branch?.location,
     user?.branch?.slug,
     user?.uptName,
-  ].filter(c => Boolean(c && typeof c === 'string' && c.trim() && c.trim().toLowerCase() !== 'upt anda' && c.trim().toLowerCase() !== 'lapas pusat'));
+  ].filter(c => !isInvalidCandidate(c));
 
   const stopwords = [
     'kepala', 'admin', 'supervisor', 'spv', 'kasir', 'operator', 'staf', 'staff', 'petugas', 'pejabat',
     'lapas', 'rutan', 'kelas', 'kls', 'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii',
-    'upt', 'kota', 'kabupaten', 'wilayah', 'kantin', 'wartel', 'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara'
+    'upt', 'kota', 'kabupaten', 'wilayah', 'kantin', 'wartel', 'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara',
+    'cabang', 'terdaftar'
   ];
 
   for (const candidate of candidates) {
@@ -56,18 +68,18 @@ export const extractBranchSlug = (branchName, user) => {
     if (meaningfulWords.length > 0) {
       return meaningfulWords.slice(0, 2).join('-');
     }
-    if (rawWords.length > 0) {
+    if (rawWords.length > 0 && !rawWords.every(w => stopwords.includes(w))) {
       return rawWords.slice(0, 2).join('-');
     }
   }
 
-  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.lapas-yogyakarta@pascall.id -> yogyakarta)
+  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.yogyakarta@pascall.id -> yogyakarta)
   if (user?.email && user.email.includes('@')) {
     const localPart = user.email.split('@')[0];
     const parts = localPart.split('.');
-    const lastPart = parts[parts.length - 1];
-    if (lastPart) {
-      const cleanSlug = lastPart.replace(/^(lapas|rutan|kls|kelas)-+/i, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const part = parts[i];
+      const cleanSlug = part.replace(/^(lapas|rutan|kls|kelas)-+/i, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       if (cleanSlug && !stopwords.includes(cleanSlug)) {
         return cleanSlug;
       }
@@ -106,7 +118,17 @@ export const generateUserEmail = (name, role, branchName, user) => {
 const Create = () => {
   const navigate = useNavigate();
   const { uptName, user, logout } = useAuth();
-  const [resolvedBranchName, setResolvedBranchName] = useState(uptName || 'Lapas Kelas II Yogyakarta');
+  
+  const getInitialBranch = () => {
+    const isBad = (v) => !v || typeof v !== 'string' || !v.trim() || 
+      ['upt anda', 'cabang terdaftar', 'upt terdaftar'].includes(v.trim().toLowerCase());
+    if (!isBad(uptName)) return uptName.trim();
+    if (!isBad(user?.branch?.name)) return user.branch.name.trim();
+    if (!isBad(user?.branchName)) return user.branchName.trim();
+    return 'Lapas II Yogyakarta';
+  };
+
+  const [resolvedBranchName, setResolvedBranchName] = useState(getInitialBranch);
 
   // Form State
   const [name, setName] = useState('');
@@ -114,7 +136,7 @@ const Create = () => {
   const [role, setRole] = useState(ROLES.SUPERVISOR);
   const [status, setStatus] = useState('Active');
   
-  const [email, setEmail] = useState(() => generateUserEmail('', ROLES.SUPERVISOR, uptName || 'Lapas Kelas II Yogyakarta', user));
+  const [email, setEmail] = useState(() => generateUserEmail('', ROLES.SUPERVISOR, getInitialBranch(), user));
   const [isEmailManuallyEdited, setIsEmailManuallyEdited] = useState(false);
   const [password, setPassword] = useState(() => generateRandomPassword());
   
@@ -128,19 +150,32 @@ const Create = () => {
 
   // Resolusi nama UPT/Cabang jika belum terisi dari context
   useEffect(() => {
-    if (uptName && uptName.toLowerCase() !== 'upt anda') {
-      setResolvedBranchName(uptName);
+    const isBad = (v) => !v || typeof v !== 'string' || !v.trim() || 
+      ['upt anda', 'cabang terdaftar', 'upt terdaftar'].includes(v.trim().toLowerCase());
+
+    if (!isBad(uptName)) {
+      setResolvedBranchName(uptName.trim());
       return;
     }
 
-    const bId = user?.branchId || user?.branch?.id;
-    if (bId) {
-      getBranchById(bId)
-        .then((b) => {
-          if (b?.name) setResolvedBranchName(b.name);
+    const bName = user?.branch?.name || user?.branchName;
+    if (!isBad(bName)) {
+      setResolvedBranchName(bName.trim());
+      return;
+    }
+
+    // Ambil langsung dari profile pengguna di backend jika belum tersedia
+    import('../../../services/api').then(({ apiFetch }) => {
+      apiFetch('/api/users/profile')
+        .then((res) => {
+          const profile = res?.data || res;
+          const fetchedBranchName = profile?.branch?.name || profile?.branchName;
+          if (fetchedBranchName) {
+            setResolvedBranchName(fetchedBranchName);
+          }
         })
         .catch(() => {});
-    }
+    }).catch(() => {});
   }, [uptName, user]);
 
   // Sinkronisasi rekomendasi email otomatis

@@ -36,12 +36,37 @@ export const ROLE_LABELS = {
  */
 export const normalizeRole = (rawRole) => {
   if (!rawRole) return '';
-  const str = String(rawRole).trim().toLowerCase();
+  const str = String(rawRole).trim().toLowerCase().replace(/[\s\-_]+/g, '_');
 
-  if (str === 'superadmin' || str === 'admin_pusat') return ROLES.SUPERADMIN;
-  if (str === 'kepala_upt' || str === 'branch_admin' || str === 'admin_cabang' || str === 'kepala' || str === 'admin') return ROLES.KEPALA_UPT;
-  if (str === 'supervisor' || str === 'spv') return ROLES.SUPERVISOR;
-  if (str === 'operator_kantin' || str === 'canteen_staff' || str === 'kantin') return ROLES.OPERATOR_KANTIN;
+  if (str === 'superadmin' || str === 'super_admin' || str === 'admin_pusat' || str === 'pusat') return ROLES.SUPERADMIN;
+  if (
+    str === 'kepala_upt' || 
+    str === 'branch_admin' || 
+    str === 'admin_cabang' || 
+    str === 'kepala' || 
+    str === 'admin' || 
+    str === 'admin_lapas' || 
+    str === 'kepala_lapas' ||
+    str === 'upt_admin' ||
+    str === 'branch'
+  ) return ROLES.KEPALA_UPT;
+  if (
+    str === 'supervisor' || 
+    str === 'spv' || 
+    str === 'supervisor_lapas' || 
+    str === 'spv_lapas' || 
+    str === 'supervisor_upt' ||
+    str === 'spv_upt'
+  ) return ROLES.SUPERVISOR;
+  if (
+    str === 'operator_kantin' || 
+    str === 'canteen_staff' || 
+    str === 'kantin' || 
+    str === 'kasir' || 
+    str === 'kasir_kantin' || 
+    str === 'kasir_lapas' ||
+    str === 'canteen'
+  ) return ROLES.OPERATOR_KANTIN;
 
   return '';
 };

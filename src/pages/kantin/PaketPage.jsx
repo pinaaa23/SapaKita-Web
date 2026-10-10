@@ -11,6 +11,7 @@ import { ENABLE_COMBO_PACKAGES } from '../../data/kantin/paket';
 import { formatRupiah } from '../../utils/formatKantin';
 import {
   SALDO_MINIMUM_WARNING,
+  getSaldo,
   getSaldoSync,
   subscribeSaldoUpdate,
 } from '../../services/kantin/saldoService';
@@ -30,6 +31,9 @@ export default function PaketPage() {
   const [saldoError, setSaldoError] = useState('');
 
   useEffect(() => {
+    // Fetch initial balance from Backend
+    getSaldo().then((s) => setSaldo(s)).catch((e) => console.warn('Gagal memuat saldo:', e));
+
     // Subscribe update saldo
     const unsubscribe = subscribeSaldoUpdate((newSaldo) => {
       setSaldo(newSaldo);

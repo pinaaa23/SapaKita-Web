@@ -49,6 +49,9 @@ export default function CanteenTopup() {
   // 3. Modal State
   const [topupActionModal, setTopupActionModal] = useState(null); // { action: 'approve' | 'reject', item: object }
   const [detailModalItem, setDetailModalItem] = useState(null); // object transaksi yang dilihat detailnya
+  const [actionNotes, setActionNotes] = useState('');
+  const [actionReason, setActionReason] = useState('');
+  const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -113,15 +116,20 @@ export default function CanteenTopup() {
     }
   };
 
-  // 1. Data Permintaan Top Up yang Butuh Konfirmasi (Status: Menunggu)
-  const pendingRequests = allHistory.filter((item) => item.status === 'Menunggu');
+  // 1. Data Permintaan Top Up yang Butuh Konfirmasi (Status: PENDING / Menunggu)
+  const pendingRequests = allHistory.filter(
+    (item) => item.status === 'PENDING' || item.status === 'Menunggu'
+  );
 
-  // 2. Data Riwayat Transaksi Selesai (Status: Berhasil / Ditolak) dengan filter
+  // 2. Data Riwayat Transaksi Selesai (Status: APPROVED / REJECTED / Berhasil / Ditolak) dengan filter
   const processedHistory = allHistory
-    .filter((item) => item.status !== 'Menunggu')
+    .filter((item) => item.status !== 'PENDING' && item.status !== 'Menunggu')
     .filter((item) => {
-      if (statusFilter !== 'semua' && item.status.toLowerCase() !== statusFilter.toLowerCase()) {
-        return false;
+      if (statusFilter !== 'semua') {
+        const itemStatusNorm = (item.status === 'APPROVED' ? 'berhasil' : item.status === 'REJECTED' ? 'ditolak' : item.status).toLowerCase();
+        if (itemStatusNorm !== statusFilter.toLowerCase()) {
+          return false;
+        }
       }
       if (branchFilter !== 'semua' && item.branchId !== branchFilter) {
         return false;
@@ -141,28 +149,35 @@ export default function CanteenTopup() {
 
   // Action Handlers
   const handleOpenApproveModal = (item) => {
+    setActionNotes('');
     setTopupActionModal({ action: 'approve', item });
   };
 
   const handleOpenRejectModal = (item) => {
+    setActionReason('');
     setTopupActionModal({ action: 'reject', item });
   };
 
   const handleConfirmTopupAction = async () => {
-    if (!topupActionModal?.item) return;
+    if (!topupActionModal?.item || isProcessingAction) return;
     const { action, item } = topupActionModal;
     const kuotaMenit = item.menit || getMenitFromNominal(item.nominal);
     setIsProcessingAction(true);
     try {
       if (action === 'approve') {
-        await approveTopupTransaction(item.id);
+        await approveTopupTransaction(item.id, actionNotes);
         showToast(
           `Transaksi ${item.id} dari ${item.branchName} (${
             item.staffName || 'Operator'
           }) berhasil disetujui! Kuota ${kuotaMenit.toLocaleString('id-ID')} Menit telah masuk ke kasir.`
         );
       } else {
-        await rejectTopupTransaction(item.id);
+        if (!actionReason.trim()) {
+          showToast('Alasan penolakan wajib diisi.');
+          setIsProcessingAction(false);
+          return;
+        }
+        await rejectTopupTransaction(item.id, actionReason);
         showToast(`Transaksi ${item.id} dari ${item.branchName} telah ditolak.`);
       }
       setTopupActionModal(null);
@@ -606,9 +621,55 @@ export default function CanteenTopup() {
                     <span>Total Tagihan:</span>
                     <span className="text-[#1565C0] font-black">{formatRupiah(modalItem.totalBayar)}</span>
                   </div>
+
+                  {modalItem.proofUrl && (
+                    <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                      <span className="text-slate-500">Bukti Transfer:</span>
+                      <button
+                        type="button"
+                        onClick={() => setProofPreviewUrl(modalItem.proofUrl)}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Lihat Bukti Struk</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })()}
+
+            {/* Input Notes / Reason */}
+            {topupActionModal.action === 'approve' ? (
+              <div className="mb-4 text-left">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Catatan Persetujuan (opsional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: Bukti transfer terverifikasi"
+                  value={actionNotes}
+                  onChange={(e) => setActionNotes(e.target.value)}
+                  disabled={isProcessingAction}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                />
+              </div>
+            ) : (
+              <div className="mb-4 text-left">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Alasan Penolakan <span className="text-rose-500">*</span>:
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Wajib diisi: sebutkan alasan penolakan..."
+                  value={actionReason}
+                  onChange={(e) => setActionReason(e.target.value)}
+                  disabled={isProcessingAction}
+                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
+                />
+              </div>
+            )}
 
             <p className="text-xs text-slate-500 mb-5 leading-relaxed">
               {topupActionModal.action === 'approve'
@@ -625,15 +686,15 @@ export default function CanteenTopup() {
                 type="button"
                 onClick={() => setTopupActionModal(null)}
                 disabled={isProcessingAction}
-                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition cursor-pointer"
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-xs font-bold transition cursor-pointer disabled:opacity-50"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleConfirmTopupAction}
-                disabled={isProcessingAction}
-                className={`flex-1 py-2.5 px-4 rounded-xl text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-60 ${
+                disabled={isProcessingAction || (topupActionModal.action === 'reject' && !actionReason.trim())}
+                className={`flex-1 py-2.5 px-4 rounded-xl text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
                   topupActionModal.action === 'approve'
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-rose-600 hover:bg-rose-700'
@@ -691,17 +752,27 @@ export default function CanteenTopup() {
                 <span className="font-semibold text-slate-600">Status Transaksi</span>
                 <span
                   className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${
-                    detailModalItem.status === 'Berhasil'
+                    detailModalItem.status === 'Berhasil' || detailModalItem.status === 'APPROVED'
                       ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                      : detailModalItem.status === 'Ditolak' || detailModalItem.status === 'REJECTED'
+                      ? 'bg-rose-50 text-rose-700 border-rose-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
                   }`}
                 >
-                  {detailModalItem.status === 'Berhasil' ? (
+                  {detailModalItem.status === 'Berhasil' || detailModalItem.status === 'APPROVED' ? (
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                  ) : (
+                  ) : detailModalItem.status === 'Ditolak' || detailModalItem.status === 'REJECTED' ? (
                     <X className="w-3.5 h-3.5 text-rose-500" />
+                  ) : (
+                    <Clock className="w-3.5 h-3.5 text-amber-500" />
                   )}
-                  <span>{detailModalItem.status === 'Berhasil' ? 'Berhasil (Disetujui)' : 'Ditolak'}</span>
+                  <span>
+                    {detailModalItem.status === 'Berhasil' || detailModalItem.status === 'APPROVED'
+                      ? 'Disetujui'
+                      : detailModalItem.status === 'Ditolak' || detailModalItem.status === 'REJECTED'
+                      ? 'Ditolak'
+                      : 'Menunggu'}
+                  </span>
                 </span>
               </div>
 
@@ -723,8 +794,14 @@ export default function CanteenTopup() {
                 )}
                 <div className="flex justify-between pt-1.5 border-t border-slate-200/70">
                   <span className="text-slate-500">Waktu Pengajuan:</span>
-                  <span className="font-semibold text-slate-700 text-right">{formatTanggal(detailModalItem.tanggal)}</span>
+                  <span className="font-semibold text-slate-700 text-right">{formatTanggal(detailModalItem.tanggal || detailModalItem.createdAt)}</span>
                 </div>
+                {detailModalItem.rejectReason && (
+                  <div className="pt-1.5 border-t border-slate-200/70 text-rose-700 bg-rose-50/50 p-2 rounded-lg">
+                    <span className="font-bold block">Alasan Penolakan:</span>
+                    <p className="mt-0.5">{detailModalItem.rejectReason}</p>
+                  </div>
+                )}
               </div>
 
               {/* Rincian Keuangan & Kuota */}
@@ -752,6 +829,19 @@ export default function CanteenTopup() {
                   <span>Total Bayar:</span>
                   <span className="font-black text-[#1565C0]">{formatRupiah(detailModalItem.totalBayar)}</span>
                 </div>
+
+                {detailModalItem.proofUrl && (
+                  <div className="pt-2 border-t border-blue-200/60">
+                    <button
+                      type="button"
+                      onClick={() => setProofPreviewUrl(detailModalItem.proofUrl)}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Lihat Bukti Transfer</span>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -764,6 +854,58 @@ export default function CanteenTopup() {
               >
                 Tutup Rincian
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PREVIEW BUKTI TRANSFER */}
+      {proofPreviewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 flex flex-col max-h-[90vh]">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                <h4 className="text-sm font-bold text-slate-800">Lampiran Bukti Transfer</h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setProofPreviewUrl(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto flex items-center justify-center p-2 bg-slate-50 rounded-xl min-h-[300px]">
+              {proofPreviewUrl.toLowerCase().endsWith('.pdf') ? (
+                <div className="text-center p-6 space-y-3">
+                  <FileText className="w-14 h-14 text-blue-500 mx-auto" />
+                  <p className="text-xs font-semibold text-slate-700">Dokumen PDF Bukti Transfer</p>
+                  <a
+                    href={proofPreviewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
+                  >
+                    <span>Buka File PDF</span>
+                  </a>
+                </div>
+              ) : (
+                <img
+                  src={proofPreviewUrl}
+                  alt="Bukti Transfer"
+                  className="max-h-[65vh] object-contain rounded-lg shadow-xs"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.parentElement) {
+                      const errDiv = document.createElement('div');
+                      errDiv.className = 'text-center p-4 text-rose-600 text-xs font-semibold';
+                      errDiv.innerText = 'Gambar bukti transfer tidak dapat ditampilkan atau URL kadaluarsa.';
+                      e.currentTarget.parentElement.appendChild(errDiv);
+                    }
+                  }}
+                />
+              )}
             </div>
           </div>
         </div>

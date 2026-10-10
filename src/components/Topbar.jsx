@@ -29,7 +29,10 @@ const Topbar = () => {
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi setoran & pembayaran UPT' };
     if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik layanan UPT' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil' };
-    if (pathname === '/branch' || pathname.startsWith('/branch/')) return { title: 'Dashboard', subtitle: `Selamat Datang, ${userName}!` };
+    if (pathname === '/branch' || pathname.startsWith('/branch/')) {
+      const greetingName = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Kepala UPT');
+      return { title: 'Dashboard', subtitle: greetingName ? `Selamat Datang, ${greetingName}!` : 'Selamat Datang di PasCall!' };
+    }
     
     if (pathname.startsWith('/branches/create')) return { title: 'Tambah UPT Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
     if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit UPT', subtitle: 'Perbarui data operasional UPT' };
@@ -81,11 +84,13 @@ const Topbar = () => {
     };
 
     window.addEventListener('canteen_topup_changed', handleUpdate);
+    window.addEventListener('pascall_notification_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
-    const interval = setInterval(fetchNotifs, 4000);
+    const interval = setInterval(fetchNotifs, 6000);
 
     return () => {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
+      window.removeEventListener('pascall_notification_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
       clearInterval(interval);
     };
@@ -146,8 +151,7 @@ const Topbar = () => {
   };
 
   const markAllAsRead = () => {
-    const allIds = notifications.map(n => n.id);
-    markAllNotificationsAsRead(allIds);
+    markAllNotificationsAsRead();
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
   };
 

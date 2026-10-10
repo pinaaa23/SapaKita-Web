@@ -35,8 +35,18 @@ import { CallChannelBadge } from '../../utils/callChannel';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { canViewRecordings, logout, isSupervisor, uptName, userName, roleLabel, user } = useAuth();
+  const { canViewRecordings, logout, isSupervisor, uptName, userName, roleLabel, user, role } = useAuth();
+
+  const effectiveIsSupervisor = Boolean(
+    isSupervisor || 
+    role === 'supervisor' || 
+    localStorage.getItem('role')?.toLowerCase().includes('spv') || 
+    localStorage.getItem('role')?.toLowerCase().includes('supervisor')
+  );
+
+  const effectiveCanViewRecordings = Boolean(
+    !effectiveIsSupervisor && (canViewRecordings || role === 'kepala_upt' || !role)
+  );
 
   const [activeTab, setActiveTab] = useState('voice'); // 'voice' | 'video'
   const [searchInput, setSearchInput] = useState('');
@@ -128,7 +138,7 @@ const Dashboard = () => {
           branchName: uptName || user?.branchName || ''
         };
 
-        if (isSupervisor) {
+        if (effectiveIsSupervisor) {
           const [spvRes, pkgsRes, trxRes, inmatesRes] = await Promise.allSettled([
             getSupervisorSummary(),
             getPackages(),
@@ -222,11 +232,11 @@ const Dashboard = () => {
 
     fetchStats();
     return () => { isMounted = false; };
-  }, [navigate, logout, isSupervisor]);
+  }, [navigate, logout, effectiveIsSupervisor]);
 
   // Load calls list for Kepala UPT
   const loadCalls = useCallback(async () => {
-    if (!canViewRecordings) return;
+    if (!effectiveCanViewRecordings) return;
     setIsCallsLoading(true);
     setCallsError(null);
     try {
@@ -250,7 +260,7 @@ const Dashboard = () => {
     } finally {
       setIsCallsLoading(false);
     }
-  }, [canViewRecordings, debouncedSearch, statusFilter, activeTab, limit, navigate, logout]);
+  }, [effectiveCanViewRecordings, debouncedSearch, statusFilter, activeTab, limit, navigate, logout]);
 
   // Client-side filtering terhadap jalur panggilan (Web / GSM)
   const filteredCalls = React.useMemo(() => {
@@ -262,14 +272,14 @@ const Dashboard = () => {
   }, [callsData.items, activeTab, channelFilter]);
 
   useEffect(() => {
-    if (canViewRecordings) {
+    if (effectiveCanViewRecordings) {
       loadCalls();
     }
-  }, [canViewRecordings, loadCalls]);
+  }, [effectiveCanViewRecordings, loadCalls]);
 
   // Load Supervisor data (Paket Aktif & Data Narapidana)
   useEffect(() => {
-    if (!canViewRecordings) {
+    if (effectiveIsSupervisor) {
       let isMounted = true;
       const fetchSpvWidgets = async () => {
         setIsSupervisorDataLoading(true);
@@ -311,7 +321,7 @@ const Dashboard = () => {
         isMounted = false;
       };
     }
-  }, [canViewRecordings]);
+  }, [effectiveIsSupervisor]);
 
   const showToast = (message) => {
     setToastMessage(message);
@@ -400,7 +410,7 @@ const Dashboard = () => {
               </div>
             </div>
           ))
-        ) : isSupervisor ? (
+        ) : effectiveIsSupervisor ? (
           <>
             {/* Dashboard Khusus Supervisor (SPV) - Paket & Transaksi */}
             <StatCard 
@@ -464,7 +474,7 @@ const Dashboard = () => {
       </div>
 
       {/* Main Content Area - Hanya dirender jika role memiliki izin rekaman (Kepala UPT) */}
-      {canViewRecordings && (
+      {effectiveCanViewRecordings && (
         <div className="flex flex-col lg:flex-row gap-5 items-start w-full">
           
           {/* Table Card (flex-1 fills available space cleanly) */}
@@ -774,7 +784,7 @@ const Dashboard = () => {
       )}
 
       {/* Supervisor Panels: Paket Aktif & Transaksi Terbaru (Hanya dirender untuk role Supervisor) */}
-      {!canViewRecordings && (
+      {effectiveIsSupervisor && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           
           {/* Panel 1: Paket Aktif */}

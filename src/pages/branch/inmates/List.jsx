@@ -162,7 +162,7 @@ const InmatesList = () => {
 
   // Handle opening Edit Modal
   const handleOpenEdit = (inmate) => {
-    const spvBranch = uptName || authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas Kelas II Yogyakarta';
+    const spvBranch = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas II Yogyakarta');
     const effectiveBranch = (isSupervisor || !isSuperadmin)
       ? spvBranch
       : ((inmate.branchName && inmate.branchName !== 'Lapas Pusat' && inmate.branchName !== 'Lapas Kelas I Cipinang' && inmate.branchName !== '-') ? inmate.branchName : spvBranch);
@@ -767,7 +767,7 @@ const InmatesList = () => {
                     </label>
                     <div className="w-full px-3.5 py-2.5 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 flex items-center gap-2">
                       <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                      <span className="truncate">{editingInmate.branchName || uptName || 'Lapas Kelas II Yogyakarta'}</span>
+                      <span className="truncate">{editingInmate.branchName || ((uptName && uptName !== 'Cabang Terdaftar') ? uptName : (user?.branch?.name || user?.branchName || 'Lapas II Yogyakarta'))}</span>
                     </div>
                   </div>
 
