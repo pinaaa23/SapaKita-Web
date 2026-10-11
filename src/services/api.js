@@ -1,9 +1,12 @@
 // Base API Service for PasCall Web Application
-const API_BASE_URL = (() => {
-  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return `http://${window.location.hostname}:5000`;
+export const API_BASE_URL = (() => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
-  return import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return 'http://127.0.0.1:5000';
 })();
 
 export const getAuthToken = () => {

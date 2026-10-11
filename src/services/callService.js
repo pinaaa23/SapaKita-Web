@@ -1,4 +1,4 @@
-import { apiFetch, logout, getAuthToken, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi } from './api';
+import { apiFetch, logout, getAuthToken, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi, API_BASE_URL } from './api';
 import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan
@@ -6,13 +6,6 @@ export const RECORDINGS_ENDPOINT = '/api/recordings';
 export const RECORDING_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
 export const CALL_HISTORY_ENDPOINT = '/api/recordings';
 export const CALL_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
-
-const API_BASE_URL = (() => {
-  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    return `http://${window.location.hostname}:5000`;
-  }
-  return import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
-})();
 
 /**
  * Mapper fleksibel untuk menstandarisasi setiap item rekaman & transkrip panggilan
