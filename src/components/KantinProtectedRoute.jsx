@@ -36,19 +36,14 @@ const KantinProtectedRoute = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // Operator Kantin: izinkan masuk
-  if (currentRole === ROLES.OPERATOR_KANTIN) {
+  // Operator Kantin, Supervisor, Kepala UPT, dan Superadmin: izinkan masuk ke menu kantin
+  if (
+    currentRole === ROLES.OPERATOR_KANTIN ||
+    currentRole === ROLES.SUPERVISOR ||
+    currentRole === ROLES.KEPALA_UPT ||
+    currentRole === ROLES.SUPERADMIN
+  ) {
     return <Outlet />;
-  }
-
-  // Role lain: redirect ke dashboard mereka masing-masing
-  if (currentRole === ROLES.SUPERADMIN) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Kepala UPT dan Supervisor -> branch dashboard
-  if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
-    return <Navigate to="/branch/dashboard" replace />;
   }
 
   return <Navigate to="/login" replace />;

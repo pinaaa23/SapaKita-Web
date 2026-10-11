@@ -75,10 +75,10 @@ export const normalizeRole = (rawRole) => {
  * Pengecekan Hak Akses (Permissions)
  */
 export const permissions = {
-  // Hanya Kepala UPT yang boleh memutar rekaman & transkrip panggilan
+  // Kepala UPT & Supervisor boleh memutar rekaman & transkrip panggilan
   canViewRecordings: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN;
+    return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN || norm === ROLES.SUPERVISOR;
   },
 
   // Hanya Kepala UPT yang boleh mengelola akun pengguna UPT (Supervisor & Operator Kantin)
@@ -125,11 +125,12 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data Narapidana, Transaksi, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data Narapidana, Rekaman Panggilan, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
+      { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];

@@ -69,9 +69,10 @@ const AudioPlayerPanel = ({ call, onClose }) => {
       let resolvedSrc = call.recordingUrl || null;
 
       // Jika ID rekaman dari backend, coba ambil presigned stream URL
-      if (call.id && !call.id.startsWith('c')) {
+      const targetId = call.recordingId || call.id;
+      if (targetId && !targetId.startsWith('c')) {
         try {
-          const streamUrl = await getAudioStreamUrl(call.id);
+          const streamUrl = await getAudioStreamUrl(targetId);
           if (streamUrl && isMounted) {
             resolvedSrc = streamUrl;
           }

@@ -7,7 +7,7 @@
  */
 
 // Flag utama untuk mengaktifkan/menonaktifkan mock Superadmin di satu tempat
-export const USE_MOCK_SUPERADMIN = true;
+export const USE_MOCK_SUPERADMIN = false;
 
 export const MOCK_UPT_KEY = 'pascall_mock_upt';
 export const MOCK_NAPI_KEY = 'pascall_mock_napi';

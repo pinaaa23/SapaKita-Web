@@ -1,4 +1,4 @@
-import { apiFetch, logout, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi } from './api';
+import { apiFetch, logout, getAuthToken, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi } from './api';
 import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan
@@ -7,7 +7,12 @@ export const RECORDING_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
 export const CALL_HISTORY_ENDPOINT = '/api/recordings';
 export const CALL_DETAIL_ENDPOINT = (id) => `/api/recordings/${id}`;
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+const API_BASE_URL = (() => {
+  if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return `http://${window.location.hostname}:5000`;
+  }
+  return import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+})();
 
 /**
  * Mapper fleksibel untuk menstandarisasi setiap item rekaman & transkrip panggilan
@@ -53,8 +58,11 @@ export const mapCallItem = (item) => {
     (isDemo && normalizedStatus === 'Answered')
   );
 
+  const token = getAuthToken();
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+
   const recordingUrl = storageUrl 
-    ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream`)
+    ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`)
     : (item.recordingUrl || call.recordingUrl || (isDemo && hasRecording ? sampleAudio : ''));
 
   // Jalur panggilan (Web / GSM)
@@ -242,12 +250,25 @@ export const getAudioStreamUrl = async (recordingId) => {
     return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
   }
 
+  const token = getAuthToken();
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+  const directProxyUrl = `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`;
+
   try {
     const res = await getRecordingStreamUrlApi(recordingId);
-    return res?.data?.streamUrl || res?.data?.directStreamUrl || null;
+    if (res?.data?.directStreamUrl) {
+      const full = res.data.directStreamUrl.startsWith('http')
+        ? res.data.directStreamUrl
+        : `${API_BASE_URL}${res.data.directStreamUrl}`;
+      return full.includes('token=') || !token ? full : `${full}${full.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
+    }
+    if (res?.data?.streamUrl && !res.data.streamUrl.includes('localhost:9000')) {
+      return res.data.streamUrl;
+    }
+    return directProxyUrl;
   } catch (err) {
-    console.error('[CallService] Gagal mengambil streaming URL:', err?.message || err);
-    return null;
+    console.warn('[CallService] Stream URL API fallback ke direct proxy:', err?.message || err);
+    return directProxyUrl;
   }
 };
 

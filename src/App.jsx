@@ -128,11 +128,11 @@ function App() {
                   />
                 </Route>
 
-                {/* Rekaman Panggilan - Khusus Kepala UPT */}
+                {/* Rekaman Panggilan - Kepala UPT & Supervisor */}
                 <Route
                   path="recordings"
                   element={
-                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT]}>
+                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]}>
                       <BranchRecordings />
                     </RoleGuard>
                   }
