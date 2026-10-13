@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Copy, Check, Printer, ArrowRight, FileX, AlertCircle } from 'lucide-react';
+import { Copy, Check, Printer, ArrowRight, FileX, AlertCircle } from 'lucide-react';
 import { getTransaksiById } from '../../services/kantin/kantinService';
+import { formatTanggal } from '../../utils/formatKantin';
 import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
 import EmptyState from '../../components/kantin/EmptyState';
 
@@ -86,15 +87,12 @@ export default function VoucherPage() {
 
   return (
     <div className="w-full max-w-lg mx-auto py-0 sm:py-1 animate-in fade-in duration-300">
-      {/* Header Halaman (Ikon Sukses, Judul, Subjudul) */}
-      <div className="text-center mb-3 sm:mb-4">
-        <div className="w-11 h-11 sm:w-12 sm:h-12 mx-auto mb-2 rounded-full bg-emerald-100 text-[#16A34A] flex items-center justify-center shadow-xs">
-          <CheckCircle2 className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.5]" />
-        </div>
-        <h2 className="text-lg sm:text-xl font-bold text-slate-800">
+      {/* Header Halaman (Judul, Subjudul) */}
+      <div className="text-center mb-4 sm:mb-5">
+        <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
           Pembayaran Berhasil
         </h2>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
           Berikan kode ini kepada warga binaan.
         </p>
       </div>
@@ -104,62 +102,121 @@ export default function VoucherPage() {
         id="voucher-cetak"
         className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
       >
-        {/* Bagian Atas: Gradien Biru dengan Kode Voucher Sangat Besar (1 Baris) */}
-        <div className="bg-gradient-to-br from-[#1565C0] via-[#1976D2] to-[#0D47A1] text-white p-4 sm:p-5 text-center relative overflow-hidden">
-          <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
-          <div className="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+        {/* TAMPILAN KHUSUS LAYAR (WEB) - warna gradien biru modern */}
+        <div className="voucher-screen-view print:hidden">
+          {/* Bagian Atas: Gradien Biru dengan Kode Voucher Sangat Besar (1 Baris) */}
+          <div className="bg-gradient-to-br from-[#1565C0] via-[#1976D2] to-[#0D47A1] text-white p-4 sm:p-5 text-center relative overflow-hidden">
+            <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
+            <div className="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
 
-          <span className="inline-block text-[11px] uppercase font-bold tracking-widest text-blue-200 mb-1 px-3 py-0.5 bg-white/10 rounded-full">
-            KODE VOUCHER
-          </span>
+            <span className="inline-block text-[11px] uppercase font-bold tracking-widest text-blue-200 mb-1 px-3 py-0.5 bg-white/10 rounded-full">
+              KODE VOUCHER
+            </span>
 
-          <div className="my-1.5 flex items-center justify-center">
-            {isVoucherAvailable ? (
-              <span
-                className={`font-black font-mono text-white whitespace-nowrap drop-shadow-xs select-all ${
-                  kodeVoucher.length > VOUCHER_CODE_LENGTH
-                    ? 'text-xl xs:text-2xl sm:text-3xl md:text-[38px] tracking-wider'
-                    : 'text-2xl xs:text-3xl sm:text-4xl md:text-[44px] tracking-wider sm:tracking-widest'
-                }`}
-              >
-                {kodeVoucher}
-              </span>
-            ) : (
-              <div className="py-2.5 px-4 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs sm:text-sm font-semibold flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
-                <span>Kode voucher tidak tersedia, hubungi admin</span>
-              </div>
-            )}
+            <div className="my-1.5 flex items-center justify-center">
+              {isVoucherAvailable ? (
+                <span
+                  className={`font-black font-mono text-white whitespace-nowrap drop-shadow-xs select-all ${
+                    kodeVoucher.length > VOUCHER_CODE_LENGTH
+                      ? 'text-xl xs:text-2xl sm:text-3xl md:text-[38px] tracking-wider'
+                      : 'text-2xl xs:text-3xl sm:text-4xl md:text-[44px] tracking-wider sm:tracking-widest'
+                  }`}
+                >
+                  {kodeVoucher}
+                </span>
+              ) : (
+                <div className="py-2.5 px-4 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs sm:text-sm font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
+                  <span>Kode voucher tidak tersedia, hubungi admin</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[10px] sm:text-[11px] text-blue-100/80">
+              {isVoucherAvailable
+                ? 'Gunakan kode ini pada bilik KBU PasCall. Kode berlaku selama 1 hari selama kuota paket masih tersedia.'
+                : 'Transaksi berhasil tercatat, namun kode voucher belum diterbitkan'}
+            </p>
           </div>
 
-          <p className="text-[10px] sm:text-[11px] text-blue-100/80">
-            {isVoucherAvailable
-              ? 'Gunakan kode ini pada perangkat wartelsus / tablet'
-              : 'Transaksi berhasil tercatat, namun kode voucher belum diterbitkan'}
-          </p>
+          {/* Bagian Bawah: No. Transaksi, Nama Pelanggan, dan Nama Paket */}
+          <div className="p-4 sm:p-5 space-y-2.5 bg-white text-xs">
+            <div className="flex justify-between items-center py-1 border-b border-slate-100">
+              <span className="text-slate-500 font-medium">No. Transaksi</span>
+              <span className="font-mono font-bold text-slate-800">
+                {transaksi.id}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1 border-b border-slate-100">
+              <span className="text-slate-500 font-medium">Nama Pelanggan</span>
+              <span className="font-bold text-slate-800 text-sm">
+                {transaksi.napi?.nama || '-'}
+              </span>
+            </div>
+
+            <div className="flex justify-between items-center py-1">
+              <span className="text-slate-500 font-medium">Nama Paket</span>
+              <span className="font-bold text-[#1565C0] text-sm">
+                {transaksi.paket?.nama || '-'}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Bagian Bawah: Nama Pelanggan, NIP, dan Nama Paket */}
-        <div className="p-4 sm:p-5 space-y-2.5 bg-white text-xs">
-          <div className="flex justify-between items-center py-1 border-b border-slate-100">
-            <span className="text-slate-500 font-medium">Nama Pelanggan</span>
-            <span className="font-bold text-slate-800 text-sm">
-              {transaksi.napi?.nama || '-'}
-            </span>
+        {/* TAMPILAN KHUSUS CETAK TERMAL 58mm (LEBAR AREA 48mm) - hitam pekat, tajam, tanpa buram */}
+        <div className="voucher-print-view hidden print:block text-black">
+          {/* 1. Header Kantin & Waktu Pembelian (Dibiarkan di Atas) */}
+          <div className="text-center">
+            <div className="font-bold text-[14px] tracking-wide">PasCall</div>
+            <div className="text-[11px] font-bold uppercase tracking-wider mt-0.5">VOUCHER KOMUNIKASI</div>
+            <div className="text-[10px] font-mono mt-0.5">{formatTanggal(transaksi.waktu, true)}</div>
           </div>
 
-          <div className="flex justify-between items-center py-1 border-b border-slate-100">
-            <span className="text-slate-500 font-medium">NIP</span>
-            <span className="font-mono font-bold text-slate-800">
-              {transaksi.napi?.id || '-'}
-            </span>
+          {/* 2. Garis putus-putus */}
+          <div className="border-b border-dashed border-black my-1.5" />
+
+          {/* 3. Kotak Kode Voucher Tegas & Jelas */}
+          <div className="text-center my-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider mb-1">KODE VOUCHER</div>
+            <div className="inline-block border-2 border-black rounded px-3 py-1 font-black font-mono text-2xl tracking-widest my-0.5 select-all">
+              {kodeVoucher || '-'}
+            </div>
+            <div className="text-[10px] leading-tight font-medium mt-1">
+              Gunakan kode ini pada bilik KBU PasCall.
+            </div>
           </div>
 
-          <div className="flex justify-between items-center py-1">
-            <span className="text-slate-500 font-medium">Nama Paket</span>
-            <span className="font-bold text-[#1565C0] text-sm">
-              {transaksi.paket?.nama || '-'}
-            </span>
+          {/* 4. Garis putus-putus */}
+          <div className="border-b border-dashed border-black my-1.5" />
+
+          {/* 5. Rincian: No. Trx -> Pelanggan -> Paket */}
+          <div className="space-y-1 text-[11px]">
+            <div className="flex justify-between items-baseline gap-1">
+              <span className="shrink-0 font-medium">No. Trx:</span>
+              <span className="font-mono font-bold text-right text-[10px] break-all">{transaksi.id}</span>
+            </div>
+            <div className="flex justify-between items-baseline gap-1">
+              <span className="shrink-0 font-medium">Pelanggan:</span>
+              <span className="font-bold text-right break-words">{transaksi.napi?.nama || '-'}</span>
+            </div>
+            <div className="flex justify-between items-baseline gap-1">
+              <span className="shrink-0 font-medium">Paket:</span>
+              <span className="font-bold text-right break-words">{transaksi.paket?.nama || '-'}</span>
+            </div>
+          </div>
+
+          {/* 6. Garis putus-putus */}
+          <div className="border-b border-dashed border-black my-1.5" />
+
+          {/* 7. Catatan Masa Berlaku & Penutup */}
+          <div className="text-center space-y-1">
+            <div className="text-[9.5px] leading-tight font-medium">
+              Kode berlaku 1 hari selama kuota paket masih tersedia.
+            </div>
+            <div className="text-[10px] pt-0.5 pb-1 font-bold">
+              Terima kasih
+            </div>
           </div>
         </div>
       </div>
