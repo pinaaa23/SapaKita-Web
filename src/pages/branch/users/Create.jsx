@@ -195,12 +195,16 @@ const Create = () => {
 
   const handleRoleChange = (newRole) => {
     setRole(newRole);
-    if (!isEmailManuallyEdited) {
+    if (newRole === ROLES.SUPERVISOR) {
+      setIsEmailManuallyEdited(false);
+      setEmail(generateUserEmail(name, ROLES.SUPERVISOR, resolvedBranchName, user));
+    } else if (!isEmailManuallyEdited) {
       setEmail(generateUserEmail(name, newRole, resolvedBranchName, user));
     }
   };
 
   const handleEmailChange = (e) => {
+    if (role === ROLES.SUPERVISOR) return;
     setEmail(e.target.value);
     setIsEmailManuallyEdited(true);
   };
@@ -467,7 +471,11 @@ const Create = () => {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Email Login Petugas <span className="text-rose-500">*</span>
                 </label>
-                {!isEmailManuallyEdited ? (
+                {role === ROLES.SUPERVISOR ? (
+                  <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Dibuat Otomatis (Read-only)
+                  </span>
+                ) : !isEmailManuallyEdited ? (
                   <span className="text-[11px] text-primary font-medium flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Rekomendasi Otomatis
                   </span>
@@ -490,9 +498,14 @@ const Create = () => {
                   type="email" 
                   value={email}
                   onChange={handleEmailChange}
+                  readOnly={role === ROLES.SUPERVISOR}
                   required
                   placeholder="Contoh: spv.salsabila.cipinang@pascall.id"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                  className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none transition-all shadow-2xs font-mono ${
+                    role === ROLES.SUPERVISOR
+                      ? 'bg-slate-100/80 text-slate-600 border border-slate-200 cursor-not-allowed select-none'
+                      : 'bg-white border border-slate-200 text-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary'
+                  }`}
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
@@ -615,10 +628,10 @@ const Create = () => {
         </div>
 
         {/* Action Buttons Toolbar */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
           <Link
             to="/branch/users"
-            className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-all"
+            className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-all text-center"
           >
             Batal
           </Link>

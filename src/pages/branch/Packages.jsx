@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Package, 
   Plus, 
@@ -6,26 +6,24 @@ import {
   Video, 
   Search, 
   Filter,
-  CheckCircle2, 
   Edit3, 
   Power, 
   AlertCircle, 
   X, 
-  Info,
   Check,
   Building2,
   Clock,
-  Coins,
+  Sparkles,
   Trash2
 } from 'lucide-react';
 import { 
   getPackages, 
   createPackage, 
   updatePackage, 
-  updatePackageStatus,
   togglePackageStatus,
   deletePackage
 } from '../../services/packageService';
+import { DEFAULT_PACKAGES } from '../../config/defaultPackages';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BranchPackages() {
@@ -40,6 +38,8 @@ export default function BranchPackages() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isApplyingTemplate, setIsApplyingTemplate] = useState(false);
+  const [applyingTemplateName, setApplyingTemplateName] = useState(null);
   const [selectedPackageForToggle, setSelectedPackageForToggle] = useState(null);
   const [packageToDelete, setPackageToDelete] = useState(null);
   const [editingPackage, setEditingPackage] = useState(null);
@@ -56,26 +56,84 @@ export default function BranchPackages() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  const fetchPackagesData = async () => {
+  // Menerapkan 1 paket template tertentu ke cabang
+  const handleApplySingleTemplate = async (tpl) => {
+    setApplyingTemplateName(tpl.nama);
+    try {
+      await createPackage({
+        nama: tpl.nama,
+        name: tpl.nama,
+        kategori: tpl.kategori,
+        durasi: Number(tpl.durasi),
+        harga: Number(tpl.harga),
+        status: 'Aktif',
+      });
+
+      showToast(`Paket "${tpl.nama}" berhasil diterapkan dan kini aktif untuk cabang Anda.`);
+      await fetchPackagesData();
+    } catch (err) {
+      console.error(`Gagal menerapkan paket template "${tpl.nama}":`, err);
+      const detail = err.data?.errors?.map((e) => `${e.field}: ${e.message}`).join(', ');
+      showToast(detail ? `${err.message} (${detail})` : (err.message || `Gagal menerapkan paket "${tpl.nama}".`));
+    } finally {
+      setApplyingTemplateName(null);
+    }
+  };
+
+  // Menerapkan semua template yang ditampilkan sekaligus
+  const handleApplyAllTemplates = async (templatesToApply) => {
+    if (!templatesToApply || templatesToApply.length === 0) return;
+    setIsApplyingTemplate(true);
+    try {
+      let count = 0;
+      for (const tpl of templatesToApply) {
+        try {
+          await createPackage({
+            nama: tpl.nama,
+            name: tpl.nama,
+            kategori: tpl.kategori,
+            durasi: Number(tpl.durasi),
+            harga: Number(tpl.harga),
+            status: 'Aktif',
+          });
+          count++;
+        } catch (err) {
+          console.error(`Gagal menerapkan paket "${tpl.nama}":`, err);
+        }
+      }
+      showToast(`Berhasil menerapkan ${count} paket template ke cabang Anda.`);
+      await fetchPackagesData();
+    } catch (err) {
+      console.error('Gagal menerapkan semua template:', err);
+      showToast('Terjadi kesalahan saat menerapkan template.');
+    } finally {
+      setIsApplyingTemplate(false);
+    }
+  };
+
+  const fetchPackagesData = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await getPackages({
-        branchId: uptName,
         search,
         kategori: selectedCategory,
-        status: statusFilter,
+        status: statusFilter === 'template' ? 'semua' : statusFilter,
       });
-      setPackages(data || []);
+      // Sembunyikan paket yang branchId-nya kosong (paket global), supaya SPV hanya melihat dan mengelola paket UPT-nya sendiri
+      const uptPackages = (data || []).filter(
+        (p) => Boolean(p.branchId && String(p.branchId).trim() !== '')
+      );
+      setPackages(uptPackages);
     } catch (err) {
       console.error('Gagal memuat paket:', err);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, selectedCategory, statusFilter]);
 
   useEffect(() => {
     fetchPackagesData();
-  }, [search, selectedCategory, statusFilter, uptName]);
+  }, [fetchPackagesData]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -157,7 +215,6 @@ export default function BranchPackages() {
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
-          branch: uptName,
         });
         showToast(`Paket "${trimmedName}" berhasil diperbarui.`);
       } else {
@@ -167,7 +224,6 @@ export default function BranchPackages() {
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
-          branch: uptName,
         });
         showToast(`Paket "${trimmedName}" berhasil ditambahkan.`);
       }
@@ -228,6 +284,57 @@ export default function BranchPackages() {
     return 'Rp ' + Number(val || 0).toLocaleString('id-ID');
   };
 
+  // Filter paket cabang yang sudah tersimpan
+  const displayedBranchPackages = packages.filter(() => {
+    if (statusFilter === 'template') return false;
+    return true;
+  });
+
+  // Kriteria mendeteksi paket template rekomendasi yang "Sudah Diterapkan":
+  // Paket dianggap sudah diterapkan jika cabang sudah memiliki paket dengan nama yang sama,
+  // ATAU memiliki paket dengan spesifikasi identik (kategori, durasi menit, dan nominal harga).
+  const isTemplateApplied = (tpl) => {
+    return packages.some((p) => {
+      const pName = (p.nama || p.name || '').trim().toLowerCase();
+      const tplName = tpl.nama.trim().toLowerCase();
+      if (pName === tplName) return true;
+
+      const pKat = (p.kategori || '').toLowerCase();
+      const tKat = (tpl.kategori || '').toLowerCase();
+      const pDur = Number(p.durasi || p.durationMinutes || 0);
+      const tDur = Number(tpl.durasi || 0);
+      const pHarga = Number(p.harga || p.price || 0);
+      const tHarga = Number(tpl.harga || 0);
+
+      return pKat === tKat && pDur === tDur && pHarga === tHarga;
+    });
+  };
+
+  const unappliedTemplates = DEFAULT_PACKAGES.filter((tpl) => !isTemplateApplied(tpl));
+
+  // Filter paket template berdasarkan kategori, search, dan status
+  const displayedTemplates = unappliedTemplates.filter((tpl) => {
+    if (selectedCategory !== 'semua' && tpl.kategori !== selectedCategory) {
+      return false;
+    }
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const matchName = tpl.nama.toLowerCase().includes(q);
+      const matchDesc = (tpl.deskripsi || '').toLowerCase().includes(q);
+      const matchDurasi = String(tpl.durasi).includes(q);
+      const matchHarga = String(tpl.harga).includes(q);
+      if (!matchName && !matchDesc && !matchDurasi && !matchHarga) {
+        return false;
+      }
+    }
+    if (statusFilter === 'Aktif' || statusFilter === 'Nonaktif') {
+      return false;
+    }
+    return true;
+  });
+
+  const totalDisplayed = displayedBranchPackages.length + displayedTemplates.length;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Toast Notification */}
@@ -257,14 +364,16 @@ export default function BranchPackages() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenCreateModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer shrink-0"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tambah Paket</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={handleOpenCreateModal}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer shrink-0"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Paket</span>
+          </button>
+        </div>
       </div>
 
       {/* Search & Filter Toolbar */}
@@ -332,6 +441,7 @@ export default function BranchPackages() {
               <option value="semua">Semua Status</option>
               <option value="Aktif">Aktif</option>
               <option value="Nonaktif">Nonaktif</option>
+              <option value="template">Paket Rekomendasi</option>
             </select>
           </div>
         </div>
@@ -344,17 +454,38 @@ export default function BranchPackages() {
             <div className="animate-spin w-6 h-6 border-2 border-[#1565C0] border-t-transparent rounded-full mx-auto mb-2" />
             <p className="text-xs font-medium">Memuat data paket...</p>
           </div>
-        ) : packages.length === 0 ? (
+        ) : totalDisplayed === 0 ? (
           <div className="p-12 text-center">
             <Package className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-bold text-slate-700">Belum Ada Paket</p>
-            <p className="text-xs text-slate-400 mt-1">
-              Tidak ada paket yang sesuai dengan kriteria filter.
+            <p className="text-sm font-bold text-slate-700">Tidak Ada Paket</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              Tidak ada paket yang sesuai dengan kriteria filter atau pencarian Anda.
             </p>
+            <div className="mt-4 flex items-center justify-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSelectedCategory('semua');
+                  setStatusFilter('semua');
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-all cursor-pointer border border-slate-200"
+              >
+                <span>Reset Filter</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleOpenCreateModal}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Paket Manual</span>
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+            <table className="w-full text-left border-collapse text-xs min-w-[620px]">
               <thead>
                 <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <th className="py-3.5 px-4">Nama Paket</th>
@@ -366,7 +497,8 @@ export default function BranchPackages() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {packages.map((pkg) => {
+                {/* 1. Paket Cabang yang sudah terdaftar */}
+                {displayedBranchPackages.map((pkg) => {
                   const isInactive = pkg.status === 'Nonaktif';
                   const isTelepon = (pkg.kategori || '').toLowerCase() === 'telepon';
 
@@ -468,6 +600,132 @@ export default function BranchPackages() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {/* 2. Divider Baris Template jika ada paket template yang belum diterapkan */}
+                {displayedTemplates.length > 0 && (
+                  <tr className="bg-emerald-50/50 border-y border-emerald-200/70">
+                    <td colSpan={6} className="py-2.5 px-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                            Paket Rekomendasi
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            {displayedTemplates.length} Tersedia
+                          </span>
+                        </div>
+                        {displayedTemplates.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleApplyAllTemplates(displayedTemplates)}
+                            disabled={isApplyingTemplate}
+                            className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 hover:underline cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {isApplyingTemplate ? (
+                              <span className="animate-spin w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full" />
+                            ) : (
+                              <Check className="w-3 h-3" />
+                            )}
+                            <span>Terapkan Semua Sekaligus</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {/* 3. Baris Paket Template dengan tombol Terapkan */}
+                {displayedTemplates.map((tpl) => {
+                  const isTelepon = (tpl.kategori || '').toLowerCase() === 'telepon';
+                  const isApplyingThis = applyingTemplateName === tpl.nama;
+
+                  return (
+                    <tr
+                      key={`tpl-${tpl.nama}`}
+                      className="hover:bg-emerald-50/20 bg-emerald-50/10 transition-colors"
+                    >
+                      {/* Nama Paket */}
+                      <td className="py-3.5 px-4 font-bold text-slate-800">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-lg bg-emerald-100/70 text-emerald-700 flex items-center justify-center shrink-0 border border-emerald-200/50">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-800 font-bold">{tpl.nama}</span>
+                              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Rekomendasi
+                              </span>
+                            </div>
+                            {tpl.deskripsi && (
+                              <p className="text-[11px] text-slate-400 font-normal mt-0.5">
+                                {tpl.deskripsi}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Kategori */}
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            isTelepon
+                              ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                              : 'bg-purple-50 text-purple-700 border border-purple-200/60'
+                          }`}
+                        >
+                          {isTelepon ? (
+                            <Phone className="w-3 h-3" />
+                          ) : (
+                            <Video className="w-3 h-3" />
+                          )}
+                          <span>{isTelepon ? 'Telepon' : 'Video Call'}</span>
+                        </span>
+                      </td>
+
+                      {/* Jumlah Menit */}
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-700">
+                        <div className="inline-flex items-center gap-1">
+                          <Clock className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{tpl.durasi} Menit</span>
+                        </div>
+                      </td>
+
+                      {/* Harga */}
+                      <td className="py-3.5 px-4 text-right font-extrabold text-[#1565C0] text-sm">
+                        {formatRupiah(tpl.harga)}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          Belum Diterapkan
+                        </span>
+                      </td>
+
+                      {/* Aksi: Tombol Terapkan */}
+                      <td className="py-3.5 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleApplySingleTemplate(tpl)}
+                          disabled={isApplyingThis || isApplyingTemplate}
+                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                          title="Terapkan paket template ini ke cabang Anda"
+                        >
+                          {isApplyingThis ? (
+                            <span className="animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full" />
+                          ) : (
+                            <Sparkles className="w-3.5 h-3.5" />
+                          )}
+                          <span>Terapkan</span>
+                        </button>
                       </td>
                     </tr>
                   );

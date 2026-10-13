@@ -429,7 +429,7 @@ const CallsList = () => {
         <div className={`transition-all duration-300 w-full ${isSplitView ? 'xl:w-[calc(100%-380px)] min-w-0' : 'w-full'}`}>
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left">
+              <table className="w-full text-left min-w-[640px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-100">
                     <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">

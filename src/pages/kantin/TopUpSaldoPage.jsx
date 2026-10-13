@@ -307,7 +307,7 @@ export default function TopUpSaldoPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {NOMINAL_TOPUP_OPTIONS.map((option) => {
             const isSelected = paketTerpilih?.id === option.id;
             const ppn = Math.round(option.nominal * PPN_RATE);
@@ -608,7 +608,7 @@ export default function TopUpSaldoPage() {
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full min-w-[650px] text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3.5 px-4 sm:px-6">ID & Tanggal</th>

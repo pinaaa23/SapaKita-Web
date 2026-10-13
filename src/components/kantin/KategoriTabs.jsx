@@ -22,7 +22,7 @@ export default function KategoriTabs({ kategoriAktif, onPilihKategori }) {
           <button
             key={tab.id}
             onClick={() => onPilihKategori(tab.id)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ${
               isAktif
                 ? 'bg-[#1565C0] text-white shadow-sm scale-100'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'

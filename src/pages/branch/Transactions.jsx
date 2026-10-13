@@ -370,7 +370,7 @@ const Transactions = () => {
       {/* Main Table */}
       <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[650px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 pl-4 pr-2 whitespace-nowrap">ID Transaksi</th>
@@ -486,8 +486,8 @@ const Transactions = () => {
         
         {/* Pagination */}
         {!isLoading && transactionsData.items.length > 0 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 bg-slate-50/50">
-            <div className="font-medium">
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/50">
+            <div className="font-medium text-center sm:text-left">
               Menampilkan {transactionsData.items.length} dari total {transactionsData.total || transactionsData.items.length} transaksi
             </div>
             <div className="flex items-center gap-1">

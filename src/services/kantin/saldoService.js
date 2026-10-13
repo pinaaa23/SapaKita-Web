@@ -110,17 +110,12 @@ export function subscribeSaldoUpdate(callback) {
  * @returns {number}
  */
 export function getSaldoSync() {
-  if (isSaldoInitialized) {
-    return cachedSaldoMenit;
-  }
-  const localUsed = getLocalTransactionsTotalMinutes();
-  return Math.max(0, cachedSaldoMenit - localUsed);
+  return cachedSaldoMenit;
 }
 
 /**
  * Mengambil sisa kuota saldo menit kantin dari Backend.
- * Terpotong otomatis sebesar pembelian paket yang sudah dilakukan.
- * Endpoint: GET /api/canteen/balance
+ * Murni merefleksikan nilai dari GET /api/canteen/balance.
  * @returns {Promise<number>}
  */
 export async function getSaldo() {
@@ -129,12 +124,8 @@ export async function getSaldo() {
     const balance = res?.data?.balanceMinutes ?? res?.balanceMinutes ?? 0;
     const numBalance = Number(balance) || 0;
 
-    // Potong otomatis menit dari transaksi paket yang sudah dilakukan
-    const localUsed = getLocalTransactionsTotalMinutes();
-    const effectiveBalance = Math.max(0, numBalance - localUsed);
-
-    notifySubscribers(effectiveBalance);
-    return effectiveBalance;
+    notifySubscribers(numBalance);
+    return numBalance;
   } catch (err) {
     console.error('[SaldoService] Gagal mengambil saldo dari BE:', err?.message || err);
     if (cachedSaldoMenit > 0) {

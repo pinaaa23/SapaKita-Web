@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { CheckCircle2, Copy, Check, Printer, ArrowRight, FileX } from 'lucide-react';
+import { CheckCircle2, Copy, Check, Printer, ArrowRight, FileX, AlertCircle } from 'lucide-react';
 import { getTransaksiById } from '../../services/kantin/kantinService';
+import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
 import EmptyState from '../../components/kantin/EmptyState';
 
 export default function VoucherPage() {
@@ -36,10 +37,12 @@ export default function VoucherPage() {
     };
   }, [id]);
 
-  const kodeVoucher = transaksi?.kodeVoucher || '12345';
+  const rawKodeVoucher = transaksi?.kodeVoucher;
+  const kodeVoucher = rawKodeVoucher ? String(rawKodeVoucher).trim() : '';
+  const isVoucherAvailable = Boolean(kodeVoucher);
 
   const handleSalinKode = async () => {
-    if (!kodeVoucher) return;
+    if (!isVoucherAvailable) return;
     try {
       await navigator.clipboard.writeText(kodeVoucher);
       setIsCopied(true);
@@ -52,6 +55,7 @@ export default function VoucherPage() {
   };
 
   const handleCetakVoucher = () => {
+    if (!isVoucherAvailable) return;
     window.print();
   };
 
@@ -110,13 +114,28 @@ export default function VoucherPage() {
           </span>
 
           <div className="my-1.5 flex items-center justify-center">
-            <span className="text-2xl xs:text-3xl sm:text-4xl md:text-[44px] font-black font-mono tracking-wider sm:tracking-widest text-white whitespace-nowrap drop-shadow-xs select-all">
-              {kodeVoucher}
-            </span>
+            {isVoucherAvailable ? (
+              <span
+                className={`font-black font-mono text-white whitespace-nowrap drop-shadow-xs select-all ${
+                  kodeVoucher.length > VOUCHER_CODE_LENGTH
+                    ? 'text-xl xs:text-2xl sm:text-3xl md:text-[38px] tracking-wider'
+                    : 'text-2xl xs:text-3xl sm:text-4xl md:text-[44px] tracking-wider sm:tracking-widest'
+                }`}
+              >
+                {kodeVoucher}
+              </span>
+            ) : (
+              <div className="py-2.5 px-4 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
+                <span>Kode voucher tidak tersedia, hubungi admin</span>
+              </div>
+            )}
           </div>
 
           <p className="text-[10px] sm:text-[11px] text-blue-100/80">
-            Gunakan kode ini pada perangkat wartelsus / tablet
+            {isVoucherAvailable
+              ? 'Gunakan kode ini pada perangkat wartelsus / tablet'
+              : 'Transaksi berhasil tercatat, namun kode voucher belum diterbitkan'}
           </p>
         </div>
 
@@ -151,8 +170,14 @@ export default function VoucherPage() {
         <div className="grid grid-cols-2 gap-2.5">
           <button
             type="button"
-            onClick={handleSalinKode}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer"
+            onClick={isVoucherAvailable ? handleSalinKode : undefined}
+            disabled={!isVoucherAvailable}
+            title={!isVoucherAvailable ? 'Kode voucher tidak tersedia' : 'Salin Kode Voucher'}
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-3 border text-xs font-semibold rounded-xl shadow-xs transition ${
+              isVoucherAvailable
+                ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700 cursor-pointer active:scale-98'
+                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+            }`}
           >
             {isCopied ? (
               <>
@@ -161,7 +186,7 @@ export default function VoucherPage() {
               </>
             ) : (
               <>
-                <Copy className="w-4 h-4 text-slate-500" />
+                <Copy className={`w-4 h-4 ${isVoucherAvailable ? 'text-slate-500' : 'text-slate-400'}`} />
                 <span>Salin Kode</span>
               </>
             )}
@@ -169,10 +194,16 @@ export default function VoucherPage() {
 
           <button
             type="button"
-            onClick={handleCetakVoucher}
-            className="flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-xs rounded-xl shadow-xs transition cursor-pointer"
+            onClick={isVoucherAvailable ? handleCetakVoucher : undefined}
+            disabled={!isVoucherAvailable}
+            title={!isVoucherAvailable ? 'Kode voucher tidak tersedia' : 'Cetak Voucher'}
+            className={`flex items-center justify-center gap-1.5 py-2.5 px-3 border text-xs font-semibold rounded-xl shadow-xs transition ${
+              isVoucherAvailable
+                ? 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700 cursor-pointer active:scale-98'
+                : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed opacity-60'
+            }`}
           >
-            <Printer className="w-4 h-4 text-slate-500" />
+            <Printer className={`w-4 h-4 ${isVoucherAvailable ? 'text-slate-500' : 'text-slate-400'}`} />
             <span>Cetak Voucher</span>
           </button>
         </div>

@@ -98,7 +98,7 @@ export const dummyStore = {
       identifier: inmateData.identifier || `NAPI-${Math.floor(1000 + Math.random() * 9000)}`,
       wbpRegNumber: inmateData.identifier || inmateData.wbpRegNumber || `NAPI-${Math.floor(1000 + Math.random() * 9000)}`,
       name: inmateData.name,
-      initialPin: inmateData.initialPin || '1234',
+      initialPin: inmateData.initialPin || '123456',
       callBalance: Number(inmateData.callBalance) || 0,
       blockRoom: inmateData.blockRoom || 'Blok A - Kamar 01',
       entryDate: new Date().toISOString(),

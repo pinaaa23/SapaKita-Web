@@ -286,14 +286,14 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
         </div>
 
         {/* Footer Actions */}
-        <div className="px-5 sm:px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex items-center justify-between gap-2.5 shrink-0">
+        <div className="px-5 sm:px-6 py-3.5 bg-slate-50/80 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5 shrink-0">
           {step === 1 ? (
-            <>
+            <div className="flex items-center justify-between sm:justify-end gap-2.5 w-full">
               <button
                 type="button"
                 onClick={handleCloseModal}
                 disabled={isSubmitting}
-                className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer disabled:opacity-50"
+                className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition cursor-pointer disabled:opacity-50 text-center"
               >
                 Batal
               </button>
@@ -302,20 +302,20 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 type="button"
                 onClick={handleLanjutKeMetode}
                 disabled={!wbpTerpilih}
-                className="px-5 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
+                className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
               >
                 <span>Lanjut</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
-            </>
+            </div>
           ) : (
             <>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={handleKembaliKeStep1}
                   disabled={isSubmitting}
-                  className="px-3 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap disabled:opacity-50"
                 >
                   <ArrowLeft className="w-4 h-4 shrink-0" />
                   <span>Kembali</span>
@@ -324,7 +324,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                   type="button"
                   onClick={handleCloseModal}
                   disabled={isSubmitting}
-                  className="px-3 py-2.5 rounded-xl text-slate-500 hover:text-slate-700 text-sm font-medium transition cursor-pointer whitespace-nowrap disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-3.5 py-2.5 rounded-xl text-slate-500 hover:text-slate-700 text-sm font-medium transition cursor-pointer whitespace-nowrap disabled:opacity-50 text-center"
                 >
                   Batal
                 </button>
@@ -334,14 +334,14 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 type="button"
                 onClick={handleKonfirmasiPembayaran}
                 disabled={isSubmitting}
-                className="px-4 py-2.5 rounded-xl bg-[#16A34A] hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-bold transition flex items-center gap-2 shadow-sm cursor-pointer whitespace-nowrap shrink-0"
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#16A34A] hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin shrink-0" />
                 ) : (
                   <CheckCircle className="w-4 h-4 shrink-0" />
                 )}
-                <span className="whitespace-nowrap">Konfirmasi Pembayaran Diterima</span>
+                <span>Konfirmasi Pembayaran</span>
               </button>
             </>
           )}

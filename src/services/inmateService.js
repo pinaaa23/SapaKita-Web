@@ -283,7 +283,7 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
       identifier: identifier.trim(),
       wbpRegNumber: identifier.trim(),
       name: name.trim(),
-      initialPin: (initialPin || '1234').trim(),
+      initialPin: (initialPin || '123456').trim(),
       blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || 'b1',
       branchName: branchName || 'Lapas Kelas II Yogyakarta',
@@ -303,7 +303,7 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
       identifier: identifier.trim(),
       wbpRegNumber: identifier.trim(),
       name: name.trim(),
-      initialPin: (initialPin || '1234').trim(),
+      initialPin: (initialPin || '123456').trim(),
       blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || '',
       branchName: branchName || 'Lapas Kelas II Yogyakarta',
@@ -318,7 +318,7 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
   const payload = {
     identifier: identifier.trim(),
     name: name.trim(),
-    initialPin: (initialPin || '1234').trim(),
+    initialPin: (initialPin || '123456').trim(),
     families: Array.isArray(families) ? families : [],
   };
 
@@ -347,14 +347,16 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
 
 export const resetInmatePin = async (id, newPin) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
-  if (!newPin || newPin.trim().length < 4) {
-    throw new Error('PIN baru minimal harus 4 digit.');
+  if (!newPin || newPin.trim().length < 6) {
+    throw new Error('Password baru minimal harus 6 karakter.');
   }
 
   if (isDummyMode()) {
+    const { dummyStore } = await import('../dummy/store');
+    dummyStore.updateInmate(id, { initialPin: newPin.trim() });
     return {
       success: true,
-      message: 'PIN narapidana berhasil direset.',
+      message: 'Password narapidana berhasil direset.',
     };
   }
 

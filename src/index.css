@@ -339,66 +339,73 @@ html, body, #root {
 
 
 :root {
-  --lebar-kertas-thermal: 80mm;
-  --lebar-cetak-thermal: 72mm;
+  --lebar-kertas-thermal: 58mm;
+  --lebar-cetak-thermal: 52mm;
 }
 
 /* ===================================================================
-   KANTIN -- Print styles untuk Struk & Voucher (Printer Thermal 80mm)
+   KANTIN -- Print styles untuk Struk & Voucher (Printer Thermal 58mm)
    =================================================================== */
 @media print {
   @page {
-    size: 80mm auto;
+    size: 58mm auto;
     margin: 0;
   }
 
-  html, body {
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #ffffff !important;
-    color: #000000 !important;
-    width: 80mm !important;
-    font-size: 11px !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  /* Sembunyikan semua elemen layout, sidebar, navbar, tombol */
   body * {
     visibility: hidden;
   }
 
-  #struk-cetak, #struk-cetak *,
-  #voucher-cetak, #voucher-cetak * {
+  #struk,
+  #struk *,
+  #struk-cetak,
+  #struk-cetak *,
+  #voucher-cetak,
+  #voucher-cetak * {
     visibility: visible;
   }
 
-  #struk-cetak, #voucher-cetak {
-    position: static !important;
-    display: block !important;
-    margin: 0 auto !important;
-    width: var(--lebar-cetak-thermal, 72mm) !important;
-    max-width: var(--lebar-cetak-thermal, 72mm) !important;
-    min-width: unset !important;
-    padding: 4mm 2mm !important;
-    box-sizing: border-box !important;
+  #struk,
+  #struk-cetak {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 52mm;
+    font-size: 12px;
+    font-family: monospace;
     background: #ffffff !important;
     color: #000000 !important;
-    border: none !important;
+    padding: 2mm !important;
+    margin: 0 !important;
     box-shadow: none !important;
+    border: none !important;
     border-radius: 0 !important;
-    page-break-after: avoid !important;
-    page-break-inside: avoid !important;
-    break-after: avoid !important;
-    break-inside: avoid !important;
   }
 
   /* Monochrome thermal text & borders */
   #voucher-cetak *,
+  #struk *,
   #struk-cetak * {
     color: #000000 !important;
     text-shadow: none !important;
     box-shadow: none !important;
+  }
+
+  /* Voucher container untuk 58mm jika dicetak dari VoucherPage */
+  #voucher-cetak {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 52mm;
+    font-size: 12px;
+    font-family: monospace;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 2mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
   }
 
   /* Voucher: Hapus background gradient, ganti dengan border hitam tegas */
@@ -406,20 +413,20 @@ html, body, #root {
     background: #ffffff !important;
     color: #000000 !important;
     border: 2px solid #000000 !important;
-    border-radius: 6px !important;
-    padding: 8px 4px !important;
+    border-radius: 4px !important;
+    padding: 6px 4px !important;
   }
 
   /* Kode voucher: Besar, tebal, dengan border hitam tebal agar kontras */
   #voucher-cetak .font-mono,
   #voucher-cetak .select-all {
     color: #000000 !important;
-    font-size: 26px !important;
+    font-size: 20px !important;
     font-weight: 900 !important;
     letter-spacing: 2px !important;
     border: 2px solid #000000 !important;
-    padding: 4px 10px !important;
-    margin: 4px 0 !important;
+    padding: 3px 6px !important;
+    margin: 3px 0 !important;
     display: inline-block !important;
     background: #ffffff !important;
   }
@@ -429,32 +436,39 @@ html, body, #root {
     color: #ffffff !important;
     font-weight: 800 !important;
     border-radius: 4px !important;
-    padding: 2px 6px !important;
+    padding: 2px 4px !important;
   }
 
-  /* Struk container */
+  /* Struk container - latar belakang dan border monokrom */
+  #struk .bg-blue-50,
+  #struk .bg-blue-50\/70,
+  #struk .bg-slate-100,
+  #struk .bg-emerald-100,
   #struk-cetak .bg-blue-50,
   #struk-cetak .bg-blue-50\/70,
   #struk-cetak .bg-slate-100,
   #struk-cetak .bg-emerald-100 {
     background: #ffffff !important;
+    background-color: #ffffff !important;
     border: 1px solid #000000 !important;
     color: #000000 !important;
   }
 
-  /* Blok Kode Voucher di Struk saat cetak thermal 80mm */
+  /* Blok Kode Voucher di Struk saat cetak thermal 58mm */
+  #struk .struk-voucher-box,
   #struk-cetak .struk-voucher-box {
     background: #ffffff !important;
     background-color: #ffffff !important;
     color: #000000 !important;
-    border: 3px solid #000000 !important;
-    border-radius: 6px !important;
-    padding: 8px 6px !important;
-    margin-top: 8px !important;
-    margin-bottom: 8px !important;
+    border: 2px solid #000000 !important;
+    border-radius: 4px !important;
+    padding: 6px 4px !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
     box-shadow: none !important;
   }
 
+  #struk .struk-voucher-box *,
   #struk-cetak .struk-voucher-box * {
     color: #000000 !important;
     background: transparent !important;
@@ -463,23 +477,31 @@ html, body, #root {
     box-shadow: none !important;
   }
 
+  #struk .struk-voucher-box p,
   #struk-cetak .struk-voucher-box p {
     color: #000000 !important;
     font-size: 10px !important;
     font-weight: 700 !important;
   }
 
+  #struk .struk-voucher-code,
   #struk-cetak .struk-voucher-code {
-    font-size: 28px !important;
+    font-size: 20px !important;
     font-weight: 900 !important;
-    letter-spacing: 3px !important;
+    letter-spacing: 2px !important;
     color: #000000 !important;
-    margin: 6px 0 !important;
+    margin: 4px 0 !important;
     padding: 2px 0 !important;
     line-height: 1.1 !important;
   }
 
   /* Semua badge, chip, ikon dan container rincian di struk dicetak monokrom hitam-putih murni */
+  #struk .bg-blue-50,
+  #struk .bg-blue-50\/70,
+  #struk .bg-slate-100,
+  #struk .bg-emerald-100,
+  #struk .border-emerald-200,
+  #struk .border-blue-100,
   #struk-cetak .bg-blue-50,
   #struk-cetak .bg-blue-50\/70,
   #struk-cetak .bg-slate-100,
@@ -492,11 +514,21 @@ html, body, #root {
     color: #000000 !important;
   }
 
+  #struk svg,
   #struk-cetak svg {
     color: #000000 !important;
     stroke: #000000 !important;
   }
 
+  #struk .text-\[\#16A34A\],
+  #struk .text-\[\#1565C0\],
+  #struk .text-\[\#0D47A1\],
+  #struk .text-emerald-800,
+  #struk .text-slate-800,
+  #struk .text-slate-700,
+  #struk .text-slate-600,
+  #struk .text-slate-500,
+  #struk .text-slate-400,
   #struk-cetak .text-\[\#16A34A\],
   #struk-cetak .text-\[\#1565C0\],
   #struk-cetak .text-\[\#0D47A1\],
@@ -509,10 +541,12 @@ html, body, #root {
     color: #000000 !important;
   }
 
+  #struk .border-dashed,
   #struk-cetak .border-dashed {
     border-color: #000000 !important;
   }
 
+  /* Sembunyikan elemen non-cetak dan tombol */
   .no-print,
   nav,
   aside,

@@ -13,7 +13,9 @@ import {
   Phone, 
   KeyRound, 
   X, 
-  Check 
+  Check,
+  Eye,
+  EyeOff 
 } from 'lucide-react';
 import { getInmates, updateInmateStatus, resetInmatePin } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
@@ -41,6 +43,7 @@ const InmatesDetail = () => {
   const [newPin, setNewPin] = useState('');
   const [resetPinError, setResetPinError] = useState('');
   const [isResettingPin, setIsResettingPin] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
 
   const showToast = (text, type = 'error') => {
     setToastMessage({ text, type });
@@ -231,7 +234,7 @@ const InmatesDetail = () => {
       )}
 
       {/* Top Action Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <Link 
           to={backRoute}
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
@@ -241,7 +244,7 @@ const InmatesDetail = () => {
 
         {/* Action Buttons (Khusus Supervisor / SPV) */}
         {isSupervisor && (
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <button
               type="button"
               disabled={isTogglingStatus || inmate.isActive === undefined}
@@ -286,11 +289,12 @@ const InmatesDetail = () => {
               onClick={() => {
                 setNewPin('');
                 setResetPinError('');
+                setShowResetPassword(false);
                 setIsResetPinModalOpen(true);
               }}
               className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
             >
-              <KeyRound className="w-3.5 h-3.5" /> Reset PIN
+              <KeyRound className="w-3.5 h-3.5" /> Reset Password
             </button>
 
             <Link
@@ -453,8 +457,8 @@ const InmatesDetail = () => {
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Reset PIN Narapidana</h3>
-                  <p className="text-[11px] text-slate-400">Atur ulang PIN panggilan untuk {inmate.name}</p>
+                  <h3 className="text-sm font-bold text-slate-800">Reset Password Narapidana</h3>
+                  <p className="text-[11px] text-slate-400">Atur ulang password login untuk {inmate.name}</p>
                 </div>
               </div>
               <button
@@ -469,20 +473,20 @@ const InmatesDetail = () => {
             <form
               onSubmit={async (e) => {
                 e.preventDefault();
-                if (!newPin || newPin.length < 4) {
-                  setResetPinError('PIN baru harus minimal 4 digit angka.');
+                if (!newPin || newPin.length < 6) {
+                  setResetPinError('Password baru harus minimal 6 karakter (bisa huruf/angka).');
                   return;
                 }
                 setIsResettingPin(true);
                 setResetPinError('');
                 try {
                   await resetInmatePin(inmate.id, newPin);
-                  showToast('PIN narapidana berhasil direset.', 'success');
+                  showToast('Password narapidana berhasil direset.', 'success');
                   setIsResetPinModalOpen(false);
                   setNewPin('');
                 } catch (err) {
-                  console.error('[InmatesDetail] Reset PIN failed:', err);
-                  setResetPinError(err?.message || 'Gagal mereset PIN. Pastikan PIN minimal 4 digit.');
+                  console.error('[InmatesDetail] Reset Password failed:', err);
+                  setResetPinError(err?.message || 'Gagal mereset password. Pastikan password minimal 6 karakter.');
                 } finally {
                   setIsResettingPin(false);
                 }
@@ -491,28 +495,38 @@ const InmatesDetail = () => {
             >
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  PIN Baru (Minimal 4 Digit) <span className="text-rose-500">*</span>
+                  Password Baru (Minimal 6 Karakter) <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={10}
-                  required
-                  placeholder="Masukkan 4-10 digit PIN baru"
-                  value={newPin}
-                  onChange={(e) => {
-                    setNewPin(e.target.value.replace(/\D/g, ''));
-                    setResetPinError('');
-                  }}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                />
+                <div className="relative">
+                  <input
+                    type={showResetPassword ? "text" : "password"}
+                    maxLength={20}
+                    required
+                    placeholder="Masukkan minimal 6 karakter password baru (misal: napi123)"
+                    value={newPin}
+                    onChange={(e) => {
+                      setNewPin(e.target.value);
+                      setResetPinError('');
+                    }}
+                    className="w-full pl-3 pr-10 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-hidden focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(!showResetPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    tabIndex={-1}
+                    title={showResetPassword ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showResetPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
                 {resetPinError && (
                   <p className="text-[11px] text-rose-500 font-semibold mt-1.5 flex items-center gap-1">
                     <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {resetPinError}
                   </p>
                 )}
                 <p className="text-[11px] text-slate-400 mt-1">
-                  PIN ini digunakan oleh narapidana untuk login dan melakukan panggilan di bilik telepon.
+                  Password ini digunakan oleh narapidana untuk login ke aplikasi PasCall (bisa huruf/angka).
                 </p>
               </div>
 
@@ -538,7 +552,7 @@ const InmatesDetail = () => {
                   ) : (
                     <>
                       <Check className="w-3.5 h-3.5" />
-                      Simpan PIN Baru
+                      Simpan Password Baru
                     </>
                   )}
                 </button>

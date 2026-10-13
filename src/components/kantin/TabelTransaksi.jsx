@@ -4,6 +4,7 @@ import { Search, ArrowUpRight, FileSpreadsheet, Download } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { exportToPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
+import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
 import EmptyState from './EmptyState';
 
 export default function TabelTransaksi({
@@ -38,9 +39,12 @@ export default function TabelTransaksi({
   const maskVoucher = (code) => {
     if (!code) return '-';
     const str = String(code).trim();
+    if (!str) return '-';
     if (str.startsWith('PAS-')) return str;
     const suffix = str.length >= 2 ? str.slice(-2) : str;
-    return `PAS-••••-${suffix}`;
+    const defaultMaskLen = Math.max(VOUCHER_CODE_LENGTH - 2, 3);
+    const maskedLength = str.length > suffix.length ? str.length - suffix.length : defaultMaskLen;
+    return `PAS-${'•'.repeat(maskedLength)}-${suffix}`;
   };
 
   const getPeriodeLabel = (per, tgl) => {
@@ -150,7 +154,7 @@ export default function TabelTransaksi({
             />
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2.5">
             {/* Filter Metode Pill */}
             <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
               {['Semua', 'Tunai'].map((m) => (
@@ -200,7 +204,7 @@ export default function TabelTransaksi({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full min-w-[760px] text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 <th className="py-3.5 px-4">ID Transaksi</th>

@@ -4,6 +4,7 @@ import {
   Search, 
   Plus, 
   Eye, 
+  EyeOff,
   Edit3, 
   Power, 
   Filter, 
@@ -59,6 +60,7 @@ const InmatesList = () => {
   const [editError, setEditError] = useState('');
   const [familyErrors, setFamilyErrors] = useState({});
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // Power / Status Toggle Modal State
   const [isPowerModalOpen, setIsPowerModalOpen] = useState(false);
@@ -181,6 +183,7 @@ const InmatesList = () => {
     });
     setEditError('');
     setFamilyErrors({});
+    setShowEditPassword(false);
     setIsEditModalOpen(true);
   };
 
@@ -194,6 +197,11 @@ const InmatesList = () => {
 
     if (!editingInmate.blockRoom?.trim()) {
       setEditError('Penempatan Blok / Kamar wajib diisi.');
+      return;
+    }
+
+    if (editingInmate.initialPin && editingInmate.initialPin.trim().length > 0 && editingInmate.initialPin.trim().length < 6) {
+      setEditError('Password baru minimal 6 karakter (huruf/angka) jika ingin diganti.');
       return;
     }
 
@@ -451,7 +459,7 @@ const InmatesList = () => {
           onScroll={checkScroll}
           className="overflow-x-auto w-full"
         >
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className={`py-3 pl-5 pr-3 whitespace-nowrap sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
@@ -653,8 +661,8 @@ const InmatesList = () => {
 
         {/* Pagination Footer */}
         {!isLoading && filteredInmates.length > 0 && (
-          <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600 bg-slate-50/50">
-            <div className="font-medium">
+          <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/50">
+            <div className="font-medium text-center sm:text-left">
               Menampilkan {filteredInmates.length} dari total {pagination.total || filteredInmates.length} narapidana (Halaman {page} dari {pagination.totalPages || 1})
             </div>
             <div className="flex items-center gap-1">
@@ -787,19 +795,30 @@ const InmatesList = () => {
                   </div>
                 </div>
 
-                {/* PIN Baru (Opsional) */}
+                {/* Password Baru (Opsional) */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" /> PIN Baru Kiosk (Opsional)
+                    <Lock className="w-3.5 h-3.5 text-slate-400" /> Password Baru (Opsional)
                   </label>
-                  <input 
-                    type="password"
-                    value={editingInmate.initialPin}
-                    onChange={(e) => setEditingInmate({ ...editingInmate, initialPin: e.target.value })}
-                    placeholder="Masukkan 4-6 digit PIN baru jika ingin mengganti..."
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                  />
-                  <p className="text-[10.5px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah PIN narapidana.</p>
+                  <div className="relative">
+                    <input 
+                      type={showEditPassword ? "text" : "password"}
+                      value={editingInmate.initialPin}
+                      onChange={(e) => setEditingInmate({ ...editingInmate, initialPin: e.target.value })}
+                      placeholder="Masukkan minimal 6 karakter password baru (misal: napi123)..."
+                      className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                      tabIndex={-1}
+                      title={showEditPassword ? "Sembunyikan password" : "Lihat password"}
+                    >
+                      {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                  <p className="text-[10.5px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah password narapidana. Minimal 6 karakter (bisa huruf/angka).</p>
                 </div>
               </div>
 
@@ -873,7 +892,7 @@ const InmatesList = () => {
             )}
           </p>
           <p className="text-[11px] text-slate-400">
-            Tindakan ini hanya mengubah hak akses komunikasi narapidana pada kiosk PasCall, dan bukan penghapusan permanen data.
+            Tindakan ini hanya mengubah hak akses komunikasi narapidana pada aplikasi PasCall, dan bukan penghapusan permanen data.
           </p>
         </div>
       </Modal>

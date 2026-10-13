@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft, Wallet } from 'lucide-react';
+import { Bell, Search, UserCircle, LogOut, User, X, ArrowLeft, Wallet, Menu } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
 import { ROLES } from '../config/menuConfig';
 
-const Topbar = () => {
+const Topbar = ({ toggleMobileMenu }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
@@ -166,43 +166,52 @@ const Topbar = () => {
   });
 
   return (
-    <div className="pt-0 pb-3 px-0 flex items-center justify-between z-40 relative">
-      {/* Left section: Page Title or Back to Dashboard Button */}
-      <div>
+    <div className="pt-0 pb-3 px-0 flex items-center justify-between gap-2 z-40 relative">
+      {/* Left section: Hamburger Button (Mobile) + Page Title or Back to Dashboard Button */}
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 pr-1">
+        <button
+          type="button"
+          onClick={toggleMobileMenu}
+          aria-label="Buka Menu"
+          className="md:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-white text-slate-700 hover:text-primary hover:bg-slate-50 flex items-center justify-center shadow-xs border border-slate-200/80 shrink-0 cursor-pointer transition-colors"
+        >
+          <Menu className="w-5 h-5 text-slate-700" />
+        </button>
+
         {location.pathname === '/branch/profile' ? (
           <Link 
             to="/branch/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-3 sm:px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group shrink-0"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> Kembali ke Dashboard
+            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> <span className="hidden sm:inline">Kembali ke </span>Dashboard
           </Link>
         ) : location.pathname === '/profile' ? (
           <Link 
             to="/dashboard"
-            className="inline-flex items-center gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold text-slate-700 hover:text-primary transition-all bg-white hover:bg-slate-50 px-3 sm:px-4 py-2 rounded-xl border border-slate-200/80 shadow-2xs hover:shadow-xs cursor-pointer group shrink-0"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> Kembali ke Dashboard
+            <ArrowLeft className="w-4 h-4 text-slate-500 group-hover:text-primary transition-colors" /> <span className="hidden sm:inline">Kembali ke </span>Dashboard
           </Link>
         ) : (
-          <>
-            <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">{pageDetails.title}</h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">{pageDetails.subtitle}</p>
-          </>
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl md:text-2xl font-extrabold text-slate-800 tracking-tight truncate">{pageDetails.title}</h1>
+            <p className="text-[11px] sm:text-xs text-slate-500 font-medium mt-0.5 truncate hidden sm:block">{pageDetails.subtitle}</p>
+          </div>
         )}
       </div>
 
       {/* Right section: Compact Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         
         {/* Expandable Search Button & Dropdown */}
         <div className="relative flex items-center" ref={searchRef}>
           {isSearchOpen ? (
             <div className="relative">
-              <div className="flex items-center bg-white rounded-full shadow-md border border-slate-200/90 px-3.5 py-1.5 transition-all w-72 md:w-80 ring-2 ring-primary/20">
-                <Search className="w-4 h-4 text-primary shrink-0 mr-2" />
+              <div className="flex items-center bg-white rounded-full shadow-md border border-slate-200/90 px-3 sm:px-3.5 py-1.5 transition-all w-56 sm:w-72 md:w-80 ring-2 ring-primary/20">
+                <Search className="w-4 h-4 text-primary shrink-0 mr-1.5 sm:mr-2" />
                 <input 
                   type="text" 
-                  placeholder="Cari menu, kontak, transaksi..." 
+                  placeholder="Cari..." 
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
                   autoFocus
@@ -217,7 +226,7 @@ const Topbar = () => {
               </div>
 
               {/* Instant Search Results Dropdown */}
-              <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+              <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
                 <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     {searchValue ? 'Hasil Pencarian' : 'Rekomendasi Menu'}
@@ -269,7 +278,7 @@ const Topbar = () => {
             <button 
               onClick={() => setIsSearchOpen(true)}
               title="Pencarian"
-              className="w-10 h-10 rounded-full bg-white text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center justify-center shadow-sm border border-slate-200/80 transition-all cursor-pointer hover:shadow-md"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center justify-center shadow-xs border border-slate-200/80 transition-all cursor-pointer hover:shadow-md"
             >
               <Search className="w-4 h-4" />
             </button>
@@ -281,7 +290,7 @@ const Topbar = () => {
           <button 
             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
             title="Notifikasi"
-            className="relative w-10 h-10 rounded-full bg-white text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center justify-center shadow-sm border border-slate-200/80 transition-all cursor-pointer hover:shadow-md"
+            className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-slate-600 hover:bg-slate-50 hover:text-primary flex items-center justify-center shadow-xs border border-slate-200/80 transition-all cursor-pointer hover:shadow-md"
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -291,7 +300,7 @@ const Topbar = () => {
 
           {/* Notifications Dropdown Panel */}
           {isNotificationsOpen && (
-            <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
               {/* Header */}
               <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div className="flex items-center gap-2">

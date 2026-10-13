@@ -7,7 +7,6 @@ import {
   BarChart3, 
   Package, 
   UserCog,
-  UserCheck,
   Wallet
 } from 'lucide-react';
 
@@ -87,10 +86,10 @@ export const permissions = {
     return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN;
   },
 
-  // Hanya Superadmin yang dapat mengelola paket
+  // Hanya Supervisor UPT yang dapat mengelola (tambah, edit, nonaktifkan, hapus) paket; Superadmin hanya melihat
   canManagePackages: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.SUPERADMIN;
+    return norm === ROLES.SUPERVISOR;
   },
 };
 
@@ -125,12 +124,13 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data Narapidana, Rekaman Panggilan, Transaksi, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data Narapidana, Rekaman Panggilan, Kelola Paket, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
       { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
+      { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];

@@ -32,6 +32,7 @@ import BranchContacts from './pages/branch/Contacts';
 import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
 import BranchReports from './pages/branch/Reports';
+import BranchPackages from './pages/branch/Packages';
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
 
@@ -156,10 +157,14 @@ function App() {
                   }
                 />
 
-                {/* Redirect /branch/packages ke /branch/dashboard (Kelola paket telah dipindahkan ke Superadmin) */}
+                {/* Kelola Paket - Khusus Supervisor UPT (pembuatan paket per UPT) */}
                 <Route
                   path="packages"
-                  element={<Navigate to="/branch/dashboard" replace />}
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
+                      <BranchPackages />
+                    </RoleGuard>
+                  }
                 />
 
                 {/* Persetujuan Kontak - Kepala UPT & Supervisor */}

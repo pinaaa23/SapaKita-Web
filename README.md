@@ -1,6 +1,10 @@
-﻿# PasCall — Sistem Layanan Komunikasi Lembaga Pemasyarakatan
+# PasCall — Sistem Layanan Komunikasi Lembaga Pemasyarakatan
 
 Aplikasi web terpadu untuk manajemen layanan komunikasi narapidana.
+
+## 📌 Catatan Proyek
+- **Folder `PasCall-Kantin` TIDAK DIPAKAI (ARSIP)**: Proyek aktif kasir kantin yang tersambung ke backend berada di folder ini pada path `src/pages/kantin/`. Jangan gunakan atau jadikan acuan kode di folder `PasCall-Kantin`.
+- **Backend `PasCall-BackEnd`**: Jangan mengubah, membuat, atau menghapus file apa pun di `PasCall-BackEnd` tanpa persetujuan tim.
 
 ## Cara Menjalankan
 

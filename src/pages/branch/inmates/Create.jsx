@@ -9,7 +9,9 @@ import {
   Wallet,
   AlertCircle,
   ChevronDown,
-  Users
+  Users,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { createInmate } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
@@ -28,11 +30,12 @@ const InmatesCreate = () => {
   const [selectedBranchId, setSelectedBranchId] = useState('');
   const [manualBranchName, setManualBranchName] = useState('');
   const [familyErrors, setFamilyErrors] = useState([]);
+  const [showInitialPassword, setShowInitialPassword] = useState(true);
 
   const [formData, setFormData] = useState({
     name: '',
     wbpRegNumber: `NIP-${Math.floor(1000 + Math.random() * 9000)}`,
-    initialPin: '1234',
+    initialPin: '123456',
     nik: '',
     birthPlace: '',
     birthDate: '',
@@ -86,8 +89,8 @@ const InmatesCreate = () => {
       return;
     }
 
-    if (!formData.initialPin || formData.initialPin.trim().length < 4) {
-      setErrorMsg('PIN awal narapidana untuk kiosk minimal 4 digit/karakter.');
+    if (!formData.initialPin || formData.initialPin.trim().length < 6) {
+      setErrorMsg('Password awal narapidana minimal 6 karakter (huruf/angka).');
       return;
     }
 
@@ -243,17 +246,28 @@ const InmatesCreate = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  PIN Awal Akses Kiosk / Panggilan <span className="text-rose-500">*</span>
+                  Password Awal <span className="text-rose-500">*</span>
                 </label>
-                <input 
-                  type="text" 
-                  value={formData.initialPin}
-                  onChange={(e) => setFormData({...formData, initialPin: e.target.value})}
-                  placeholder="Minimal 4 digit (misal: 1234)"
-                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
-                  required
-                />
-                <p className="text-[10px] text-slate-400 mt-1">PIN awal untuk narapidana login di terminal kiosk / telepon wartel.</p>
+                <div className="relative">
+                  <input 
+                    type={showInitialPassword ? "text" : "password"}
+                    value={formData.initialPin}
+                    onChange={(e) => setFormData({...formData, initialPin: e.target.value})}
+                    placeholder="Minimal 6 karakter (misal: napi123)"
+                    className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowInitialPassword(!showInitialPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    tabIndex={-1}
+                    title={showInitialPassword ? "Sembunyikan password" : "Lihat password"}
+                  >
+                    {showInitialPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Password awal minimal 6 karakter (bisa huruf, angka, atau kombinasi).</p>
               </div>
 
               <div>
@@ -463,17 +477,17 @@ const InmatesCreate = () => {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
           <Link 
             to="/branch/inmates"
-            className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors text-center"
           >
             Batal
           </Link>
           <button 
             type="submit"
             disabled={isSubmitting}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Narapidana'}
           </button>

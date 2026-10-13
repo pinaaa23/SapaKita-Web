@@ -30,25 +30,40 @@ const Edit = () => {
   });
 
   const [initialBranch, setInitialBranch] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    getBranchById(id).then(branch => {
-      if (branch) {
-        setInitialBranch(branch);
-        setFormData({
-          name: branch.name,
-          location: branch.location,
-          address: branch.address || '',
-          phone: branch.phone || '',
-          capacity: branch.capacity || '',
-          status: branch.status || 'Active'
-        });
-      }
-    }).catch(err => {
-      console.log('[BranchEdit] Error load branch:', err);
-    });
+    let isMounted = true;
+    setIsLoading(true);
+    getBranchById(id)
+      .then(branch => {
+        if (!isMounted) return;
+        if (branch) {
+          setInitialBranch(branch);
+          setFormData({
+            name: branch.name || '',
+            location: branch.location || '',
+            address: branch.address || '',
+            phone: branch.phone || '',
+            capacity: branch.capacity || '',
+            status: branch.status || 'Active'
+          });
+        }
+      })
+      .catch(err => {
+        console.log('[BranchEdit] Error load branch:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   const handleChange = (e) => {
@@ -109,7 +124,20 @@ const Edit = () => {
     }
   };
 
-  if (!initialBranch && formData.name === '') {
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-5 pb-8 animate-pulse">
+        <div className="flex items-center justify-between">
+          <div className="h-9 w-36 bg-slate-200 rounded-xl" />
+          <div className="h-7 w-28 bg-slate-200 rounded-full" />
+        </div>
+        <div className="h-44 bg-slate-200 rounded-2xl" />
+        <div className="h-64 bg-slate-200 rounded-2xl" />
+      </div>
+    );
+  }
+
+  if (!initialBranch) {
     return (
       <div className="space-y-5">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center">

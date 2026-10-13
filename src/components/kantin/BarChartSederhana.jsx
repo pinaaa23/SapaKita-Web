@@ -43,7 +43,8 @@ export default function BarChartSederhana({ data = [], periode = 'harian' }) {
       </div>
 
       {/* Area Bar Chart */}
-      <div className="h-48 sm:h-56 flex items-end justify-between gap-2 sm:gap-4 pt-8 pb-2 px-1 sm:px-4 border-b border-slate-100">
+      <div className="overflow-x-auto pb-2 scrollbar-none">
+        <div className="min-w-[280px] h-48 sm:h-56 flex items-end justify-between gap-2 sm:gap-4 pt-8 pb-2 px-1 sm:px-4 border-b border-slate-100">
         {data.map((item, idx) => {
           const persentase = maxNominal > 0 ? (item.nominal / maxNominal) * 100 : 0;
           const isHovered = hoveredIdx === idx;
@@ -86,6 +87,7 @@ export default function BarChartSederhana({ data = [], periode = 'harian' }) {
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );

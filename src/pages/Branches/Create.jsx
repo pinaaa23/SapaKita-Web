@@ -193,14 +193,15 @@ const Create = () => {
     });
 
     try {
-      // TODO: ganti ke API BE saat endpoint tersedia
-      await createBranch(payload);
-      
+      const res = await createBranch(payload);
+      const newBranchId = res?.id || res?.data?.id || res?.branch?.id || res?.data?.branch?.id;
+
       // Store in transient memory state only (never in storage)
       setCreatedCredentials({
         branchName: formData.name.trim(),
+        branchId: newBranchId,
         email: adminEmail.trim(),
-        password: adminPassword
+        password: adminPassword,
       });
     } catch (err) {
       console.log('[BranchCreate] Error submit branch:');
@@ -692,6 +693,8 @@ const Create = () => {
                   </button>
                 </div>
               </div>
+
+
 
               {/* Close Action */}
               <div className="pt-2">

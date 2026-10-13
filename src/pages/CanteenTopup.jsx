@@ -297,7 +297,7 @@ export default function CanteenTopup() {
         {/* Tabel Ringkas Konfirmasi */}
         <div className="bg-white rounded-2xl border border-amber-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[640px]">
               <thead>
                 <tr className="bg-amber-50/70 border-b border-amber-100 text-[11px] font-bold text-amber-900/80 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-6 w-[36%]">Asal UPT / Kantin</th>
@@ -460,7 +460,7 @@ export default function CanteenTopup() {
         {/* Tabel Riwayat dengan Tombol View Detail */}
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[640px]">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                   <th className="py-3.5 px-6 w-[34%]">Asal UPT / Kantin</th>

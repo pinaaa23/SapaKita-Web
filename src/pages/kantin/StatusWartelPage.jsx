@@ -97,7 +97,7 @@ export default function StatusWartelPage() {
         </div>
 
         {/* Tombol Refresh & Teks Waktu Terakhir Diperbarui */}
-        <div className="flex items-center gap-3 self-start sm:self-auto">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full sm:w-auto">
           {/* Requirement 4a: Teks kecil Diperbarui HH:MM:SS */}
           {lastUpdatedTime && (
             <span className="text-[11px] font-semibold text-slate-400">

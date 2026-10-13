@@ -241,7 +241,7 @@ export const createInmateApi = async ({ identifier, name, initialPin, branchId }
     body: JSON.stringify({
       identifier: identifier?.trim(),
       name: name?.trim(),
-      initialPin: initialPin || '1234',
+      initialPin: initialPin || '123456',
       ...(branchId ? { branchId } : {})
     })
   });

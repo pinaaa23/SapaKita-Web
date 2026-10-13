@@ -604,7 +604,7 @@ const Dashboard = () => {
 
               {/* Calls Table */}
               <div className="overflow-x-auto">
-                <table className="w-full text-left">
+                <table className="w-full text-left min-w-[580px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-100">
                       <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Tanggal / Waktu</th>
@@ -745,7 +745,7 @@ const Dashboard = () => {
               </div>
               
               {/* Compact Footer linking to full page */}
-              <div className="p-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 bg-slate-50/40">
+              <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-2.5 text-xs text-slate-500 bg-slate-50/40">
                 <span>Menampilkan {callsData.items.length} panggilan terbaru</span>
                 <Link 
                   to="/branch/recordings" 
@@ -790,14 +790,14 @@ const Dashboard = () => {
           {/* Panel 1: Paket Aktif */}
           <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all flex flex-col">
             {/* Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <div>
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between gap-2">
+              <div className="min-w-0">
                 <h2 className="text-base font-bold text-slate-800">Paket Komunikasi Aktif</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
                   Daftar paket panggilan yang berlaku (dikelola oleh Pusat)
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/60">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200/60 shrink-0">
                 <span>{activePackages.length} Paket</span>
               </span>
             </div>
@@ -881,7 +881,7 @@ const Dashboard = () => {
           {/* Panel 2: Manajemen Data Narapidana */}
           <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all flex flex-col">
             {/* Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
                 <h2 className="text-base font-bold text-slate-800">Data Narapidana</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
@@ -890,7 +890,7 @@ const Dashboard = () => {
               </div>
               <Link 
                 to="/branch/inmates"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70"
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 shrink-0 self-start sm:self-auto"
               >
                 <span>Kelola Narapidana</span>
                 <ArrowRight className="w-3.5 h-3.5" />

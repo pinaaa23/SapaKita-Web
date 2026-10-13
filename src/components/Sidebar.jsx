@@ -5,13 +5,14 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  PhoneCall
+  PhoneCall,
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole } from '../config/menuConfig';
 import { getPendingTopupCountSync } from '../services/canteenTopupService';
 
-const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
+const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, closeMobileMenu }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
   const location = useLocation();
   const navigate = useNavigate();
@@ -56,17 +57,20 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
     (effectiveRole === 'supervisor' ? 'Supervisor' : (effectiveRole === 'kepala_upt' ? 'Kepala UPT' : ''));
 
   const menuItems = getMenuItemsByRole(effectiveRole);
+  const isExpandedView = isOpen || isMobileMenuOpen;
 
   return (
-    <div className={`fixed left-6 top-6 bottom-6 z-50 transition-all duration-300 ${isOpen ? 'w-56' : 'w-[80px]'}`}>
+    <div className={`fixed left-3.5 top-3.5 bottom-3.5 md:left-6 md:top-6 md:bottom-6 z-50 transition-all duration-300 ${
+      isMobileMenuOpen ? 'translate-x-0 w-64 max-w-[85vw]' : '-translate-x-[150%] md:translate-x-0'
+    } ${isOpen ? 'md:w-56' : 'md:w-[80px]'}`}>
       
-      {/* Toggle Button on the side edge of sidebar */}
+      {/* Toggle Button on the side edge of sidebar (Desktop only) */}
       {toggleSidebar && (
         <button
           onClick={toggleSidebar}
           title={isOpen ? "Tutup Sidebar" : "Buka Sidebar"}
           aria-label="Toggle Sidebar"
-          className="absolute -right-3 top-14 z-50 w-6 h-6 bg-white text-[#0B3D91] rounded-full flex items-center justify-center shadow-md hover:bg-slate-50 hover:scale-110 transition-all cursor-pointer border border-blue-100"
+          className="hidden md:flex absolute -right-3 top-14 z-50 w-6 h-6 bg-white text-[#0B3D91] rounded-full items-center justify-center shadow-md hover:bg-slate-50 hover:scale-110 transition-all cursor-pointer border border-blue-100"
         >
           {isOpen ? (
             <ChevronLeft className="w-3.5 h-3.5 text-[#0B3D91]" />
@@ -79,19 +83,30 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
       {/* Main Sidebar Container */}
       <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0B3D91] to-[#1E5FCC] text-white flex flex-col shadow-2xl overflow-hidden">
         
-        {/* 1. Header / Logo (Side-by-side when open) */}
-        <div className={`pt-6 pb-4 transition-all duration-300 ${isOpen ? 'px-5 flex items-center gap-3' : 'px-2 flex flex-col items-center justify-center'}`}>
-          <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md">
-            <PhoneCall className="text-[#0B3D91] w-5 h-5" />
-          </div>
-          {isOpen && (
-            <div className="overflow-hidden whitespace-nowrap">
-              <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
-              <p className="text-[11px] text-blue-200 font-medium">
-                {effectiveRoleLabel}
-              </p>
+        {/* 1. Header / Logo */}
+        <div className={`pt-5 md:pt-6 pb-4 transition-all duration-300 flex items-center justify-between ${isExpandedView ? 'px-4 md:px-5' : 'px-2 justify-center'}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md">
+              <PhoneCall className="text-[#0B3D91] w-5 h-5" />
             </div>
-          )}
+            {isExpandedView && (
+              <div className="overflow-hidden whitespace-nowrap">
+                <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
+                <p className="text-[11px] text-blue-200 font-medium">
+                  {effectiveRoleLabel}
+                </p>
+              </div>
+            )}
+          </div>
+          {/* Tombol X untuk close drawer di layar mobile */}
+          <button
+            type="button"
+            onClick={closeMobileMenu}
+            aria-label="Tutup Menu"
+            className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Thin Divider Line */}
@@ -113,9 +128,10 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
               <Link
                 key={item.name}
                 to={item.path}
-                title={!isOpen ? (showBadge ? `${item.name} (${pendingTopupCount} permohonan baru)` : item.name) : undefined}
+                onClick={() => closeMobileMenu?.()}
+                title={!isExpandedView ? (showBadge ? `${item.name} (${pendingTopupCount} permohonan baru)` : item.name) : undefined}
                 className={`flex items-center transition-all duration-300 ${
-                  !isOpen 
+                  !isExpandedView 
                     ? `mx-auto w-11 h-11 justify-center rounded-2xl relative ${
                         isActive 
                           ? 'bg-white text-[#0B3D91] shadow-md font-bold' 
@@ -131,7 +147,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                 <div className="relative shrink-0 flex items-center justify-center">
                   <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
                   {/* Lingkaran oren kecil saat sidebar tertutup (collapsed) */}
-                  {!isOpen && showBadge && (
+                  {!isExpandedView && showBadge && (
                     <>
                       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91] animate-ping" />
                       <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91]" />
@@ -139,7 +155,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
                   )}
                 </div>
 
-                {isOpen && (
+                {isExpandedView && (
                   <>
                     <span className="whitespace-nowrap text-sm font-medium flex-1 truncate">
                       {item.name}
@@ -158,17 +174,17 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
         </div>
 
         {/* 3. UPT Info & 4. Logout */}
-        <div className={`pb-5 pt-2 mt-auto transition-all duration-300 ${!isOpen ? 'px-2 flex flex-col items-center gap-2' : 'px-3'}`}>
+        <div className={`pb-5 pt-2 mt-auto transition-all duration-300 ${!isExpandedView ? 'px-2 flex flex-col items-center gap-2' : 'px-3'}`}>
           {isBranchAdmin && (
             <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
-              !isOpen 
+              !isExpandedView 
                 ? 'w-11 h-11 justify-center p-0 mb-1' 
                 : 'p-3 gap-2.5 mb-2.5 mx-1'
             }`}>
                <div className="relative shrink-0">
                  <Building2 className="w-5 h-5 text-white" />
                </div>
-               {isOpen && (
+               {isExpandedView && (
                  <div className="overflow-hidden whitespace-nowrap">
                    <p className="text-xs font-semibold text-white">{uptDisplayName}</p>
                    <div className="flex items-center gap-1.5 mt-0.5">
@@ -182,16 +198,19 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar }) => {
 
           <button 
             type="button"
-            onClick={handleLogout}
-            title={!isOpen ? "Keluar" : undefined}
+            onClick={() => {
+              closeMobileMenu?.();
+              handleLogout();
+            }}
+            title={!isExpandedView ? "Keluar" : undefined}
             className={`flex items-center transition-colors rounded-2xl text-red-300 hover:bg-white/10 hover:text-red-200 cursor-pointer ${
-              !isOpen 
+              !isExpandedView 
                 ? 'w-11 h-11 justify-center p-0 mx-auto' 
                 : 'mx-1 px-3.5 py-2.5 gap-3 w-[calc(100%-8px)]'
             }`}
           >
             <LogOut className="w-4 h-4 shrink-0" />
-            {isOpen && (
+            {isExpandedView && (
               <span className="whitespace-nowrap text-sm font-medium">Keluar</span>
             )}
           </button>

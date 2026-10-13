@@ -196,7 +196,7 @@ const List = () => {
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[680px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-4 px-6">Nama Cabang</th>
@@ -314,8 +314,8 @@ const List = () => {
         </div>
         
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 bg-slate-50/50">
-          <div>Menampilkan <span className="font-bold text-slate-700">{filteredBranches.length}</span> dari {branchesData.total || filteredBranches.length} cabang terdaftar</div>
+        <div className="px-6 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500 bg-slate-50/50">
+          <div className="text-center sm:text-left">Menampilkan <span className="font-bold text-slate-700">{filteredBranches.length}</span> dari {branchesData.total || filteredBranches.length} cabang terdaftar</div>
           {branchesData.totalPages > 1 && (
             <div className="flex items-center gap-1.5">
               <button 

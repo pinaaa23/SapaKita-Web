@@ -218,8 +218,8 @@ export const mapPackageItem = (item) => {
     status: isActive ? 'Aktif' : 'Nonaktif',
     rawStatus,
     isActive,
-    branchId: item.branchId || '',
-    branch: item.branch?.name || item.branch || 'Lapas Cipinang',
+    branchId: item.branchId || null,
+    branch: item.branch?.name || item.branch || (item.branchId ? '' : 'Paket Global (Lama)'),
     createdAt: item.createdAt || new Date().toISOString(),
   };
 };
@@ -259,6 +259,7 @@ export const getPackages = async ({
   kategori = 'semua',
   status = 'semua',
   activeOnly = false,
+  allowEmpty = false,
 } = {}) => {
   if (isDummyMode()) {
     let list = getStoredPackages();
@@ -306,7 +307,7 @@ export const getPackages = async ({
       beList = res.data;
     }
 
-    if (beList.length === 0) {
+    if (beList.length === 0 && !allowEmpty) {
       // Fallback ke stored packages jika BE belum ada data
       beList = getStoredPackages();
     }
@@ -327,6 +328,9 @@ export const getPackages = async ({
     if (error?.status === 401) {
       logout();
       throw error;
+    }
+    if (allowEmpty) {
+      return [];
     }
     console.warn('[PackageService] Fallback ke stored packages:', error?.message || error);
     let list = getStoredPackages();
@@ -404,13 +408,17 @@ export const createPackage = async (data) => {
     return newPackage;
   }
 
+  const isUuid = (str) =>
+    typeof str === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+
   const payload = {
     nama: nameStr,
     kategori: kategoriEnum,
     durasi: durasiNum,
     harga: hargaNum,
     status: statusEnum,
-    ...(data.branchId ? { branchId: data.branchId } : {}),
+    ...(data.branchId && isUuid(data.branchId) ? { branchId: data.branchId.trim() } : {}),
   };
 
   const res = await apiFetch(PACKAGES_ENDPOINT, {

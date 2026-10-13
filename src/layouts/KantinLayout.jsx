@@ -282,7 +282,7 @@ export default function KantinLayout() {
 
               {/* Notif Popover Panel */}
               {isNotifOpen && (
-                <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 md:w-96 max-w-sm bg-white border border-slate-200/90 rounded-2xl shadow-xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <div className="flex items-center gap-2">
                       <h4 className="text-sm font-bold text-slate-800">Notifikasi Kantin</h4>
@@ -420,7 +420,7 @@ export default function KantinLayout() {
       </div>
 
       {/* BOTTOM NAVIGATION FOR MOBILE (Paket, Status Wartel, Riwayat, Top Up Saldo) */}
-      <nav className="no-print md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E2E8F0] z-40 px-3 py-2 flex justify-around shadow-lg">
+      <nav className="no-print md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E2E8F0] z-40 px-2 py-1.5 flex justify-around shadow-lg">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const showBadge = item.isTopup && unreadApprovedCount > 0;
@@ -431,7 +431,7 @@ export default function KantinLayout() {
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 py-1 px-3 sm:px-5 rounded-xl transition font-bold text-xs ${
+                `flex flex-col items-center gap-0.5 py-1 px-1.5 sm:px-4 rounded-xl transition font-bold text-xs ${
                   isActive
                     ? 'text-[#1565C0]'
                     : 'text-slate-400 hover:text-slate-600'
@@ -453,7 +453,9 @@ export default function KantinLayout() {
                       </>
                     )}
                   </div>
-                  <span>{item.label}</span>
+                  <span className="text-[10px] sm:text-xs text-center truncate max-w-[70px] sm:max-w-none">
+                    {item.label}
+                  </span>
                 </>
               )}
             </NavLink>

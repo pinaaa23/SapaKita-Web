@@ -86,7 +86,7 @@ async function fetchAndUpdate(isManualRefresh = false) {
     sharedState = {
       ...sharedState,
       daftar: res.daftar,
-      summary: hitungRingkasanWartel(res.daftar),
+      summary: hitungRingkasanWartel(res.daftar, res.cabang),
       isLoading: false,
       isRefreshing: false,
       error: false, // hapus error banner jika berhasil

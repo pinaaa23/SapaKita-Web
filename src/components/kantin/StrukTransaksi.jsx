@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Printer, ArrowLeft, Building2, User, CreditCard, Clock, ShoppingBag } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
+import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
 
 export default function StrukTransaksi({ transaksi }) {
   if (!transaksi) return null;
@@ -41,9 +42,9 @@ export default function StrukTransaksi({ transaksi }) {
         </Link>
       </div>
 
-      {/* Kartu Struk (ID: struk-cetak untuk print CSS) */}
+      {/* Kartu Struk (ID: struk untuk print CSS termal 58mm) */}
       <div
-        id="struk-cetak"
+        id="struk"
         className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden p-6 sm:p-8"
       >
         {/* Header Struk */}
@@ -62,8 +63,14 @@ export default function StrukTransaksi({ transaksi }) {
               <p className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-[#0D47A1]">
                 KODE VOUCHER ANDA
               </p>
-              <div className="struk-voucher-code my-3.5 sm:my-4 text-[44px] sm:text-[48px] font-black font-mono tracking-widest leading-none text-[#0F172A] select-all">
-                {transaksi.kodeVoucher}
+              <div
+                className={`struk-voucher-code my-3.5 sm:my-4 font-black font-mono leading-none text-[#0F172A] select-all whitespace-nowrap overflow-hidden ${
+                  String(transaksi.kodeVoucher).length > VOUCHER_CODE_LENGTH
+                    ? 'text-[36px] sm:text-[40px] tracking-wider'
+                    : 'text-[40px] sm:text-[44px] md:text-[48px] tracking-wider sm:tracking-widest'
+                }`}
+              >
+                {String(transaksi.kodeVoucher)}
               </div>
               <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
                 Masukkan kode ini di wartel PasCall. Kode hanya berlaku satu kali.
@@ -205,6 +212,7 @@ export default function StrukTransaksi({ transaksi }) {
       {/* Tombol Aksi di Layar (no-print) */}
       <div className="no-print mt-6 flex flex-col sm:flex-row gap-3">
         <button
+          type="button"
           onClick={handleCetak}
           className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-sm rounded-xl shadow-sm transition cursor-pointer"
         >

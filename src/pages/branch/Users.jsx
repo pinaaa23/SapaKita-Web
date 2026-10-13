@@ -38,9 +38,10 @@ import {
 } from '../../services/userService';
 import { ROLES, ROLE_LABELS } from '../../config/menuConfig';
 import { useAuth } from '../../context/AuthContext';
+import { generateUserEmail } from './users/Create';
 
 export default function BranchUsers() {
-  const { canManageUsers } = useAuth();
+  const { canManageUsers, user, uptName } = useAuth();
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -108,12 +109,21 @@ export default function BranchUsers() {
     }, 2000);
   };
 
+  const getBranchName = () => {
+    if (uptName && !['upt anda', 'cabang terdaftar', 'upt terdaftar'].includes(uptName.toLowerCase())) {
+      return uptName;
+    }
+    return user?.branch?.name || user?.branchName || 'yogyakarta';
+  };
+
   // Open Create Modal
   const handleOpenCreateModal = () => {
     const autoPass = generateRandomPassword();
+    const branchName = getBranchName();
+    const autoEmail = generateUserEmail('', ROLES.SUPERVISOR, branchName, user);
     setFormData({
       name: '',
-      email: '',
+      email: autoEmail,
       phone: '',
       role: ROLES.SUPERVISOR,
       password: autoPass,
@@ -121,6 +131,35 @@ export default function BranchUsers() {
     setFormError('');
     setShowPassword(false);
     setIsCreateModalOpen(true);
+  };
+
+  const handleCreateNameChange = (val) => {
+    const branchName = getBranchName();
+    setFormData((prev) => {
+      const isSpv = prev.role === ROLES.SUPERVISOR;
+      const nextEmail = isSpv
+        ? generateUserEmail(val, ROLES.SUPERVISOR, branchName, user)
+        : prev.email;
+      return {
+        ...prev,
+        name: val,
+        email: nextEmail,
+      };
+    });
+  };
+
+  const handleCreateRoleChange = (newRole) => {
+    const branchName = getBranchName();
+    setFormData((prev) => {
+      const nextEmail = newRole === ROLES.SUPERVISOR
+        ? generateUserEmail(prev.name, ROLES.SUPERVISOR, branchName, user)
+        : prev.email;
+      return {
+        ...prev,
+        role: newRole,
+        email: nextEmail,
+      };
+    });
   };
 
   // Open Edit Modal (Name, Phone & Role)
@@ -394,7 +433,7 @@ export default function BranchUsers() {
 
         {/* Tabel Data Pengguna */}
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse min-w-[620px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 pl-4 pr-2 whitespace-nowrap">NAMA</th>
@@ -646,7 +685,7 @@ export default function BranchUsers() {
                     required
                     placeholder="Contoh: Ahmad Fauzi"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={(e) => handleCreateNameChange(e.target.value)}
                     className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
                   />
                 </div>
@@ -654,21 +693,37 @@ export default function BranchUsers() {
 
               {/* Email Login */}
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Email Login <span className="text-rose-500">*</span>
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Email Login <span className="text-rose-500">*</span>
+                  </label>
+                  {formData.role === ROLES.SUPERVISOR && (
+                    <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Dibuat Otomatis (Read-only)
+                    </span>
+                  )}
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
                     type="email"
                     required
+                    readOnly={formData.role === ROLES.SUPERVISOR}
                     placeholder="Contoh: spv.ucuk.yogyakarta@pascall.id"
                     value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs font-mono"
+                    onChange={(e) => {
+                      if (formData.role !== ROLES.SUPERVISOR) {
+                        setFormData({ ...formData, email: e.target.value });
+                      }
+                    }}
+                    className={`w-full pl-10 pr-4 py-2.5 border rounded-xl text-xs font-mono font-medium transition shadow-2xs ${
+                      formData.role === ROLES.SUPERVISOR
+                        ? 'bg-slate-100/80 text-slate-600 border-slate-200 cursor-not-allowed select-none'
+                        : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                    }`}
                   />
                 </div>
-                {/* Petunjuk format email — hanya informasi, bukan validasi ketat */}
+                {/* Petunjuk format email */}
                 <p className="text-[11px] text-slate-400 leading-relaxed">
                   Format: <span className="font-mono font-semibold text-slate-500">peran.nama.cabang@pascall.id</span>
                   <span className="mx-1">·</span>
@@ -684,7 +739,7 @@ export default function BranchUsers() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, role: ROLES.SUPERVISOR })}
+                    onClick={() => handleCreateRoleChange(ROLES.SUPERVISOR)}
                     className={`p-3 rounded-xl border flex items-center gap-2.5 transition text-left cursor-pointer ${
                       formData.role === ROLES.SUPERVISOR
                         ? 'bg-blue-50 border-primary ring-2 ring-primary/20 text-primary'
@@ -700,7 +755,7 @@ export default function BranchUsers() {
 
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, role: ROLES.OPERATOR_KANTIN })}
+                    onClick={() => handleCreateRoleChange(ROLES.OPERATOR_KANTIN)}
                     className={`p-3 rounded-xl border flex items-center gap-2.5 transition text-left cursor-pointer ${
                       formData.role === ROLES.OPERATOR_KANTIN
                         ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-500/20 text-emerald-700'
