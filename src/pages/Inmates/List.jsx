@@ -244,7 +244,7 @@ const InmatesList = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama, NIP, atau kontak keluarga..." 
+              placeholder="Cari nama atau NIP WBP..." 
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -392,7 +392,9 @@ const InmatesList = () => {
                 </th>
                 <th className="py-3 px-2.5 font-bold text-center">Cabang</th>
                 <th className="py-3 px-2.5 font-bold text-left">Blok / Kamar</th>
+                {/* Disembunyikan: Kolom keluarga tidak lagi digunakan
                 <th className="py-3 px-2.5 font-bold text-left">Keluarga</th>
+                */}
                 <th className="py-3 px-2.5 font-bold text-left">Tgl Masuk</th>
                 <th className="py-3 px-2.5 font-bold text-center">Saldo</th>
                 <th className="py-3 px-2.5 font-bold text-center">Penempatan</th>
@@ -417,10 +419,12 @@ const InmatesList = () => {
                     <td className="py-3 px-2.5 text-left">
                       <div className="h-4 bg-slate-200 rounded w-20"></div>
                     </td>
+                    {/* Disembunyikan skeleton keluarga:
                     <td className="py-3 px-2.5 text-left">
                       <div className="h-4 bg-slate-200 rounded w-24 mb-1"></div>
                       <div className="h-3 bg-slate-100 rounded w-16"></div>
                     </td>
+                    */}
                     <td className="py-3 px-2.5 text-left">
                       <div className="h-4 bg-slate-200 rounded w-16"></div>
                     </td>
@@ -481,7 +485,7 @@ const InmatesList = () => {
                         </span>
                       </td>
 
-                      {/* Keluarga (Format: Nama + (+N badge) & No. Telepon di bawahnya) */}
+                      {/* Disembunyikan: Kolom keluarga tidak lagi digunakan
                       <td className="py-2.5 px-2.5 text-left whitespace-nowrap">
                         {firstFamily ? (
                           <div className="min-w-0 max-w-[140px]">
@@ -508,6 +512,7 @@ const InmatesList = () => {
                           <span className="text-slate-400 font-medium text-xs">-</span>
                         )}
                       </td>
+                      */}
 
                       {/* Tgl Masuk */}
                       <td className="py-2.5 px-2.5 font-medium text-slate-600 whitespace-nowrap text-xs">
@@ -579,7 +584,7 @@ const InmatesList = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="9" className="px-6 py-16 text-center text-slate-500">
+                  <td colSpan="8" className="px-6 py-16 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-2">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                         <Users className="w-6 h-6" />

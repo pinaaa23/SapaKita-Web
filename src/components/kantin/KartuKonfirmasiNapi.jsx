@@ -34,6 +34,7 @@ export default function KartuKonfirmasiNapi({ napi }) {
           </div>
         </div>
 
+        {/* Sembunyikan: WBP tidak memiliki no telepon pribadi di lapas
         {napi.noTelp && (
           <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-600">
             <span className="flex items-center gap-1.5 text-slate-400">
@@ -45,6 +46,7 @@ export default function KartuKonfirmasiNapi({ napi }) {
             </span>
           </div>
         )}
+        */}
       </div>
     </div>
   );

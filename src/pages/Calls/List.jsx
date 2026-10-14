@@ -182,8 +182,8 @@ const CallsList = () => {
       'Cabang UPT': c.branchName || c.branchId || 'Pusat',
       'Nama WBP': c.inmateName,
       'NIP': c.inmateId,
-      'Keluarga Tujuan': c.familyName,
-      'Nomor Telp': c.familyPhone,
+      // 'Keluarga Tujuan': c.familyName,
+      'No. Telepon Tujuan': c.familyPhone || '-',
       'Durasi': `${Math.floor((c.durationSeconds || 0) / 60)}m ${(c.durationSeconds || 0) % 60}s`,
       'Biaya': `Rp ${new Intl.NumberFormat('id-ID').format(c.cost || 0)}`,
       'Jalur': c.callType === 'Video' ? 'Web' : (c.channel === 'gsm' ? 'GSM' : 'Web'),
@@ -281,7 +281,7 @@ const CallsList = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Cari NIP / nama WBP / keluarga..."
+              placeholder="Cari NIP, nama WBP, atau no. tujuan..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-8 py-2 bg-slate-50/70 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition font-medium"
@@ -498,9 +498,13 @@ const CallsList = () => {
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
+                            {/* <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
                               <span>→</span>
                               <span className="truncate">{call.familyName}</span>
+                            </div> */}
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
+                              <span>→</span>
+                              <span className="truncate">{call.familyPhone || '-'}</span>
                             </div>
                           </td>
 
@@ -674,7 +678,7 @@ const CallsList = () => {
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Transkrip Percakapan</h3>
                   <p className="text-xs text-slate-400 font-medium">
-                    {transcriptModalCall.inmateName} (NIP: {transcriptModalCall.inmateId}) &amp; {transcriptModalCall.familyName}
+                    {transcriptModalCall.inmateName} (NIP: {transcriptModalCall.inmateId}) → {transcriptModalCall.familyPhone || '-'}
                   </p>
                 </div>
               </div>

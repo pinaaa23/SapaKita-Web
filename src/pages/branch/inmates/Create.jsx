@@ -19,12 +19,14 @@ import { logout, getAuthUser } from '../../../services/api';
 import FamilyMembersEditor, { validateFamilies } from '../../../components/FamilyMembersEditor';
 import { useAuth } from '../../../context/AuthContext';
 
+const isUuid = (val) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val.trim());
+
 const InmatesCreate = () => {
   const navigate = useNavigate();
   const { uptName } = useAuth();
   const authUser = getAuthUser();
   const isSuperadmin = authUser?.role === 'SUPERADMIN';
-  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas II Yogyakarta');
+  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Lapas Kelas I Cipinang');
 
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState('');
@@ -94,7 +96,8 @@ const InmatesCreate = () => {
       return;
     }
 
-    // Validasi keluarga
+    // Validasi keluarga (dinonaktifkan - WBP mengetik sendiri nomor tujuan di wartel)
+    /*
     const { isValid, errors } = validateFamilies(formData.families);
     if (!isValid) {
       setFamilyErrors(errors);
@@ -102,6 +105,7 @@ const InmatesCreate = () => {
       return;
     }
     setFamilyErrors([]);
+    */
 
     const branchIdToSend = isSuperadmin 
       ? (selectedBranchId || manualBranchName.trim() || undefined)
@@ -121,14 +125,17 @@ const InmatesCreate = () => {
         identifier: formData.wbpRegNumber,
         name: formData.name,
         initialPin: formData.initialPin,
-        families: formData.families,
+        // families: formData.families,
+        families: [],
         blockRoom: formData.blockRoom || 'Blok A / Kamar 1A',
-        branchId: branchIdToSend || authUser?.branchId || authUser?.branch?.id || 'mock-upt-yogyakarta',
+        branchId: isSuperadmin 
+          ? (isUuid(branchIdToSend) ? branchIdToSend : undefined)
+          : (isUuid(authUser?.branchId) ? authUser.branchId : (isUuid(authUser?.branch?.id) ? authUser.branch.id : undefined)),
         branchName: currentBranchName,
       });
       
       navigate('/branch/inmates', { 
-        state: { toast: `Narapidana ${formData.name} (NIP: ${formData.wbpRegNumber}) berhasil didaftarkan!` } 
+        state: { toast: `WBP ${formData.name} (NIP: ${formData.wbpRegNumber}) berhasil didaftarkan!` } 
       });
     } catch (err) {
       console.log('[InmatesCreate] Error submit inmate:', err);
@@ -241,7 +248,7 @@ const InmatesCreate = () => {
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
                   required
                 />
-                <p className="text-[10px] text-slate-400 mt-1">Digunakan keluarga untuk mendaftarkan kontak di aplikasi mobile.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Nomor induk unik WBP.</p>
               </div>
 
               <div>
@@ -452,8 +459,8 @@ const InmatesCreate = () => {
           </div>
         </div>
 
-        {/* Section 4 - Keluarga Terdaftar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        {/* Section 4 - Keluarga Terdaftar (Dinonaktifkan) */}
+        {/* <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600">
               <Users className="w-4 h-4" />
@@ -474,7 +481,7 @@ const InmatesCreate = () => {
               errors={familyErrors}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Action Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
@@ -489,7 +496,7 @@ const InmatesCreate = () => {
             disabled={isSubmitting}
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Narapidana'}
+            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Data WBP'}
           </button>
         </div>
 

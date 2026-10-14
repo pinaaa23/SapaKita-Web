@@ -393,7 +393,7 @@ const InmatesDetail = () => {
         </div>
       </div>
 
-      {/* Keluarga Terdaftar Card */}
+      {/* Disembunyikan: Seluruh Card Keluarga Terdaftar tidak lagi digunakan
       <div id="families" className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 scroll-mt-6">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
@@ -446,6 +446,7 @@ const InmatesDetail = () => {
           </div>
         )}
       </div>
+      */}
 
       {/* Modal Reset PIN */}
       {isResetPinModalOpen && (

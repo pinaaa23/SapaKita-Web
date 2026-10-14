@@ -24,7 +24,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
   const handleCariWbp = async (e) => {
     if (e) e.preventDefault();
     if (!idInput.trim()) {
-      setErrorPencarian('Silakan masukkan NIP atau Nomor Telepon terlebih dahulu.');
+      setErrorPencarian('Silakan masukkan NIP WBP terlebih dahulu.');
       return;
     }
 
@@ -38,13 +38,13 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
         setWbpTerpilih(data);
         setErrorPencarian('');
       } else {
-        setErrorPencarian('Narapidana tidak ditemukan, periksa kembali NIP / No. Telepon.');
+        setErrorPencarian('WBP tidak ditemukan, periksa kembali NIP.');
       }
     } catch (err) {
       if (err.isInactive || err.message?.includes('dinonaktifkan')) {
-        setErrorPencarian('Akun komunikasi narapidana sedang dinonaktifkan oleh petugas lapas.');
+        setErrorPencarian('Akun komunikasi WBP sedang dinonaktifkan oleh petugas lapas.');
       } else {
-        setErrorPencarian(err.message || 'Terjadi kesalahan saat mencari data narapidana.');
+        setErrorPencarian(err.message || 'Terjadi kesalahan saat mencari data WBP.');
       }
     } finally {
       setIsSearching(false);
@@ -191,7 +191,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  NIP / Nomor Registrasi Narapidana <span className="text-red-500">*</span>
+                  NIP WBP <span className="text-red-500">*</span>
                 </label>
                 <form onSubmit={handleCariWbp} className="flex gap-2">
                   <div className="relative flex-1">
@@ -221,7 +221,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                   </button>
                 </form>
                 <p className="text-[11px] text-slate-400 mt-1.5">
-                  Ketik NIP / Nomor Registrasi atau Nama WBP untuk memuat profil.
+                  Ketik NIP atau Nama WBP untuk memuat profil.
                 </p>
               </div>
 

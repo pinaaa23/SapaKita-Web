@@ -71,7 +71,7 @@ export default function TabelTransaksi({
       'ID TRANSAKSI',
       'WAKTU',
       'NAMA PELANGGAN',
-      'NIP / NO. TELP',
+      'NIP WBP',
       'KETERANGAN PAKET',
       'KODE VOUCHER',
       'METODE',
@@ -82,7 +82,7 @@ export default function TabelTransaksi({
       item.id || '-',
       formatTanggal(item.waktu, true),
       item.napi?.nama || '-',
-      `${item.napi?.id || '-'}${item.napi?.noTelp ? ` / ${item.napi.noTelp}` : ''}`,
+      item.napi?.id || '-',
       item.paket?.nama || '-',
       maskVoucher(item.kodeVoucher),
       item.metode || 'Tunai',
@@ -149,7 +149,7 @@ export default function TabelTransaksi({
               type="text"
               value={pencarian}
               onChange={(e) => onPencarianChange(e.target.value)}
-              placeholder="Cari ID transaksi, voucher, nama, NIP / No. HP..."
+              placeholder="Cari ID transaksi, voucher, nama, NIP WBP..."
               className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -210,7 +210,7 @@ export default function TabelTransaksi({
                 <th className="py-3.5 px-4">ID Transaksi</th>
                 <th className="py-3.5 px-4">Waktu</th>
                 <th className="py-3.5 px-4">Nama Pelanggan</th>
-                <th className="py-3.5 px-4">NIP / No. Telp</th>
+                <th className="py-3.5 px-4">NIP WBP</th>
                 <th className="py-3.5 px-4">Keterangan Paket</th>
                 <th className="py-3.5 px-4">Metode</th>
                 <th className="py-3.5 px-4 text-right">Nominal</th>
@@ -240,11 +240,13 @@ export default function TabelTransaksi({
                     <span className="font-mono text-slate-700 font-semibold block">
                       {item.napi?.id}
                     </span>
+                    {/* Disembunyikan: tidak ada lagi nomor telepon keluarga WBP
                     {item.napi?.noTelp && (
                       <span className="text-[10px] text-slate-400 font-mono block">
                         {item.napi?.noTelp}
                       </span>
                     )}
+                    */}
                   </td>
                   <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
                     {item.paket?.nama}

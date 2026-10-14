@@ -288,7 +288,6 @@ export default function PackagesList() {
                   ) : (
                     filteredBranches.map((branch) => {
                           const hasNoPackages = branch.totalPackages === 0;
-                          const isThisSeeding = isSeeding && seedingBranchId === branch.id;
 
                           return (
                             <tr key={branch.id} className="hover:bg-slate-50/70 transition-colors">

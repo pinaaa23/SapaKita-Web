@@ -396,9 +396,13 @@ const Recordings = () => {
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
+                            {/* <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
                               <span>→</span>
                               <span className="truncate">{call.familyName}</span>
+                            </div> */}
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
+                              <span>→</span>
+                              <span className="truncate">{call.familyPhone || '-'}</span>
                             </div>
                           </td>
 
@@ -593,8 +597,11 @@ const Recordings = () => {
                   <h3 className="font-bold text-sm text-slate-800">
                     Transkrip {transcriptModalCall.callType === 'Video' ? 'Video Call' : 'Voice Call'}
                   </h3>
-                  <p className="text-xs text-slate-400 font-medium">
+                  {/* <p className="text-xs text-slate-400 font-medium">
                     {transcriptModalCall.inmateName} &amp; {transcriptModalCall.familyName}
+                  </p> */}
+                  <p className="text-xs text-slate-400 font-medium">
+                    {transcriptModalCall.inmateName} → {transcriptModalCall.familyPhone || '-'}
                   </p>
                 </div>
               </div>

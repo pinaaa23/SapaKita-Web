@@ -97,7 +97,8 @@ const InmatesEdit = () => {
       return;
     }
 
-    // Validasi keluarga
+    // Validasi keluarga (dinonaktifkan - WBP mengetik sendiri nomor tujuan di wartel)
+    /*
     const { isValid, errors } = validateFamilies(formData.families);
     if (!isValid) {
       setFamilyErrors(errors);
@@ -105,6 +106,7 @@ const InmatesEdit = () => {
       return;
     }
     setFamilyErrors([]);
+    */
 
     setIsSubmitting(true);
     setErrorMsg('');
@@ -115,9 +117,10 @@ const InmatesEdit = () => {
         initialPin: formData.initialPin,
         blockRoom: formData.blockRoom,
         branchName: formData.branchName,
-        families: formData.families
+        // families: formData.families,
+        families: []
       });
-      navigate('/branch/inmates', { state: { toast: 'Data narapidana dan keluarga berhasil diperbarui.' } });
+      navigate('/branch/inmates', { state: { toast: 'Data WBP berhasil diperbarui.' } });
     } catch (err) {
       if (err?.status === 401) {
         logout();
@@ -362,8 +365,8 @@ const InmatesEdit = () => {
           </div>
         </div>
 
-        {/* Section 4 - Keluarga Terdaftar */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+        {/* Section 4 - Keluarga Terdaftar (Dinonaktifkan) */}
+        {/* <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2.5">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600">
               <Users className="w-4 h-4" />
@@ -384,7 +387,7 @@ const InmatesEdit = () => {
               errors={familyErrors}
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Action Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
@@ -399,7 +402,7 @@ const InmatesEdit = () => {
             disabled={isSubmitting}
             className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-primary text-white rounded-xl hover:bg-primary-dark text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Update Data & Keluarga'}
+            <Save className="w-4 h-4" /> {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
         </div>
 

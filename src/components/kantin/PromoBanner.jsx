@@ -18,7 +18,7 @@ export default function PromoBanner() {
             Beli Paket Komunikasi
           </h2>
           <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
-            Nikmati paket hemat telepon & video call bersama keluarga tercinta.
+            Nikmati paket hemat telepon & video call bersama orang tercinta.
           </p>
         </div>
 

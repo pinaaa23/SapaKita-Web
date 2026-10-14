@@ -16,7 +16,8 @@ import {
   Info, 
   Mic, 
   Activity,
-  AlertCircle
+  AlertCircle,
+  Phone
 } from 'lucide-react';
 import { getCallById } from '../../services/callService';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
@@ -220,12 +221,13 @@ const Detail = () => {
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-full flex items-center justify-center">
-            <Users className="w-6 h-6" />
+            <Phone className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs text-slate-500 font-semibold uppercase">Keluarga (Penerima)</p>
-            <p className="text-slate-800 font-bold">{call.familyName || '-'}</p>
-            <p className="text-xs text-slate-500">{call.familyPhone || '-'}</p>
+            <p className="text-xs text-slate-500 font-semibold uppercase">Nomor Tujuan</p>
+            {/* <p className="text-slate-800 font-bold">{call.familyName || '-'}</p>
+            <p className="text-xs text-slate-500">{call.familyPhone || '-'}</p> */}
+            <p className="text-slate-800 font-bold">{call.familyPhone || '-'}</p>
           </div>
         </div>
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-4">
@@ -278,7 +280,8 @@ const Detail = () => {
                       </div>
                       <div className="w-1/2 h-full bg-slate-800 flex flex-col items-center justify-center relative">
                         <Users className="w-20 h-20 text-slate-600 mb-4" />
-                        <span className="absolute bottom-4 right-4 bg-black/60 text-white/90 px-2 py-1 rounded text-xs">Keluarga: {call.familyName}</span>
+                        {/* <span className="absolute bottom-4 right-4 bg-black/60 text-white/90 px-2 py-1 rounded text-xs">Keluarga: {call.familyName}</span> */}
+                        <span className="absolute bottom-4 right-4 bg-black/60 text-white/90 px-2 py-1 rounded text-xs">Tujuan: {call.familyPhone || '-'}</span>
                       </div>
                     </div>
                   ) : (
@@ -286,9 +289,13 @@ const Detail = () => {
                       <div className="w-24 h-24 bg-slate-800 rounded-full flex items-center justify-center border-4 border-slate-700 shadow-xl z-10 relative mb-8">
                         <Mic className={`w-10 h-10 ${isPlaying ? 'text-green-400' : 'text-slate-500'}`} />
                       </div>
-                      <span className="absolute bottom-4 bg-black/60 text-white/90 px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
+                      {/* <span className="absolute bottom-4 bg-black/60 text-white/90 px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
                         <Activity className="w-3.5 h-3.5 text-green-400" />
                         Panggilan Suara: {call.inmateName} & {call.familyName}
+                      </span> */}
+                      <span className="absolute bottom-4 bg-black/60 text-white/90 px-3 py-1.5 rounded-full text-xs flex items-center gap-2">
+                        <Activity className="w-3.5 h-3.5 text-green-400" />
+                        Tujuan: {call.familyPhone || '-'}
                       </span>
                     </div>
                   )}

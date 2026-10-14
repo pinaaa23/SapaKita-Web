@@ -167,15 +167,16 @@ function App() {
                   }
                 />
 
-                {/* Persetujuan Kontak - Kepala UPT & Supervisor */}
-                <Route
+                {/* Persetujuan Kontak - Nonaktifkan (dialihkan ke Dashboard Cabang) */}
+                {/* <Route
                   path="contacts"
                   element={
                     <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]}>
                       <BranchContacts />
                     </RoleGuard>
                   }
-                />
+                /> */}
+                <Route path="contacts" element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="transactions" element={<BranchTransactions />} />
                 <Route path="reports" element={<BranchReports />} />
                 <Route path="profile" element={<BranchProfile />} />

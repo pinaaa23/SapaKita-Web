@@ -205,13 +205,15 @@ const InmatesList = () => {
       return;
     }
 
-    // Validasi data keluarga
+    // Validasi data keluarga (dinonaktifkan - WBP mengetik sendiri nomor tujuan di wartel)
+    /*
     const { isValid, errors } = validateFamilies(editingInmate.families || []);
     if (!isValid) {
       setFamilyErrors(errors);
       setEditError('Mohon periksa kembali kolom isian data keluarga di bawah.');
       return;
     }
+    */
 
     setIsSubmittingEdit(true);
     setEditError('');
@@ -223,10 +225,11 @@ const InmatesList = () => {
         initialPin: editingInmate.initialPin,
         blockRoom: editingInmate.blockRoom,
         branchName: editingInmate.branchName,
-        families: editingInmate.families || []
+        // families: editingInmate.families || []
+        families: []
       });
       setIsEditModalOpen(false);
-      showToast('Data narapidana dan keluarga berhasil diperbarui.', 'success');
+      showToast('Data WBP berhasil diperbarui.', 'success');
       await loadData();
     } catch (err) {
       if (err?.status === 401) {
@@ -406,7 +409,7 @@ const InmatesList = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama WBP, NIP, atau kontak keluarga..." 
+              placeholder="Cari nama atau NIP WBP..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium"
@@ -466,7 +469,9 @@ const InmatesList = () => {
                   Nama Lengkap
                 </th>
                 <th className="py-3 px-2.5 whitespace-nowrap">Blok / Kamar</th>
+                {/* Disembunyikan: Kolom keluarga tidak lagi digunakan
                 <th className="py-3 px-2.5 whitespace-nowrap">Keluarga</th>
+                */}
                 <th className="py-3 px-2.5 whitespace-nowrap">Tgl Masuk</th>
                 <th className="py-3 px-2.5 whitespace-nowrap">Saldo</th>
                 <th className="py-3 px-2.5 whitespace-nowrap text-center">Penempatan</th>
@@ -485,7 +490,9 @@ const InmatesList = () => {
                       <div className="h-3 bg-slate-100 rounded w-16" />
                     </td>
                     <td className="py-3 px-2.5"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                    {/* Disembunyikan skeleton keluarga:
                     <td className="py-3 px-2.5"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
+                    */}
                     <td className="py-3 px-2.5"><div className="h-4 bg-slate-200 rounded w-16" /></td>
                     <td className="py-3 px-2.5"><div className="h-4 bg-slate-200 rounded w-16" /></td>
                     <td className="py-3 px-2.5 text-center"><div className="h-5 bg-slate-200 rounded-full w-14 mx-auto" /></td>
@@ -524,7 +531,7 @@ const InmatesList = () => {
                         </span>
                       </td>
 
-                      {/* Kolom KELUARGA (Format: Nama + (+N badge) & No. Telepon di bawahnya) */}
+                      {/* Disembunyikan: Kolom keluarga tidak lagi digunakan
                       <td className="py-2.5 px-2.5 text-left whitespace-nowrap">
                         {firstFamily ? (
                           <div className="min-w-0 max-w-[140px]">
@@ -551,6 +558,7 @@ const InmatesList = () => {
                           <span className="text-slate-400 font-medium text-xs">-</span>
                         )}
                       </td>
+                      */}
 
                       {/* Tgl Masuk */}
                       <td className="py-2.5 px-2.5 font-medium text-slate-600 whitespace-nowrap text-xs">
@@ -644,7 +652,7 @@ const InmatesList = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="9" className="py-16 text-center">
+                  <td colSpan="7" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="font-bold text-slate-700">Belum ada data narapidana</p>
@@ -708,8 +716,8 @@ const InmatesList = () => {
                   <Edit3 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Edit Data Narapidana &amp; Keluarga</h3>
-                  <p className="text-[11px] text-slate-400">Perbarui identitas dasar &amp; kontak keluarga narapidana</p>
+                  <h3 className="text-sm font-bold text-slate-800">Edit Data WBP</h3>
+                  <p className="text-[11px] text-slate-400">Perbarui informasi identitas dasar WBP</p>
                 </div>
               </div>
               <button 
@@ -822,8 +830,8 @@ const InmatesList = () => {
                 </div>
               </div>
 
-              {/* BAGIAN 2: KELUARGA TERDAFTAR */}
-              <div className="pt-2 border-t border-slate-100">
+              {/* BAGIAN 2: KELUARGA TERDAFTAR (Dinonaktifkan) */}
+              {/* <div className="pt-2 border-t border-slate-100">
                 <FamilyMembersEditor 
                   families={editingInmate.families || []}
                   onChange={(newFamilies) => {
@@ -832,7 +840,7 @@ const InmatesList = () => {
                   }}
                   errors={familyErrors}
                 />
-              </div>
+              </div> */}
 
               {/* Action Buttons */}
               <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { 
   Search, 
   CheckCircle2, 
@@ -21,7 +21,13 @@ import { exportToCSV } from '../../utils/exportUtils';
 import { getContacts, updateContactStatus } from '../../services/contactService';
 import { getInmatesApi, requestContactApi, logout } from '../../services/api';
 
+/**
+ * ARSIP: Halaman Persetujuan Kontak Keluarga
+ * Dinonaktifkan: WBP sekarang mengetik sendiri nomor tujuan di kiosk/wartel.
+ * Akses dialihkan otomatis ke Dashboard Cabang. Kode asli di bawah disimpan sebagai arsip.
+ */
 const Contacts = () => {
+  return <Navigate to="/branch/dashboard" replace />;
   const navigate = useNavigate();
   const [contacts, setContacts] = useState([]);
   const [filterStatus, setFilterStatus] = useState('All');

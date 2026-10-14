@@ -59,9 +59,7 @@ function Squiggle({ className = '', width = 140, height = 32, id: idProp }) {
     </svg>
   );
 }
-    </svg>
-  );
-}
+
 
 // ──────────────────────────────────────────────────────────────────
 // DATA (Reference Card Layout with Overlapping Circular Icons & Gradient Fills)

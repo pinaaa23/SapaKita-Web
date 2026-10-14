@@ -406,7 +406,7 @@ export const downloadTranscriptPDF = ({
     const infoList = [
       { label: 'Nama WBP', val: inmateInfo.name || callInfo.inmateName || callInfo.from || 'Ahmad Fauzi', isLeft: true, row: 0 },
       { label: 'NIP / Reg WBP', val: inmateInfo.wbpRegNumber || inmateInfo.nip || callInfo.inmateId || 'NIP-7721', isLeft: true, row: 1 },
-      { label: 'Kontak Tujuan', val: callInfo.contactName || callInfo.targetNumber || callInfo.familyName || callInfo.to || 'Siti Aminah (Istri)', isLeft: true, row: 2 },
+      { label: 'Nomor Tujuan', val: callInfo.targetNumber || callInfo.familyPhone || '-', isLeft: true, row: 2 },
       { label: 'Lokasi UPT', val: uptName || callInfo.branchName || 'Lapas Kelas 1', isLeft: false, row: 0 },
       { label: 'Waktu Panggilan', val: callInfo.date ? new Date(callInfo.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : (callInfo.timestamp || new Date().toLocaleString('id-ID')), isLeft: false, row: 1 },
       { label: 'Durasi / Status', val: `${callInfo.duration || (callInfo.durationSeconds ? `${Math.floor(callInfo.durationSeconds / 60)}m ${callInfo.durationSeconds % 60}s` : '05:20')} | ${callInfo.status || 'Berhasil'}`, isLeft: false, row: 2 },

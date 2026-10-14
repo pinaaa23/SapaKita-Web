@@ -287,8 +287,11 @@ const AudioPlayerPanel = ({ call, onClose }) => {
             <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName}>
               {call.inmateName}
             </h4>
-            <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={`${call.familyName} (${call.familyPhone})`}>
+            {/* <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={`${call.familyName} (${call.familyPhone})`}>
               Tujuan: <span className="font-semibold text-slate-700">{call.familyName}</span> ({call.familyPhone})
+            </p> */}
+            <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={call.familyPhone || '-'}>
+              Tujuan: <span className="font-semibold text-slate-700">{call.familyPhone || '-'}</span>
             </p>
             <p className="text-[11px] text-slate-400 font-medium mt-1">
               {new Date(call.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} • {new Date(call.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB

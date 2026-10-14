@@ -413,7 +413,7 @@ const Create = () => {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Kelola data narapidana, verifikasi kontak, dan operasional warga binaan cabang.
+                      Kelola data WBP dan operasional warga binaan cabang.
                     </p>
                   </div>
                 </button>
