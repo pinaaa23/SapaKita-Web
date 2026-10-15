@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PromoBanner from '../../components/kantin/PromoBanner';
 import KategoriTabs from '../../components/kantin/KategoriTabs';
 import KartuPaket from '../../components/kantin/KartuPaket';
 import ModalBeli from '../../components/kantin/ModalBeli';
 import EmptyState from '../../components/kantin/EmptyState';
-import { getPaket } from '../../services/kantin/kantinService';
+import { getPaketKantin } from '../../services/packageService';
 import { Package, Wallet, AlertTriangle, ArrowRight } from 'lucide-react';
 import { ENABLE_COMBO_PACKAGES } from '../../data/kantin/paket';
 import { formatRupiah } from '../../utils/formatKantin';
@@ -21,7 +21,7 @@ export { ENABLE_COMBO_PACKAGES };
 export default function PaketPage() {
   const navigate = useNavigate();
   const [kategori, setKategori] = useState('telepon');
-  const [paketList, setPaketList] = useState([]);
+  const [allPaket, setAllPaket] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [paketTerpilih, setPaketTerpilih] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,27 +46,26 @@ export default function PaketPage() {
 
   useEffect(() => {
     let isMounted = true;
-    const loadPaket = async () => {
-      setIsLoading(true);
+    const loadPaket = async (isSilent = false) => {
+      if (!isSilent) setIsLoading(true);
       try {
-        const activeKategori = (!ENABLE_COMBO_PACKAGES && kategori === 'combo') ? 'telepon' : kategori;
-        const data = await getPaket(activeKategori);
+        const data = await getPaketKantin({ kategori: 'semua' });
         if (isMounted) {
-          setPaketList(data);
+          setAllPaket(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error('Gagal mengambil data paket:', err);
       } finally {
-        if (isMounted) {
+        if (isMounted && !isSilent) {
           setIsLoading(false);
         }
       }
     };
 
-    loadPaket();
+    loadPaket(false);
 
     const handleUpdate = () => {
-      loadPaket();
+      loadPaket(true);
     };
     window.addEventListener('pascall_packages_updated', handleUpdate);
 
@@ -74,7 +73,19 @@ export default function PaketPage() {
       isMounted = false;
       window.removeEventListener('pascall_packages_updated', handleUpdate);
     };
-  }, [kategori]);
+  }, []);
+
+  // Filter paket secara instan dan sinkron agar transisi antar tab mulus tanpa flicker
+  const paketList = useMemo(() => {
+    const activeKategori = (!ENABLE_COMBO_PACKAGES && kategori === 'combo') ? 'telepon' : kategori;
+    return allPaket.filter((p) => {
+      const kat = (p.kategori || '').toLowerCase();
+      if (activeKategori === 'video') return kat.includes('vid');
+      if (activeKategori === 'telepon') return !kat.includes('vid') && kat !== 'combo';
+      if (activeKategori === 'combo') return kat.includes('combo');
+      return true;
+    });
+  }, [allPaket, kategori]);
 
   const handleBeliPaket = (paket) => {
     // Cek kuota menit kasir sebelum membuka modal pembelian
@@ -176,7 +187,10 @@ export default function PaketPage() {
           icon={Package}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <div
+          key={kategori}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 animate-in fade-in duration-200"
+        >
           {paketList.map((paket) => (
             <KartuPaket
               key={paket.id}

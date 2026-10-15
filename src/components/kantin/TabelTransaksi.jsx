@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ArrowUpRight, FileSpreadsheet, Download } from 'lucide-react';
+import { Search, ArrowUpRight, FileSpreadsheet, Download, Receipt, Ticket } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { exportToPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -263,10 +263,29 @@ export default function TabelTransaksi({
                   <td className="py-3.5 px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-sm">
                     {formatRupiah(item.paket?.harga)}
                   </td>
-                  <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                    <span className="inline-flex items-center text-slate-400 group-hover:text-[#1565C0] transition">
-                      <ArrowUpRight className="w-4 h-4" />
-                    </span>
+                  <td className="py-3.5 px-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/kantin/struk/${item.id}`)}
+                        title="Lihat Struk Pembayaran"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#1565C0] hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition cursor-pointer shadow-2xs"
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Struk</span>
+                      </button>
+                      {item.kodeVoucher ? (
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/kantin/voucher/${item.id}`)}
+                          title="Lihat Kode Voucher KBU"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-[#1565C0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer shadow-2xs"
+                        >
+                          <Ticket className="w-3.5 h-3.5 text-[#1565C0]" />
+                          <span>Voucher</span>
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}

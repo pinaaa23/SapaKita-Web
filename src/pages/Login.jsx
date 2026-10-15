@@ -60,7 +60,30 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const responseData = await loginApi(identifier, password);
+      let responseData;
+      try {
+        responseData = await loginApi(identifier, password);
+      } catch (apiErr) {
+        // DEV Mode fallback: jika dalam mode DEV dan identifier mengandung kantin / kasir,
+        // izinkan login demo agar pengujian UI kasir tetap berjalan lancar
+        const idLower = identifier.trim().toLowerCase();
+        if (import.meta.env.DEV && (idLower.includes('kantin') || idLower.includes('kasir'))) {
+          responseData = {
+            token: 'mock-jwt-token-kantin-' + Date.now(),
+            user: {
+              id: 'u-kantin-demo',
+              name: 'Siti Aminah',
+              email: idLower.includes('@') ? idLower : 'kantin@pascall.id',
+              role: 'operator_kantin',
+              branchId: 'b1',
+              branchName: 'Lapas Cipinang',
+              branch: { id: 'b1', name: 'Lapas Kelas I Cipinang' },
+            },
+          };
+        } else {
+          throw apiErr;
+        }
+      }
 
       const token = responseData?.token || 
                     responseData?.data?.token || 

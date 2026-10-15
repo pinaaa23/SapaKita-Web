@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Printer, ArrowLeft, User, ShoppingBag } from 'lucide-react';
+import { Printer, ArrowLeft, User, ShoppingBag, Ticket } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
 
@@ -246,19 +246,31 @@ export default function StrukTransaksi({ transaksi }) {
       </div>
 
       {/* Tombol Aksi di Layar (no-print) */}
-      <div className="no-print mt-6 flex flex-col sm:flex-row gap-3">
-        <button
-          type="button"
-          onClick={handleCetak}
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-sm rounded-xl shadow-sm transition cursor-pointer"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Cetak Struk</span>
-        </button>
+      <div className="no-print mt-6 space-y-2.5">
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={handleCetak}
+            className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-sm rounded-xl shadow-sm transition cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Cetak Struk</span>
+          </button>
+
+          {transaksi.kodeVoucher && (
+            <Link
+              to={`/kantin/voucher/${transaksi.id}`}
+              className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-blue-50 hover:bg-blue-100 text-[#1565C0] font-bold text-sm rounded-xl border border-blue-200 shadow-2xs transition text-center"
+            >
+              <Ticket className="w-4 h-4" />
+              <span>Lihat Voucher KBU</span>
+            </Link>
+          )}
+        </div>
 
         <Link
           to="/kantin"
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-4 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl shadow-xs transition text-center"
+          className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold text-sm rounded-xl shadow-xs transition text-center"
         >
           <span>Kembali ke Paket</span>
         </Link>

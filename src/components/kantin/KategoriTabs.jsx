@@ -21,10 +21,11 @@ export default function KategoriTabs({ kategoriAktif, onPilihKategori }) {
         return (
           <button
             key={tab.id}
+            type="button"
             onClick={() => onPilihKategori(tab.id)}
-            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer ${
+            className={`flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-150 whitespace-nowrap cursor-pointer active:scale-95 ${
               isAktif
-                ? 'bg-[#1565C0] text-white shadow-sm scale-100'
+                ? 'bg-[#1565C0] text-white shadow-sm'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
             }`}
           >

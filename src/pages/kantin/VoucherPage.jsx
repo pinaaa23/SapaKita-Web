@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Copy, Check, Printer, ArrowRight, FileX, AlertCircle } from 'lucide-react';
+import { Copy, Check, Printer, ArrowRight, FileX, AlertCircle, ShoppingBag, History } from 'lucide-react';
 import { getTransaksiById } from '../../services/kantin/kantinService';
 import { formatTanggal } from '../../utils/formatKantin';
 import { VOUCHER_CODE_LENGTH } from '../../config/voucherConfig';
@@ -274,6 +274,27 @@ export default function VoucherPage() {
           <span>Lanjut ke Struk</span>
           <ArrowRight className="w-4 h-4" />
         </button>
+
+        {/* Tombol Navigasi Sekunder */}
+        <div className="flex items-center gap-2 pt-1">
+          <button
+            type="button"
+            onClick={() => navigate('/kantin')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+          >
+            <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
+            <span>Katalog Paket</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/kantin/riwayat')}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 font-semibold text-xs rounded-xl shadow-2xs transition cursor-pointer"
+          >
+            <History className="w-3.5 h-3.5 text-slate-500" />
+            <span>Riwayat Transaksi</span>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -154,7 +154,44 @@ const CANTEEN_TX_STORAGE_KEY = 'pascall_canteen_local_transactions_v1';
 function getStoredCanteenTransactions() {
   try {
     const raw = localStorage.getItem(CANTEEN_TX_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (raw) return JSON.parse(raw);
+    
+    // Data contoh awal untuk hari ini agar grafik & riwayat langsung terisi rapi
+    const now = Date.now();
+    const seed = [
+      {
+        id: 'TRX-10082',
+        kodeVoucher: '58192',
+        status: 'Berhasil',
+        metode: 'Tunai',
+        waktu: new Date(now - 35 * 60 * 1000).toISOString(),
+        napi: { id: 'REG-CPN-2026-001', nama: 'Ahmad bin Jono', blok: 'Blok A (Kamar 12)' },
+        paket: { id: 'pkt-telp-12', nama: 'Paket Telepon 12 Menit', durasi: '12 Menit', harga: 11988, total: 11988, dpp: 10799, ppn: 1189 },
+        petugas: 'Siti Aminah',
+      },
+      {
+        id: 'TRX-10057',
+        kodeVoucher: '92841',
+        status: 'Berhasil',
+        metode: 'Tunai',
+        waktu: new Date(now - 110 * 60 * 1000).toISOString(),
+        napi: { id: 'REG-CPN-2026-016', nama: 'Parto', blok: 'Blok B (Kamar 04)' },
+        paket: { id: 'pkt-vid-30', nama: 'Paket Video Call 30 Menit', durasi: '30 Menit', harga: 45000, total: 45000, dpp: 40541, ppn: 4459 },
+        petugas: 'Siti Aminah',
+      },
+      {
+        id: 'TRX-10085',
+        kodeVoucher: '47209',
+        status: 'Berhasil',
+        metode: 'Tunai',
+        waktu: new Date(now - 240 * 60 * 1000).toISOString(),
+        napi: { id: 'REG-CPN-2026-011', nama: 'Kiki Fatmala', blok: 'Blok Wanita 02' },
+        paket: { id: 'pkt-telp-24', nama: 'Paket Telepon 24 Menit', durasi: '24 Menit', harga: 23976, total: 23976, dpp: 21600, ppn: 2376 },
+        petugas: 'Siti Aminah',
+      },
+    ];
+    localStorage.setItem(CANTEEN_TX_STORAGE_KEY, JSON.stringify(seed));
+    return seed;
   } catch {
     return [];
   }
@@ -365,6 +402,7 @@ export async function getTransaksiById(id) {
       return null;
     }
     if (err?.status === 401) {
+      if (localFound) return localFound;
       logout();
       throw err;
     }
