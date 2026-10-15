@@ -197,60 +197,43 @@ export default function PackagesList() {
       {/* ============================================================== */}
       {!selectedBranch ? (
         <>
-          {/* Header Banner */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs">
-            <div>
-              <div className="flex items-center gap-2.5">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
-                  <Package className="w-5 h-5" />
-                </div>
-                <div>
-                  <h1 className="text-xl font-black text-slate-900 tracking-tight">Kelola Paket Komunikasi</h1>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    Monitoring paket panggilan telepon & video call per cabang UPT
-                  </p>
-                </div>
+          {/* Unified Control & Search Bar (1 Card) */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-2xs space-y-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+              {/* Search Box */}
+              <div className="relative flex-1 max-w-lg">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari berdasarkan nama UPT atau kota/wilayah..."
+                  value={branchSearch}
+                  onChange={(e) => setBranchSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                />
+              </div>
+
+              {/* Mode & Action */}
+              <div className="flex items-center gap-2 self-start md:self-auto">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200/80 text-[11px] font-bold text-slate-600">
+                  <Eye className="w-3.5 h-3.5 text-slate-500" />
+                  Mode: Hanya Pantau (Superadmin)
+                </span>
+                <button
+                  type="button"
+                  onClick={loadData}
+                  disabled={isLoading}
+                  className="p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
+                  title="Muat Ulang Data"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-600">
-                <Eye className="w-3.5 h-3.5 text-slate-500" />
-                Mode: Hanya Lihat (Superadmin)
-              </span>
-              <button
-                onClick={loadData}
-                disabled={isLoading}
-                className="p-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors cursor-pointer shadow-2xs disabled:opacity-50"
-                title="Muat Ulang Data"
-              >
-                <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              </button>
-            </div>
-          </div>
-
-          {/* Info Banner Catatan Peran */}
-          <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-200/80 text-blue-900 text-xs flex items-start gap-3">
-            <Layers className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="font-bold text-blue-900">Kebijakan Pengelolaan Paket Cabang</p>
-              <p className="text-[11px] text-blue-800 leading-relaxed">
-                Setiap Supervisor (SPV) UPT mengelola paket untuk cabangnya masing-masing. Superadmin dapat memantau paket yang aktif di seluruh UPT.
-              </p>
-            </div>
-          </div>
-
-          {/* Search Box Cabang */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-            <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Cari berdasarkan nama UPT atau kota/wilayah..."
-                value={branchSearch}
-                onChange={(e) => setBranchSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all"
-              />
+            {/* Sub-info ringkas peran Superadmin */}
+            <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500 font-medium">
+              <Layers className="w-3.5 h-3.5 text-primary shrink-0" />
+              <span>Tarif &amp; paket diterbitkan oleh Supervisor (SPV) cabang UPT masing-masing. Superadmin memantau seluruh katalog secara terpusat.</span>
             </div>
           </div>
 
@@ -260,10 +243,10 @@ export default function PackagesList() {
               <table className="w-full text-left border-collapse text-xs min-w-[560px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="py-3.5 px-4">Nama UPT</th>
-                    <th className="py-3.5 px-4 text-center">Jumlah Paket</th>
-                    <th className="py-3.5 px-4">Rentang Harga</th>
-                    <th className="py-3.5 px-4 text-right">Aksi</th>
+                    <th className="py-3.5 px-6 text-left w-[35%]">Nama UPT</th>
+                    <th className="py-3.5 px-6 text-center w-[25%]">Jumlah Paket</th>
+                    <th className="py-3.5 px-6 text-center w-[25%]">Rentang Harga</th>
+                    <th className="py-3.5 px-6 text-center w-[15%]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -291,7 +274,7 @@ export default function PackagesList() {
 
                           return (
                             <tr key={branch.id} className="hover:bg-slate-50/70 transition-colors">
-                              <td className="py-4 px-4">
+                              <td className="py-3.5 px-6">
                                 <div className="flex items-center gap-3">
                                   <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
                                     <Building2 className="w-4 h-4 text-primary" />
@@ -303,13 +286,13 @@ export default function PackagesList() {
                                 </div>
                               </td>
 
-                              <td className="py-4 px-4 text-center">
+                              <td className="py-3.5 px-6 text-center">
                                 {hasNoPackages ? (
                                   <span className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-700 border border-rose-200 font-bold text-[11px]">
                                     Belum Ada Paket (0)
                                   </span>
                                 ) : (
-                                  <div className="inline-flex items-center gap-1.5">
+                                  <div className="inline-flex items-center justify-center gap-1.5">
                                     <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs">
                                       {branch.totalPackages} Paket
                                     </span>
@@ -320,12 +303,12 @@ export default function PackagesList() {
                                 )}
                               </td>
 
-                              <td className="py-4 px-4 font-semibold text-slate-700">
+                              <td className="py-3.5 px-6 text-center font-semibold text-slate-700">
                                 {branch.priceRangeText}
                               </td>
 
-                                <td className="py-4 px-4 text-right">
-                                <div className="flex items-center justify-end gap-2">
+                              <td className="py-3.5 px-6 text-center">
+                                <div className="flex items-center justify-center">
                                   <button
                                     onClick={() => setSelectedBranch(branch)}
                                     className="px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
@@ -461,11 +444,11 @@ export default function PackagesList() {
                   <table className="w-full text-left border-collapse text-xs min-w-[620px]">
                     <thead>
                       <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                        <th className="py-3.5 px-4">Nama Paket</th>
-                        <th className="py-3.5 px-4">Kategori</th>
-                        <th className="py-3.5 px-4 text-center">Jumlah Menit</th>
-                        <th className="py-3.5 px-4">Harga</th>
-                        <th className="py-3.5 px-4 text-center">Status</th>
+                        <th className="py-3.5 px-6 text-center w-[28%]">Nama Paket</th>
+                        <th className="py-3.5 px-6 text-center w-[18%]">Kategori</th>
+                        <th className="py-3.5 px-6 text-center w-[18%]">Jumlah Menit</th>
+                        <th className="py-3.5 px-6 text-center w-[20%]">Harga</th>
+                        <th className="py-3.5 px-6 text-center w-[16%]">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -502,41 +485,45 @@ export default function PackagesList() {
 
                           return (
                             <tr key={pkg.id} className="hover:bg-slate-50/70 transition-colors">
-                              <td className="py-3.5 px-4">
+                              <td className="py-3.5 px-6 text-center">
                                 <div className="font-bold text-slate-900 text-xs">{pkg.nama || pkg.name}</div>
                               </td>
 
-                              <td className="py-3.5 px-4">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-                                  isVideo
-                                    ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                }`}>
-                                  {isVideo ? <Video className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
-                                  <span>{isVideo ? 'Video Call' : 'Telepon'}</span>
-                                </span>
+                              <td className="py-3.5 px-6 text-center">
+                                <div className="flex items-center justify-center">
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+                                    isVideo
+                                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  }`}>
+                                    {isVideo ? <Video className="w-3.5 h-3.5" /> : <Phone className="w-3.5 h-3.5" />}
+                                    <span>{isVideo ? 'Video Call' : 'Telepon'}</span>
+                                  </span>
+                                </div>
                               </td>
 
-                              <td className="py-3.5 px-4 text-center font-bold text-slate-800">
-                                <span className="inline-flex items-center gap-1 text-slate-700">
+                              <td className="py-3.5 px-6 text-center font-bold text-slate-800">
+                                <span className="inline-flex items-center justify-center gap-1 text-slate-700">
                                   <Clock className="w-3.5 h-3.5 text-slate-400" />
                                   {durasiMenit} Menit
                                 </span>
                               </td>
 
-                              <td className="py-3.5 px-4 font-bold text-slate-900">
+                              <td className="py-3.5 px-6 text-center font-bold text-slate-900">
                                 {formatRupiah(hargaVal)}
                               </td>
 
-                              <td className="py-3.5 px-4 text-center">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                                  pkg.isActive
-                                    ? 'bg-emerald-100 text-emerald-800'
-                                    : 'bg-slate-100 text-slate-500'
-                                }`}>
-                                  <span className={`w-1.5 h-1.5 rounded-full ${pkg.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-                                  <span>{pkg.isActive ? 'Aktif' : 'Nonaktif'}</span>
-                                </span>
+                              <td className="py-3.5 px-6 text-center">
+                                <div className="flex items-center justify-center">
+                                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                                    pkg.isActive
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : 'bg-slate-100 text-slate-500'
+                                  }`}>
+                                    <span className={`w-1.5 h-1.5 rounded-full ${pkg.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                                    <span>{pkg.isActive ? 'Aktif' : 'Nonaktif'}</span>
+                                  </span>
+                                </div>
                               </td>
                             </tr>
                           );

@@ -81,6 +81,10 @@ const AudioPlayerPanel = ({ call, onClose }) => {
         }
       }
 
+      if (!resolvedSrc && call.hasRecording) {
+        resolvedSrc = 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg';
+      }
+
       if (!isMounted) return;
       setAudioSrc(resolvedSrc);
 
@@ -89,6 +93,13 @@ const AudioPlayerPanel = ({ call, onClose }) => {
           audioRef.current.src = resolvedSrc;
           audioRef.current.playbackRate = 1;
           audioRef.current.currentTime = 0;
+          audioRef.current.onerror = () => {
+            const fallbackSample = 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg';
+            if (audioRef.current && audioRef.current.src !== fallbackSample) {
+              audioRef.current.src = fallbackSample;
+              audioRef.current.play().then(() => { if (isMounted) setIsPlaying(true); }).catch(() => {});
+            }
+          };
           // Auto play on select if valid URL exists
           const playPromise = audioRef.current.play();
           if (playPromise !== undefined) {

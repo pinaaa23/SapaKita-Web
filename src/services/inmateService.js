@@ -44,9 +44,11 @@ export const mapInmateItem = (item) => {
   // Nama cabang jika dikirim
   const branchName = item.branch?.name || item.branchName || (typeof item.branch === 'string' ? item.branch : null);
 
-  // Status & status akun
-  const status = item.status || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Suspended') : null);
-  const commStatus = item.commStatus || (item.isActive !== undefined ? (item.isActive ? 'Aktif' : 'Nonaktif') : null);
+  // Status & status akun (sinkronkan isActive dan commStatus)
+  const isExplicitlyInactive = item.isActive === false || item.commStatus === 'Nonaktif' || item.status === 'Nonaktif' || item.status === 'Suspended';
+  const effectiveIsActive = !isExplicitlyInactive;
+  const status = effectiveIsActive ? 'Aktif' : 'Suspended';
+  const commStatus = effectiveIsActive ? 'Aktif' : 'Nonaktif';
 
   // Data keluarga
   let families = [];
@@ -72,7 +74,7 @@ export const mapInmateItem = (item) => {
     entryDate: item.createdAt || item.entryDate || null,
     status,
     commStatus,
-    isActive: item.isActive !== undefined ? Boolean(item.isActive) : undefined,
+    isActive: effectiveIsActive,
     branchId: item.branchId || item.branch?.id || item.branch?._id || '',
     branchName,
     families,
@@ -320,6 +322,7 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
     name: name.trim(),
     initialPin: (initialPin || '123456').trim(),
     families: Array.isArray(families) ? families : [],
+    ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
   };
 
   if (branchId) {
@@ -462,7 +465,10 @@ export const updateInmateStatus = async (id, isActive) => {
   try {
     const res = await apiFetch(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify({ isActive: Boolean(isActive) }),
+      body: JSON.stringify({
+        isActive: Boolean(isActive),
+        commStatus: isActive ? 'Aktif' : 'Nonaktif',
+      }),
     });
     return res;
   } catch (error) {

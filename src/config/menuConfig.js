@@ -74,10 +74,10 @@ export const normalizeRole = (rawRole) => {
  * Pengecekan Hak Akses (Permissions)
  */
 export const permissions = {
-  // Kepala UPT & Supervisor boleh memutar rekaman & transkrip panggilan
+  // Hanya Kepala UPT dan Superadmin yang boleh memutar rekaman & transkrip panggilan
   canViewRecordings: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN || norm === ROLES.SUPERVISOR;
+    return norm === ROLES.KEPALA_UPT || norm === ROLES.SUPERADMIN;
   },
 
   // Hanya Kepala UPT yang boleh mengelola akun pengguna UPT (Supervisor & Operator Kantin)
@@ -106,8 +106,8 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Data Narapidana', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
-      { name: 'Kelola Paket', icon: Package, path: '/packages' },
-      { name: 'Top Up Saldo Kantin', icon: Wallet, path: '/canteen-topup' },
+      { name: 'Katalog Paket', icon: Package, path: '/packages' },
+      { name: 'Top Up', icon: Wallet, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];
   }
@@ -124,12 +124,11 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data Narapidana, Rekaman Panggilan, Kelola Paket, Transaksi, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data Narapidana, Kelola Paket, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
-      { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },

@@ -607,24 +607,24 @@ const Dashboard = () => {
                 <table className="w-full text-left min-w-[580px]">
                   <thead>
                     <tr className="bg-slate-50/80 border-b border-slate-100">
-                      <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Tanggal / Waktu</th>
-                      <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">Dari &amp; Tujuan</th>
-                      <th className={`py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>Durasi</th>
-                      <th className="py-3 px-2 sm:px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">Status</th>
-                      <th className={`py-3 px-2 sm:px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>Transkrip</th>
-                      <th className="py-3 px-3 sm:px-4 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-14">Aksi</th>
+                      <th className="py-3.5 pl-5 pr-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[22%]">Tanggal &amp; Waktu</th>
+                      <th className="py-3.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-[24%]">Dari &amp; Tujuan</th>
+                      <th className={`py-3.5 px-3 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[18%] ${isSplitView ? 'hidden' : 'table-cell'}`}>Durasi &amp; Biaya</th>
+                      <th className="py-3.5 px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[16%]">Status</th>
+                      <th className={`py-3.5 px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[12%] ${isSplitView ? 'hidden' : 'table-cell'}`}>Transkrip</th>
+                      <th className="py-3.5 pl-3 pr-5 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-[8%]">Audio</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100/90 text-xs">
                     {isCallsLoading ? (
                       Array.from({ length: 5 }).map((_, idx) => (
                         <tr key={idx} className="animate-pulse">
-                          <td className="py-3.5 px-3 sm:px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                          <td className="py-3.5 px-3 sm:px-4"><div className="h-4 bg-slate-200 rounded w-32 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                          <td className={`py-3.5 px-3 sm:px-4 ${isSplitView ? 'hidden' : 'table-cell'}`}><div className="h-4 bg-slate-200 rounded w-16" /></td>
-                          <td className="py-3.5 px-2 sm:px-3 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
-                          <td className={`py-3.5 px-2 sm:px-3 text-center ${isSplitView ? 'hidden' : 'table-cell'}`}><div className="h-6 bg-slate-200 rounded-lg w-16 mx-auto" /></td>
-                          <td className="py-3.5 px-3 sm:px-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-7 mx-auto" /></td>
+                          <td className="py-3.5 pl-5 pr-3"><div className="h-4 bg-slate-200 rounded w-24" /></td>
+                          <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-32 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                          <td className={`py-3.5 px-3 ${isSplitView ? 'hidden' : 'table-cell'}`}><div className="h-4 bg-slate-200 rounded w-16" /></td>
+                          <td className="py-3.5 px-3 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
+                          <td className={`py-3.5 px-3 text-center ${isSplitView ? 'hidden' : 'table-cell'}`}><div className="h-6 bg-slate-200 rounded-lg w-16 mx-auto" /></td>
+                          <td className="py-3.5 pl-3 pr-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-7 mx-auto" /></td>
                         </tr>
                       ))
                     ) : filteredCalls.length > 0 ? (
@@ -642,23 +642,19 @@ const Dashboard = () => {
                                 : 'hover:bg-slate-50/60'
                             }`}
                           >
-                            <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                            <td className="py-3.5 pl-5 pr-3 whitespace-nowrap">
                               <div className="font-bold text-slate-800">{new Date(call.date).toLocaleDateString('id-ID')}</div>
                               <div className="text-[11px] text-slate-400 font-medium">{new Date(call.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit'})} WIB</div>
                             </td>
-                            <td className="py-3 px-3 sm:px-4 min-w-0 max-w-[180px]">
+                            <td className="py-3.5 px-3 min-w-0 max-w-[200px]">
                               <div className="font-bold text-slate-800 truncate" title={call.inmateName}>{call.inmateName}</div>
-                              {/* <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
-                                <span>→</span>
-                                <span className="truncate">{call.familyName}</span>
-                              </div> */}
                               <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
                                 <span>→</span>
                                 <span className="truncate">{call.familyPhone || '-'}</span>
                               </div>
                             </td>
                             {/* Durasi & Biaya + Badge Jalur */}
-                            <td className={`py-3 px-3 sm:px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                            <td className={`py-3.5 px-3 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                               <div className="font-semibold text-slate-800">{Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s</div>
                               <div className="text-[11px] font-bold text-amber-600 mt-0.5">{formatCurrency(call.cost)}</div>
                               {activeTab === 'voice' && (
@@ -667,7 +663,7 @@ const Dashboard = () => {
                                 </div>
                               )}
                             </td>
-                            <td className="py-3 px-2 sm:px-3 text-center whitespace-nowrap">
+                            <td className="py-3.5 px-3 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center">
                                 <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                                   isAnswered 
@@ -679,8 +675,8 @@ const Dashboard = () => {
                                 </span>
                               </div>
                             </td>
-                            <td className={`py-3 px-2 sm:px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                              {call.transcript || call.hasRecording ? (
+                            <td className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                              {call.transcript || (isAnswered && call.hasRecording) ? (
                                 <button 
                                   type="button" 
                                   onClick={() => handleOpenTranscript(call)}
@@ -694,24 +690,30 @@ const Dashboard = () => {
                                 <span className="text-slate-300 text-xs font-medium">-</span>
                               )}
                             </td>
-                            <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                            <td className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center">
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleSelectRecording(call)}
-                                  className={`p-2 rounded-xl transition-all cursor-pointer ${
-                                    isSelected 
-                                      ? 'bg-primary text-white shadow-md shadow-blue-500/20 scale-105 ring-2 ring-primary/30' 
-                                      : 'bg-blue-50 text-primary hover:bg-blue-100'
-                                  }`} 
-                                  title={isSelected ? "Sedang Diputar" : "Putar Audio Rekaman"}
-                                >
-                                  {isSelected ? (
-                                    <Volume2 className="w-3.5 h-3.5 animate-pulse fill-current" />
-                                  ) : (
-                                    <Play className="w-3.5 h-3.5 fill-current" />
-                                  )}
-                                </button>
+                                {isAnswered && call.hasRecording ? (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleSelectRecording(call)}
+                                    className={`p-2 rounded-xl transition-all cursor-pointer ${
+                                      isSelected 
+                                        ? 'bg-primary text-white shadow-md shadow-blue-500/20 scale-105 ring-2 ring-primary/30' 
+                                        : 'bg-blue-50 text-primary hover:bg-blue-100'
+                                    }`} 
+                                    title={isSelected ? "Sedang Diputar" : "Putar Audio Rekaman"}
+                                  >
+                                    {isSelected ? (
+                                      <Volume2 className="w-3.5 h-3.5 animate-pulse fill-current" />
+                                    ) : (
+                                      <Play className="w-3.5 h-3.5 fill-current" />
+                                    )}
+                                  </button>
+                                ) : (
+                                  <span className="p-2 text-slate-300 font-bold inline-block" title="Panggilan tidak terjawab (tidak ada rekaman)">
+                                    -
+                                  </span>
+                                )}
                               </div>
                             </td>
                           </tr>

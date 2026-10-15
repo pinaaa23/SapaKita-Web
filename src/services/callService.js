@@ -17,16 +17,39 @@ export const mapCallItem = (item) => {
   // maupun response BE standar / dummy
   const call = item.call || item;
 
+  const recordingId = item.id || item.recordingId || call.recordingId || call.id;
+  const storageUrl = item.storageUrl || call.storageUrl;
+  const isDemo = isDummyMode();
+  const sampleAudio = 'https://actions.google.com/sounds/v1/ambiences/coffee_shop.ogg';
+
+  const transcript = item.transcriptText || item.transcript || call.transcriptText || call.transcript || '';
+  const transcriptStatus = item.transcriptStatus || call.transcriptStatus || (transcript ? 'COMPLETED' : null);
+
+  const durationSec = typeof call.durationSeconds === 'number' 
+    ? call.durationSeconds 
+    : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
+
+  let hasRecording = Boolean(
+    storageUrl || 
+    item.recordingUrl || 
+    call.recordingUrl || 
+    item.hasRecording || 
+    call.hasRecording ||
+    (isDemo && durationSec > 0)
+  );
+
   const rawStatus = (call.status || (call.connectedAt ? 'COMPLETED' : 'NO_ANSWER')).toUpperCase();
   let normalizedStatus = 'Missed';
-  if (rawStatus === 'ANSWERED' || rawStatus === 'COMPLETED' || (call.durationSeconds && call.durationSeconds > 0)) {
+
+  // Aturan user: jika memang tidak ada record rekaman atau durasi 0, statusnya jangan Terjawab!
+  if (hasRecording && durationSec > 0 && (rawStatus === 'ANSWERED' || rawStatus === 'COMPLETED' || isDemo)) {
     normalizedStatus = 'Answered';
   } else if (rawStatus === 'BUSY') {
     normalizedStatus = 'Busy';
-  } else if (rawStatus === 'MISSED' || rawStatus === 'NO_ANSWER') {
-    normalizedStatus = 'Missed';
+    hasRecording = false;
   } else {
-    normalizedStatus = item.status || 'Missed';
+    normalizedStatus = 'Missed';
+    hasRecording = false;
   }
 
   const rawType = (call.type || call.callType || item.callType || 'AUDIO').toUpperCase();
@@ -34,29 +57,14 @@ export const mapCallItem = (item) => {
   const callType = isVideo ? 'Video' : 'Voice';
   const backendType = isVideo ? 'VIDEO' : 'AUDIO';
 
-  const recordingId = item.id || item.recordingId || call.recordingId || call.id;
-  const storageUrl = item.storageUrl || call.storageUrl;
-  const isDemo = isDummyMode();
-  const sampleAudio = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-
-  const transcript = item.transcriptText || item.transcript || call.transcriptText || call.transcript || '';
-  const transcriptStatus = item.transcriptStatus || call.transcriptStatus || (transcript ? 'COMPLETED' : null);
-
-  const hasRecording = Boolean(
-    storageUrl || 
-    item.recordingUrl || 
-    call.recordingUrl || 
-    item.hasRecording || 
-    call.hasRecording || 
-    (isDemo && normalizedStatus === 'Answered')
-  );
-
   const token = getAuthToken();
   const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
 
-  const recordingUrl = storageUrl 
-    ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`)
-    : (item.recordingUrl || call.recordingUrl || (isDemo && hasRecording ? sampleAudio : ''));
+  const recordingUrl = hasRecording
+    ? (storageUrl 
+        ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`)
+        : (item.recordingUrl || call.recordingUrl || sampleAudio))
+    : '';
 
   // Jalur panggilan (Web / GSM)
   // TODO: ganti dengan field dari backend saat endpoint backend menyediakan field channel

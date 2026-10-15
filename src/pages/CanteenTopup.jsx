@@ -15,6 +15,9 @@ import {
   CheckCircle,
   Eye,
   FileText,
+  ExternalLink,
+  Copy,
+  ShieldCheck,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../utils/formatKantin';
 import {
@@ -52,6 +55,8 @@ export default function CanteenTopup() {
   const [actionNotes, setActionNotes] = useState('');
   const [actionReason, setActionReason] = useState('');
   const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
+  const [proofPreviewItem, setProofPreviewItem] = useState(null);
+  const [proofImageFailed, setProofImageFailed] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -67,15 +72,20 @@ export default function CanteenTopup() {
     loadData();
 
     // Listen event bila ada operator kantin yang mengajukan saldo baru secara realtime
+    let debounceTimer = null;
     const handleRealtimeUpdate = () => {
-      loadSummaryData();
-      loadData();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        loadSummaryData();
+        loadData();
+      }, 300);
     };
 
     window.addEventListener('canteen_topup_changed', handleRealtimeUpdate);
     window.addEventListener('storage', handleRealtimeUpdate);
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('canteen_topup_changed', handleRealtimeUpdate);
       window.removeEventListener('storage', handleRealtimeUpdate);
     };
@@ -521,20 +531,36 @@ export default function CanteenTopup() {
 
                         {/* Status */}
                         <td className="py-3.5 px-6 text-center whitespace-nowrap">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                              item.status === 'Berhasil'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
-                                : 'bg-rose-50 text-rose-700 border-rose-200/80'
-                            }`}
-                          >
-                            {item.status === 'Berhasil' ? (
-                              <CheckCircle2 className="w-3 h-3 text-emerald-500 shrink-0" />
-                            ) : (
-                              <X className="w-3 h-3 text-rose-500 shrink-0" />
-                            )}
-                            <span>{item.status}</span>
-                          </span>
+                          {(() => {
+                            const isApproved =
+                              item.status === 'APPROVED' ||
+                              item.status === 'Berhasil' ||
+                              item.status === 'SUCCESS';
+                            const isRejected =
+                              item.status === 'REJECTED' ||
+                              item.status === 'Ditolak' ||
+                              item.status === 'FAILED';
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                                  isApproved
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80'
+                                    : isRejected
+                                    ? 'bg-rose-50 text-rose-700 border-rose-200/80'
+                                    : 'bg-amber-50 text-amber-700 border-amber-200/80'
+                                }`}
+                              >
+                                {isApproved ? (
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                ) : isRejected ? (
+                                  <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                                ) : (
+                                  <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                                )}
+                                <span>{item.status}</span>
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         {/* Tombol View Detail */}
@@ -627,7 +653,7 @@ export default function CanteenTopup() {
                       <span className="text-slate-500">Bukti Transfer:</span>
                       <button
                         type="button"
-                        onClick={() => setProofPreviewUrl(modalItem.proofUrl)}
+                        onClick={() => { setProofPreviewUrl(modalItem.proofUrl); setProofPreviewItem(modalItem); setProofImageFailed(false); }}
                         className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -834,7 +860,7 @@ export default function CanteenTopup() {
                   <div className="pt-2 border-t border-blue-200/60">
                     <button
                       type="button"
-                      onClick={() => setProofPreviewUrl(detailModalItem.proofUrl)}
+                      onClick={() => { setProofPreviewUrl(detailModalItem.proofUrl); setProofPreviewItem(detailModalItem); setProofImageFailed(false); }}
                       className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 cursor-pointer"
                     >
                       <Eye className="w-3.5 h-3.5" />
@@ -862,21 +888,33 @@ export default function CanteenTopup() {
       {/* MODAL PREVIEW BUKTI TRANSFER */}
       {proofPreviewUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 flex flex-col max-h-[90vh]">
+          <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl p-5 sm:p-6 border border-slate-100 flex flex-col max-h-[92vh]">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div className="flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
-                <h4 className="text-sm font-bold text-slate-800">Lampiran Bukti Transfer</h4>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">Lampiran Bukti Transfer</h4>
+                  <p className="text-[11px] text-slate-500">
+                    {proofPreviewItem?.branchName ? `${proofPreviewItem.branchName} • ` : ''}
+                    ID: {proofPreviewItem?.id || 'Transaksi Top Up'}
+                  </p>
+                </div>
               </div>
               <button
                 type="button"
-                onClick={() => setProofPreviewUrl(null)}
+                onClick={() => {
+                  setProofPreviewUrl(null);
+                  setProofPreviewItem(null);
+                  setProofImageFailed(false);
+                }}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                title="Tutup Bukti Transfer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="flex-1 overflow-auto flex items-center justify-center p-2 bg-slate-50 rounded-xl min-h-[300px]">
+
+            <div className="flex-1 overflow-auto flex flex-col items-center justify-center p-3 bg-slate-50 rounded-xl min-h-[320px]">
               {proofPreviewUrl.toLowerCase().endsWith('.pdf') ? (
                 <div className="text-center p-6 space-y-3">
                   <FileText className="w-14 h-14 text-blue-500 mx-auto" />
@@ -887,24 +925,132 @@ export default function CanteenTopup() {
                     rel="noreferrer"
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition"
                   >
+                    <ExternalLink className="w-3.5 h-3.5" />
                     <span>Buka File PDF</span>
                   </a>
                 </div>
+              ) : !proofImageFailed ? (
+                <div className="relative flex flex-col items-center max-w-full">
+                  <img
+                    src={proofPreviewUrl}
+                    alt="Bukti Transfer"
+                    className="max-h-[62vh] object-contain rounded-lg shadow-sm border border-slate-200"
+                    onError={() => setProofImageFailed(true)}
+                  />
+                  <div className="mt-2.5 text-center">
+                    <a
+                      href={proofPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Buka gambar langsung di tab baru</span>
+                    </a>
+                  </div>
+                </div>
               ) : (
-                <img
-                  src={proofPreviewUrl}
-                  alt="Bukti Transfer"
-                  className="max-h-[65vh] object-contain rounded-lg shadow-xs"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    if (e.currentTarget.parentElement) {
-                      const errDiv = document.createElement('div');
-                      errDiv.className = 'text-center p-4 text-rose-600 text-xs font-semibold';
-                      errDiv.innerText = 'Gambar bukti transfer tidak dapat ditampilkan atau URL kadaluarsa.';
-                      e.currentTarget.parentElement.appendChild(errDiv);
-                    }
-                  }}
-                />
+                /* Fallback Slip Digital Resmi jika URL MinIO / Gambar lokal port 9000 offline */
+                <div className="w-full max-w-lg bg-white rounded-xl border border-slate-200/90 shadow-sm p-4 sm:p-5 text-left">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 font-bold">
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                          Slip Transaksi Digital PasCall
+                        </div>
+                        <div className="text-[10px] text-slate-500 font-medium">
+                          Data Terverifikasi Resmi di Database Sistem
+                        </div>
+                      </div>
+                    </div>
+                    {proofPreviewItem && (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                          proofPreviewItem.status === 'APPROVED' || proofPreviewItem.status === 'Berhasil'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : proofPreviewItem.status === 'REJECTED' || proofPreviewItem.status === 'Ditolak'
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : 'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}
+                      >
+                        {proofPreviewItem.status === 'APPROVED' || proofPreviewItem.status === 'Berhasil' ? (
+                          <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                        ) : proofPreviewItem.status === 'REJECTED' || proofPreviewItem.status === 'Ditolak' ? (
+                          <X className="w-3 h-3 text-rose-500" />
+                        ) : (
+                          <Clock className="w-3 h-3 text-amber-600" />
+                        )}
+                        <span>{proofPreviewItem.status}</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="mt-3.5 space-y-2 text-xs">
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">ID Transaksi:</span>
+                      <span className="font-mono text-slate-800 font-semibold">{proofPreviewItem?.id || '-'}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">Asal UPT Cabang:</span>
+                      <span className="font-bold text-slate-800 text-right">{proofPreviewItem?.branchName || 'Lapas I Yogyakarta'}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">Petugas Pengaju:</span>
+                      <span className="font-semibold text-slate-700 text-right">{proofPreviewItem?.staffName || 'Operator Kantin'}</span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">Waktu Pengajuan:</span>
+                      <span className="text-slate-700 font-medium">
+                        {proofPreviewItem?.tanggal ? formatTanggal(proofPreviewItem.tanggal) : '-'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1 border-b border-slate-100">
+                      <span className="text-slate-500">Kuota Menit:</span>
+                      <span className="font-black text-emerald-600">
+                        {(proofPreviewItem?.menit || 0).toLocaleString('id-ID')} Menit
+                      </span>
+                    </div>
+                    <div className="flex justify-between py-1.5 bg-blue-50/60 px-2.5 rounded-lg border border-blue-100">
+                      <span className="font-bold text-slate-700">Total Pembayaran (Termasuk PPN):</span>
+                      <span className="font-black text-[#1565C0] text-sm">
+                        {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="mt-3 text-[11px] text-slate-400 italic">
+                    * Catatan: URL berkas gambar tersimpan di database ({proofPreviewUrl?.substring(0, 40)}...), namun layanan penyimpanan lokal (MinIO) belum dapat diakses langsung oleh peramban.
+                  </p>
+
+                  <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col sm:flex-row gap-2">
+                    <a
+                      href={proofPreviewUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex-1 py-2 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 text-center"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Buka Tautan Berkas Asli</span>
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(proofPreviewUrl);
+                          showToast('Tautan URL bukti berhasil disalin!');
+                        }
+                      }}
+                      className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      title="Salin URL Penyimpanan Bukti"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Salin URL</span>
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

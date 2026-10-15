@@ -166,7 +166,7 @@ const InmatesList = () => {
 
   const handleExport = () => {
     if (inmates.length === 0) {
-      setToastMessage('Fitur ini belum tersedia di sistem backend');
+      setToastMessage('Tidak ada data narapidana untuk diekspor.');
       setTimeout(() => setToastMessage(''), 4000);
       return;
     }
@@ -390,14 +390,13 @@ const InmatesList = () => {
                 <th className={`py-3 pl-5 pr-3 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                   Nama Lengkap
                 </th>
-                <th className="py-3 px-2.5 font-bold text-center">Cabang</th>
+                <th className="py-3 px-3 font-bold text-left">UPT</th>
                 <th className="py-3 px-2.5 font-bold text-left">Blok / Kamar</th>
                 {/* Disembunyikan: Kolom keluarga tidak lagi digunakan
                 <th className="py-3 px-2.5 font-bold text-left">Keluarga</th>
                 */}
                 <th className="py-3 px-2.5 font-bold text-left">Tgl Masuk</th>
                 <th className="py-3 px-2.5 font-bold text-center">Saldo</th>
-                <th className="py-3 px-2.5 font-bold text-center">Penempatan</th>
                 <th className="py-3 px-2.5 font-bold text-center">Status Akun</th>
                 <th className={`py-3 pl-3 pr-5 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''} w-28`}>
                   Aksi
@@ -413,8 +412,8 @@ const InmatesList = () => {
                       <div className="h-4 bg-slate-200 rounded w-28 mb-1"></div>
                       <div className="h-3 bg-slate-100 rounded w-16"></div>
                     </td>
-                    <td className="py-3 px-2.5 text-center">
-                      <div className="h-4 bg-slate-200 rounded w-24 mx-auto"></div>
+                    <td className="py-3 px-3 text-left">
+                      <div className="h-4 bg-slate-200 rounded w-24"></div>
                     </td>
                     <td className="py-3 px-2.5 text-left">
                       <div className="h-4 bg-slate-200 rounded w-20"></div>
@@ -430,9 +429,6 @@ const InmatesList = () => {
                     </td>
                     <td className="py-3 px-2.5 text-center">
                       <div className="h-4 bg-slate-200 rounded w-16 mx-auto"></div>
-                    </td>
-                    <td className="py-3 px-2.5 text-center">
-                      <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto"></div>
                     </td>
                     <td className="py-3 px-2.5 text-center">
                       <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto"></div>
@@ -457,25 +453,22 @@ const InmatesList = () => {
                           <div className="w-7 h-7 rounded-lg bg-blue-50 border border-blue-100 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                             {inmate.name && inmate.name !== '-' ? inmate.name.charAt(0).toUpperCase() : 'N'}
                           </div>
-                          <div className="min-w-0 max-w-[150px]">
+                          <div className="min-w-0 max-w-[160px]">
                             <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-primary transition-colors truncate" title={inmate.name}>
                               {inmate.name || '-'}
                             </p>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <span className="inline-flex items-center px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold border border-slate-200/80" title="NIP Narapidana">
-                                {nipIdentifier || '-'}
-                              </span>
-                            </div>
+                            <p className="text-[11px] font-mono text-slate-400 font-medium tracking-tight mt-0.5" title="NIP Narapidana">
+                              {nipIdentifier || '-'}
+                            </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Cabang (Rata Tengah) */}
-                      <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
-                        <div className="inline-flex items-center justify-center gap-1 text-slate-700 font-medium text-xs max-w-[130px] truncate" title={resolvedBranchName}>
-                          {resolvedBranchName !== '-' && <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />}
-                          <span className="truncate">{resolvedBranchName}</span>
-                        </div>
+                      {/* UPT (Rata Kiri, Tanpa Ikon) */}
+                      <td className="py-2.5 px-3 text-left whitespace-nowrap">
+                        <span className="text-slate-700 font-medium text-xs max-w-[150px] truncate block" title={resolvedBranchName}>
+                          {resolvedBranchName}
+                        </span>
                       </td>
 
                       {/* Blok / Kamar */}
@@ -526,26 +519,6 @@ const InmatesList = () => {
                             <Wallet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                             <span>{formatCurrency(inmate.callBalance)}</span>
                           </div>
-                        ) : (
-                          <span className="text-slate-400 text-xs">-</span>
-                        )}
-                      </td>
-
-                      {/* Status Penempatan */}
-                      <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
-                        {inmate.status ? (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            inmate.status === 'Aktif' 
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
-                              : inmate.status === 'Dipindahkan' 
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200/60' 
-                              : 'bg-slate-100 text-slate-600 border border-slate-200'
-                          }`}>
-                            {inmate.status === 'Aktif' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                            {inmate.status === 'Dipindahkan' && <Clock className="w-3 h-3 text-amber-600" />}
-                            {inmate.status === 'Sudah Bebas' && <XCircle className="w-3 h-3 text-slate-400" />}
-                            {inmate.status}
-                          </span>
                         ) : (
                           <span className="text-slate-400 text-xs">-</span>
                         )}

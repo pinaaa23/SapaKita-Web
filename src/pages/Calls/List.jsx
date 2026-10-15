@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { getCallHistory } from '../../services/callService';
 import { getBranches } from '../../services/branchService';
+import { getInmates } from '../../services/inmateService';
 import { logout } from '../../services/api';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
@@ -43,6 +44,8 @@ const CallsList = () => {
   const [limit] = useState(10); // 10 baris per halaman
 
   const [branches, setBranches] = useState([]);
+  const [branchesMap, setBranchesMap] = useState({});
+  const [nipBranchMap, setNipBranchMap] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [callsData, setCallsData] = useState({
     items: [],
@@ -59,17 +62,38 @@ const CallsList = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Fetch branch list for filter
+  // Fetch branch & inmate list for UPT name resolution
   useEffect(() => {
-    const fetchBranchesList = async () => {
+    const fetchReferences = async () => {
       try {
-        const res = await getBranches();
-        setBranches(res.items || res || []);
+        const [bRes, iRes] = await Promise.allSettled([
+          getBranches(),
+          getInmates({ limit: 300 }),
+        ]);
+
+        const bList = bRes.status === 'fulfilled' ? (bRes.value.items || bRes.value || []) : [];
+        setBranches(bList);
+
+        const bMap = {};
+        bList.forEach((b) => {
+          bMap[b.id] = b.name;
+        });
+        setBranchesMap(bMap);
+
+        const iList = iRes.status === 'fulfilled' ? (iRes.value.items || iRes.value || []) : [];
+        const nMap = {};
+        iList.forEach((i) => {
+          const uName = bMap[i.branchId] || i.branchName || 'Lapas Kelas I';
+          if (i.identifier) nMap[i.identifier] = uName;
+          if (i.wbpRegNumber) nMap[i.wbpRegNumber] = uName;
+          if (i.name) nMap[i.name] = uName;
+        });
+        setNipBranchMap(nMap);
       } catch (err) {
-        console.log('[CallsList] Gagal memuat daftar cabang:', err);
+        console.log('[CallsList] Gagal memuat data referensi:', err);
       }
     };
-    fetchBranchesList();
+    fetchReferences();
   }, []);
 
   // Debounce Search input 400ms
@@ -179,7 +203,7 @@ const CallsList = () => {
     const exportData = filteredCalls.map((c, idx) => ({
       'No': idx + 1,
       'ID Panggilan': c.id,
-      'Cabang UPT': c.branchName || c.branchId || 'Pusat',
+      'UPT': (c.branchName && c.branchName !== '-' && !c.branchName.startsWith('b')) ? c.branchName : (branchesMap[c.branchId] || nipBranchMap[c.inmateId] || 'Lapas Kelas I'),
       'Nama WBP': c.inmateName,
       'NIP': c.inmateId,
       // 'Keluarga Tujuan': c.familyName,
@@ -429,28 +453,28 @@ const CallsList = () => {
         <div className={`transition-all duration-300 w-full ${isSplitView ? 'xl:w-[calc(100%-380px)] min-w-0' : 'w-full'}`}>
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[640px]">
+              <table className="w-full text-left table-fixed min-w-[760px]">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100">
-                    <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'w-[30%]' : 'w-[14%]'}`}>
                       Tanggal / Waktu
                     </th>
-                    <th className="py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className={`py-3.5 px-4 ${isSplitView ? 'w-[36%]' : 'w-[17%]'}`}>
                       Dari &amp; Tujuan
                     </th>
-                    <th className={`py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                      Cabang UPT
+                    <th className={`py-3.5 px-4 ${isSplitView ? 'hidden' : 'table-cell w-[17%]'}`}>
+                      UPT
                     </th>
-                    <th className={`py-3 px-3 sm:px-4 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[16%]'}`}>
                       Durasi / Biaya
                     </th>
-                    <th className="py-3 px-2 sm:px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'w-[18%]' : 'w-[13%]'}`}>
                       Status
                     </th>
-                    <th className={`py-3 px-2 sm:px-3 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[13%]'}`}>
                       Transkrip
                     </th>
-                    <th className="py-3 px-3 sm:px-4 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap w-14">
+                    <th className={`py-3.5 px-4 text-center whitespace-nowrap ${isSplitView ? 'w-[16%]' : 'w-[10%]'}`}>
                       Aksi
                     </th>
                   </tr>
@@ -473,6 +497,10 @@ const CallsList = () => {
                       const isSelected = selectedRecording?.id === call.id;
                       const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                       const statusText = isAnswered ? 'Terjawab' : 'Tidak Terjawab';
+                      const resolvedUptName = 
+                        (call.branchName && call.branchName !== '-' && !call.branchName.startsWith('b')) 
+                          ? call.branchName 
+                          : (branchesMap[call.branchId] || nipBranchMap[call.inmateId] || nipBranchMap[call.inmateName] || (branches[0]?.name || 'Lapas Kelas I'));
 
                       return (
                         <tr 
@@ -484,7 +512,7 @@ const CallsList = () => {
                           }`}
                         >
                           {/* Tanggal / Waktu */}
-                          <td className="py-3 px-3 sm:px-4 whitespace-nowrap">
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             <div className="font-bold text-slate-800">
                               {new Date(call.date).toLocaleDateString('id-ID')}
                             </div>
@@ -494,30 +522,25 @@ const CallsList = () => {
                           </td>
 
                           {/* Dari & Tujuan */}
-                          <td className="py-3 px-3 sm:px-4 min-w-0 max-w-[180px]">
+                          <td className="py-3.5 px-4 min-w-0 max-w-[180px]">
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            {/* <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={`${call.familyName} (${call.familyPhone})`}>
-                              <span>→</span>
-                              <span className="truncate">{call.familyName}</span>
-                            </div> */}
                             <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
                               <span>→</span>
                               <span className="truncate">{call.familyPhone || '-'}</span>
                             </div>
                           </td>
 
-                          {/* Cabang UPT */}
-                          <td className={`py-3 px-3 sm:px-4 text-slate-600 ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                            <span className="inline-flex items-center gap-1 font-medium text-slate-700 text-xs truncate max-w-[140px]" title={call.branchName || call.branchId}>
-                              <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                              <span className="truncate">{call.branchName || call.branchId || 'Lapas Pusat'}</span>
+                          {/* UPT */}
+                          <td className={`py-3.5 px-4 text-slate-700 ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                            <span className="font-medium text-slate-700 text-xs truncate max-w-[160px] block" title={resolvedUptName}>
+                              {resolvedUptName}
                             </span>
                           </td>
 
                           {/* Durasi & Biaya + Badge Jalur */}
-                          <td className={`py-3 px-3 sm:px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                          <td className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                             <div className="font-semibold text-slate-800">
                               {formatDuration(call.durationSeconds)}
                             </div>
@@ -532,7 +555,7 @@ const CallsList = () => {
                           </td>
 
                           {/* Status Badge */}
-                          <td className="py-3 px-2 sm:px-3 text-center whitespace-nowrap">
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center">
                               <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                                 isAnswered 
@@ -550,10 +573,10 @@ const CallsList = () => {
                           </td>
 
                           {/* Transkrip Button */}
-                          <td className={`py-3 px-2 sm:px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
+                          <td className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                             {call.transcript || call.hasRecording ? (
                               <button 
-                                type="button"
+                                type="button" 
                                 onClick={() => setTranscriptModalCall(call)}
                                 className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 text-slate-700 hover:bg-blue-50 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-200/60 cursor-pointer shadow-2xs"
                                 title="Lihat Transkrip Audio"
@@ -567,7 +590,7 @@ const CallsList = () => {
                           </td>
 
                           {/* Aksi Play/Active Button */}
-                          <td className="py-3 px-3 sm:px-4 text-center whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center">
                               <button 
                                 type="button" 

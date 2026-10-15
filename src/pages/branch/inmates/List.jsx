@@ -300,83 +300,47 @@ const InmatesList = () => {
       return;
     }
 
-    if (isSupervisor) {
-      // PDF Export untuk Supervisor (Terkunci & Tidak bisa diubah)
-      const headers = ['No', 'Nama Lengkap', 'NIP / Reg', 'Blok / Kamar', 'Tgl Masuk', 'Saldo Panggilan', 'Penempatan', 'Status Akun'];
-      const rows = filteredInmates.map((i, idx) => [
-        String(idx + 1),
-        i.name || '-',
-        i.wbpRegNumber || '-',
-        i.blockRoom || '-',
-        i.entryDate || '-',
-        `Rp ${new Intl.NumberFormat('id-ID').format(i.callBalance || 0)}`,
-        i.status || 'Aktif',
-        i.commStatus || 'Aktif'
-      ]);
+    // Export PDF Resmi WBP PasCall (Kepala UPT & Supervisor)
+    const headers = ['No', 'Nama Lengkap', 'NIP / Reg', 'Blok / Kamar', 'Tgl Masuk', 'Saldo Panggilan', 'Penempatan', 'Status Akun'];
+    const rows = filteredInmates.map((i, idx) => [
+      String(idx + 1),
+      i.name || '-',
+      i.wbpRegNumber || '-',
+      i.blockRoom || '-',
+      i.entryDate || '-',
+      `Rp ${new Intl.NumberFormat('id-ID').format(i.callBalance || 0)}`,
+      i.status || 'Aktif',
+      i.commStatus || 'Aktif'
+    ]);
 
-      const activeCount = filteredInmates.filter(i => (i.commStatus || '').toLowerCase() === 'aktif').length;
-      const inactiveCount = filteredInmates.length - activeCount;
+    const activeCount = filteredInmates.filter(i => (i.commStatus || '').toLowerCase() === 'aktif').length;
+    const inactiveCount = filteredInmates.length - activeCount;
 
-      const summaryMetrics = [
-        { label: 'TOTAL WARGA BINAAN', value: `${filteredInmates.length} WBP` },
-        { label: 'STATUS AKTIF', value: `${activeCount} Orang` },
-        { label: 'DIBLOKIR / NONAKTIF', value: `${inactiveCount} Orang` },
-      ];
+    const summaryMetrics = [
+      { label: 'TOTAL WARGA BINAAN', value: `${filteredInmates.length} WBP` },
+      { label: 'STATUS AKTIF', value: `${activeCount} Orang` },
+      { label: 'DIBLOKIR / NONAKTIF', value: `${inactiveCount} Orang` },
+    ];
 
-      const filename = `Data_Narapidana_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
-      const success = exportToPDF({
-        title: 'LAPORAN DATA REGISTRASI NARAPIDANA (WBP)',
-        subtitle: 'Data master warga binaan pemasyarakatan dan status layanan komunikasi',
-        filename,
-        headers,
-        rows,
-        orientation: 'landscape',
-        metadata: {
-          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
-          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
-          'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        },
-        summaryMetrics
-      });
+    const filename = `Data_Narapidana_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
+    const success = exportToPDF({
+      title: 'LAPORAN DATA REGISTRASI NARAPIDANA (WBP)',
+      subtitle: 'Data master warga binaan pemasyarakatan dan status layanan komunikasi',
+      filename,
+      headers,
+      rows,
+      orientation: 'landscape',
+      metadata: {
+        'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
+        'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+        'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+        'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics
+    });
 
-      if (success !== false) {
-        showToast('Berhasil mengekspor data narapidana!', 'success');
-      }
-    } else {
-      // Excel Export untuk Kepala UPT
-      const exportData = filteredInmates.map(i => ({
-        NIP: i.wbpRegNumber,
-        Nama_Lengkap: i.name,
-        Blok_Kamar: i.blockRoom,
-        Tanggal_Masuk: i.entryDate,
-        Saldo_Panggilan: i.callBalance,
-        Status_Penempatan: i.status,
-        Status_Akun_Komunikasi: i.commStatus
-      }));
-
-      const activeCount = filteredInmates.filter(i => (i.commStatus || '').toLowerCase() === 'aktif').length;
-      const inactiveCount = filteredInmates.length - activeCount;
-
-      const filename = `Data_Narapidana_PasCall_${statusFilter}.xlsx`;
-      const success = exportToExcel(exportData, filename, 'Data Narapidana', {
-        title: 'LAPORAN DATA REGISTRASI NARAPIDANA (WBP)',
-        subtitle: 'Data master warga binaan pemasyarakatan dan status layanan komunikasi',
-        metadata: {
-          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
-          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
-          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        },
-        summaryMetrics: [
-          { label: 'Total Warga Binaan', value: `${filteredInmates.length} WBP` },
-          { label: 'Status Aktif Komunikasi', value: `${activeCount} Orang` },
-          { label: 'Status Nonaktif / Diblokir', value: `${inactiveCount} Orang` },
-        ]
-      });
-      if (success !== false) {
-        showToast('Berhasil mengekspor data narapidana!', 'success');
-      }
+    if (success !== false) {
+      showToast('Berhasil mengekspor data narapidana ke format PDF!', 'success');
     }
   };
 

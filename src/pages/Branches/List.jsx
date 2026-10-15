@@ -199,11 +199,11 @@ const List = () => {
           <table className="w-full text-left border-collapse min-w-[680px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-4 px-6">Nama Cabang</th>
-                <th className="py-4 px-6">Lokasi</th>
-                <th className="py-4 px-6">Kapasitas & WBP</th>
-                <th className="py-4 px-6 text-center">Status</th>
-                <th className="py-4 px-6 text-right">Aksi</th>
+                <th className="py-3.5 px-4 text-left w-[30%]">Nama Cabang</th>
+                <th className="py-3.5 px-4 text-left w-[22%]">Lokasi</th>
+                <th className="py-3.5 px-4 text-left w-[24%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-center w-[12%]">Status</th>
+                <th className="py-3.5 px-4 text-center w-[12%]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -220,10 +220,10 @@ const List = () => {
               ) : filteredBranches.length > 0 ? (
                 filteredBranches.map((branch) => (
                   <tr key={branch.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-4 px-6">
+                    <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold shrink-0 border border-blue-100/80">
-                          <Building2 className="w-5 h-5" />
+                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold shrink-0 border border-blue-100/80">
+                          <Building2 className="w-4 h-4" />
                         </div>
                         <div>
                           <p className="font-bold text-slate-800 text-sm whitespace-nowrap">{branch.name}</p>
@@ -231,13 +231,13 @@ const List = () => {
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-slate-700 font-medium">
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">
                       <div className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{branch.location}</span>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-slate-600">
+                    <td className="py-3.5 px-4 text-slate-600">
                       <div className="flex items-center gap-2">
                         <span className="font-extrabold text-slate-800 text-sm">
                           {new Intl.NumberFormat('id-ID').format(branch.inmateCount)}
@@ -257,7 +257,7 @@ const List = () => {
                         ></div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
                         branch.status === 'Active' 
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
@@ -266,8 +266,8 @@ const List = () => {
                         {branch.status === 'Active' ? 'Aktif' : 'Nonaktif'}
                       </span>
                     </td>
-                    <td className="py-4 px-6">
-                      <div className="flex items-center justify-end gap-1.5">
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
                         <button 
                           onClick={() => navigate(`/branches/${branch.id}`)}
                           className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"

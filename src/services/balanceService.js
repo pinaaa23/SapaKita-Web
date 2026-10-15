@@ -1,50 +1,76 @@
 import { apiFetch, logout } from './api';
 import { isDummyMode } from '../dummy';
 
-// Endpoint path disimpan dalam konstanta agar mudah disesuaikan
-export const BALANCE_TRANSACTIONS_ENDPOINT = '/api/balance/transactions';
-export const BALANCE_TRANSACTION_DETAIL_ENDPOINT = (id) => `/api/balance/transactions/${id}`;
+// Endpoint path riwayat transaksi kantin & voucher WBP
+export const CANTEEN_TRANSACTIONS_ENDPOINT = '/api/canteen/transactions';
+export const CANTEEN_TRANSACTION_DETAIL_ENDPOINT = (id) => `/api/canteen/transactions/${encodeURIComponent(id)}`;
+
+// Backward-compatible constants
+export const BALANCE_TRANSACTIONS_ENDPOINT = CANTEEN_TRANSACTIONS_ENDPOINT;
+export const BALANCE_TRANSACTION_DETAIL_ENDPOINT = CANTEEN_TRANSACTION_DETAIL_ENDPOINT;
 
 /**
- * Mapper fleksibel untuk membaca setiap item mutasi saldo / transaksi
+ * Mapper fleksibel untuk membaca setiap item transaksi pembelian paket kantin / voucher WBP
  */
 export const mapBalanceTransaction = (item) => {
   if (!item) return null;
 
-  const rawStatus = (item.status || 'SUCCESS').toUpperCase();
-  const normalizedStatus = rawStatus === 'SUCCESS' || rawStatus === 'BERHASIL' ? 'Berhasil' : 'Gagal';
+  const rawStatus = (item.status || 'BERHASIL').toUpperCase();
+  const normalizedStatus = rawStatus === 'BERHASIL' || rawStatus === 'SUCCESS' ? 'Berhasil' : 'Gagal';
 
-  // Mapping kategori sesuai enum BE: TOPUP_CASH -> Kantin, CALL_CHARGE -> Panggilan
-  const rawType = (item.type || '').toUpperCase();
-  let category = 'Panggilan';
-  if (rawType === 'TOPUP_CASH' || item.category === 'Kantin') {
-    category = 'Kantin';
-  } else if (rawType === 'CALL_CHARGE' || item.category === 'Panggilan') {
-    category = 'Panggilan';
-  } else if (item.category) {
-    category = item.category;
-  }
+  const amount = typeof item.totalAmount === 'number'
+    ? item.totalAmount
+    : typeof item.amount === 'number'
+      ? item.amount
+      : (Number(item.totalAmount || item.amount || item.package?.price || item.packagePrice) || 0);
+
+  const packageName = item.package?.name || item.packageName || item.description || 'Paket Komunikasi';
+  const durationMinutes = item.package?.durationMinutes || item.packageDuration || item.durationMinutes || 0;
+  const packagePrice = Number(item.package?.price || item.packagePrice || amount);
+
+  const inmateId = item.inmate?.identifier || item.inmateIdentifier || item.inmateId || item.user?.identifier || '-';
+  const inmateName = item.inmate?.name || item.inmateName || item.user?.name || 'Warga Binaan';
+  const inmateBlock = item.inmate?.blockRoom || item.inmateBlock || '-';
+  const inmatePhone = item.inmate?.phone || item.inmatePhone || '';
+
+  const cashierName = item.cashier?.name || item.officerName || item.performedByUser?.name || 'Petugas Kasir';
 
   return {
     id: item.id || item.transactionId || item._id || '-',
-    inmateId: item.inmate?.identifier || item.inmateId || item.inmateIdentifier || item.user?.identifier || '-',
-    inmateName: item.inmate?.name || item.inmateName || item.user?.name || 'Warga Binaan',
-    amount: typeof item.amount === 'number' ? item.amount : (Number(item.amount) || 0),
-    category,
-    description: item.description || item.keterangan || (category === 'Panggilan' ? 'Pemakaian Durasi Panggilan' : 'Topup / Kantin'),
-    officerId: item.officerId || item.officer?.id || item.performedBy || '',
-    officerName: item.officer?.name || item.officerName || item.performedByUser?.name || (item.performedBy ? (item.performedBy.length > 15 ? 'Petugas Kantin' : `Petugas (${item.performedBy})`) : 'Sistem (Otomatis)'),
-    method: item.method || 'Potong Saldo',
+    kodeVoucher: item.kodeVoucher || '-',
+    inmateId,
+    inmateName,
+    inmateBlock,
+    inmatePhone,
+    packageId: item.package?.id || item.packageId || '',
+    packageName,
+    durationMinutes,
+    packagePrice,
+    amount,
+    totalAmount: amount,
+    category: 'Kantin',
+    description: item.description || (durationMinutes ? `Pembelian ${packageName} (${durationMinutes} Menit)` : `Pembelian ${packageName}`),
+    officerId: item.cashier?.id || item.cashierId || item.officerId || '',
+    officerName: cashierName,
+    cashier: item.cashier || { id: item.cashierId || '', name: cashierName },
+    method: item.paymentMethod === 'TUNAI' ? 'Tunai' : (item.paymentMethod || item.method || 'Tunai'),
+    paymentMethod: item.paymentMethod || item.method || 'TUNAI',
     status: normalizedStatus,
-    date: item.date || item.createdAt || new Date().toISOString(),
-    balanceBefore: typeof item.balanceBefore === 'number' ? item.balanceBefore : (Number(item.balanceBefore) || 0),
-    balanceAfter: typeof item.balanceAfter === 'number' ? item.balanceAfter : (Number(item.balanceAfter) || 0),
-    branchId: item.branchId || item.inmate?.branchId || item.user?.branchId || '',
+    date: item.createdAt || item.date || item.waktu || new Date().toISOString(),
+    createdAt: item.createdAt || item.date || item.waktu || new Date().toISOString(),
+    isVoucherUsed: Boolean(item.isVoucherUsed),
+    voucherUsedAt: item.voucherUsedAt || null,
+    dpp: typeof item.dpp === 'number' ? item.dpp : (Number(item.dpp || item.payment?.dpp) || 0),
+    ppn: typeof item.ppn === 'number' ? item.ppn : (Number(item.ppn || item.payment?.ppn) || 0),
+    branchId: item.branchId || item.inmate?.branchId || '',
+    notes: item.notes || '',
+    balanceBefore: typeof item.balanceBefore === 'number' ? item.balanceBefore : 0,
+    balanceAfter: typeof item.balanceAfter === 'number' ? item.balanceAfter : 0,
   };
 };
 
 /**
- * Mengambil daftar mutasi saldo / transaksi
+ * Mengambil daftar transaksi pembelian paket kantin / voucher WBP
  */
 export const getBalanceTransactions = async ({
   search = '',
@@ -56,6 +82,7 @@ export const getBalanceTransactions = async ({
   officerId = '',
   startDate = '',
   endDate = '',
+  periode = '',
 } = {}) => {
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
@@ -74,12 +101,9 @@ export const getBalanceTransactions = async ({
     const startIndex = (page - 1) * limit;
     const paginated = trxs.slice(startIndex, startIndex + limit).map(mapBalanceTransaction);
 
-    const totalPemakaian = trxs
-      .filter((t) => t.category === 'Panggilan' || t.type === 'CALL_CHARGE')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-    const totalKantin = trxs
-      .filter((t) => t.category === 'Kantin' || t.type === 'TOPUP_CASH')
-      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const totalOmzet = trxs
+      .filter((t) => t.status === 'Berhasil' || t.status === 'BERHASIL' || t.status === 'SUCCESS')
+      .reduce((sum, t) => sum + (Number(t.amount || t.totalAmount) || 0), 0);
 
     return {
       items: paginated,
@@ -87,9 +111,12 @@ export const getBalanceTransactions = async ({
       page: Number(page),
       limit: Number(limit),
       totalPages,
-      totalPemakaian,
-      totalPanggilan: totalPemakaian,
-      totalKantin,
+      totalOmzet,
+      totalPemakaian: totalOmzet,
+      totalPanggilan: 0,
+      totalKantin: totalOmzet,
+      totalVoucherUsed: paginated.filter((t) => t.isVoucherUsed).length,
+      totalVoucherActive: paginated.filter((t) => !t.isVoucherUsed).length,
     };
   }
 
@@ -97,18 +124,38 @@ export const getBalanceTransactions = async ({
   if (search && search.trim()) params.append('search', search.trim());
   if (page) params.append('page', page.toString());
   if (limit) params.append('limit', limit.toString());
-  if (status && status !== 'All') params.append('status', status);
-  if (category && category !== 'All') params.append('category', category);
-  if (branchId && branchId !== 'All') params.append('branchId', branchId);
-  if (officerId && officerId !== 'All') params.append('officerId', officerId);
-  if (startDate) params.append('startDate', startDate);
-  if (endDate) params.append('endDate', endDate);
+
+  // Filter periode / tanggal jika ada
+  if (periode && ['harian', 'bulanan', 'tahunan'].includes(periode)) {
+    params.append('periode', periode);
+  }
+  if (startDate) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      params.append('tanggal', startDate);
+    } else if (/^\d{4}-\d{2}$/.test(startDate)) {
+      params.append('bulan', startDate);
+    } else if (/^\d{4}$/.test(startDate)) {
+      params.append('tahun', startDate);
+    }
+  }
 
   const queryString = params.toString();
-  const url = queryString ? `${BALANCE_TRANSACTIONS_ENDPOINT}?${queryString}` : BALANCE_TRANSACTIONS_ENDPOINT;
+  const primaryUrl = queryString ? `${CANTEEN_TRANSACTIONS_ENDPOINT}?${queryString}` : CANTEEN_TRANSACTIONS_ENDPOINT;
 
   try {
-    const res = await apiFetch(url);
+    let res;
+    try {
+      res = await apiFetch(primaryUrl);
+    } catch (primaryErr) {
+      // Jika endpoint kantin 404 di lingkungan lama, fallback ke endpoint saldo lama
+      if (primaryErr?.status === 404) {
+        console.warn('[BalanceService] /api/canteen/transactions 404, fallback ke /api/balance/transactions');
+        const fallbackUrl = queryString ? `/api/balance/transactions?${queryString}` : '/api/balance/transactions';
+        res = await apiFetch(fallbackUrl);
+      } else {
+        throw primaryErr;
+      }
+    }
 
     const rawList = Array.isArray(res)
       ? res
@@ -120,7 +167,105 @@ export const getBalanceTransactions = async ({
             ? res.transactions
             : [];
 
-    const mappedItems = rawList.map(mapBalanceTransaction).filter(Boolean);
+    let mappedItems = rawList.map(mapBalanceTransaction).filter(Boolean);
+
+    // Sinkronkan status voucher dari riwayat panggilan riil di backend
+    try {
+      // 1. Ambil riwayat panggilan dari endpoint backend yang tersedia
+      let callRecords = [];
+      try {
+        const callRes = await apiFetch('/api/call/history?limit=100');
+        const items = Array.isArray(callRes) ? callRes : (callRes?.items || callRes?.data || []);
+        if (Array.isArray(items) && items.length > 0) {
+          callRecords = items;
+        }
+      } catch {
+        // Fallback coba /api/calls/history
+        try {
+          const callRes2 = await apiFetch('/api/calls/history?limit=100');
+          const items2 = Array.isArray(callRes2) ? callRes2 : (callRes2?.items || callRes2?.data || []);
+          if (Array.isArray(items2) && items2.length > 0) {
+            callRecords = items2;
+          }
+        } catch {
+          // Fallback coba /api/recordings
+        }
+      }
+
+      // Ambil juga data recordings jika ada
+      let recordingList = [];
+      try {
+        const recRes = await apiFetch('/api/recordings?limit=100');
+        recordingList = Array.isArray(recRes) ? recRes : (recRes?.items || recRes?.data || []);
+      } catch {
+        // Abaikan
+      }
+
+      const allCalls = [...callRecords, ...recordingList];
+
+      // Kumpulkan kode voucher yang tercatat di panggilan
+      const usedVoucherSet = new Set();
+      // Kumpulkan hitungan panggilan berhasil / terhubung per nama/NIP WBP
+      const answeredInmateCalls = new Map();
+
+      allCalls.forEach((r) => {
+        const c = r.call || r;
+        const vCode = c.voucherCode || r.voucherCode || r.voucher;
+        if (vCode) {
+          usedVoucherSet.add(String(vCode).trim().toUpperCase());
+        }
+
+        const isAnswered = c.status === 'Answered' || c.status === 'COMPLETED' || c.status === 'Terjawab' || (Number(c.durationSeconds) > 0);
+        if (isAnswered) {
+          const inmateId = c.inmate?.identifier || c.inmateId || c.inmateIdentifier || '';
+          const inmateName = (c.inmate?.name || c.inmateName || '').trim().toLowerCase();
+
+          if (inmateId) {
+            const key = `id:${inmateId.toLowerCase()}`;
+            answeredInmateCalls.set(key, (answeredInmateCalls.get(key) || 0) + 1);
+          }
+          if (inmateName && inmateName !== '-' && inmateName !== 'narapidana') {
+            const key = `name:${inmateName}`;
+            answeredInmateCalls.set(key, (answeredInmateCalls.get(key) || 0) + 1);
+          }
+        }
+      });
+
+      // Tautkan voucher dengan data panggilan riil
+      // Salin counter pemakaian agar dapat dialokasikan per transaksi WBP
+      const remainingCallsForInmate = new Map(answeredInmateCalls);
+
+      mappedItems = mappedItems.map((t) => {
+        const vUpper = String(t.kodeVoucher || '').trim().toUpperCase();
+
+        // 1. Tertaut langsung via voucherCode di panggilan
+        if (vUpper && usedVoucherSet.has(vUpper)) {
+          return { ...t, isVoucherUsed: true };
+        }
+
+        // 2. Tertaut via panggilan riil yang telah dilakukan oleh WBP tersebut
+        const idKey = t.inmateId ? `id:${String(t.inmateId).toLowerCase()}` : null;
+        const nameKey = t.inmateName ? `name:${String(t.inmateName).trim().toLowerCase()}` : null;
+
+        const callsLeftById = idKey ? (remainingCallsForInmate.get(idKey) || 0) : 0;
+        const callsLeftByName = nameKey ? (remainingCallsForInmate.get(nameKey) || 0) : 0;
+
+        if (callsLeftById > 0 || callsLeftByName > 0) {
+          if (idKey && callsLeftById > 0) remainingCallsForInmate.set(idKey, callsLeftById - 1);
+          if (nameKey && callsLeftByName > 0) remainingCallsForInmate.set(nameKey, callsLeftByName - 1);
+          return { ...t, isVoucherUsed: true };
+        }
+
+        return t;
+      });
+    } catch (syncErr) {
+      console.warn('[BalanceService] Gagal sinkronisasi voucher panggilan riil:', syncErr);
+    }
+
+    // Filter status di sisi client jika BE belum menfilter
+    if (status && status !== 'All') {
+      mappedItems = mappedItems.filter((t) => t.status.toLowerCase() === status.toLowerCase());
+    }
 
     const total = typeof res?.total === 'number'
       ? res.total
@@ -134,15 +279,25 @@ export const getBalanceTransactions = async ({
         ? res.pagination.totalPages
         : Math.max(1, Math.ceil(total / limit));
 
+    const totalOmzet = mappedItems
+      .filter((t) => t.status === 'Berhasil')
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+
+    const totalVoucherUsed = mappedItems.filter((t) => t.isVoucherUsed).length;
+    const totalVoucherActive = mappedItems.filter((t) => !t.isVoucherUsed).length;
+
     return {
       items: mappedItems,
       total,
       page: Number(res?.page || res?.pagination?.page || page),
       limit: Number(res?.limit || res?.pagination?.limit || limit),
       totalPages,
-      totalPemakaian: typeof res?.totalPemakaian === 'number' ? res.totalPemakaian : null,
-      totalPanggilan: typeof res?.totalPanggilan === 'number' ? res.totalPanggilan : null,
-      totalKantin: typeof res?.totalKantin === 'number' ? res.totalKantin : null,
+      totalOmzet,
+      totalPemakaian: totalOmzet,
+      totalPanggilan: 0,
+      totalKantin: totalOmzet,
+      totalVoucherUsed,
+      totalVoucherActive,
     };
   } catch (error) {
     if (error?.status === 401) {
@@ -154,7 +309,7 @@ export const getBalanceTransactions = async ({
 };
 
 /**
- * Mengambil detail mutasi transaksi berdasarkan ID
+ * Mengambil detail transaksi pembelian paket kantin berdasarkan ID
  */
 export const getTransactionById = async (id) => {
   if (!id) throw new Error('ID Transaksi diperlukan');
@@ -162,14 +317,25 @@ export const getTransactionById = async (id) => {
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
     const trxs = dummyStore.getTransactions();
-    const found = trxs.find((t) => t.id === id || t.transactionId === id);
+    const found = trxs.find((t) => t.id === id || t.transactionId === id || t.kodeVoucher === id);
     if (found) return mapBalanceTransaction(found);
     throw new Error('Data transaksi tidak ditemukan');
   }
 
-  const endpoint = BALANCE_TRANSACTION_DETAIL_ENDPOINT(id);
+  const endpoint = CANTEEN_TRANSACTION_DETAIL_ENDPOINT(id);
   try {
-    const res = await apiFetch(endpoint);
+    let res;
+    try {
+      res = await apiFetch(endpoint);
+    } catch (primaryErr) {
+      if (primaryErr?.status === 404) {
+        // Fallback ke endpoint lama jika diperlukan
+        res = await apiFetch(`/api/balance/transactions/${encodeURIComponent(id)}`);
+      } else {
+        throw primaryErr;
+      }
+    }
+
     const item = res?.data || res?.item || res?.transaction || res;
     if (item) return mapBalanceTransaction(item);
     throw new Error('Data transaksi tidak ditemukan');
@@ -183,6 +349,8 @@ export const getTransactionById = async (id) => {
 };
 
 export default {
+  CANTEEN_TRANSACTIONS_ENDPOINT,
+  CANTEEN_TRANSACTION_DETAIL_ENDPOINT,
   BALANCE_TRANSACTIONS_ENDPOINT,
   BALANCE_TRANSACTION_DETAIL_ENDPOINT,
   mapBalanceTransaction,

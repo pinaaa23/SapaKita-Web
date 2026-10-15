@@ -7,6 +7,7 @@ import {
   Eye,
   CreditCard,
   TrendingUp,
+  Ticket,
   Calendar,
   CheckCircle2,
   XCircle,
@@ -14,7 +15,9 @@ import {
   FileSpreadsheet,
   FileText,
   Receipt,
-  AlertCircle
+  AlertCircle,
+  Copy,
+  Check
 } from 'lucide-react';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { logout } from '../../services/api';
@@ -28,8 +31,6 @@ const Transactions = () => {
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [categoryFilter, setCategoryFilter] = useState('All');
-  const [officerFilter, setOfficerFilter] = useState('All');
   const [page, setPage] = useState(1);
   const [limit] = useState(20);
   const [isLoading, setIsLoading] = useState(true);
@@ -40,14 +41,16 @@ const Transactions = () => {
     items: [],
     total: 0,
     totalPages: 1,
-    totalPemakaian: null,
-    totalPanggilan: null,
-    totalKantin: null,
+    totalOmzet: 0,
+    totalPemakaian: 0,
+    totalVoucherUsed: 0,
+    totalVoucherActive: 0,
   });
 
   // Interactive Modals & Toast State
   const [selectedTrx, setSelectedTrx] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [toastMessage, setToastMessage] = useState({ text: '', type: '' });
 
   const showToast = (text, type = 'success') => {
@@ -71,8 +74,6 @@ const Transactions = () => {
       const res = await getBalanceTransactions({
         search: debouncedSearch,
         status: statusFilter,
-        category: categoryFilter,
-        officerId: officerFilter,
         page,
         limit,
       });
@@ -88,44 +89,25 @@ const Transactions = () => {
       } else if (err?.isNetworkError || err?.status === 0) {
         showToast('Server tidak dapat dihubungi.', 'error');
       }
-      console.error('[BranchTransactions] Gagal memuat data transaksi:', err);
-      setError('Gagal memuat data transaksi');
+      console.error('[BranchTransactions] Gagal memuat data transaksi kantin:', err);
+      setError('Gagal memuat data transaksi kantin');
       setTransactionsData({
         items: [],
         total: 0,
         totalPages: 1,
-        totalPemakaian: null,
-        totalPanggilan: null,
-        totalKantin: null,
+        totalOmzet: 0,
+        totalPemakaian: 0,
+        totalVoucherUsed: 0,
+        totalVoucherActive: 0,
       });
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, statusFilter, categoryFilter, officerFilter, page, limit, navigate]);
+  }, [debouncedSearch, statusFilter, page, limit, navigate]);
 
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
-
-  const getTransactionCategory = (trx) => {
-    const isPanggilan = (trx.category || '').toLowerCase().includes('panggil');
-    if (isPanggilan) {
-      return {
-        label: 'Panggilan',
-        dotColor: 'bg-amber-500',
-        sign: '-',
-        textColor: 'text-rose-600',
-        badgeBg: 'bg-amber-50 text-amber-700 border-amber-200/60'
-      };
-    }
-    return {
-      label: 'Kantin',
-      dotColor: 'bg-rose-500',
-      sign: '-',
-      textColor: 'text-rose-600',
-      badgeBg: 'bg-rose-50 text-rose-700 border-rose-200/60'
-    };
-  };
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('id-ID', {
@@ -135,164 +117,133 @@ const Transactions = () => {
     }).format(value || 0);
   };
 
+  const computedTotalOmzet = transactionsData.totalOmzet ?? transactionsData.items.filter(t => t.status === 'Berhasil').reduce((sum, t) => sum + (t.amount || 0), 0);
+  const computedVoucherUsed = transactionsData.totalVoucherUsed ?? transactionsData.items.filter(t => t.isVoucherUsed).length;
+  const computedVoucherActive = transactionsData.totalVoucherActive ?? transactionsData.items.filter(t => !t.isVoucherUsed).length;
+
   const handleExport = () => {
     if (transactionsData.items.length === 0) {
       showToast('Tidak ada data transaksi untuk diekspor.', 'error');
       return;
     }
 
-    if (isSupervisor) {
-      // PDF Export untuk Supervisor (Terkunci & Tidak bisa diubah)
-      const headers = ['No', 'ID Transaksi', 'Nama WBP', 'NIP', 'Nominal', 'Kategori', 'Keterangan', 'Petugas', 'Status', 'Waktu'];
-      const rows = transactionsData.items.map((t, idx) => {
-        const cat = getTransactionCategory(t);
-        return [
-          String(idx + 1),
-          t.id || '-',
-          t.inmateName || '-',
-          t.inmateId || '-',
-          `-${formatCurrency(t.amount)}`,
-          cat.label || 'Pemakaian',
-          t.description || '-',
-          t.officerName || 'Sistem (Otomatis)',
-          t.status || 'Berhasil',
-          t.date || '-'
-        ];
-      });
-
-      const summaryMetrics = [
-        { label: 'TOTAL TRANSAKSI', value: `${transactionsData.items.length} Data` },
-        { label: 'TOTAL PEMAKAIAN', value: `-${formatCurrency(computedTotalPemakaian)}` },
-        { label: 'PANGGILAN', value: formatCurrency(computedTotalPanggilan) },
-        { label: 'KANTIN', value: formatCurrency(computedTotalKantin) }
+    // PDF Export Resmi Transaksi Kantin UPT
+    const headers = ['No', 'ID Transaksi', 'Kode Voucher', 'Nama WBP', 'NIP', 'Paket', 'Durasi', 'Nominal', 'Kasir', 'Status Voucher', 'Waktu'];
+    const rows = transactionsData.items.map((t, idx) => {
+      return [
+        String(idx + 1),
+        t.id || '-',
+        t.kodeVoucher || '-',
+        t.inmateName || '-',
+        t.inmateId || '-',
+        t.packageName || 'Paket Voucher',
+        t.durationMinutes ? `${t.durationMinutes} Menit` : '-',
+        formatCurrency(t.amount),
+        t.officerName || 'Petugas Kasir',
+        t.isVoucherUsed ? 'Terpakai' : 'Aktif',
+        t.date ? new Date(t.date).toLocaleString('id-ID') : '-'
       ];
+    });
 
-      const filename = `Mutasi_Transaksi_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
-      const success = exportToPDF({
-        title: 'LAPORAN MUTASI & TRANSAKSI SALDO PASCALL',
-        subtitle: `Rekapitulasi riwayat mutasi saldo komunikasi dan kantin warga binaan`,
-        filename,
-        headers,
-        rows,
-        orientation: 'landscape',
-        metadata: {
-          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
-          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
-          'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        },
-        summaryMetrics
-      });
+    const summaryMetrics = [
+      { label: 'TOTAL TRANSAKSI', value: `${transactionsData.total || transactionsData.items.length} Paket` },
+      { label: 'TOTAL OMZET', value: formatCurrency(computedTotalOmzet) },
+      { label: 'VOUCHER TERPAKAI', value: `${computedVoucherUsed} Voucher` },
+      { label: 'VOUCHER AKTIF', value: `${computedVoucherActive} Voucher` }
+    ];
 
-      if (success !== false) {
-        showToast('Berhasil mengekspor data transaksi!', 'success');
-      }
-    } else {
-      // Excel Export untuk Kepala UPT
-      const exportData = transactionsData.items.map(t => {
-        const cat = getTransactionCategory(t);
-        return {
-          ID_Transaksi: t.id,
-          WBP: t.inmateName,
-          NIP: t.inmateId,
-          Nominal: `-${t.amount}`,
-          Kategori: cat.label,
-          Keterangan: t.description,
-          Metode: t.method || 'Potong Saldo',
-          Petugas: t.officerName || 'Sistem (Otomatis)',
-          Status: t.status,
-          Waktu: t.date
-        };
-      });
-      const filename = `Transaksi_Mutasi_Cabang_${statusFilter}.xlsx`;
-      const success = exportToExcel(exportData, filename, 'Transaksi', {
-        title: 'LAPORAN MUTASI & TRANSAKSI SALDO PASCALL',
-        subtitle: 'Rekapitulasi riwayat mutasi saldo komunikasi dan kantin warga binaan',
-        metadata: {
-          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
-          'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
-          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-        },
-        summaryMetrics: [
-          { label: 'Total Transaksi', value: `${transactionsData.items.length} Data` },
-          { label: 'Total Pemakaian', value: `-${formatCurrency(computedTotalPemakaian)}` },
-          { label: 'Panggilan', value: formatCurrency(computedTotalPanggilan) },
-          { label: 'Kantin', value: formatCurrency(computedTotalKantin) },
-        ]
-      });
-      if (success !== false) {
-        showToast('Berhasil mengekspor data transaksi!', 'success');
-      }
+    const filename = `Riwayat_Transaksi_Kantin_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
+    const success = exportToPDF({
+      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KANTIN',
+      subtitle: `Rekapitulasi riwayat pembelian voucher & paket komunikasi narapidana`,
+      filename,
+      headers,
+      rows,
+      orientation: 'landscape',
+      metadata: {
+        'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
+        'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+        'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
+        'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics
+    });
+
+    if (success !== false) {
+      showToast('Berhasil mengekspor data transaksi kantin ke format PDF!', 'success');
     }
   };
 
   const handleViewDetail = (trx) => {
     setSelectedTrx(trx);
+    setIsCopied(false);
     setIsDetailModalOpen(true);
   };
 
-  const computedTotalPemakaian = transactionsData.totalPemakaian ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil').reduce((sum, t) => sum + t.amount, 0) : null);
-  const computedTotalPanggilan = transactionsData.totalPanggilan ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Panggilan').reduce((sum, t) => sum + t.amount, 0) : null);
-  const computedTotalKantin = transactionsData.totalKantin ?? (transactionsData.items.length > 0 ? transactionsData.items.filter(t => t.status === 'Berhasil' && getTransactionCategory(t).label === 'Kantin').reduce((sum, t) => sum + t.amount, 0) : null);
+  const handleCopyCode = (code) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   return (
     <div className="space-y-5">
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
-        {/* Card 1: Total Transaksi */}
+        {/* Card 1: Total Transaksi Pembelian */}
         <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
-              <CreditCard className="w-5 h-5 text-white" />
+              <Receipt className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Total Mutasi</span>
+            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Kantin UPT</span>
           </div>
           <div>
-            <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi</h3>
+            <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi Paket</h3>
             <p className="text-2xl font-extrabold text-white">
-              {isLoading ? '...' : (error || transactionsData.items.length === 0 ? '-' : (transactionsData.total || transactionsData.items.length).toString())}
+              {isLoading ? '...' : (error ? '-' : (transactionsData.total || transactionsData.items.length).toString())}
             </p>
+            <p className="text-[10px] text-blue-200 font-medium mt-1">Transaksi pembelian paket voucher oleh WBP</p>
           </div>
         </div>
         
-        {/* Card 2: Total Pemakaian Saldo */}
-        <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        {/* Card 2: Total Omzet Penjualan */}
+        <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
-              <TrendingUp className="w-5 h-5 text-[#0B3D91]" />
+            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
+              <TrendingUp className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">Berhasil</span>
+            <span className="text-[10px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Penerimaan Tunai</span>
           </div>
           <div>
-            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Total Pemakaian Saldo</h3>
-            <p className="text-2xl font-extrabold text-[#0B3D91]">
-              {isLoading ? '...' : (error || computedTotalPemakaian === null || transactionsData.items.length === 0 ? '-' : `-${formatCurrency(computedTotalPemakaian)}`)}
+            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Paket Kantin</h3>
+            <p className="text-2xl font-extrabold text-white">
+              {isLoading ? '...' : (error ? '-' : formatCurrency(computedTotalOmzet))}
             </p>
-            <p className="text-[10px] text-[#0B3D91]/75 font-semibold mt-1">
-              {computedTotalPanggilan !== null && computedTotalKantin !== null && transactionsData.items.length > 0
-                ? `Panggilan: -${formatCurrency(computedTotalPanggilan)} • Kantin: -${formatCurrency(computedTotalKantin)}`
-                : 'Panggilan: - • Kantin: -'}
+            <p className="text-[10px] text-emerald-100 font-semibold mt-1">
+              Akumulasi pembayaran tunai di kasir kantin
             </p>
           </div>
         </div>
 
-        {/* Card 3: Estimasi Hari Ini */}
-        {/* menunggu keputusan tim & endpoint BE */}
-        <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        {/* Card 3: Status Voucher Panggilan */}
+        <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
-              <Calendar className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
+              <Ticket className="w-5 h-5 text-[#0B3D91]" />
             </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Estimasi</span>
+            <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">Voucher 5 Digit</span>
           </div>
           <div>
-            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Estimasi Hari Ini</h3>
-            <p className="text-2xl font-extrabold text-white">
-              {isLoading ? '...' : '-'}
+            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Status Voucher WBP</h3>
+            <p className="text-2xl font-extrabold text-[#0B3D91]">
+              {isLoading ? '...' : `${computedVoucherUsed} Terpakai`}
             </p>
-            <p className="text-[10px] text-emerald-200 font-semibold mt-1">Estimasi pemakaian harian cabang</p>
+            <p className="text-[10px] text-[#0B3D91]/80 font-bold mt-1">
+              {isLoading ? '...' : `${computedVoucherActive} Voucher aktif belum digunakan`}
+            </p>
           </div>
         </div>
 
@@ -300,11 +251,11 @@ const Transactions = () => {
 
       {/* Filters and Search */}
       <div className="bg-white p-4 rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/80 flex flex-col md:flex-row gap-4 justify-between items-center transition-all">
-        <div className="relative w-full md:w-72">
+        <div className="relative w-full md:w-80">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input 
             type="text" 
-            placeholder="Cari ID Trx, NIP/WBP, atau keterangan..." 
+            placeholder="Cari ID Trx, Kode Voucher, WBP, atau Paket..." 
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs bg-slate-50/60 font-medium"
@@ -312,23 +263,6 @@ const Transactions = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
-          {/* Category Filter */}
-          <div className="flex items-center gap-2 bg-slate-50/80 border border-slate-200/80 rounded-xl px-3 py-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400" />
-            <select 
-              value={categoryFilter} 
-              onChange={(e) => {
-                setCategoryFilter(e.target.value);
-                setPage(1);
-              }}
-              className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
-            >
-              <option value="All">Semua Kategori</option>
-              <option value="Panggilan">Panggilan</option>
-              <option value="Kantin">Kantin</option>
-            </select>
-          </div>
-
           {/* Status Filter */}
           <div className="flex items-center gap-2 bg-slate-50/80 border border-slate-200/80 rounded-xl px-3 py-1.5">
             <Filter className="w-3.5 h-3.5 text-slate-400" />
@@ -370,92 +304,115 @@ const Transactions = () => {
       {/* Main Table */}
       <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[650px]">
+          <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 pl-4 pr-2 whitespace-nowrap">ID Transaksi</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">WBP / NIP</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">Nominal</th>
-                <th className="py-3 px-2.5">Keterangan</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">Petugas</th>
-                <th className="py-3 px-2.5 text-center whitespace-nowrap">Status</th>
-                <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-20">Aksi</th>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
+                <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[24%]">Waktu &amp; ID Transaksi</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[22%]">Warga Binaan &amp; NIP</th>
+                <th className="py-3.5 px-3 min-w-[150px] w-[20%]">Paket Komunikasi</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[18%]">Kode Voucher</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap w-[10%]">Total Bayar</th>
+                <th className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap w-[6%]">Rincian</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100/90 text-xs">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-3.5 pl-4 pr-2"><div className="h-4 bg-slate-200 rounded w-24 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
-                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                    <td className="py-3.5 px-2.5"><div className="h-5 bg-slate-200 rounded w-20" /></td>
-                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-36" /></td>
-                    <td className="py-3.5 px-2.5"><div className="h-4 bg-slate-200 rounded w-24" /></td>
-                    <td className="py-3.5 px-2.5 text-center"><div className="h-6 bg-slate-200 rounded-full w-20 mx-auto" /></td>
-                    <td className="py-3.5 pl-2 pr-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-8 mx-auto" /></td>
+                    <td className="py-3.5 pl-5 pr-3"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                    <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                    <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-32 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
+                    <td className="py-3.5 px-3"><div className="h-6 bg-slate-200 rounded-lg w-24" /></td>
+                    <td className="py-3.5 px-3 text-right"><div className="h-4 bg-slate-200 rounded w-16 ml-auto" /></td>
+                    <td className="py-3.5 pl-3 pr-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-14 mx-auto" /></td>
                   </tr>
                 ))
               ) : transactionsData.items.length > 0 ? (
                 transactionsData.items.map((trx) => {
-                  const cat = getTransactionCategory(trx);
                   return (
                     <tr key={trx.id} className="hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 pl-4 pr-2 whitespace-nowrap">
-                        <div className="font-bold text-slate-800 font-mono text-[11px]">{trx.id}</div>
-                        <div className="text-[10px] text-slate-400 font-medium mt-0.5">
-                          {new Date(trx.date).toLocaleString('id-ID', {day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'})} WIB
+                      {/* Waktu & ID Transaksi */}
+                      <td className="py-3.5 pl-5 pr-3 whitespace-nowrap">
+                        <div className="font-bold text-slate-800 text-xs">
+                          {new Date(trx.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          <span className="text-slate-400 font-medium ml-1.5 text-[11px]">
+                            {new Date(trx.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                          </span>
+                        </div>
+                        <div className="mt-1">
+                          <span className="font-mono text-[10.5px] font-bold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60">
+                            {trx.id}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <div className="font-bold text-slate-800">{trx.inmateName}</div>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">NIP: {trx.inmateId}</div>
-                      </td>
-                      <td className="py-3 px-2.5 whitespace-nowrap">
-                        <div className={`font-extrabold text-xs ${cat.textColor}`}>
-                          {cat.sign}{formatCurrency(trx.amount)}
+
+                      {/* Warga Binaan & NIP */}
+                      <td className="py-3.5 px-3 max-w-[170px]">
+                        <p className="font-bold text-slate-800 text-xs truncate" title={trx.inmateName}>
+                          {trx.inmateName}
+                        </p>
+                        <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 mt-0.5">
+                          <span className="font-mono text-slate-400 truncate" title={`NIP: ${trx.inmateId}`}>
+                            NIP: {trx.inmateId}
+                          </span>
+                          {trx.inmateBlock && trx.inmateBlock !== '-' && (
+                            <span className="text-slate-400">• {trx.inmateBlock}</span>
+                          )}
                         </div>
-                        <div className="text-[10px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
-                          <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
-                          {cat.label}
+                      </td>
+
+                      {/* Paket Dibeli */}
+                      <td className="py-3.5 px-3 max-w-[170px]">
+                        <p className="text-xs text-slate-800 font-bold leading-snug line-clamp-1" title={trx.packageName}>
+                          {trx.packageName}
+                        </p>
+                        {trx.durationMinutes > 0 && (
+                          <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                            {trx.durationMinutes} Menit
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Kode Voucher & Status Pemakaian */}
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 rounded-lg font-mono font-black text-xs tracking-wider shadow-2xs">
+                            {trx.kodeVoucher}
+                          </span>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            trx.isVoucherUsed 
+                              ? 'bg-slate-100 text-slate-600 border border-slate-200' 
+                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          }`}>
+                            {trx.isVoucherUsed ? 'Terpakai' : 'Aktif'}
+                          </span>
                         </div>
                       </td>
-                      <td className="py-3 px-2.5 max-w-[200px]">
-                        <span className="text-xs font-medium text-slate-600 block line-clamp-2" title={trx.description}>
-                          {trx.description || '-'}
+
+                      {/* Total Pembayaran */}
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                        <span className="text-slate-900 font-extrabold text-xs tracking-tight">
+                          {formatCurrency(trx.amount)}
                         </span>
                       </td>
-                      <td className="py-3 px-2.5 max-w-[140px] whitespace-nowrap">
-                        <span className="text-xs font-medium text-slate-700 block truncate" title={trx.officerName}>
-                          {trx.officerName || 'Sistem (Otomatis)'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-2.5 text-center whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          trx.status === 'Berhasil' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' : 
-                          'bg-rose-50 text-rose-700 border border-rose-200/60'
-                        }`}>
-                          {trx.status === 'Berhasil' ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <XCircle className="w-3 h-3 text-rose-600" />}
-                          {trx.status}
-                        </span>
-                      </td>
-                      <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
-                        <div className="flex justify-center">
-                          <button 
-                            type="button" 
-                            onClick={() => handleViewDetail(trx)}
-                            className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors cursor-pointer" 
-                            title="Lihat Struk / Detail Transaksi"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+
+                      {/* Aksi: Buka Detail Lengkap */}
+                      <td className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap">
+                        <button 
+                          type="button" 
+                          onClick={() => handleViewDetail(trx)}
+                          className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center" 
+                          title="Lihat Rincian Transaksi"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
                 })
               ) : error ? (
                 <tr>
-                  <td colSpan="7" className="py-16 text-center">
+                  <td colSpan="6" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-rose-500">
                       <XCircle className="w-12 h-12 mb-3 text-rose-400" />
                       <p className="font-bold text-rose-700">{error}</p>
@@ -471,11 +428,11 @@ const Transactions = () => {
                 </tr>
               ) : (
                 <tr>
-                  <td colSpan="7" className="py-16 text-center">
+                  <td colSpan="6" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="font-bold text-slate-700">Belum ada transaksi</p>
-                      <p className="text-xs mt-1 text-slate-400">Tidak ada catatan mutasi transaksi saldo.</p>
+                      <p className="text-xs mt-1 text-slate-400">Tidak ada catatan transaksi pembelian paket kantin.</p>
                     </div>
                   </td>
                 </tr>
@@ -488,7 +445,7 @@ const Transactions = () => {
         {!isLoading && transactionsData.items.length > 0 && (
           <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/50">
             <div className="font-medium text-center sm:text-left">
-              Menampilkan {transactionsData.items.length} dari total {transactionsData.total || transactionsData.items.length} transaksi
+              Menampilkan {transactionsData.items.length} dari total {transactionsData.total || transactionsData.items.length} transaksi paket
             </div>
             <div className="flex items-center gap-1">
               <button 
@@ -519,69 +476,137 @@ const Transactions = () => {
       <Modal
         isOpen={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
-        title={`Struk Transaksi - ${selectedTrx?.id}`}
+        title={`Struk Pembelian Paket - ${selectedTrx?.id}`}
         cancelText="Tutup"
-        confirmText="Download Struk"
+        confirmText="Download Struk (.txt)"
         onConfirm={() => {
-          exportToCSV([selectedTrx], `Struk_${selectedTrx?.id}.csv`);
+          if (!selectedTrx) return;
+          const textContent = `
+==================================================
+           PASCALL CANTEEN RECEIPT
+==================================================
+ID Transaksi     : ${selectedTrx.id}
+Status           : ${selectedTrx.status}
+Waktu            : ${new Date(selectedTrx.date).toLocaleString('id-ID')} WIB
+Petugas Kasir    : ${selectedTrx.officerName || 'Petugas Kasir'}
+
+--------------------------------------------------
+DATA WARGA BINAAN PEMASYARAKATAN
+--------------------------------------------------
+Nama WBP         : ${selectedTrx.inmateName}
+Nomor Registrasi : ${selectedTrx.inmateId}
+Blok / Kamar     : ${selectedTrx.inmateBlock || '-'}
+
+--------------------------------------------------
+DETAIL VOUCHER PANGGILAN
+--------------------------------------------------
+KODE VOUCHER     : [ ${selectedTrx.kodeVoucher} ]
+Paket            : ${selectedTrx.packageName}
+Durasi           : ${selectedTrx.durationMinutes || 0} Menit
+Status Voucher   : ${selectedTrx.isVoucherUsed ? 'SUDAH DIGUNAKAN' : 'AKTIF / BELUM DIGUNAKAN'}
+
+--------------------------------------------------
+RINCIAN PEMBAYARAN TUNAI
+--------------------------------------------------
+Harga DPP        : ${formatCurrency(selectedTrx.dpp || 0)}
+PPN 11%          : ${formatCurrency(selectedTrx.ppn || 0)}
+TOTAL PEMBAYARAN : ${formatCurrency(selectedTrx.amount)}
+Metode           : Tunai
+==================================================
+        Terima Kasih atas Kunjungan Anda
+==================================================
+`;
+          const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `Struk_Kantin_${selectedTrx.kodeVoucher || selectedTrx.id}.txt`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
           setIsDetailModalOpen(false);
         }}
       >
-        {selectedTrx && (() => {
-          const cat = getTransactionCategory(selectedTrx);
-          return (
-            <div className="space-y-4 text-xs">
-              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 text-center space-y-1">
-                <div className="w-10 h-10 rounded-full bg-blue-100 text-primary flex items-center justify-center mx-auto mb-2">
-                  <Receipt className="w-5 h-5" />
-                </div>
-                <p className="text-slate-400 text-[11px]">Nominal Transaksi</p>
-                <p className={`text-2xl font-black ${cat.textColor}`}>
-                  {cat.sign}{formatCurrency(selectedTrx.amount)}
-                </p>
-                <span className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[11px] font-bold mt-1 ${
-                  selectedTrx.status === 'Berhasil' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
+        {selectedTrx && (
+          <div className="space-y-4 text-xs">
+            {/* Voucher Code Box */}
+            <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200/80 text-center space-y-1.5">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-amber-700 bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                Kode Voucher Panggilan
+              </span>
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <span className="text-3xl font-black font-mono tracking-widest text-amber-950">
+                  {selectedTrx.kodeVoucher}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(selectedTrx.kodeVoucher)}
+                  className="p-1.5 bg-amber-200/70 hover:bg-amber-300 text-amber-900 rounded-lg transition-colors cursor-pointer"
+                  title="Salin Kode Voucher"
+                >
+                  {isCopied ? <Check className="w-4 h-4 text-emerald-700" /> : <Copy className="w-4 h-4" />}
+                </button>
+              </div>
+              <p className="text-[11px] font-semibold text-amber-800">
+                {selectedTrx.packageName} • {selectedTrx.durationMinutes || 0} Menit Bicara
+              </p>
+              <div className="pt-1">
+                <span className={`inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  selectedTrx.isVoucherUsed 
+                    ? 'bg-slate-200 text-slate-700' 
+                    : 'bg-emerald-100 text-emerald-800 border border-emerald-300/60'
                 }`}>
-                  {selectedTrx.status}
+                  {selectedTrx.isVoucherUsed ? 'Voucher Telah Digunakan' : 'Voucher Aktif (Belum Digunakan)'}
                 </span>
               </div>
+            </div>
 
-              <div className="space-y-2.5 border-t border-slate-100 pt-3">
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">ID Transaksi:</span>
-                  <span className="font-bold text-slate-800 font-mono">{selectedTrx.id}</span>
+            {/* Transaction Data */}
+            <div className="space-y-2 border-t border-slate-100 pt-3">
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">ID Transaksi:</span>
+                <span className="font-bold text-slate-800 font-mono">{selectedTrx.id}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Nama WBP:</span>
+                <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">NIP / No Registrasi:</span>
+                <span className="font-bold font-mono text-slate-800">{selectedTrx.inmateId}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Kamar / Blok:</span>
+                <span className="font-semibold text-slate-700">{selectedTrx.inmateBlock || '-'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Petugas Kasir:</span>
+                <span className="font-semibold text-slate-700">{selectedTrx.officerName || 'Petugas Kasir'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400 font-medium">Waktu Transaksi:</span>
+                <span className="font-medium text-slate-600">{new Date(selectedTrx.date).toLocaleString('id-ID')} WIB</span>
+              </div>
+
+              {/* Rincian Finansial */}
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-200/70 space-y-1.5 mt-2">
+                <div className="flex justify-between text-[11px] text-slate-500">
+                  <span>DPP (Dasar Pengenaan Pajak)</span>
+                  <span className="font-semibold">{formatCurrency(selectedTrx.dpp || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Nama WBP:</span>
-                  <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
+                <div className="flex justify-between text-[11px] text-slate-500">
+                  <span>PPN 11%</span>
+                  <span className="font-semibold">{formatCurrency(selectedTrx.ppn || 0)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">NIP:</span>
-                  <span className="font-bold font-mono text-slate-800">{selectedTrx.inmateId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Kategori Transaksi:</span>
-                  <span className="font-bold text-slate-800 flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${cat.dotColor}`}></span>
-                    {cat.label} (Potongan Saldo)
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Keterangan:</span>
-                  <span className="font-bold text-slate-800">{selectedTrx.description || '-'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Metode Pembayaran:</span>
-                  <span className="font-bold text-slate-800">{selectedTrx.method || 'Potong Saldo'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-medium">Waktu Transaksi:</span>
-                  <span className="font-medium text-slate-600">{new Date(selectedTrx.date).toLocaleString('id-ID')}</span>
+                <div className="flex justify-between text-xs font-bold text-slate-900 border-t border-slate-200/80 pt-1.5">
+                  <span>Total Pembayaran (Tunai)</span>
+                  <span className="text-emerald-700 font-black">{formatCurrency(selectedTrx.amount)}</span>
                 </div>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
       </Modal>
 
     </div>

@@ -227,11 +227,30 @@ export const createBranch = async (data) => {
 export const updateBranch = async (id, data) => {
   if (!id) throw new Error('ID Cabang diperlukan');
 
+  const payload = {};
+  if (data.name !== undefined) payload.name = String(data.name).trim();
+  if (data.location !== undefined) payload.location = String(data.location).trim();
+  if (data.address !== undefined) payload.address = String(data.address).trim();
+  if (data.phone !== undefined) {
+    const rawPhone = String(data.phone).trim();
+    payload.phone = rawPhone === '-' ? '' : rawPhone;
+  }
+  if (data.capacity !== undefined) {
+    payload.capacity = Math.max(0, parseInt(data.capacity, 10) || 0);
+  }
+  if (data.status !== undefined) {
+    const s = String(data.status).toLowerCase();
+    if (s === 'active' || s === 'aktif') payload.status = 'Aktif';
+    else if (s === 'draft') payload.status = 'Draft';
+    else if (s === 'inactive' || s === 'nonaktif') payload.status = 'Nonaktif';
+    else payload.status = data.status;
+  }
+
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);
   try {
     const res = await apiFetch(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
     return res;
   } catch (error) {

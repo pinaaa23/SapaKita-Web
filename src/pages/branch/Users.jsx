@@ -93,11 +93,11 @@ export default function BranchUsers() {
     fetchUsersData();
   }, [search, roleFilter, statusFilter]);
 
-  const showToast = (msg) => {
-    setToastMessage(msg);
+  const showToast = (msg, type = 'success') => {
+    setToastMessage({ text: msg, type });
     setTimeout(() => {
       setToastMessage(null);
-    }, 3000);
+    }, 3500);
   };
 
   const handleCopy = (text, fieldName) => {
@@ -263,7 +263,7 @@ export default function BranchUsers() {
     try {
       await updateUser(selectedUser.id, {
         name: trimmedName,
-        phone: trimmedPhone || '-',
+        phone: trimmedPhone || '',
         role: formData.role,
       });
       showToast(`Data "${trimmedName}" berhasil diperbarui.`);
@@ -284,12 +284,13 @@ export default function BranchUsers() {
     try {
       await updateUserStatus(selectedUser.id, nextStatus);
       showToast(
-        `Akun "${selectedUser.name}" berhasil ${nextStatus ? 'diaktifkan' : 'dinonaktifkan'}.`
+        `Akun "${selectedUser.name}" berhasil ${nextStatus ? 'diaktifkan' : 'dinonaktifkan'}.`,
+        'success'
       );
       setIsConfirmStatusModalOpen(false);
       fetchUsersData();
     } catch (err) {
-      showToast(err.message || 'Gagal mengubah status akun');
+      showToast(err.message || 'Gagal mengubah status akun', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -343,11 +344,19 @@ export default function BranchUsers() {
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200">
-          <div className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-            <Check className="w-3.5 h-3.5" />
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200 border border-slate-700/50">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+            toastMessage.type === 'error'
+              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+          }`}>
+            {toastMessage.type === 'error' ? (
+              <X className="w-3.5 h-3.5" />
+            ) : (
+              <Check className="w-3.5 h-3.5" />
+            )}
           </div>
-          <span>{toastMessage}</span>
+          <span className="leading-snug">{typeof toastMessage === 'string' ? toastMessage : toastMessage.text}</span>
         </div>
       )}
 

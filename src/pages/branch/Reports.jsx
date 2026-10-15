@@ -89,115 +89,160 @@ const BranchReports = () => {
     try {
       const periodLabel = periodFilter === '7days' ? '7 Hari Terakhir' : (periodFilter === '90days' ? '90 Hari Terakhir' : '30 Hari Terakhir');
 
-      if (isSupervisor) {
-        // PDF Export untuk Supervisor (Terkunci & Tidak bisa diubah)
-        const headers = ['No', 'Kategori Data', 'Keterangan', 'Nilai / Metrik', 'Periode'];
-        const rows = [
-          ['1', 'Ringkasan', 'Total Pendapatan', `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`, periodLabel],
-          ['2', 'Ringkasan', 'Total Volume Panggilan', `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} panggilan`, periodLabel],
-          ['3', 'Ringkasan', 'Rata-rata Durasi', `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)} menit ${(reportData.avgCallDurationSeconds || 0) % 60} detik`, periodLabel],
-          ['4', 'Ringkasan', 'Tingkat Keberhasilan', `${reportData.successRate || 0}%`, periodLabel],
-        ];
+      // Buat Tabel 1: Rincian Transaksi Pendapatan Kantin UPT
+      let revenueHeaders = ['No', 'Tanggal Transaksi', 'Kategori Layanan', 'Omzet / Pendapatan', 'Status'];
+      const revenueRows = [];
 
-        if (Array.isArray(reportData.revenueTrend) && reportData.revenueTrend.length > 0) {
-          reportData.revenueTrend.forEach((item, idx) => {
-            const callItem = reportData.callVolumeTrend?.[idx] || {};
-            rows.push([
-              String(5 + idx),
-              'Tren Harian',
+      if (Array.isArray(reportData.transactions) && reportData.transactions.length > 0) {
+        // Tampilkan transaksi riil kantin UPT
+        revenueHeaders = ['No', 'Tanggal Transaksi', 'ID Transaksi', 'Warga Binaan & NIP', 'Paket Komunikasi', 'Total Bayar', 'Status'];
+        reportData.transactions.forEach((t, idx) => {
+          const dateStr = t.createdAt 
+            ? new Date(t.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+            : (t.date || '-');
+          const inmateText = t.inmate?.name ? `${t.inmate.name} (${t.inmate.identifier || '-'})` : (t.inmateName || '-');
+          const pkgName = t.package?.name || t.packageName || 'Paket Komunikasi';
+          const amt = t.totalAmount || t.amount || t.package?.price || 0;
+
+          revenueRows.push([
+            String(idx + 1),
+            dateStr,
+            t.id || '-',
+            inmateText,
+            pkgName,
+            `Rp ${new Intl.NumberFormat('id-ID').format(amt)}`,
+            t.status || 'Berhasil'
+          ]);
+        });
+        revenueRows.push([
+          '-',
+          'TOTAL PENDAPATAN',
+          '-',
+          '-',
+          '-',
+          `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
+          'Tervalidasi'
+        ]);
+      } else {
+        // Jika tidak ada list transaksi detail, ambil hari-hari yang memiliki omzet > 0
+        const activeTrend = (reportData.revenueTrend || []).filter(item => (item.amount || item.revenue || 0) > 0);
+        if (activeTrend.length > 0) {
+          activeTrend.forEach((item, idx) => {
+            const amt = item.amount || item.revenue || 0;
+            revenueRows.push([
+              String(idx + 1),
               item.date || item.day || `Hari ke-${idx + 1}`,
-              `Rp ${new Intl.NumberFormat('id-ID').format(item.amount || item.revenue || 0)} (${callItem.calls || item.calls || 0} Panggilan)`,
-              item.date || periodLabel
+              'Pembelian Paket Komunikasi Wartel',
+              `Rp ${new Intl.NumberFormat('id-ID').format(amt)}`,
+              'Transaksi Sukses'
             ]);
           });
+          revenueRows.push([
+            '-',
+            'TOTAL PENDAPATAN',
+            'Akumulasi Periode Terpilih',
+            `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
+            'Tervalidasi'
+          ]);
+        } else {
+          revenueRows.push([
+            '1',
+            periodLabel,
+            'Penjualan Paket Komunikasi UPT',
+            `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
+            reportData.totalRevenue > 0 ? 'Tervalidasi' : 'Belum Ada Transaksi'
+          ]);
         }
+      }
 
-        const summaryMetrics = [
-          { label: 'TOTAL PENDAPATAN', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
-          { label: 'TOTAL PANGGILAN', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
-          { label: 'RATA-RATA DURASI', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
-          { label: 'KEBERHASILAN', value: `${reportData.successRate || 0}%` },
-        ];
+      // Buat Tabel 2: Rekapitulasi Aktivitas & Volume Panggilan Keluar UPT
+      const callRows = [];
+      const activeCalls = (reportData.callVolumeTrend || []).filter(item => (item.calls || item.totalCalls || item.count || 0) > 0);
 
-        const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
-        const success = exportToPDF({
-          title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
-          subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan`,
-          filename,
-          headers,
-          rows,
-          metadata: {
-            'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-            'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Supervisor'})`,
-            'Rentang Waktu': periodLabel,
-            'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-          },
-          summaryMetrics
+      if (activeCalls.length > 0) {
+        // Tampilkan tanggal-tanggal yang memiliki aktivitas panggilan riil
+        activeCalls.forEach((item, idx) => {
+          const totalC = item.calls || item.totalCalls || item.count || 0;
+          const ansC = typeof item.answeredCalls === 'number' ? item.answeredCalls : totalC;
+          const misC = typeof item.missedCalls === 'number' ? item.missedCalls : Math.max(0, totalC - ansC);
+          const rate = totalC > 0 ? `${((ansC / totalC) * 100).toFixed(1)}%` : '-';
+
+          callRows.push([
+            String(idx + 1),
+            item.date || item.day || `Hari ke-${idx + 1}`,
+            `${new Intl.NumberFormat('id-ID').format(totalC)} Panggilan`,
+            `${new Intl.NumberFormat('id-ID').format(ansC)} Terjawab`,
+            `${new Intl.NumberFormat('id-ID').format(misC)} Tidak Terjawab`,
+            rate
+          ]);
         });
-
-        if (success !== false) {
-          showToast('Berhasil mengekspor laporan!', 'success');
-        }
+        callRows.push([
+          '-',
+          'TOTAL VOLUME',
+          `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan`,
+          '-',
+          '-',
+          `${reportData.successRate || 0}% Keberhasilan`
+        ]);
       } else {
-        // Excel Export untuk Kepala UPT
-        const rows = [];
-        rows.push({
-          Kategori: 'RINGKASAN METRIK',
-          Keterangan: 'Total Pendapatan',
-          Nilai: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
-          Periode: periodLabel
-        });
-        rows.push({
-          Kategori: 'RINGKASAN METRIK',
-          Keterangan: 'Total Volume Panggilan',
-          Nilai: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} panggilan`,
-          Periode: periodLabel
-        });
-        rows.push({
-          Kategori: 'RINGKASAN METRIK',
-          Keterangan: 'Rata-rata Durasi Panggilan',
-          Nilai: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)} menit ${(reportData.avgCallDurationSeconds || 0) % 60} detik`,
-          Periode: periodLabel
-        });
-        rows.push({
-          Kategori: 'RINGKASAN METRIK',
-          Keterangan: 'Tingkat Keberhasilan Panggilan',
-          Nilai: `${reportData.successRate || 0}%`,
-          Periode: periodLabel
-        });
+        // Ringkasan langsung jika tren harian panggilan belum terpartisi
+        callRows.push([
+          '1',
+          periodLabel,
+          `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan`,
+          `${new Intl.NumberFormat('id-ID').format(Math.round(((reportData.totalCalls || 0) * (reportData.successRate || 100)) / 100))} Terjawab`,
+          `${new Intl.NumberFormat('id-ID').format(Math.max(0, (reportData.totalCalls || 0) - Math.round(((reportData.totalCalls || 0) * (reportData.successRate || 100)) / 100)))} Tidak Terjawab`,
+          `${reportData.successRate || 0}%`
+        ]);
+        callRows.push([
+          '-',
+          'TOTAL VOLUME',
+          `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan`,
+          '-',
+          '-',
+          `${reportData.successRate || 0}% Keberhasilan`
+        ]);
+      }
 
-        if (Array.isArray(reportData.revenueTrend) && reportData.revenueTrend.length > 0) {
-          reportData.revenueTrend.forEach((item, idx) => {
-            const callItem = reportData.callVolumeTrend?.[idx] || {};
-            rows.push({
-              Kategori: 'TREN HARIAN',
-              Keterangan: item.date || item.day || `Hari ke-${idx + 1}`,
-              Nilai: `Pendapatan: Rp ${new Intl.NumberFormat('id-ID').format(item.amount || item.revenue || 0)} | Panggilan: ${callItem.calls || item.calls || 0}`,
-              Periode: item.date || ''
-            });
-          });
+      const tables = [
+        {
+          title: '1. LAPORAN & TRANSAKSI PENDAPATAN KANTIN UPT',
+          subtitle: 'Rincian transaksi pembelian paket komunikasi dan penerimaan saldo warga binaan',
+          headers: revenueHeaders,
+          rows: revenueRows,
+        },
+        {
+          title: '2. LAPORAN & REKAPITULASI AKTIVITAS PANGGILAN KELUAR',
+          subtitle: 'Rincian volume panggilan keluar, koneksi terjawab, dan tingkat keberhasilan layanan',
+          headers: ['No', 'Tanggal Sesi', 'Total Panggilan', 'Panggilan Terjawab', 'Tidak Terjawab', 'Tingkat Keberhasilan'],
+          rows: callRows,
         }
+      ];
 
-        const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.xlsx`;
-        const success = exportToExcel(rows, filename, 'Laporan Analitik', {
-          title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
-          subtitle: 'Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan',
-          metadata: {
-            'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-            'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
-            'Rentang Waktu': periodLabel,
-            'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-          },
-          summaryMetrics: [
-            { label: 'Total Pendapatan', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
-            { label: 'Total Volume Panggilan', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
-            { label: 'Rata-rata Durasi', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
-            { label: 'Tingkat Keberhasilan', value: `${reportData.successRate || 0}%` },
-          ]
-        });
-        if (success !== false) {
-          showToast('Berhasil mengekspor laporan!', 'success');
-        }
+      const summaryMetrics = [
+        { label: 'TOTAL PENDAPATAN', value: `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}` },
+        { label: 'TOTAL PANGGILAN', value: `${new Intl.NumberFormat('id-ID').format(reportData.totalCalls || 0)} Panggilan` },
+        { label: 'RATA-RATA DURASI', value: `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s` },
+        { label: 'KEBERHASILAN', value: `${reportData.successRate || 0}%` },
+      ];
+
+      const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
+      const success = exportToPDF({
+        title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
+        subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan`,
+        filename,
+        tables,
+        metadata: {
+          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
+          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || (isSupervisor ? 'Supervisor' : 'Kepala UPT')})`,
+          'Rentang Waktu': periodLabel,
+          'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        },
+        summaryMetrics
+      });
+
+      if (success !== false) {
+        showToast('Berhasil mengekspor laporan PDF!', 'success');
       }
     } catch (err) {
       console.error('Error export laporan:', err);

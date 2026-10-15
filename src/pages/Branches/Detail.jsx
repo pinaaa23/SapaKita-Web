@@ -67,7 +67,14 @@ const Detail = () => {
         getCallHistory({ branchId: id }),
         getBalanceTransactions({ branchId: id }),
       ]);
-      if (uRes.status === 'fulfilled') setBranchUsers(uRes.value?.items || []);
+      if (uRes.status === 'fulfilled') {
+        const rawUsers = uRes.value?.items || [];
+        // Pastikan hanya petugas yang benar-benar terdaftar di cabang bersangkutan
+        const onlyThisBranchUsers = rawUsers.filter(
+          (u) => String(u.branchId) === String(id) || String(u.branch?.id) === String(id)
+        );
+        setBranchUsers(onlyThisBranchUsers);
+      }
       if (cRes.status === 'fulfilled') setBranchCalls(cRes.value?.items || []);
       if (tRes.status === 'fulfilled') setBranchTransactions(tRes.value?.items || []);
     } catch (e) {

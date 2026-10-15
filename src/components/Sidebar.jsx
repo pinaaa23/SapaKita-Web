@@ -25,16 +25,27 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
   const [pendingTopupCount, setPendingTopupCount] = useState(() => getPendingTopupCountSync());
 
   useEffect(() => {
-    const updateCount = () => {
+    let isMounted = true;
+    const updateCount = async () => {
       setPendingTopupCount(getPendingTopupCountSync());
+      try {
+        const { getTopupSummary } = await import('../services/canteenTopupService');
+        const summary = await getTopupSummary();
+        if (isMounted && typeof summary?.totalPending === 'number') {
+          setPendingTopupCount(summary.totalPending);
+        }
+      } catch {
+        // Abaikan error jaringan background
+      }
     };
 
     updateCount();
     window.addEventListener('canteen_topup_changed', updateCount);
     window.addEventListener('storage', updateCount);
-    const interval = setInterval(updateCount, 4000);
+    const interval = setInterval(updateCount, 8000);
 
     return () => {
+      isMounted = false;
       window.removeEventListener('canteen_topup_changed', updateCount);
       window.removeEventListener('storage', updateCount);
       clearInterval(interval);
@@ -146,12 +157,12 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
               >
                 <div className="relative shrink-0 flex items-center justify-center">
                   <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
-                  {/* Lingkaran oren kecil saat sidebar tertutup (collapsed) */}
+                  {/* Penanda bulatan kecil berkedip saat sidebar tertutup (collapsed) */}
                   {!isExpandedView && showBadge && (
-                    <>
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91] animate-ping" />
-                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-[#0B3D91]" />
-                    </>
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 border border-[#0B3D91]"></span>
+                    </span>
                   )}
                 </div>
 
@@ -160,10 +171,14 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                     <span className="whitespace-nowrap text-sm font-medium flex-1 truncate">
                       {item.name}
                     </span>
-                    {/* Badge angka / lingkaran oren saat sidebar terbuka */}
+                    {/* Penanda bulatan kecil berkedip saat sidebar terbuka */}
                     {showBadge && (
-                      <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 min-w-[20px] text-[10px] font-black bg-amber-400 text-amber-950 rounded-full shadow-xs animate-pulse">
-                        {pendingTopupCount}
+                      <span 
+                        className="relative flex h-2.5 w-2.5 ml-auto shrink-0" 
+                        title={`${pendingTopupCount} permintaan top up baru menunggu konfirmasi`}
+                      >
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 shadow-sm"></span>
                       </span>
                     )}
                   </>

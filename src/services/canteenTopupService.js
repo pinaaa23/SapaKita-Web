@@ -21,31 +21,9 @@ import {
 // Re-export konstanta tarif PPN
 export { PPN_RATE };
 
-const STORAGE_KEY_NOMINALS = 'pascall_superadmin_canteen_nominals_v1';
 const STORAGE_KEY_NAT_HISTORY = 'pascall_superadmin_canteen_history_v1';
 
 const delay = (ms = 150) => new Promise((resolve) => setTimeout(resolve, ms));
-
-function getStoredNominals() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_NOMINALS);
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY_NOMINALS, JSON.stringify(DEFAULT_NOMINAL_SALDO_LIST));
-      return DEFAULT_NOMINAL_SALDO_LIST;
-    }
-    return JSON.parse(raw);
-  } catch {
-    return DEFAULT_NOMINAL_SALDO_LIST;
-  }
-}
-
-function saveStoredNominals(list) {
-  try {
-    localStorage.setItem(STORAGE_KEY_NOMINALS, JSON.stringify(list));
-  } catch (err) {
-    console.error('Error saving nominals to localStorage:', err);
-  }
-}
 
 function getStoredNationalHistory() {
   try {
@@ -72,8 +50,14 @@ function saveStoredNationalHistory(history) {
   }
 }
 
+const STORAGE_KEY_PENDING_COUNT = 'pascall_pending_topup_count_v1';
+
 export function getPendingTopupCountSync() {
   try {
+    const directCount = localStorage.getItem(STORAGE_KEY_PENDING_COUNT);
+    if (directCount !== null && !isNaN(Number(directCount))) {
+      return Number(directCount);
+    }
     const raw = localStorage.getItem(STORAGE_KEY_NAT_HISTORY);
     if (!raw) return 0;
     const list = JSON.parse(raw);
@@ -81,6 +65,18 @@ export function getPendingTopupCountSync() {
     return list.filter((item) => item.status === 'PENDING' || item.status === 'Menunggu').length;
   } catch {
     return 0;
+  }
+}
+
+export function setPendingTopupCountSync(count) {
+  try {
+    const num = Math.max(0, Number(count) || 0);
+    const prev = localStorage.getItem(STORAGE_KEY_PENDING_COUNT);
+    if (prev !== String(num)) {
+      localStorage.setItem(STORAGE_KEY_PENDING_COUNT, String(num));
+    }
+  } catch (err) {
+    console.error('Error saving pending topup count:', err);
   }
 }
 
@@ -120,101 +116,14 @@ export async function getTopupSummary(params = {}) {
   const res = await apiFetch(endpoint);
   const data = res?.data || res || {};
 
-  return {
+  const result = {
     totalSaldoTerjual: Number(data.totalSaldoTerjual || data.totalNominalApproved || 0),
     totalPpn: Number(data.totalPpn || Math.round((data.totalSaldoTerjual || 0) * PPN_RATE)),
     totalTopupCount: Number(data.totalTopupCount || data.totalCount || 0),
     totalPending: Number(data.totalPendingCount || data.totalPending || 0),
   };
-}
 
-/**
- * 2. Mengambil daftar Paket Nominal Saldo yang dijual oleh Superadmin
- */
-export async function getNominalSaldoList() {
-  if (isDummyMode()) {
-    await delay(120);
-    return getStoredNominals();
-  }
-  // Saat ini BE belum memiliki tabel terpisah untuk preset nominal, gunakan konfigurasi default
-  return getStoredNominals();
-}
-
-/**
- * 3. Menambah paket nominal saldo baru
- */
-export async function createNominalSaldo(data) {
-  const nominalNum = Number(data.nominal);
-  if (!nominalNum || nominalNum <= 0) {
-    throw new Error('Nominal saldo harus lebih dari Rp 0.');
-  }
-
-  const ppn = Math.round(nominalNum * PPN_RATE);
-  const totalBayar = nominalNum + ppn;
-  const status = data.status || 'Aktif';
-
-  const current = getStoredNominals();
-  const newNominal = {
-    id: `nom-${Date.now()}`,
-    nominal: nominalNum,
-    ppn,
-    totalBayar,
-    status,
-    isActive: status === 'Aktif',
-    createdAt: new Date().toISOString(),
-  };
-
-  const updated = [newNominal, ...current];
-  saveStoredNominals(updated);
-  return newNominal;
-}
-
-/**
- * 4. Memperbarui paket nominal saldo
- */
-export async function updateNominalSaldo(id, data) {
-  if (!id) throw new Error('ID Nominal diperlukan.');
-
-  const current = getStoredNominals();
-  const existing = current.find((item) => item.id === id);
-  if (!existing) throw new Error('Nominal saldo tidak ditemukan.');
-
-  const nominalNum = data.nominal !== undefined ? Number(data.nominal) : existing.nominal;
-  const ppn = Math.round(nominalNum * PPN_RATE);
-  const totalBayar = nominalNum + ppn;
-  const status = data.status !== undefined ? data.status : existing.status;
-
-  const updatedItem = {
-    ...existing,
-    nominal: nominalNum,
-    ppn,
-    totalBayar,
-    status,
-    isActive: status === 'Aktif',
-  };
-
-  const updatedList = current.map((item) => (item.id === id ? updatedItem : item));
-  saveStoredNominals(updatedList);
-  return updatedItem;
-}
-
-/**
- * 5. Mengubah status Aktif / Nonaktif nominal saldo
- */
-export async function toggleNominalSaldoStatus(id, currentStatus) {
-  const newStatus = currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
-  return await updateNominalSaldo(id, { status: newStatus });
-}
-
-/**
- * 6. Menghapus paket nominal saldo
- */
-export async function deleteNominalSaldo(id) {
-  if (!id) throw new Error('ID Nominal diperlukan.');
-  const current = getStoredNominals();
-  const updated = current.filter((item) => item.id !== id);
-  saveStoredNominals(updated);
-  return true;
+  setPendingTopupCountSync(result.totalPending);
 }
 
 /**

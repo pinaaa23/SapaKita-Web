@@ -32,19 +32,32 @@ export const mapReportData = (raw) => {
     ? data.revenueTrend 
     : (Array.isArray(data.trendData) ? data.trendData : []);
   
-  const revenueTrend = rawRevenueTrend.map(item => ({
-    date: item.date || item.tanggal || '',
-    amount: typeof item.amount === 'number' ? item.amount : (Number(item.amount ?? item.revenue) || 0)
-  })).filter(i => i.date);
+  const revenueTrend = rawRevenueTrend.map(item => {
+    const val = typeof item.amount === 'number' ? item.amount : (Number(item.amount ?? item.revenue) || 0);
+    return {
+      date: item.date || item.tanggal || '',
+      amount: val,
+      revenue: val,
+    };
+  }).filter(i => i.date);
 
   const rawCallVolumeTrend = Array.isArray(data.callVolumeTrend) 
     ? data.callVolumeTrend 
     : (Array.isArray(data.trendData) ? data.trendData : []);
 
-  const callVolumeTrend = rawCallVolumeTrend.map(item => ({
-    date: item.date || item.tanggal || '',
-    count: typeof item.count === 'number' ? item.count : (Number(item.count ?? item.calls) || 0)
-  })).filter(i => i.date);
+  const callVolumeTrend = rawCallVolumeTrend.map(item => {
+    const countVal = typeof item.calls === 'number' 
+      ? item.calls 
+      : (Number(item.calls ?? item.totalCalls ?? item.count) || 0);
+    return {
+      date: item.date || item.tanggal || '',
+      calls: countVal,
+      count: countVal,
+      totalCalls: countVal,
+      answeredCalls: typeof item.answeredCalls === 'number' ? item.answeredCalls : 0,
+      missedCalls: typeof item.missedCalls === 'number' ? item.missedCalls : 0,
+    };
+  }).filter(i => i.date);
 
   const revenueGrowth = typeof data.revenueGrowth === 'number' 
     ? data.revenueGrowth 
@@ -97,7 +110,8 @@ const normalizePeriod = (period) => {
 };
 
 /**
- * Mengambil data laporan cabang (Admin Cabang)
+ * Mengambil data laporan cabang (Kepala UPT / Supervisor)
+ * Mengintegrasikan data transaksi paket kantin & log panggilan khusus cabang UPT tersebut
  */
 export const getBranchReport = async ({ period = '30' } = {}) => {
   if (isDummyMode()) {
@@ -119,11 +133,11 @@ export const getBranchReport = async ({ period = '30' } = {}) => {
         { date: '02 Okt', amount: stats.totalTopup },
       ],
       callVolumeTrend: [
-        { date: '28 Sep', count: 2 },
-        { date: '29 Sep', count: 3 },
-        { date: '30 Sep', count: 1 },
-        { date: '01 Okt', count: 4 },
-        { date: '02 Okt', count: stats.totalCalls },
+        { date: '28 Sep', calls: 2, count: 2 },
+        { date: '29 Sep', calls: 3, count: 3 },
+        { date: '30 Sep', calls: 1, count: 1 },
+        { date: '01 Okt', calls: 4, count: 4 },
+        { date: '02 Okt', calls: stats.totalCalls, count: stats.totalCalls },
       ],
       compliance: {
         recordedRate: 100,
@@ -136,8 +150,127 @@ export const getBranchReport = async ({ period = '30' } = {}) => {
   const url = `${BRANCH_REPORT_ENDPOINT}?period=${normPeriod}`;
 
   try {
-    const res = await apiFetch(url);
-    return mapReportData(res);
+    const [reportRes, canteenRes, recordingsRes] = await Promise.allSettled([
+      apiFetch(url),
+      apiFetch('/api/canteen/transactions?page=1&limit=200'),
+      apiFetch('/api/recordings?page=1&limit=200'),
+    ]);
+
+    const rawReport = reportRes.status === 'fulfilled' ? reportRes.value : {};
+    let mapped = mapReportData(rawReport);
+
+    // 1. Ekstrak transaksi kantin cabang UPT ini (BE otomatis memfilter per UPT untuk Kepala UPT)
+    let canteenTxList = [];
+    if (canteenRes.status === 'fulfilled') {
+      const val = canteenRes.value;
+      canteenTxList = Array.isArray(val)
+        ? val
+        : (Array.isArray(val?.items)
+          ? val.items
+          : (Array.isArray(val?.data?.items)
+            ? val.data.items
+            : (Array.isArray(val?.data)
+              ? val.data
+              : [])));
+    }
+
+    // 2. Ekstrak rekaman panggilan cabang UPT ini (BE otomatis memfilter per UPT untuk Kepala UPT)
+    let recordingsList = [];
+    if (recordingsRes.status === 'fulfilled') {
+      const val = recordingsRes.value;
+      recordingsList = Array.isArray(val)
+        ? val
+        : (Array.isArray(val?.data)
+          ? val.data
+          : (Array.isArray(val?.items)
+            ? val.items
+            : []));
+    }
+
+    // Siapkan bucket tanggal sesuai periode (7, 30, atau 90 hari)
+    const numDays = parseInt(normPeriod, 10) || 30;
+    const dateList = [];
+    const dailyRevMap = {};
+    const dailyCallsMap = {};
+    const now = new Date();
+
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      dateList.push(key);
+      dailyRevMap[key] = 0;
+      dailyCallsMap[key] = 0;
+    }
+
+    // Hitung total omzet kantin cabang UPT
+    let totalCanteenRevenue = 0;
+    canteenTxList.forEach((t) => {
+      const isSuccess = t.status === 'BERHASIL' || t.status === 'Berhasil' || t.status === 'SUCCESS' || !t.status;
+      if (isSuccess) {
+        const amt = Number(t.totalAmount || t.amount || t.package?.price || 0);
+        totalCanteenRevenue += amt;
+
+        const dateKey = (t.createdAt || t.date || '').slice(0, 10);
+        if (dateKey && dailyRevMap[dateKey] !== undefined) {
+          dailyRevMap[dateKey] += amt;
+        } else if (dateKey) {
+          dailyRevMap[dateKey] = (dailyRevMap[dateKey] || 0) + amt;
+        }
+      }
+    });
+
+    // Hitung volume panggilan harian cabang UPT
+    recordingsList.forEach((rec) => {
+      const dateKey = (rec.createdAt || rec.call?.createdAt || '').slice(0, 10);
+      if (dateKey && dailyCallsMap[dateKey] !== undefined) {
+        dailyCallsMap[dateKey] += 1;
+      } else if (dateKey) {
+        dailyCallsMap[dateKey] = (dailyCallsMap[dateKey] || 0) + 1;
+      }
+    });
+
+    const computedRevenueTrend = dateList.map((dKey) => ({
+      date: dKey,
+      amount: dailyRevMap[dKey] || 0,
+      revenue: dailyRevMap[dKey] || 0,
+    }));
+
+    const computedCallVolumeTrend = dateList.map((dKey) => ({
+      date: dKey,
+      calls: dailyCallsMap[dKey] || 0,
+      count: dailyCallsMap[dKey] || 0,
+      totalCalls: dailyCallsMap[dKey] || 0,
+    }));
+
+    // Cek apakah data dari branch-summary backend memiliki angka > 0
+    const beRevenueHasData = mapped.revenueTrend && mapped.revenueTrend.some((i) => (i.amount || i.revenue) > 0);
+    const beCallsHasData = mapped.callVolumeTrend && mapped.callVolumeTrend.some((i) => (i.calls || i.totalCalls || i.count) > 0);
+
+    const finalRevenueTrend = beRevenueHasData
+      ? mapped.revenueTrend
+      : (computedRevenueTrend.length > 0 ? computedRevenueTrend : mapped.revenueTrend);
+
+    const finalCallVolumeTrend = beCallsHasData
+      ? mapped.callVolumeTrend
+      : (computedCallVolumeTrend.length > 0 ? computedCallVolumeTrend : mapped.callVolumeTrend);
+
+    const finalTotalRevenue = mapped.totalRevenue > 0
+      ? mapped.totalRevenue
+      : (totalCanteenRevenue > 0 ? totalCanteenRevenue : mapped.totalRevenue);
+
+    const finalTotalCalls = mapped.totalCalls > 0
+      ? mapped.totalCalls
+      : (recordingsList.length > 0 ? recordingsList.length : mapped.totalCalls);
+
+    return {
+      ...mapped,
+      totalRevenue: finalTotalRevenue,
+      totalCalls: finalTotalCalls,
+      revenueTrend: finalRevenueTrend,
+      callVolumeTrend: finalCallVolumeTrend,
+      transactions: canteenTxList,
+      recordings: recordingsList,
+    };
   } catch (error) {
     if (error?.status === 401) {
       logout();
@@ -188,8 +321,78 @@ export const getSummaryReport = async ({ period = '30' } = {}) => {
   const url = `${SUMMARY_REPORT_ENDPOINT}?period=${normPeriod}`;
 
   try {
-    const res = await apiFetch(url);
-    return mapReportData(res);
+    const [reportRes, canteenRes] = await Promise.allSettled([
+      apiFetch(url),
+      apiFetch('/api/canteen/transactions?page=1&limit=200'),
+    ]);
+
+    const rawReport = reportRes.status === 'fulfilled' ? reportRes.value : {};
+    let mapped = mapReportData(rawReport);
+
+    // Ekstrak transaksi pembelian paket kantin seluruh cabang UPT
+    let canteenTxList = [];
+    if (canteenRes.status === 'fulfilled') {
+      const val = canteenRes.value;
+      canteenTxList = Array.isArray(val)
+        ? val
+        : (Array.isArray(val?.items)
+          ? val.items
+          : (Array.isArray(val?.data?.items)
+            ? val.data.items
+            : (Array.isArray(val?.data)
+              ? val.data
+              : [])));
+    }
+
+    // Hitung total revenue riil dari seluruh cabang
+    const totalCanteenRevenue = canteenTxList
+      .filter((t) => t.status === 'BERHASIL' || t.status === 'Berhasil' || t.status === 'SUCCESS' || !t.status)
+      .reduce((sum, t) => sum + (Number(t.totalAmount || t.amount || t.package?.price || 0)), 0);
+
+    // Bangun agregasi harian omzet untuk periode terpilih (7, 30, atau 90 hari)
+    const numDays = parseInt(normPeriod, 10) || 30;
+    const dailyRevMap = {};
+    const dateList = [];
+    const now = new Date();
+
+    for (let i = numDays - 1; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      const key = d.toISOString().slice(0, 10);
+      dateList.push(key);
+      dailyRevMap[key] = 0;
+    }
+
+    canteenTxList.forEach((t) => {
+      const dateKey = (t.createdAt || t.date || '').slice(0, 10);
+      const amt = Number(t.totalAmount || t.amount || t.package?.price || 0);
+      if (dateKey && dailyRevMap[dateKey] !== undefined) {
+        dailyRevMap[dateKey] += amt;
+      } else if (dateKey) {
+        dailyRevMap[dateKey] = (dailyRevMap[dateKey] || 0) + amt;
+      }
+    });
+
+    const computedDailyTrend = dateList.map((dKey) => ({
+      date: dKey,
+      amount: dailyRevMap[dKey] || 0,
+    }));
+
+    // Cek apakah revenueTrend dari backend memiliki data positif (> 0)
+    const beTrendHasData = mapped.revenueTrend && mapped.revenueTrend.some((i) => i.amount > 0);
+
+    const finalRevenueTrend = beTrendHasData
+      ? mapped.revenueTrend
+      : (computedDailyTrend.length > 0 ? computedDailyTrend : mapped.revenueTrend);
+
+    const finalTotalRevenue = mapped.totalRevenue > 0 
+      ? mapped.totalRevenue 
+      : (totalCanteenRevenue > 0 ? totalCanteenRevenue : mapped.totalRevenue);
+
+    return {
+      ...mapped,
+      totalRevenue: finalTotalRevenue,
+      revenueTrend: finalRevenueTrend,
+    };
   } catch (error) {
     if (error?.status === 401) {
       logout();

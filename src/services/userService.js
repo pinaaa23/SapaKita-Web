@@ -89,10 +89,15 @@ export const getUsers = async ({
   limit = 20,
   role = 'All',
   status = 'All',
+  branchId = '',
 } = {}) => {
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
-    let list = dummyStore.getUsers().map(mapUserItem);
+    let list = dummyStore.getUsers(branchId || null).map(mapUserItem);
+
+    if (branchId && branchId !== 'All') {
+      list = list.filter((u) => String(u.branchId) === String(branchId));
+    }
 
     if (role && role !== 'All') {
       list = list.filter((u) => u.role === role || u.rawRole === role);
@@ -135,6 +140,7 @@ export const getUsers = async ({
     if (limit) params.append('limit', limit.toString());
     if (role && role !== 'All') params.append('role', toBackendRole(role));
     if (status && status !== 'All') params.append('status', status);
+    if (branchId && branchId !== 'All') params.append('branchId', branchId);
 
     const queryString = params.toString();
     const url = queryString ? `${USERS_ENDPOINT}?${queryString}` : USERS_ENDPOINT;
@@ -150,12 +156,19 @@ export const getUsers = async ({
             ? res.users
             : [];
 
+    let mapped = rawList.map(mapUserItem).filter(Boolean);
+
+    // Filter strict branchId di sisi client jika BE mengembalikan seluruh user
+    if (branchId && branchId !== 'All') {
+      mapped = mapped.filter((u) => String(u.branchId) === String(branchId));
+    }
+
     return {
-      items: rawList.map(mapUserItem).filter(Boolean),
-      total: res.total || rawList.length,
+      items: mapped,
+      total: res.total || mapped.length,
       page: Number(page),
       limit: Number(limit),
-      totalPages: Math.max(1, Math.ceil((res.total || rawList.length) / limit)),
+      totalPages: Math.max(1, Math.ceil((res.total || mapped.length) / limit)),
     };
   } catch (error) {
     if (error?.status === 401) {
@@ -202,12 +215,14 @@ export const getUserById = async (id) => {
  * Mendaftarkan pengguna baru (Supervisor atau Operator Kantin)
  */
 export const createUser = async (data) => {
+  const cleanPhone = data.phone && data.phone.trim() && data.phone.trim() !== '-' ? data.phone.trim() : null;
+
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
     const newUser = dummyStore.addUser({
       name: data.name.trim(),
       email: data.email.trim(),
-      phone: data.phone?.trim() || '-',
+      phone: cleanPhone || '',
       role: data.role || ROLES.SUPERVISOR,
       rawRole: toBackendRole(data.role || ROLES.SUPERVISOR),
     });
@@ -217,7 +232,7 @@ export const createUser = async (data) => {
   const payload = {
     name: data.name.trim(),
     email: data.email.trim(),
-    phone: data.phone?.trim() || '-',
+    ...(cleanPhone ? { phone: cleanPhone } : {}),
     role: toBackendRole(data.role || ROLES.SUPERVISOR),
     password: data.password,
   };
@@ -245,10 +260,12 @@ export const updateUser = async (id, data) => {
     return null;
   }
 
+  const cleanPhone = data.phone && data.phone.trim() && data.phone.trim() !== '-' ? data.phone.trim() : null;
+
   const payload = {
     ...(data.name ? { name: data.name.trim() } : {}),
     ...(data.email ? { email: data.email.trim() } : {}),
-    ...(data.phone ? { phone: data.phone.trim() } : {}),
+    ...(cleanPhone ? { phone: cleanPhone } : {}),
     ...(data.role ? { role: toBackendRole(data.role) } : {}),
   };
 
@@ -269,7 +286,8 @@ export const updateUserStatus = async (id, isActiveOrStatus) => {
     ? isActiveOrStatus 
     : (isActiveOrStatus === 'ACTIVE' || isActiveOrStatus === 'Active' || isActiveOrStatus === 'Aktif');
 
-  const statusEnum = isActive ? 'ACTIVE' : 'SUSPENDED';
+  // Backend mengharapkan status enum bahasa Indonesia: 'Aktif' atau 'Nonaktif'
+  const statusEnum = isActive ? 'Aktif' : 'Nonaktif';
 
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');

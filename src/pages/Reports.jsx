@@ -328,7 +328,14 @@ const Reports = () => {
                     axisLine={false} 
                     tickLine={false} 
                     tick={{fill: '#94a3b8', fontSize: 12}}
-                    tickFormatter={(val) => new Date(val).toLocaleDateString('id-ID', {day: 'numeric', month: 'short'})}
+                    tickFormatter={(val) => {
+                      try {
+                        const d = new Date(val);
+                        return isNaN(d.getTime()) ? val : d.toLocaleDateString('id-ID', {day: 'numeric', month: 'short'});
+                      } catch {
+                        return val;
+                      }
+                    }}
                   />
                   <YAxis 
                     axisLine={false} 
@@ -338,7 +345,14 @@ const Reports = () => {
                   />
                   <RechartsTooltip 
                     formatter={(value) => [formatCurrency(value), 'Revenue']}
-                    labelFormatter={(label) => new Date(label).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}
+                    labelFormatter={(label) => {
+                      try {
+                        const d = new Date(label);
+                        return isNaN(d.getTime()) ? label : d.toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'});
+                      } catch {
+                        return label;
+                      }
+                    }}
                     contentStyle={{borderRadius: '0.5rem', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
                   />
                   <Line type="monotone" dataKey="amount" stroke="#0D9488" strokeWidth={3} dot={{r: 4, fill: '#0D9488', strokeWidth: 0}} activeDot={{r: 6, fill: '#1E293B', stroke: '#0D9488', strokeWidth: 2}} />

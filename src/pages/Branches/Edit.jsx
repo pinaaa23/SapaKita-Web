@@ -45,10 +45,10 @@ const Edit = () => {
           setFormData({
             name: branch.name || '',
             location: branch.location || '',
-            address: branch.address || '',
-            phone: branch.phone || '',
+            address: branch.address === '-' ? '' : (branch.address || ''),
+            phone: branch.phone === '-' ? '' : (branch.phone || ''),
             capacity: branch.capacity || '',
-            status: branch.status || 'Active'
+            status: branch.status === 'Active' || branch.status === 'Aktif' ? 'Active' : 'Inactive'
           });
         }
       })
@@ -94,14 +94,13 @@ const Edit = () => {
 
     setIsSubmitting(true);
     try {
-      // TODO: ganti ke API BE saat endpoint tersedia
       await updateBranch(id, {
         name: formData.name.trim(),
         location: formData.location.trim(),
         address: formData.address.trim(),
         phone: formData.phone.trim(),
         capacity: parseInt(formData.capacity, 10),
-        status: formData.status
+        status: formData.status === 'Active' ? 'Aktif' : 'Nonaktif'
       });
       navigate('/branches');
     } catch (err) {
@@ -112,12 +111,15 @@ const Edit = () => {
       }
       if (err?.status === 403) {
         setErrorMsg('Anda tidak memiliki akses.');
+      } else if (err?.status === 400) {
+        const errorDetail = Array.isArray(err?.data?.errors)
+          ? err.data.errors.map(e => `${e.field}: ${e.message}`).join(', ')
+          : (err?.message || 'Data cabang tidak valid.');
+        setErrorMsg(errorDetail);
       } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
         setErrorMsg('Fitur ini belum tersedia di sistem backend.');
-      } else if (err?.status === 400) {
-        setErrorMsg(err?.message || 'Data cabang tidak valid.');
       } else {
-        setErrorMsg('Fitur ini belum tersedia di sistem backend.');
+        setErrorMsg(err?.message || 'Gagal menyimpan perubahan cabang.');
       }
     } finally {
       setIsSubmitting(false);

@@ -117,11 +117,13 @@ export const exportToPDF = ({
   filename = 'laporan_pascall.pdf',
   headers = [],
   rows = [],
+  tables = [], // Mendukung multi-tabel: [{ title, subtitle, headers, rows }]
   metadata = {},
   summaryMetrics = [],
   orientation = 'portrait' // 'portrait' | 'landscape'
 }) => {
-  if (!rows || !rows.length) {
+  const hasTables = Array.isArray(tables) && tables.some(t => t.rows && t.rows.length);
+  if ((!rows || !rows.length) && !hasTables) {
     alert('Tidak ada data untuk diekspor ke PDF.');
     return false;
   }
@@ -238,58 +240,119 @@ export const exportToPDF = ({
       currentY += cardHeight + 6;
     }
 
-    // --- 5. DATA TABLE (autoTable) ---
-    autoTable(doc, {
-      startY: currentY,
-      head: [headers],
-      body: rows,
-      margin: { left: margin, right: margin, bottom: 18 },
-      theme: 'grid',
-      styles: {
-        font: 'helvetica',
-        fontSize: 7.5,
-        textColor: [51, 65, 85], // slate-700
-        cellPadding: 2.5,
-        overflow: 'linebreak',
-        lineColor: [226, 232, 240], // slate-200
-        lineWidth: 0.2
-      },
-      headStyles: {
-        fillColor: [30, 58, 138], // #1e3a8a
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 8,
-        halign: 'left',
-        valign: 'middle'
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252] // slate-50
-      },
-      didDrawPage: (data) => {
-        // --- FOOTER ON EVERY PAGE ---
-        const pageCount = doc.internal.getNumberOfPages();
-        doc.setDrawColor(226, 232, 240);
-        doc.setLineWidth(0.3);
-        doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
+    // Helper Footer callback
+    const drawFooter = (data) => {
+      const pageCount = doc.internal.getNumberOfPages();
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
 
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(7);
-        doc.setTextColor(148, 163, 184); // slate-400
-        doc.text(
-          'PasCall - Sistem Layanan Panggilan Pemasyarakatan | Dokumen Resmi Bersifat Rahasia',
-          margin,
-          pageHeight - 7
-        );
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(148, 163, 184); // slate-400
+      doc.text(
+        'PasCall - Sistem Layanan Panggilan Pemasyarakatan | Dokumen Resmi Bersifat Rahasia',
+        margin,
+        pageHeight - 7
+      );
 
-        doc.setFont('helvetica', 'bold');
-        doc.text(
-          `Halaman ${data.pageNumber} / ${pageCount}`,
-          pageWidth - margin,
-          pageHeight - 7,
-          { align: 'right' }
-        );
-      }
-    });
+      doc.setFont('helvetica', 'bold');
+      doc.text(
+        `Halaman ${data.pageNumber} / ${pageCount}`,
+        pageWidth - margin,
+        pageHeight - 7,
+        { align: 'right' }
+      );
+    };
+
+    // --- 5. DATA TABLES (autoTable multi-table or single table) ---
+    if (hasTables) {
+      tables.forEach((tbl) => {
+        if (!tbl.rows || !tbl.rows.length) return;
+
+        // Cek sisa tinggi halaman sebelum judul tabel
+        if (currentY > pageHeight - 40) {
+          doc.addPage();
+          currentY = 16;
+        }
+
+        if (tbl.title) {
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.setTextColor(30, 58, 138); // Primary navy #1e3a8a
+          doc.text(tbl.title.toUpperCase(), margin, currentY);
+          currentY += 4;
+        }
+
+        if (tbl.subtitle) {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(100, 116, 139);
+          doc.text(tbl.subtitle, margin, currentY);
+          currentY += 3.5;
+        }
+
+        autoTable(doc, {
+          startY: currentY,
+          head: [tbl.headers],
+          body: tbl.rows,
+          margin: { left: margin, right: margin, bottom: 18 },
+          theme: 'grid',
+          styles: {
+            font: 'helvetica',
+            fontSize: 7.2,
+            textColor: [51, 65, 85],
+            cellPadding: 2.2,
+            overflow: 'linebreak',
+            lineColor: [226, 232, 240],
+            lineWidth: 0.2
+          },
+          headStyles: {
+            fillColor: [30, 58, 138],
+            textColor: [255, 255, 255],
+            fontStyle: 'bold',
+            fontSize: 7.8,
+            halign: 'left',
+            valign: 'middle'
+          },
+          alternateRowStyles: {
+            fillColor: [248, 250, 252]
+          },
+          didDrawPage: drawFooter
+        });
+
+        currentY = doc.lastAutoTable.finalY + 8;
+      });
+    } else {
+      autoTable(doc, {
+        startY: currentY,
+        head: [headers],
+        body: rows,
+        margin: { left: margin, right: margin, bottom: 18 },
+        theme: 'grid',
+        styles: {
+          font: 'helvetica',
+          fontSize: 7.5,
+          textColor: [51, 65, 85], // slate-700
+          cellPadding: 2.5,
+          overflow: 'linebreak',
+          lineColor: [226, 232, 240], // slate-200
+          lineWidth: 0.2
+        },
+        headStyles: {
+          fillColor: [30, 58, 138], // #1e3a8a
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8,
+          halign: 'left',
+          valign: 'middle'
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252] // slate-50
+        },
+        didDrawPage: drawFooter
+      });
+    }
 
     const cleanBase = (filename || 'laporan_pascall.pdf')
       .replace(/[/\\?%*:|"<>]/g, '_')
