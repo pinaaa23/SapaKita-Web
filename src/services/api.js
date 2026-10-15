@@ -278,12 +278,15 @@ export const updateContactStatusApi = async (contactId, status) => {
 /**
  * API Call Endpoints
  */
-export const initiateCallApi = async ({ familyId, type = 'AUDIO' }) => {
+export const initiateCallApi = async ({ phone, voucherCode, type = 'AUDIO', familyId, ...rest }) => {
   return await apiFetch('/api/call/initiate', {
     method: 'POST',
     body: JSON.stringify({
-      familyId,
-      type: type.toUpperCase()
+      phone,
+      voucherCode,
+      type: (type || 'AUDIO').toUpperCase(),
+      ...(familyId ? { familyId } : {}),
+      ...rest,
     })
   });
 };

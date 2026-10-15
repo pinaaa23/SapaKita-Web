@@ -83,7 +83,10 @@ export const mapCallItem = (item) => {
     inmateName: call.inmate?.name || item.inmateName || call.inmateName || 'Narapidana',
     familyId: call.family?.id || item.familyId || call.familyId || '',
     familyName: call.family?.name || item.familyName || call.familyName || 'Keluarga',
-    familyPhone: call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
+    familyPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
+    destinationPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
+    targetPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || '-',
+    targetNumber: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || '-',
     date: item.createdAt || call.connectedAt || call.date || item.date || new Date().toISOString(),
     durationSeconds: typeof call.durationSeconds === 'number' 
       ? call.durationSeconds 
