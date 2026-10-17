@@ -60,12 +60,12 @@ export default function Login() {
     setIsLoading(true);
 
     try {
+      // 1. Coba autentikasi via Backend API nyata terlebih dahulu
       let responseData;
       try {
         responseData = await loginApi(identifier, password);
       } catch (apiErr) {
-        // DEV Mode fallback: jika dalam mode DEV dan identifier mengandung kantin / kasir,
-        // izinkan login demo agar pengujian UI kasir tetap berjalan lancar
+        // DEV Mode fallback untuk kantin
         const idLower = identifier.trim().toLowerCase();
         if (import.meta.env.DEV && (idLower.includes('kantin') || idLower.includes('kasir'))) {
           responseData = {
@@ -121,7 +121,7 @@ export default function Login() {
 
       const normalizedRole = (role || '').toString().trim().toLowerCase();
 
-      // Resolve branch name via API HANYA untuk role SUPERADMIN (rute /api/branches/* BE hanya untuk SUPERADMIN)
+      // Resolve branch name via API HANYA untuk role SUPERADMIN
       if (normalizedRole === 'superadmin' && user.branchId && !user.branchName && !user.branch?.name) {
         try {
           const { getBranchById } = await import('../services/branchService');
@@ -147,6 +147,9 @@ export default function Login() {
       } else if (normalizedRole === 'operator_kantin' || normalizedRole === 'canteen_staff' || normalizedRole === 'kantin') {
         setAuthContextSession(token, { ...user, role: 'operator_kantin' });
         navigate('/kantin');
+      } else if (normalizedRole === 'admin_kanwil' || normalizedRole === 'kanwil_admin' || normalizedRole === 'kanwil') {
+        setAuthContextSession(token, { ...user, role: 'admin_kanwil' });
+        navigate('/kanwil/dashboard');
       } else {
         // Reject non-admin roles (FAMILY, INMATE, etc.)
         clearAuthSession();

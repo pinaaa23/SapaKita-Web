@@ -20,9 +20,13 @@ Satu halaman login dipakai bersama semua role. Setelah login, pengguna diarahkan
 | Role | Nilai (BE) | Dashboard |
 |------|------------|-----------|
 | Super Administrator | `SUPERADMIN` | `/dashboard` |
+| Admin Kanwil | (FE Demo — `admin_kanwil`) | `/kanwil/dashboard` |
 | Kepala UPT | `BRANCH_ADMIN` | `/branch/dashboard` |
 | Supervisor | (belum ada di BE — mock: `supervisor`) | `/branch/dashboard` |
 | Operator Kantin | `CANTEEN_STAFF` | `/kantin` |
+
+> ⚠️ **PENTING UNTUK DEPLOYMENT:**
+> Fitur demo Admin Kanwil dikendalikan oleh saklar `VITE_KANWIL_DEMO=true` di `.env.local`. **Matikan `VITE_KANWIL_DEMO` (set `false` atau hapus) sebelum deploy** ke lingkungan produksi agar data demo tidak aktif di live server.
 
 ## Halaman Kantin (Operator Kantin)
 

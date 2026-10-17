@@ -54,6 +54,12 @@ export const AuthProvider = ({ children }) => {
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke token/email jika user.name kosong.
   const userName = useMemo(() => {
+    if (role === ROLES.ADMIN_KANWIL) {
+      if (user?.kanwilName) return user.kanwilName;
+      if (user?.email?.includes('diy') || user?.id === 'kanwil-diy') return 'Kanwil DI Yogyakarta';
+      if (user?.email?.includes('jateng') || user?.id === 'kanwil-jateng') return 'Kanwil Jawa Tengah';
+      return 'Kanwil Jawa Barat';
+    }
     if (user?.name && user.name.trim() !== '') {
       return user.name.trim();
     }
@@ -125,7 +131,7 @@ export const AuthProvider = ({ children }) => {
   const hasFetchedProfileRef = React.useRef(false);
 
   useEffect(() => {
-    if (!token || hasFetchedProfileRef.current) return;
+    if (!token || hasFetchedProfileRef.current || role === ROLES.ADMIN_KANWIL) return;
 
     const currentBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName;
     const isNeutralPlaceholder = !currentBranchName || 
@@ -173,7 +179,7 @@ export const AuthProvider = ({ children }) => {
           });
       }).catch(() => {});
     }
-  }, [token]);
+  }, [token, role]);
 
   const value = useMemo(() => ({
     token,
@@ -182,7 +188,9 @@ export const AuthProvider = ({ children }) => {
     roleLabel,
     userName,
     uptName,
+    kanwilName: user?.kanwilName || '',
     isAuthenticated,
+    isAdminKanwil: Boolean(isAuthenticated && role === ROLES.ADMIN_KANWIL),
     isSupervisor: Boolean(isAuthenticated && role === ROLES.SUPERVISOR),
     isKepalaUpt: Boolean(isAuthenticated && role === ROLES.KEPALA_UPT),
     isSuperadmin: Boolean(isAuthenticated && role === ROLES.SUPERADMIN),

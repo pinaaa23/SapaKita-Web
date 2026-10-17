@@ -2,15 +2,19 @@ import React from 'react';
 import { formatRupiah } from '../../utils/formatKantin';
 import { ShoppingCart, CheckCircle2 } from 'lucide-react';
 
-export default function KartuPaket({ paket, onBeli }) {
+export default function KartuPaket({ paket, onBeli, disabled = false }) {
   const { nama, subNama, durasi, keterangan, harga } = paket;
 
   return (
-    <div className="group relative flex flex-col justify-between bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all duration-200">
+    <div className={`group relative flex flex-col justify-between bg-white rounded-2xl border p-6 shadow-sm transition-all duration-200 ${
+      disabled ? 'border-slate-200 opacity-80' : 'border-slate-200/80 hover:shadow-md hover:border-blue-200'
+    }`}>
       {/* Header Kartu: Nama Paket */}
       <div>
         <div className="mb-2">
-          <h3 className="text-lg font-bold text-slate-800 group-hover:text-[#1565C0] transition-colors">
+          <h3 className={`text-lg font-bold transition-colors ${
+            disabled ? 'text-slate-600' : 'text-slate-800 group-hover:text-[#1565C0]'
+          }`}>
             {nama}
           </h3>
           {subNama && (
@@ -39,7 +43,7 @@ export default function KartuPaket({ paket, onBeli }) {
             <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold block">
               Harga
             </span>
-            <span className="text-2xl font-extrabold text-[#1565C0]">
+            <span className={`text-2xl font-extrabold ${disabled ? 'text-slate-500' : 'text-[#1565C0]'}`}>
               {formatRupiah(harga)}
             </span>
           </div>
@@ -49,11 +53,17 @@ export default function KartuPaket({ paket, onBeli }) {
         </div>
 
         <button
-          onClick={() => onBeli(paket)}
-          className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] active:scale-[0.98] text-white font-semibold text-sm transition-all shadow-sm shadow-blue-500/20 cursor-pointer"
+          onClick={() => !disabled && onBeli(paket)}
+          disabled={disabled}
+          className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-sm ${
+            disabled
+              ? 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300 shadow-none'
+              : 'bg-[#1565C0] hover:bg-[#0D47A1] active:scale-[0.98] text-white shadow-blue-500/20 cursor-pointer'
+          }`}
+          title={disabled ? 'Transaksi diblokir: tagihan belum lunas' : 'Beli Paket'}
         >
           <ShoppingCart className="w-4 h-4" />
-          <span>Beli Paket</span>
+          <span>{disabled ? 'Transaksi Diblokir' : 'Beli Paket'}</span>
         </button>
       </div>
     </div>

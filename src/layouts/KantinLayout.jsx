@@ -11,7 +11,8 @@ import {
   Wallet,
   Bell,
   CheckCircle2,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import { formatTanggal } from '../utils/formatKantin';
 import { useAuth } from '../context/AuthContext';
@@ -110,17 +111,16 @@ export default function KantinLayout() {
   };
 
   const handleLogout = () => {
-    if (window.confirm('Apakah Anda yakin ingin keluar dari sesi Kasir Operator?')) {
-      logout();
-      navigate('/login', { replace: true });
-    }
+    logout();
+    navigate('/login', { replace: true });
   };
 
   const menuItems = [
-    { to: '/kantin', label: 'Paket', icon: ShoppingBag, end: true },
+    { to: '/kantin', label: 'Paket Voucher', icon: ShoppingBag, end: true },
+    { to: '/kantin/kontak', label: 'Kontak WBP', icon: Users, end: false },
     { to: '/kantin/status-wartel', label: 'Status Wartel', icon: PhoneCall, end: false },
-    { to: '/kantin/riwayat', label: 'Riwayat', icon: History, end: false },
-    { to: '/kantin/top-up-saldo', label: 'Top Up Saldo', icon: Wallet, end: false, isTopup: true },
+    { to: '/kantin/riwayat', label: 'Riwayat Penjualan', icon: History, end: false },
+    { to: '/kantin/tagihan', label: 'Tagihan Bulanan', icon: Wallet, end: false },
   ];
 
   // Tampilkan email atau nama user
@@ -201,10 +201,11 @@ export default function KantinLayout() {
             <WartelBadgeSidebar />
           </div>
 
-          {/* Badge Saldo Kantin */}
+          {/* Badge Tagihan Pascabayar (Pengganti Saldo Prabayar Lama) */}
           <div className="pt-2 px-0.5">
             <div className="px-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Saldo Kantin
+              {/* FITUR LAMA DIKOMENTARI: Saldo Kantin */}
+              Tagihan Pascabayar
             </div>
             <SaldoBadgeSidebar />
           </div>

@@ -139,23 +139,58 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
             ? res.branches
             : [];
 
-    const backendItems = rawList.map(mapBranchItem).filter(Boolean);
+    let backendItems = rawList.map(mapBranchItem).filter(Boolean);
     await syncBranchInmateCounts(backendItems);
 
-    const backendTotal = typeof res?.total === 'number'
-      ? res.total
-      : typeof res?.pagination?.total === 'number'
-        ? res.pagination.total
-        : backendItems.length;
+    // Sinkronisasi data UPT dari Kantor Wilayah (Kanwil) ke daftar Superadmin
+    try {
+      const { getAllAvailableUptsForSuperadmin } = await import('./kanwilService');
+      const kanwilUpts = await getAllAvailableUptsForSuperadmin();
+      if (Array.isArray(kanwilUpts) && kanwilUpts.length > 0) {
+        const existingIds = new Set(backendItems.map((b) => String(b.id)));
+        const existingNames = new Set(backendItems.map((b) => (b.name || '').toLowerCase().trim()));
 
-    const backendTotalPages = typeof res?.totalPages === 'number'
-      ? res.totalPages
-      : typeof res?.pagination?.totalPages === 'number'
-        ? res.pagination.totalPages
-        : Math.max(1, Math.ceil(backendTotal / limit));
+        const supplemental = kanwilUpts
+          .filter((u) => !existingIds.has(String(u.id)) && !existingNames.has((u.name || '').toLowerCase().trim()))
+          .map((u) => ({
+            id: u.id,
+            name: u.name,
+            location: u.city || u.location || 'Indonesia',
+            address: u.address || '-',
+            phone: u.phone || '-',
+            capacity: Number(u.capacity) || 1000,
+            inmateCount: Number(u.inmateCount) || 0,
+            adminCount: 1,
+            adminEmail: null,
+            headName: `Kepala ${u.name}`,
+            status: u.status === 'Active' || u.status === 'Aktif' ? 'Active' : 'Inactive',
+            isActive: u.status === 'Active' || u.status === 'Aktif',
+            createdAt: new Date().toISOString(),
+            isMock: true,
+          }));
+
+        if (supplemental.length > 0) {
+          backendItems = [...backendItems, ...supplemental];
+        }
+      }
+    } catch (kanwilErr) {
+      console.warn('[BranchService] Gagal sinkronisasi data kanwil:', kanwilErr);
+    }
+
+    if (search && search.trim()) {
+      const s = search.toLowerCase();
+      backendItems = backendItems.filter(
+        (b) => (b.name && b.name.toLowerCase().includes(s)) || (b.location && b.location.toLowerCase().includes(s))
+      );
+    }
+
+    const backendTotal = backendItems.length;
+    const backendTotalPages = Math.max(1, Math.ceil(backendTotal / limit));
+    const start = (Number(page) - 1) * Number(limit);
+    const paginatedItems = backendItems.slice(start, start + Number(limit));
 
     return {
-      items: backendItems,
+      items: paginatedItems,
       total: backendTotal,
       page: Number(page),
       limit: Number(limit),
@@ -166,14 +201,54 @@ export const getBranches = async ({ search = '', page = 1, limit = 20 } = {}) =>
       logout();
       throw error;
     }
-    console.log('[BranchService] Gagal mengambil data cabang:', error?.message || error);
-    return {
-      items: [],
-      total: 0,
-      page: Number(page),
-      limit: Number(limit),
-      totalPages: 1,
-    };
+    console.log('[BranchService] Beralih ke data UPT Kanwil terdaftar:', error?.message || error);
+    try {
+      const { getAllAvailableUptsForSuperadmin } = await import('./kanwilService');
+      const kanwilUpts = await getAllAvailableUptsForSuperadmin();
+      let filtered = kanwilUpts.map((u) => ({
+        id: u.id,
+        name: u.name,
+        location: u.city || u.location || 'Indonesia',
+        address: u.address || '-',
+        phone: u.phone || '-',
+        capacity: Number(u.capacity) || 1000,
+        inmateCount: Number(u.inmateCount) || 0,
+        adminCount: 1,
+        adminEmail: null,
+        headName: `Kepala ${u.name}`,
+        status: u.status === 'Active' || u.status === 'Aktif' ? 'Active' : 'Inactive',
+        isActive: u.status === 'Active' || u.status === 'Aktif',
+        createdAt: new Date().toISOString(),
+        isMock: true,
+      }));
+
+      if (search && search.trim()) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (b) => (b.name && b.name.toLowerCase().includes(s)) || (b.location && b.location.toLowerCase().includes(s))
+        );
+      }
+
+      const total = filtered.length;
+      const start = (Number(page) - 1) * Number(limit);
+      const items = filtered.slice(start, start + Number(limit));
+
+      return {
+        items,
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
+    } catch (fallbackErr) {
+      return {
+        items: [],
+        total: 0,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: 1,
+      };
+    }
   }
 };
 

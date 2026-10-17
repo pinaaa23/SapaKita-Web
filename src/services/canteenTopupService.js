@@ -280,3 +280,133 @@ export async function rejectTopupTransaction(id, reason = '') {
 
   return { success: true, data: res?.data || res };
 }
+
+/**
+ * 10. Mengambil laporan rekapitulasi tagihan pascabayar dari SEMUA UPT / Kantin (Superadmin)
+ * Menghitung rincian voucher, menit terjual, DPP, PPN, status lunas/pending, dan jatuh tempo (H+2).
+ *
+ * @param {number} [monthParam] - 1 sampai 12
+ * @param {number} [yearParam] - contoh 2026
+ * @returns {Promise<Array>}
+ */
+export async function getAllCanteenBillingReport(monthParam, yearParam) {
+  const now = new Date();
+  const targetMonth = monthParam !== undefined ? Number(monthParam) : now.getMonth() + 1;
+  const targetYear = yearParam !== undefined ? Number(yearParam) : now.getFullYear();
+
+  // 1. Ambil daftar cabang UPT
+  const branchesRes = await apiFetch('/api/branches?limit=200').catch(() => ({ items: [] }));
+  const branches = branchesRes?.items || branchesRes?.data || (Array.isArray(branchesRes) ? branchesRes : []);
+
+  // 2. Ambil seluruh transaksi voucher kantin
+  const trxRes = await apiFetch('/api/canteen/transactions?page=1&limit=1000').catch(() => ({ data: [] }));
+  const allTrx = trxRes?.data || [];
+
+  // 3. Ambil riwayat pembayaran tagihan (topup requests)
+  const topupsRes = await apiFetch('/api/canteen/topups?limit=200').catch(() => ({ data: [] }));
+  const allTopups = topupsRes?.data || topupsRes?.items || (Array.isArray(topupsRes) ? topupsRes : []);
+
+  // Hitung batas periode bulan & tahun yang dipilih
+  const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
+  const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+
+  // Batas jatuh tempo: 2 hari setelah akhir periode (Tanggal 2 bulan berikutnya pukul 23:59:59)
+  const dueDate = new Date(targetYear, targetMonth, 2, 23, 59, 59, 999);
+  const isPastMonth = endOfMonth < now;
+  const isPastDue = now > dueDate;
+
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+  const periodLabel = `${monthNames[targetMonth - 1]} ${targetYear}`;
+
+  const reports = branches.map((branch) => {
+    // Filter transaksi untuk cabang ini dalam periode
+    const branchTrx = allTrx.filter((t) => {
+      if (t.branchId !== branch.id) return false;
+      const tDate = new Date(t.createdAt);
+      return tDate >= startOfMonth && tDate <= endOfMonth;
+    });
+
+    const totalVouchers = branchTrx.length;
+    const totalMinutes = branchTrx.reduce((acc, t) => acc + Number(t.duration || t.package?.duration || 0), 0);
+    const totalAmount = branchTrx.reduce((acc, t) => acc + Number(t.totalAmount || 0), 0);
+    const totalDpp = branchTrx.reduce((acc, t) => acc + Number(t.dpp || 0), 0);
+    const totalPpn = branchTrx.reduce((acc, t) => acc + Number(t.ppn || 0), 0);
+
+    // Cek pembayaran tagihan cabang ini
+    const branchTopups = allTopups.filter((tp) => tp.branchId === branch.id);
+    const approvedPayment = branchTopups.find((tp) => tp.status === 'APPROVED');
+    const pendingPayment = branchTopups.find((tp) => tp.status === 'PENDING');
+    const rejectedPayment = branchTopups.find((tp) => tp.status === 'REJECTED');
+
+    let billingStatus = 'BERJALAN';
+    let statusLabel = 'Bulan Berjalan';
+    let isBlocked = false;
+
+    if (!isPastMonth) {
+      // Bulan Berjalan (misal Oktober 2026 saat ini)
+      if (approvedPayment) {
+        billingStatus = 'LUNAS';
+        statusLabel = 'Lunas';
+      } else if (pendingPayment) {
+        billingStatus = 'PENDING';
+        statusLabel = 'Menunggu Konfirmasi';
+      } else {
+        billingStatus = 'BERJALAN';
+        statusLabel = 'Bulan Berjalan (Aktif)';
+      }
+    } else {
+      // Bulan yang sudah lewat (misal September 2026 atau sebelumnya)
+      if (totalAmount <= 0) {
+        billingStatus = 'NIHIL';
+        statusLabel = 'Tidak Ada Tagihan';
+      } else if (approvedPayment) {
+        billingStatus = 'LUNAS';
+        statusLabel = 'Lunas';
+      } else if (pendingPayment) {
+        billingStatus = 'PENDING';
+        statusLabel = 'Menunggu Konfirmasi';
+        isBlocked = isPastDue;
+      } else if (rejectedPayment) {
+        billingStatus = 'REJECTED';
+        statusLabel = 'Ditolak (Menunggak)';
+        isBlocked = true;
+      } else {
+        if (isPastDue) {
+          billingStatus = 'DIBLOKIR';
+          statusLabel = 'Lewat Jatuh Tempo (Diblokir)';
+          isBlocked = true;
+        } else {
+          billingStatus = 'BELUM_BAYAR';
+          statusLabel = 'Belum Dibayar (Tenggat 2 Hari)';
+        }
+      }
+    }
+
+    return {
+      branchId: branch.id,
+      branchName: branch.name,
+      branchCode: branch.code || branch.id.slice(0, 4).toUpperCase(),
+      kanwilName: branch.kanwil?.name || branch.kanwilProvince || 'Kanwil Kemenkumham',
+      period: periodLabel,
+      month: targetMonth,
+      year: targetYear,
+      totalVouchers,
+      totalMinutes,
+      totalDpp: Math.round(totalDpp * 100) / 100,
+      totalPpn: Math.round(totalPpn * 100) / 100,
+      totalAmount,
+      billingStatus,
+      statusLabel,
+      isBlocked,
+      dueDate: dueDate.toISOString(),
+      dueDateFormatted: '2 ' + monthNames[targetMonth % 12] + ' ' + (targetMonth === 12 ? targetYear + 1 : targetYear),
+      latestPayment: approvedPayment || pendingPayment || rejectedPayment || null,
+      transactions: branchTrx,
+    };
+  });
+
+  return reports;
+}

@@ -6,7 +6,7 @@ import TabelTransaksi from '../../components/kantin/TabelTransaksi';
 import { getRekap, getRiwayat } from '../../services/kantin/kantinService';
 
 export default function RiwayatPage() {
-  const [periode, setPeriode] = useState('harian');
+  const [periode, setPeriode] = useState('bulanan');
   const [tanggal, setTanggal] = useState(new Date());
 
   const [metodeFilter, setMetodeFilter] = useState('Semua');

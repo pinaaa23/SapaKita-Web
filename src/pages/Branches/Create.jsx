@@ -260,6 +260,27 @@ const Create = () => {
         </div>
       </div>
 
+      {/* Notice: Pendelegasian Pendaftaran UPT ke Kanwil */}
+      <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-900 shadow-2xs">
+        <div className="flex items-start gap-3">
+          <div className="p-2.5 bg-amber-500/15 text-amber-700 rounded-xl shrink-0 mt-0.5">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-amber-950 text-sm">Alur Kewenangan Baru: Pembuatan UPT Dikelola oleh Kanwil</h4>
+            <p className="text-amber-800 mt-1 leading-relaxed">
+              Sesuai hierarki tata kelola PasCall, Super Admin berwenang mengelola entitas <strong>Kantor Wilayah (Kanwil)</strong>. Pendaftaran UPT baru secara resmi dilakukan oleh <strong>Admin Kanwil</strong> masing-masing wilayah (Jawa Barat, DI Yogyakarta, Jawa Tengah, Jawa Timur, dll).
+            </p>
+          </div>
+        </div>
+        <Link
+          to="/kanwil-management"
+          className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+        >
+          Kelola Kanwil &rarr;
+        </Link>
+      </div>
+
       {/* Validation Error Alert */}
       {errorMsg && (
         <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold flex items-center gap-2 animate-in fade-in duration-200">

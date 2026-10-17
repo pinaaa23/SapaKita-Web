@@ -14,10 +14,24 @@ const Topbar = ({ toggleMobileMenu }) => {
   const location = useLocation();
 
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
-  const { role: normRole, roleLabel: userRole, userName, uptName, logout } = useAuth();
-  const profileLink = isBranchAdmin ? '/branch/profile' : '/profile';
+  const { role: normRole, roleLabel: userRole, userName, uptName, user, logout } = useAuth();
+  const isKanwilUser = normRole === ROLES.ADMIN_KANWIL || location.pathname.startsWith('/kanwil');
+  const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/dashboard' : '/profile');
 
   const getPageDetails = (pathname) => {
+    // Kanwil Admin Page Details
+    const activeKanwilName =
+      user?.kanwilName ||
+      user?.kanwil?.name ||
+      'Kantor Wilayah';
+
+    if (pathname.startsWith('/kanwil/branches')) return { title: 'Daftar UPT', subtitle: `UPT di bawah naungan ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/inmates')) return { title: 'Data WBP', subtitle: `Daftar warga binaan pemasyarakatan di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/reports')) return { title: 'Laporan', subtitle: `Laporan & analitik performa seluruh UPT di ${activeKanwilName}` };
+    if (pathname === '/kanwil' || pathname === '/kanwil/' || pathname.startsWith('/kanwil/dashboard')) {
+      return { title: 'Dashboard', subtitle: `Selamat Datang, ${activeKanwilName}!` };
+    }
+
     if (pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah Narapidana Baru', subtitle: 'Form pendaftaran warga binaan baru' };
     if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data Narapidana', subtitle: 'Perbarui informasi & data warga binaan' };
     if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
@@ -50,7 +64,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi keuangan nasional' };
 
     if (pathname.startsWith('/packages')) return { title: 'Katalog Paket UPT', subtitle: 'Monitoring tarif, durasi, dan status paket panggilan seluruh cabang UPT' };
-    if (pathname.startsWith('/canteen-topup')) return { title: 'Top Up', subtitle: 'Persetujuan dan riwayat transaksi top up kasir kantin UPT' };
+    if (pathname.startsWith('/canteen-topup')) return { title: 'Tagihan Kantin', subtitle: 'Laporan tagihan bulanan seluruh UPT, penggunaan menit, dan verifikasi transfer' };
 
     if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh UPT' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
@@ -111,16 +125,21 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data setoran saldo & pembayaran UPT' },
     { title: 'Laporan & Analitik UPT', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & keuangan UPT' },
     { title: 'Profil Pengguna', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan pengguna' },
+  ] : (isKanwilUser ? [
+    { title: 'Dashboard', category: 'Halaman', link: '/kanwil/dashboard', desc: 'Ringkasan operasional UPT di wilayah' },
+    { title: 'Daftar UPT', category: 'Halaman', link: '/kanwil/branches', desc: 'Daftar UPT Lapas & Rutan di bawah naungan Kanwil' },
+    { title: 'Data WBP', category: 'Halaman', link: '/kanwil/inmates', desc: 'Data seluruh warga binaan pemasyarakatan se-wilayah' },
+    { title: 'Laporan Wilayah', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh UPT' },
   ] : [
     { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT PasCall nasional' },
     { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
     { title: 'Katalog Paket UPT', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh cabang UPT' },
-    { title: 'Top Up', category: 'Halaman', link: '/canteen-topup', desc: 'Persetujuan & riwayat top up kasir kantin' },
+    { title: 'Tagihan Kantin', category: 'Halaman', link: '/canteen-topup', desc: 'Laporan tagihan bulanan seluruh UPT & verifikasi transfer' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },
-  ];
+  ]);
 
   const filteredSearchResults = searchValue.trim() === '' 
     ? searchDatabase.slice(0, 5) 

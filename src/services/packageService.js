@@ -228,14 +228,13 @@ export const getStoredPackages = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultPackages));
-      return defaultPackages;
+      return [];
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed.map(mapPackageItem) : defaultPackages;
+    return Array.isArray(parsed) ? parsed.map(mapPackageItem).filter(Boolean) : [];
   } catch (err) {
     console.error('Error membaca storage paket:', err);
-    return defaultPackages;
+    return [];
   }
 };
 
@@ -351,6 +350,7 @@ export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
   const list = await getPackages({
     kategori,
     activeOnly: true,
+    allowEmpty: true,
   });
 
   return list.map((pkg) => {

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getInmates, updateInmateStatus, resetInmatePin } from '../../../services/inmateService';
 import { getBranches } from '../../../services/branchService';
+import { getContacts } from '../../../services/contactService';
 import { getAuthUser } from '../../../services/api';
 import { useAuth } from '../../../context/AuthContext';
 import { ROLES } from '../../../config/menuConfig';
@@ -116,6 +117,26 @@ const InmatesDetail = () => {
           ? 'Blok A / Kamar 1A' 
           : found.blockRoom;
 
+        let familyContacts = Array.isArray(found.families) ? [...found.families] : [];
+        if (found.id) {
+          try {
+            const contactsRes = await getContacts({ inmateId: found.id });
+            if (Array.isArray(contactsRes) && contactsRes.length > 0) {
+              familyContacts = contactsRes.map((c, idx) => ({
+                id: c.id || `fam-${idx}`,
+                name: c.contactName || c.name || 'Keluarga',
+                relationship: c.relation || c.relationship || 'Keluarga',
+                phone: c.phone || '-',
+                hasWhatsapp: c.hasWhatsapp,
+                status: c.status || 'Approved',
+                email: c.email || '',
+              }));
+            }
+          } catch (e) {
+            console.warn('[InmatesDetail] Gagal mengambil data kontak keluarga dari contactService:', e);
+          }
+        }
+
         setInmate({
           id: found.id,
           wbpRegNumber: found.wbpRegNumber || found.identifier || '-',
@@ -127,7 +148,7 @@ const InmatesDetail = () => {
           commStatus: found.commStatus || 'Aktif',
           isActive: found.isActive !== undefined ? found.isActive : true,
           branchName: resolvedBranchName,
-          families: Array.isArray(found.families) ? found.families : [],
+          families: familyContacts,
         });
       } else {
         setInmate(null);
@@ -393,15 +414,17 @@ const InmatesDetail = () => {
         </div>
       </div>
 
-      {/* Disembunyikan: Seluruh Card Keluarga Terdaftar tidak lagi digunakan
+      {/* Card Keluarga Terdaftar (Data dari Operator Kantin) */}
       <div id="families" className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 space-y-4 scroll-mt-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" /> Keluarga Terdaftar ({inmate.families?.length || 0})
-          </h3>
-          <span className="text-[11px] text-slate-400 font-medium">
-            Daftar kontak keluarga resmi untuk layanan komunikasi narapidana
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary" /> Keluarga Terdaftar ({inmate.families?.length || 0})
+            </h3>
+            <span className="text-[11px] text-slate-400 font-medium">
+              Daftar kontak keluarga resmi yang didaftarkan oleh Operator Kantin untuk layanan komunikasi WBP
+            </span>
+          </div>
         </div>
 
         {inmate.families && inmate.families.length > 0 ? (
@@ -420,16 +443,32 @@ const InmatesDetail = () => {
                       <p className="font-bold text-slate-800 text-xs truncate" title={fam.name}>
                         {fam.name}
                       </p>
-                      <span className="inline-block mt-0.5 px-2 py-0.5 bg-blue-50 text-primary border border-blue-200/60 rounded-full text-[10px] font-bold">
-                        {fam.relationship || 'Keluarga'}
-                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-block px-2 py-0.5 bg-blue-50 text-primary border border-blue-200/60 rounded-full text-[10px] font-bold">
+                          {fam.relationship || 'Keluarga'}
+                        </span>
+                        {fam.hasWhatsapp && (
+                          <span className="inline-block px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200/60 rounded-full text-[9px] font-bold">
+                            WhatsApp
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-200/60 flex items-center gap-1.5 text-xs text-slate-700 font-mono font-bold">
-                  <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span>{fam.phone}</span>
+                <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between gap-1.5 text-xs text-slate-700 font-mono font-bold">
+                  <div className="flex items-center gap-1.5">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span>{fam.phone}</span>
+                  </div>
+                  {fam.status && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-sans font-semibold ${
+                      fam.status === 'Approved' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {fam.status === 'Approved' ? 'Terverifikasi' : fam.status}
+                    </span>
+                  )}
                 </div>
               </div>
             ))}
@@ -441,12 +480,11 @@ const InmatesDetail = () => {
             </div>
             <p className="text-xs font-bold text-slate-700">Belum ada keluarga terdaftar</p>
             <p className="text-[11px] text-slate-400">
-              Belum ada kontak keluarga yang didaftarkan pada profil narapidana ini.
+              Belum ada kontak keluarga yang didaftarkan oleh Operator Kantin untuk narapidana ini.
             </p>
           </div>
         )}
       </div>
-      */}
 
       {/* Modal Reset PIN */}
       {isResetPinModalOpen && (

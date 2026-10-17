@@ -55,12 +55,13 @@ export default function FilterPeriode({
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-      {/* Tab Pilihan Periode (Harian, Bulanan, Tahunan) */}
+      {/* Tab Pilihan Periode (Bulanan, Harian, Tahunan, Semua) */}
       <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
         {[
-          { id: 'harian', label: 'Harian' },
           { id: 'bulanan', label: 'Bulanan' },
+          { id: 'harian', label: 'Harian' },
           { id: 'tahunan', label: 'Tahunan' },
+          { id: 'semua', label: 'Semua' },
         ].map((item) => (
           <button
             key={item.id}
@@ -79,6 +80,11 @@ export default function FilterPeriode({
 
       {/* Kontrol Pemilih Waktu */}
       <div className="flex items-center gap-2">
+        {periode === 'semua' && (
+          <span className="text-xs text-slate-500 font-semibold px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl">
+            Seluruh Riwayat Transaksi
+          </span>
+        )}
         {periode === 'harian' && (
           <div className="flex items-center gap-2">
             <div className="relative flex items-center">

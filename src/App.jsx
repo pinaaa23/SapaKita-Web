@@ -33,6 +33,13 @@ import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
 import BranchReports from './pages/branch/Reports';
 import BranchPackages from './pages/branch/Packages';
+// Kanwil Pages (Demo Role: ADMIN_KANWIL)
+import KanwilDashboard from './pages/kanwil/Dashboard';
+import KanwilBranches from './pages/kanwil/Branches';
+import KanwilInmates from './pages/kanwil/Inmates';
+import KanwilReports from './pages/kanwil/Reports';
+import KanwilManagement from './pages/kanwil/KanwilManagement';
+import KanwilAdmins from './pages/kanwil/KanwilAdmins';
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
 
@@ -53,6 +60,8 @@ import KantinRiwayat from './pages/kantin/RiwayatPage';
 import KantinTopUpSaldo from './pages/kantin/TopUpSaldoPage';
 import KantinVoucher from './pages/kantin/VoucherPage';
 import KantinStruk from './pages/kantin/StrukPage';
+import KantinKontak from './pages/kantin/KontakPage';
+import KantinTagihan from './pages/kantin/TagihanPage';
 
 function App() {
   return (
@@ -96,9 +105,11 @@ function App() {
                   <Route path=":id" element={<TransactionDetail />} />
                 </Route>
 
-                {/* Superadmin Packages & Canteen Topup Routes */}
+                {/* Superadmin Packages, Canteen Topup & Kanwil Management Routes */}
                 <Route path="packages" element={<PackagesList />} />
                 <Route path="canteen-topup" element={<CanteenTopup />} />
+                <Route path="kanwil-management" element={<KanwilManagement />} />
+                <Route path="kanwil-admins" element={<KanwilAdmins />} />
 
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
@@ -181,6 +192,15 @@ function App() {
                 <Route path="reports" element={<BranchReports />} />
                 <Route path="profile" element={<BranchProfile />} />
               </Route>
+
+              {/* Kanwil Admin Routes (Admin Kanwil Demo) */}
+              <Route path="kanwil" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN_KANWIL]} />}>
+                <Route index element={<Navigate to="/kanwil/dashboard" replace />} />
+                <Route path="dashboard" element={<KanwilDashboard />} />
+                <Route path="branches" element={<KanwilBranches />} />
+                <Route path="inmates" element={<KanwilInmates />} />
+                <Route path="reports" element={<KanwilReports />} />
+              </Route>
             </Route>
           </Route>
 
@@ -192,9 +212,11 @@ function App() {
           <Route element={<KantinProtectedRoute />}>
             <Route element={<KantinLayout />}>
               <Route path="/kantin" element={<KantinPaket />} />
+              <Route path="/kantin/kontak" element={<KantinKontak />} />
               <Route path="/kantin/status-wartel" element={<KantinStatusWartel />} />
               <Route path="/kantin/riwayat" element={<KantinRiwayat />} />
-              <Route path="/kantin/top-up-saldo" element={<KantinTopUpSaldo />} />
+              <Route path="/kantin/tagihan" element={<KantinTagihan />} />
+              <Route path="/kantin/top-up-saldo" element={<KantinTagihan />} />
               <Route path="/kantin/voucher/:id" element={<KantinVoucher />} />
               <Route path="/kantin/struk/:id" element={<KantinStruk />} />
               {/* Fallback di dalam kantin -> kembali ke paket */}

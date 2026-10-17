@@ -7,7 +7,9 @@ import {
   BarChart3, 
   Package, 
   UserCog,
-  Wallet
+  Wallet,
+  Landmark,
+  Receipt
 } from 'lucide-react';
 
 /**
@@ -15,6 +17,7 @@ import {
  */
 export const ROLES = {
   SUPERADMIN: 'superadmin',
+  ADMIN_KANWIL: 'admin_kanwil',
   KEPALA_UPT: 'kepala_upt',
   SUPERVISOR: 'supervisor',
   OPERATOR_KANTIN: 'operator_kantin',
@@ -25,6 +28,7 @@ export const ROLES = {
  */
 export const ROLE_LABELS = {
   [ROLES.SUPERADMIN]: 'Super Administrator',
+  [ROLES.ADMIN_KANWIL]: 'Admin Kanwil',
   [ROLES.KEPALA_UPT]: 'Kepala UPT',
   [ROLES.SUPERVISOR]: 'Supervisor',
   [ROLES.OPERATOR_KANTIN]: 'Operator Kantin',
@@ -38,6 +42,7 @@ export const normalizeRole = (rawRole) => {
   const str = String(rawRole).trim().toLowerCase().replace(/[\s\-_]+/g, '_');
 
   if (str === 'superadmin' || str === 'super_admin' || str === 'admin_pusat' || str === 'pusat') return ROLES.SUPERADMIN;
+  if (str === 'admin_kanwil' || str === 'kanwil_admin' || str === 'kanwil' || str === 'admin-kanwil') return ROLES.ADMIN_KANWIL;
   if (
     str === 'kepala_upt' || 
     str === 'branch_admin' || 
@@ -98,17 +103,32 @@ export const permissions = {
  */
 export const getMenuItemsByRole = (role) => {
   const normRole = normalizeRole(role);
+  const isKanwilDemo =
+    import.meta.env.VITE_KANWIL_DEMO !== 'false' &&
+    (import.meta.env.VITE_KANWIL_DEMO === 'true' ||
+      import.meta.env.DEV ||
+      localStorage.getItem('pascall_kanwil_demo') === 'true');
 
   if (normRole === ROLES.SUPERADMIN) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { name: 'UPT', icon: Building2, path: '/branches' },
+      { name: 'Kanwil', icon: Landmark, path: '/kanwil-management' },
       { name: 'Data Narapidana', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
-      { name: 'Top Up', icon: Wallet, path: '/canteen-topup' },
+      { name: 'Tagihan', icon: Receipt, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
+    ];
+  }
+
+  // Menu untuk Admin Kanwil (HANYA 4 MENU: Dashboard, UPT, Data WBP, Laporan)
+  if (normRole === ROLES.ADMIN_KANWIL) {
+    return [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/kanwil/dashboard' },
+      { name: 'UPT', icon: Building2, path: '/kanwil/branches' },
+      { name: 'Data WBP', icon: Users, path: '/kanwil/inmates' },
+      { name: 'Laporan', icon: BarChart3, path: '/kanwil/reports' },
     ];
   }
 

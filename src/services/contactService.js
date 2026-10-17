@@ -42,6 +42,8 @@ export const mapContactItem = (item) => {
     contactName,
     relation: relationship,
     phone,
+    hasWhatsapp: item.hasWhatsapp,
+    whatsappCheckedAt: item.whatsappCheckedAt,
     email,
     ktpUrl: item.ktpUrl || item.ktpImage || item.ktp || '',
     status: normalizedStatus,
@@ -53,16 +55,18 @@ export const mapContactItem = (item) => {
 };
 
 /**
- * Mengambil daftar kontak dari backend dengan parameter status opsional (PENDING, APPROVED, REJECTED)
+ * Mengambil daftar kontak dari backend dengan parameter status, inmateId, & search
  */
-export const getContacts = async ({ status } = {}) => {
-  const query = status && status !== 'ALL' ? `?status=${encodeURIComponent(status.toUpperCase())}` : '';
+export const getContacts = async ({ status, inmateId, search } = {}) => {
+  const params = new URLSearchParams();
+  if (status && status !== 'ALL') params.append('status', status.toUpperCase());
+  if (inmateId) params.append('inmateId', inmateId);
+  if (search) params.append('search', search);
+  const query = params.toString() ? `?${params.toString()}` : '';
   const url = `${CONTACTS_ENDPOINT}${query}`;
 
   try {
     const res = await apiFetch(url);
-    console.log('[ContactService] Response lengkap GET /api/contacts:', res);
-
     const rawList = Array.isArray(res)
       ? res
       : Array.isArray(res?.data)
@@ -85,8 +89,43 @@ export const getContacts = async ({ status } = {}) => {
 };
 
 /**
+ * Mendaftarkan kontak keluarga baru (Maksimal 10 kontak per WBP)
+ */
+export const createContact = async ({ inmateId, name, relationship, phone }) => {
+  try {
+    return await apiFetch(CONTACTS_ENDPOINT, {
+      method: 'POST',
+      body: JSON.stringify({ inmateId, name, relationship, phone }),
+    });
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    throw error;
+  }
+};
+
+/**
+ * Menghapus kontak keluarga dari akun WBP
+ */
+export const deleteContact = async (id) => {
+  if (!id) throw new Error('ID kontak tidak valid');
+  try {
+    return await apiFetch(`${CONTACTS_ENDPOINT}/${id}`, {
+      method: 'DELETE',
+    });
+  } catch (error) {
+    if (error?.status === 401) {
+      logout();
+      throw error;
+    }
+    throw error;
+  }
+};
+
+/**
  * Mengubah status kontak (APPROVED atau REJECTED)
- * Catatan: Backend hanya menerima { status: "APPROVED" | "REJECTED" }, kolom alasan penolakan tidak didukung di API.
  */
 export const updateContactStatus = async (id, status) => {
   if (!id) throw new Error('ID kontak tidak valid');
@@ -99,14 +138,12 @@ export const updateContactStatus = async (id, status) => {
         status: normalizedStatus,
       }),
     });
-    console.log(`[ContactService] Response PATCH /api/contacts/${id}/status:`, res);
     return res;
   } catch (error) {
     if (error?.status === 401) {
       logout();
       throw error;
     }
-    console.log(`[ContactService] Gagal update status kontak ${id}:`, error?.message || error);
     throw error;
   }
 };
@@ -115,5 +152,7 @@ export default {
   CONTACTS_ENDPOINT,
   mapContactItem,
   getContacts,
+  createContact,
+  deleteContact,
   updateContactStatus,
 };

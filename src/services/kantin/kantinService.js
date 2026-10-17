@@ -149,49 +149,24 @@ export async function cariWbpByIdAtauTelp(queryInput) {
 
 export const cariNapiById = cariWbpByIdAtauTelp;
 
+// Bersihkan cache dummy / mock lama dari localStorage jika tidak dalam mode dummy
+try {
+  if (typeof window !== 'undefined' && !isDummyMode()) {
+    localStorage.removeItem('pascall_canteen_local_transactions_v1');
+    localStorage.removeItem('pascall_canteen_transactions');
+  }
+} catch {}
+
 const CANTEEN_TX_STORAGE_KEY = 'pascall_canteen_local_transactions_v1';
 
 function getStoredCanteenTransactions() {
+  if (!isDummyMode()) {
+    return [];
+  }
   try {
     const raw = localStorage.getItem(CANTEEN_TX_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
-    
-    // Data contoh awal untuk hari ini agar grafik & riwayat langsung terisi rapi
-    const now = Date.now();
-    const seed = [
-      {
-        id: 'TRX-10082',
-        kodeVoucher: '58192',
-        status: 'Berhasil',
-        metode: 'Tunai',
-        waktu: new Date(now - 35 * 60 * 1000).toISOString(),
-        napi: { id: 'REG-CPN-2026-001', nama: 'Ahmad bin Jono', blok: 'Blok A (Kamar 12)' },
-        paket: { id: 'pkt-telp-12', nama: 'Paket Telepon 12 Menit', durasi: '12 Menit', harga: 11988, total: 11988, dpp: 10799, ppn: 1189 },
-        petugas: 'Siti Aminah',
-      },
-      {
-        id: 'TRX-10057',
-        kodeVoucher: '92841',
-        status: 'Berhasil',
-        metode: 'Tunai',
-        waktu: new Date(now - 110 * 60 * 1000).toISOString(),
-        napi: { id: 'REG-CPN-2026-016', nama: 'Parto', blok: 'Blok B (Kamar 04)' },
-        paket: { id: 'pkt-vid-30', nama: 'Paket Video Call 30 Menit', durasi: '30 Menit', harga: 45000, total: 45000, dpp: 40541, ppn: 4459 },
-        petugas: 'Siti Aminah',
-      },
-      {
-        id: 'TRX-10085',
-        kodeVoucher: '47209',
-        status: 'Berhasil',
-        metode: 'Tunai',
-        waktu: new Date(now - 240 * 60 * 1000).toISOString(),
-        napi: { id: 'REG-CPN-2026-011', nama: 'Kiki Fatmala', blok: 'Blok Wanita 02' },
-        paket: { id: 'pkt-telp-24', nama: 'Paket Telepon 24 Menit', durasi: '24 Menit', harga: 23976, total: 23976, dpp: 21600, ppn: 2376 },
-        petugas: 'Siti Aminah',
-      },
-    ];
-    localStorage.setItem(CANTEEN_TX_STORAGE_KEY, JSON.stringify(seed));
-    return seed;
+    return [];
   } catch {
     return [];
   }
@@ -199,12 +174,14 @@ function getStoredCanteenTransactions() {
 
 function saveStoredCanteenTransaction(tx) {
   try {
-    const list = getStoredCanteenTransactions();
-    const updated = [tx, ...list.filter((i) => i.id !== tx.id && i.kodeVoucher !== tx.kodeVoucher)];
-    localStorage.setItem(CANTEEN_TX_STORAGE_KEY, JSON.stringify(updated));
+    if (isDummyMode()) {
+      const list = getStoredCanteenTransactions();
+      const updated = [tx, ...list.filter((i) => i.id !== tx.id && i.kodeVoucher !== tx.kodeVoucher)];
+      localStorage.setItem(CANTEEN_TX_STORAGE_KEY, JSON.stringify(updated));
+    }
     window.dispatchEvent(new CustomEvent('canteen_transaction_saved', { detail: tx }));
   } catch (err) {
-    console.error('Error saving canteen transaction to localStorage:', err);
+    console.error('Error saving canteen transaction:', err);
   }
 }
 
@@ -636,7 +613,7 @@ async function getAllStandardizedTransactions() {
  * Mengambil riwayat transaksi kasir kantin langsung dari Backend REST API.
  * Endpoint: GET /api/canteen/transactions
  */
-export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'harian', tanggal = new Date(), page = 1, limit = 50 } = {}) {
+export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'bulanan', tanggal = new Date(), page = 1, limit = 100 } = {}) {
   if (isDummyMode()) {
     try {
       const all = await getAllStandardizedTransactions();
@@ -674,9 +651,9 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'haria
       query.append('search', cari.trim());
     }
     if (metode && metode !== 'Semua') {
-      query.append('paymentMethod', metode.toUpperCase());
+      query.append('metode', metode.toUpperCase());
     }
-    if (periode) {
+    if (periode && periode !== 'semua') {
       query.append('periode', periode);
       if (periode === 'harian') {
         const y = d.getFullYear();
@@ -693,7 +670,7 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'haria
     }
 
     const res = await apiFetch(`/api/canteen/transactions?${query.toString()}`);
-    const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+    const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
 
     const mappedBe = items.map((t) => ({
       id: t.id,
@@ -702,74 +679,28 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'haria
       metode: t.paymentMethod === 'TUNAI' ? 'Tunai' : (t.paymentMethod || 'Tunai'),
       waktu: t.createdAt || t.waktu,
       napi: {
-        id: t.inmate?.identifier || t.inmate?.id || '-',
-        nama: t.inmate?.name || '-',
-        blok: t.inmate?.blockRoom || 'Blok Lapas',
+        id: t.inmate?.identifier || t.inmateIdentifier || t.inmate?.id || '-',
+        nama: t.inmate?.name || t.inmateName || '-',
+        blok: t.inmate?.blockRoom || t.inmateBlock || 'Blok Lapas',
         noTelp: t.inmate?.phone || '',
       },
       paket: {
-        id: t.package?.id,
-        nama: t.package?.name || '-',
+        id: t.package?.id || t.packageId,
+        nama: t.package?.name || t.packageName || '-',
         harga: Number(t.totalAmount || t.package?.price || 0),
         total: Number(t.totalAmount || t.package?.price || 0),
-        durasi: `${t.package?.durationMinutes || 0} Menit`,
+        durasi: `${t.package?.durationMinutes || t.packageDuration || 0} Menit`,
       },
       petugas: t.cashier?.name || 'Petugas Kantin',
       cashier: t.cashier,
       notes: t.notes || '',
     }));
 
-    // Gabungkan dengan transaksi yang baru dilakukan kasir (tersimpan di localStorage)
-    const localList = getStoredCanteenTransactions();
-    const existingIds = new Set(mappedBe.map((i) => i.id));
-    const combined = [...mappedBe];
-
-    for (const localTx of localList) {
-      if (!existingIds.has(localTx.id)) {
-        if (matchesDate(localTx.waktu, periode, d)) {
-          if (!metode || metode === 'Semua' || (localTx.metode || '').toLowerCase() === metode.toLowerCase()) {
-            if (cari && cari.trim()) {
-              const q = cari.toLowerCase().trim();
-              const match =
-                localTx.id?.toLowerCase().includes(q) ||
-                localTx.kodeVoucher?.toLowerCase().includes(q) ||
-                localTx.napi?.nama?.toLowerCase().includes(q) ||
-                localTx.napi?.id?.toLowerCase().includes(q) ||
-                localTx.napi?.noTelp?.includes(q) ||
-                localTx.paket?.nama?.toLowerCase().includes(q);
-              if (match) combined.push(localTx);
-            } else {
-              combined.push(localTx);
-            }
-          }
-        }
-      }
-    }
-
-    combined.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
-    return combined;
+    mappedBe.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
+    return mappedBe;
   } catch (err) {
-    console.error('[KantinService] Gagal memuat riwayat transaksi dari BE, fallback ke local storage:', err);
-    const d = tanggal instanceof Date ? tanggal : new Date(tanggal || Date.now());
-    const localList = getStoredCanteenTransactions();
-    let filtered = localList.filter((t) => matchesDate(t.waktu, periode, d));
-    if (metode && metode !== 'Semua') {
-      filtered = filtered.filter((t) => (t.metode || '').toLowerCase() === metode.toLowerCase());
-    }
-    if (cari && cari.trim()) {
-      const q = cari.toLowerCase().trim();
-      filtered = filtered.filter(
-        (t) =>
-          t.id?.toLowerCase().includes(q) ||
-          t.kodeVoucher?.toLowerCase().includes(q) ||
-          t.napi?.nama?.toLowerCase().includes(q) ||
-          t.napi?.id?.toLowerCase().includes(q) ||
-          t.napi?.noTelp?.includes(q) ||
-          t.paket?.nama?.toLowerCase().includes(q)
-      );
-    }
-    filtered.sort((a, b) => new Date(b.waktu) - new Date(a.waktu));
-    return filtered;
+    console.error('[KantinService] Gagal memuat riwayat transaksi dari BE:', err);
+    return [];
   }
 }
 
@@ -777,7 +708,7 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'haria
  * Mengambil ringkasan laporan omset & grafik penjualan kantin dari Backend.
  * Endpoint: GET /api/canteen/reports/summary
  */
-export async function getRekap({ periode = 'harian', tanggal = new Date() } = {}) {
+export async function getRekap({ periode = 'bulanan', tanggal = new Date() } = {}) {
   const d = tanggal instanceof Date ? tanggal : new Date(tanggal || Date.now());
 
   if (isDummyMode()) {
@@ -812,50 +743,33 @@ export async function getRekap({ periode = 'harian', tanggal = new Date() } = {}
 
   try {
     const query = new URLSearchParams();
-    query.append('periode', periode);
-
-    if (periode === 'harian') {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      query.append('tanggal', `${y}-${m}-${day}`);
-    } else if (periode === 'bulanan') {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      query.append('bulan', `${y}-${m}`);
-    } else if (periode === 'tahunan') {
-      query.append('tahun', String(d.getFullYear()));
+    if (periode && periode !== 'semua') {
+      query.append('periode', periode);
+      if (periode === 'harian') {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        query.append('tanggal', `${y}-${m}-${day}`);
+      } else if (periode === 'bulanan') {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        query.append('bulan', `${y}-${m}`);
+      } else if (periode === 'tahunan') {
+        query.append('tahun', String(d.getFullYear()));
+      }
     }
 
     const res = await apiFetch(`/api/canteen/reports/summary?${query.toString()}`);
     const data = res?.data || res || {};
     const summary = data.summary || {};
-    let totalRevenue = Number(summary.totalRevenue || 0);
-    let totalTransactions = Number(summary.totalTransactions || 0);
+    const totalRevenue = Number(summary.totalRevenue || 0);
+    const totalTransactions = Number(summary.totalTransactions || 0);
 
-    // Tambahkan transaksi kasir lokal
-    const localList = getStoredCanteenTransactions();
-    let localRev = 0;
-    let localCount = 0;
-    for (const lt of localList) {
-      if (matchesDate(lt.waktu, periode, d)) {
-        localRev += Number(lt.paket?.harga || lt.paket?.total || 0);
-        localCount += 1;
-      }
-    }
-
-    totalRevenue += localRev;
-    totalTransactions += localCount;
-
-    let chartData = (data.salesChart || []).map((c) => ({
+    const chartData = (data.salesChart || []).map((c) => ({
       label: c.label,
       nominal: Number(c.revenue ?? c.nominal ?? 0),
       count: Number(c.transactions ?? c.count ?? 0),
     }));
-
-    if (chartData.length === 0 && localList.length > 0) {
-      chartData = generateChartData(localList.filter((lt) => matchesDate(lt.waktu, periode, d)), periode, d);
-    }
 
     const perMetode = data.paymentMethods || {
       TUNAI: { totalAmount: totalRevenue, count: totalTransactions },
@@ -868,27 +782,22 @@ export async function getRekap({ periode = 'harian', tanggal = new Date() } = {}
       transactionsGrowth: Number(summary.transactionsGrowth || 0),
       perMetode: {
         Tunai: {
-          nominal: Number(perMetode.TUNAI?.totalAmount || totalRevenue),
-          count: Number(perMetode.TUNAI?.count || totalTransactions),
+          nominal: Number(perMetode.TUNAI?.totalAmount || perMetode.Tunai?.nominal || totalRevenue),
+          count: Number(perMetode.TUNAI?.count || perMetode.Tunai?.count || totalTransactions),
         },
       },
       chartData,
       periode,
     };
   } catch (err) {
-    console.error('[KantinService] Gagal memuat rekap laporan dari BE, kalkulasi dari local:', err);
-    const localList = getStoredCanteenTransactions();
-    const filtered = localList.filter((t) => matchesDate(t.waktu, periode, d));
-    const totalRevenue = filtered.reduce((sum, t) => sum + Number(t.paket?.harga || t.paket?.total || 0), 0);
-    const totalTransactions = filtered.length;
-    const chartData = generateChartData(filtered, periode, d);
+    console.error('[KantinService] Gagal memuat rekap dari BE:', err);
     return {
-      totalPemasukan: totalRevenue,
-      jumlahTransaksi: totalTransactions,
+      totalPemasukan: 0,
+      jumlahTransaksi: 0,
       revenueGrowth: 0,
       transactionsGrowth: 0,
-      perMetode: { Tunai: { nominal: totalRevenue, count: totalTransactions } },
-      chartData,
+      perMetode: { Tunai: { nominal: 0, count: 0 } },
+      chartData: [],
       periode,
     };
   }

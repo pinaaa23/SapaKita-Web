@@ -6,7 +6,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PhoneCall,
-  X
+  X,
+  LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole } from '../config/menuConfig';
@@ -17,6 +18,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
   const location = useLocation();
   const navigate = useNavigate();
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
+  const isKanwilAdmin = location.pathname === '/kanwil' || location.pathname.startsWith('/kanwil/');
   
   const { role: currentRole, roleLabel, uptName, user, logout } = useAuth();
   const uptDisplayName = uptName || user?.branch?.name || user?.branchName || 'UPT Pemasyarakatan';
@@ -62,10 +64,10 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       ? (localStorage.getItem('role')?.toLowerCase().includes('spv') || localStorage.getItem('role')?.toLowerCase().includes('supervisor') 
           ? 'supervisor' 
           : 'kepala_upt') 
-      : '');
+      : (isKanwilAdmin ? 'admin_kanwil' : ''));
   
   const effectiveRoleLabel = roleLabel || 
-    (effectiveRole === 'supervisor' ? 'Supervisor' : (effectiveRole === 'kepala_upt' ? 'Kepala UPT' : ''));
+    (effectiveRole === 'admin_kanwil' ? 'Admin Kanwil' : (effectiveRole === 'supervisor' ? 'Supervisor' : (effectiveRole === 'kepala_upt' ? 'Kepala UPT' : '')));
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;
@@ -130,10 +132,13 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
           {menuItems.map((item) => {
             const isActive = location.pathname.startsWith(item.path) && 
                              (item.path !== '/dashboard' || location.pathname === '/dashboard') && 
-                             (item.path !== '/branch/dashboard' || location.pathname === '/branch/dashboard');
+                             (item.path !== '/branch/dashboard' || location.pathname === '/branch/dashboard') &&
+                             (item.path !== '/kanwil/dashboard' || location.pathname === '/kanwil/dashboard');
             
             const isCanteenTopupMenu = item.path === '/canteen-topup';
             const showBadge = isCanteenTopupMenu && pendingTopupCount > 0;
+
+            const ItemIcon = item.icon || LayoutDashboard;
 
             return (
               <Link
@@ -156,7 +161,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                 }`}
               >
                 <div className="relative shrink-0 flex items-center justify-center">
-                  <item.icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
+                  <ItemIcon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
                   {/* Penanda bulatan kecil berkedip saat sidebar tertutup (collapsed) */}
                   {!isExpandedView && showBadge && (
                     <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
@@ -204,6 +209,27 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                    <p className="text-xs font-semibold text-white">{uptDisplayName}</p>
                    <div className="flex items-center gap-1.5 mt-0.5">
                      <div className="w-1.5 h-1.5 rounded-full bg-green-400"></div>
+                     <p className="text-[10px] text-blue-200">Online</p>
+                   </div>
+                 </div>
+               )}
+            </div>
+          )}
+
+          {effectiveRole === 'admin_kanwil' && (
+            <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
+              !isExpandedView 
+                ? 'w-11 h-11 justify-center p-0 mb-1' 
+                : 'p-3 gap-2.5 mb-2.5 mx-1'
+            }`}>
+               <div className="relative shrink-0">
+                 <Building2 className="w-5 h-5 text-white" />
+               </div>
+               {isExpandedView && (
+                 <div className="overflow-hidden whitespace-nowrap">
+                   <p className="text-xs font-semibold text-white truncate">{user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah'}</p>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                      <p className="text-[10px] text-blue-200">Online</p>
                    </div>
                  </div>

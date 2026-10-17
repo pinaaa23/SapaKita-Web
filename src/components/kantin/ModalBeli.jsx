@@ -7,7 +7,7 @@ import { getSaldo } from '../../services/kantin/saldoService';
 import KartuKonfirmasiNapi from './KartuKonfirmasiNapi';
 import PilihMetodeBayar from './PilihMetodeBayar';
 
-export default function ModalBeli({ paket, isOpen, onClose }) {
+export default function ModalBeli({ paket, isOpen, onClose, isBlocked = false, blockedPeriod = '' }) {
   const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
@@ -63,7 +63,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
   };
 
   const handleKonfirmasiPembayaran = async () => {
-    if (!wbpTerpilih || !paket || isSubmitting) return;
+    if (!wbpTerpilih || !paket || isSubmitting || isBlocked) return;
 
     setIsSubmitting(true);
     setErrorSubmit('');
@@ -75,12 +75,13 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
         metode: metodeBayar,
       });
 
-      // Muat ulang sisa saldo menit terbaru dari Backend
+      /* FITUR LAMA DIKOMENTARI: Sistem pascabayar tidak lagi memotong kuota menit prabayar lokal
       try {
         await getSaldo();
       } catch (e) {
         console.warn('Gagal memuat ulang saldo setelah transaksi:', e);
       }
+      */
 
       onClose();
       navigate(`/kantin/voucher/${transaksi.id}`);
@@ -265,6 +266,13 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
                 </div>
               </div>
 
+              {isBlocked && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-rose-700 animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>Transaksi diblokir: tagihan periode {blockedPeriod || 'bulan lalu'} belum lunas. Selesaikan pembayaran di menu Tagihan Bulanan.</span>
+                </div>
+              )}
+
               {errorSubmit && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs font-semibold text-red-600 animate-in fade-in">
                   <AlertTriangle className="w-4 h-4 shrink-0" />
@@ -301,7 +309,7 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleLanjutKeMetode}
-                disabled={!wbpTerpilih}
+                disabled={!wbpTerpilih || isBlocked}
                 className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
               >
                 <span>Lanjut</span>
@@ -333,8 +341,8 @@ export default function ModalBeli({ paket, isOpen, onClose }) {
               <button
                 type="button"
                 onClick={handleKonfirmasiPembayaran}
-                disabled={isSubmitting}
-                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#16A34A] hover:bg-emerald-700 disabled:opacity-60 text-white text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
+                disabled={isSubmitting || isBlocked}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#16A34A] hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-sm font-bold transition flex items-center justify-center gap-2 shadow-sm cursor-pointer whitespace-nowrap"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin shrink-0" />
