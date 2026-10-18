@@ -171,37 +171,16 @@ export const getBalanceTransactions = async ({
 
     // Sinkronkan status voucher dari riwayat panggilan riil di backend
     try {
-      // 1. Ambil riwayat panggilan dari endpoint backend yang tersedia
-      let callRecords = [];
-      try {
-        const callRes = await apiFetch('/api/call/history?limit=100');
-        const items = Array.isArray(callRes) ? callRes : (callRes?.items || callRes?.data || []);
-        if (Array.isArray(items) && items.length > 0) {
-          callRecords = items;
-        }
-      } catch {
-        // Fallback coba /api/calls/history
-        try {
-          const callRes2 = await apiFetch('/api/calls/history?limit=100');
-          const items2 = Array.isArray(callRes2) ? callRes2 : (callRes2?.items || callRes2?.data || []);
-          if (Array.isArray(items2) && items2.length > 0) {
-            callRecords = items2;
-          }
-        } catch {
-          // Fallback coba /api/recordings
-        }
-      }
-
-      // Ambil juga data recordings jika ada
+      // 1. Ambil data rekaman panggilan untuk memeriksa voucher terpakai
       let recordingList = [];
       try {
         const recRes = await apiFetch('/api/recordings?limit=100');
         recordingList = Array.isArray(recRes) ? recRes : (recRes?.items || recRes?.data || []);
       } catch {
-        // Abaikan
+        // Abaikan jika belum ada rekaman
       }
 
-      const allCalls = [...callRecords, ...recordingList];
+      const allCalls = recordingList;
 
       // Kumpulkan kode voucher yang tercatat di panggilan
       const usedVoucherSet = new Set();
