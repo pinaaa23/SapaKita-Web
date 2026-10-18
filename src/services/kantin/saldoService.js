@@ -176,27 +176,7 @@ export async function getRiwayatTopUp(params = {}) {
     }));
   } catch (err) {
     console.error('[SaldoService] Gagal mengambil riwayat top up:', err?.message || err);
-    try {
-      const { generateSuperadminRiwayatTopUpDummy } = await import('../../dummy/saldoDummy');
-      const dummyHistory = generateSuperadminRiwayatTopUpDummy();
-      return dummyHistory.map((item) => ({
-        id: item.id,
-        tanggal: item.createdAt || item.tanggal,
-        nominal: Number(item.nominal) || 0,
-        ppn: Math.round((Number(item.nominal) || 0) * PPN_RATE),
-        totalBayar: Number(item.nominal) + Math.round((Number(item.nominal) || 0) * PPN_RATE),
-        menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
-        bankTarget: item.bankTarget || 'Rekening Lapas',
-        proofUrl: item.proofUrl || null,
-        status: item.status,
-        rejectReason: item.rejectReason || null,
-        approvedAt: item.approvedAt || null,
-        branchName: item.branchName || '',
-        user: item.user || null,
-      }));
-    } catch {
-      return [];
-    }
+    return [];
   }
 }
 
