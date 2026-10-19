@@ -122,7 +122,7 @@ export default function TagihanPage() {
   // Evaluasi status tagihan riil dari server
   const billingStatusInfo = determineBillingStatus(billingData, paymentHistory);
   const totalAmount = Number(billingData?.summary?.totalAmount || 0);
-  const canPay = billingStatusInfo.canPay && totalAmount > 0;
+  const canPay = billingStatusInfo.canPay && (billingStatusInfo.remainingAmount > 0 || totalAmount > 0);
 
   // Filter transaksi berdasarkan pencarian
   const transactions = billingData?.transactions || [];
@@ -735,6 +735,8 @@ export default function TagihanPage() {
           isOpen={isModalBayarOpen}
           onClose={() => setIsModalBayarOpen(false)}
           billingData={billingData}
+          remainingAmount={billingStatusInfo.remainingAmount}
+          totalApproved={billingStatusInfo.totalApproved}
           onSuccess={handlePaymentSuccess}
         />
       )}

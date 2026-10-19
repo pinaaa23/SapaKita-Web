@@ -5,6 +5,7 @@
  */
 
 import { apiFetch } from './api';
+import { getInmates } from './inmateService';
 
 export const isKanwilDemoEnabled = () => true;
 
@@ -388,38 +389,41 @@ export const createKanwilBranch = async (kanwilId, branchData) => {
  */
 export const getKanwilInmates = async (kanwilId, params = {}) => {
   try {
-    const query = new URLSearchParams();
-    if (params.search) query.append('search', params.search);
-    if (params.branchId && params.branchId !== 'All') query.append('branchId', params.branchId);
-    if (params.status && params.status !== 'All') query.append('status', params.status);
-    if (params.page) query.append('page', params.page.toString());
-    if (params.limit) query.append('limit', params.limit.toString());
+    const res = await getInmates({
+      search: params.search || '',
+      branchId: params.branchId !== 'All' ? params.branchId : '',
+      status: params.status !== 'All' ? params.status : '',
+      page: params.page || 1,
+      limit: params.limit || 20,
+    });
 
-    const qs = query.toString();
-    const endpoint = qs ? `/api/inmates?${qs}` : '/api/inmates';
-    const res = await apiFetch(endpoint);
-
-    const rawItems = res.data || [];
-    const items = rawItems.map((w) => ({
-      id: w.id,
-      name: w.name,
-      nip: w.identifier,
-      identifier: w.identifier,
-      branchId: w.branchId,
-      branchName: w.branch?.name || 'UPT Lapas',
-      block: w.blockRoom || '-',
-      blockRoom: w.blockRoom || '-',
-      balance: Number(w.balance || 0),
-      status: w.isActive ? 'Active' : 'Inactive',
-      createdAt: w.createdAt,
-    }));
+    const rawList = res.items || (Array.isArray(res) ? res : []);
+    const items = rawList.map((w) => {
+      const isAktif = w.status === 'Aktif' || w.status === 'Active' || w.isActive || w.commStatus === 'Aktif';
+      return {
+        id: w.id,
+        name: w.name,
+        nip: w.identifier || w.nip,
+        identifier: w.identifier || w.nip,
+        branchId: w.branchId,
+        branchName: w.branchName || w.branch?.name || 'UPT Lapas',
+        block: w.blockRoom || w.block || '-',
+        blockRoom: w.blockRoom || w.block || '-',
+        balance: Number(w.balance || w.callBalance || 0),
+        status: isAktif ? 'Aktif' : 'Nonaktif',
+        isActive: isAktif,
+        registeredAt: w.entryDate || w.createdAt || w.registeredAt,
+        createdAt: w.entryDate || w.createdAt,
+        families: w.families || [],
+      };
+    });
 
     return {
       items,
-      total: res.pagination?.total || items.length,
-      page: res.pagination?.page || 1,
-      limit: res.pagination?.limit || items.length,
-      totalPages: res.pagination?.totalPages || 1,
+      total: res.total !== undefined ? res.total : items.length,
+      page: res.page || 1,
+      limit: res.limit || items.length,
+      totalPages: res.totalPages || 1,
     };
   } catch (err) {
     console.error('[KanwilService] Error fetching kanwil inmates:', err);

@@ -20,6 +20,8 @@ export default function ModalPembayaranTagihan({
   isOpen,
   onClose,
   billingData,
+  remainingAmount,
+  totalApproved = 0,
   onSuccess,
 }) {
   const [metodePembayaran, setMetodePembayaran] = useState('');
@@ -35,6 +37,7 @@ export default function ModalPembayaranTagihan({
 
   const summary = billingData.summary || {};
   const totalAmount = Number(summary.totalAmount || 0);
+  const payableAmount = (remainingAmount !== undefined && remainingAmount > 0) ? remainingAmount : totalAmount;
   const totalDpp = Number(summary.totalDpp || 0);
   const totalPpn = Number(summary.totalPpn || 0);
   const totalMinutes = Number(summary.totalMinutes || 0);
@@ -105,7 +108,7 @@ export default function ModalPembayaranTagihan({
 
     try {
       await submitTagihanPayment({
-        nominal: totalAmount,
+        nominal: payableAmount,
         minutes: totalMinutes,
         bankTarget: metodePembayaran,
         proofFile,
@@ -142,7 +145,7 @@ export default function ModalPembayaranTagihan({
             1. Pindai kode QRIS resmi kasir/bendahara PasCall Lapas menggunakan aplikasi Mobile Banking atau E-Wallet Anda.
           </p>
           <p className="leading-relaxed">
-            2. Pastikan nominal pembayaran sesuai persis dengan total tagihan: <span className="font-bold font-mono text-blue-800">{formatRupiah(totalAmount)}</span>.
+            2. Pastikan nominal pembayaran sesuai persis dengan total tagihan: <span className="font-bold font-mono text-blue-800">{formatRupiah(payableAmount)}</span>.
           </p>
           <p className="text-[11px] text-slate-500 italic mt-1">
             * Data stiker QRIS resmi perusahaan dikonfirmasi langsung oleh pihak manajemen / Superadmin.
@@ -250,10 +253,18 @@ export default function ModalPembayaranTagihan({
               <span>PPN (11%)</span>
               <span className="font-semibold text-slate-800">{formatRupiah(totalPpn)}</span>
             </div>
+            {totalApproved > 0 && (
+              <div className="flex justify-between text-emerald-700 font-semibold pt-1 border-t border-slate-200/50">
+                <span>Telah Di-ACC Sebelumnya</span>
+                <span>{formatRupiah(totalApproved)}</span>
+              </div>
+            )}
             <div className="flex justify-between pt-2 border-t border-slate-200 text-sm">
-              <span className="font-bold text-slate-800">Total Tagihan</span>
+              <span className="font-bold text-slate-800">
+                {totalApproved > 0 ? 'Sisa Tagihan yang Harus Dibayar' : 'Total Tagihan'}
+              </span>
               <span className="font-black text-[#1565C0] text-base font-mono">
-                {formatRupiah(totalAmount)}
+                {formatRupiah(payableAmount)}
               </span>
             </div>
           </div>

@@ -105,7 +105,7 @@ export async function submitTagihanPayment({ nominal, minutes = 1, bankTarget, p
  */
 export function determineBillingStatus(billingData, paymentHistory = []) {
   if (!billingData) {
-    return { status: 'UNKNOWN', label: 'Memuat...', canPay: false, badgeColor: 'slate' };
+    return { status: 'UNKNOWN', label: 'Memuat...', canPay: false, badgeColor: 'slate', remainingAmount: 0, totalApproved: 0 };
   }
 
   const totalAmount = Number(billingData?.summary?.totalAmount || 0);
@@ -113,30 +113,23 @@ export function determineBillingStatus(billingData, paymentHistory = []) {
 
   // Jika nominal 0 pada bulan yang sudah lalu: otomatis lunas (tidak ada kewajiban bayar)
   if (!isCurrentMonth && totalAmount <= 0) {
-    return { status: 'LUNAS', label: 'Lunas', canPay: false, badgeColor: 'emerald' };
+    return { status: 'LUNAS', label: 'Lunas', canPay: false, badgeColor: 'emerald', remainingAmount: 0, totalApproved: 0 };
   }
 
-  // Cari apakah ada data pembayaran yang diajukan untuk nominal atau periode ini
-  // Filter pembayaran yang cocok berdasarkan nominal atau tanggal dalam periode tagihan
-  const matchingPayments = paymentHistory.filter((p) => {
-    if (!p) return false;
-    // Cocokkan nominal atau bankTarget
-    const pNominal = Number(p.nominal || 0);
-    return Math.abs(pNominal - totalAmount) < 100 || (pNominal > 0 && totalAmount > 0);
-  });
+  // Hitung total akumulasi nominal pembayaran yang telah di-ACC (APPROVED)
+  const approvedPayments = paymentHistory.filter((p) => p && p.status === 'APPROVED');
+  const totalApproved = approvedPayments.reduce((sum, p) => sum + Number(p.nominal || p.totalBayar || 0), 0);
 
-  const approvedPayment = matchingPayments.find((p) => p.status === 'APPROVED');
-  if (approvedPayment) {
-    return {
-      status: 'LUNAS',
-      label: 'Lunas',
-      canPay: false,
-      badgeColor: 'emerald',
-      paymentItem: approvedPayment,
-    };
-  }
+  // Cek apakah ada pembayaran yang sedang PENDING menunggu ACC Superadmin
+  const pendingPayment = paymentHistory.find((p) => p && p.status === 'PENDING');
 
-  const pendingPayment = matchingPayments.find((p) => p.status === 'PENDING');
+  // Cek apakah ada penolakan pembayaran yang belum diselesaikan
+  const rejectedPayment = paymentHistory.find((p) => p && p.status === 'REJECTED');
+
+  // Sisa tagihan yang belum terbayar (selisih total transaksi dikurangi yang telah di-ACC)
+  const remainingAmount = Math.max(0, totalAmount - totalApproved);
+
+  // 1. Jika ada pembayaran yang sedang PENDING menunggu ACC
   if (pendingPayment) {
     return {
       status: 'PENDING',
@@ -144,10 +137,38 @@ export function determineBillingStatus(billingData, paymentHistory = []) {
       canPay: false,
       badgeColor: 'amber',
       paymentItem: pendingPayment,
+      remainingAmount,
+      totalApproved,
     };
   }
 
-  const rejectedPayment = matchingPayments.find((p) => p.status === 'REJECTED');
+  // 2. Jika ada sisa tagihan berjalan yang belum dibayar (termasuk penjualan baru setelah ACC sebelumnya)
+  if (remainingAmount > 0) {
+    return {
+      status: 'BERJALAN',
+      label: totalApproved > 0 ? 'Sebagian Lunas (Ada Tagihan Baru)' : (isCurrentMonth ? 'Bulan Berjalan' : 'Belum Dibayar'),
+      canPay: true,
+      badgeColor: totalApproved > 0 ? 'amber' : (isCurrentMonth ? 'blue' : 'rose'),
+      remainingAmount,
+      totalApproved,
+      paymentItem: approvedPayments[0] || null,
+    };
+  }
+
+  // 3. Jika sisa tagihan 0 dan ada riwayat penjualan yang telah lunas di-ACC
+  if (remainingAmount === 0 && totalAmount > 0) {
+    return {
+      status: 'LUNAS',
+      label: 'Lunas',
+      canPay: false,
+      badgeColor: 'emerald',
+      paymentItem: approvedPayments[0] || null,
+      remainingAmount: 0,
+      totalApproved,
+    };
+  }
+
+  // 4. Jika ada penolakan pembayaran
   if (rejectedPayment) {
     return {
       status: 'REJECTED',
@@ -156,23 +177,17 @@ export function determineBillingStatus(billingData, paymentHistory = []) {
       badgeColor: 'rose',
       paymentItem: rejectedPayment,
       rejectReason: rejectedPayment.rejectReason || 'Bukti pembayaran tidak sesuai atau tidak valid.',
-    };
-  }
-
-  // Belum ada pengajuan pembayaran
-  if (isCurrentMonth) {
-    return {
-      status: 'BERJALAN',
-      label: 'Bulan Berjalan',
-      canPay: totalAmount > 0,
-      badgeColor: 'blue',
+      remainingAmount: totalAmount,
+      totalApproved,
     };
   }
 
   return {
-    status: 'UNPAID',
-    label: 'Belum Dibayar',
-    canPay: true,
-    badgeColor: 'rose',
+    status: isCurrentMonth ? 'BERJALAN' : 'UNPAID',
+    label: isCurrentMonth ? 'Bulan Berjalan' : 'Belum Dibayar',
+    canPay: totalAmount > 0,
+    badgeColor: isCurrentMonth ? 'blue' : 'rose',
+    remainingAmount: totalAmount,
+    totalApproved: 0,
   };
 }

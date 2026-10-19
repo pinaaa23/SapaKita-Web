@@ -346,14 +346,19 @@ export default function KanwilInmates() {
 
                     {/* Status Akun */}
                     <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-2xs ${
-                        inmate.status === 'Aktif' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' 
-                          : 'bg-slate-100 text-slate-600 border border-slate-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${inmate.status === 'Aktif' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        <span>{inmate.status === 'Aktif' ? 'Aktif' : 'Nonaktif'}</span>
-                      </span>
+                      {(() => {
+                        const isAktif = inmate.status === 'Aktif' || inmate.status === 'Active' || inmate.isActive === true;
+                        return (
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-2xs ${
+                            isAktif 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' 
+                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isAktif ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            <span>{isAktif ? 'Aktif' : 'Nonaktif'}</span>
+                          </span>
+                        );
+                      })()}
                     </td>
 
                     {/* Aksi: View Detail */}
@@ -482,13 +487,18 @@ export default function KanwilInmates() {
                 </div>
                 <div>
                   <p className="text-slate-400 font-medium">Status Akun</p>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold mt-1 ${
-                    selectedInmate.status === 'Aktif'
-                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                      : 'bg-slate-100 text-slate-600 border border-slate-200'
-                  }`}>
-                    {selectedInmate.status === 'Aktif' ? 'Aktif' : 'Nonaktif'}
-                  </span>
+                  {(() => {
+                    const isAktif = selectedInmate.status === 'Aktif' || selectedInmate.status === 'Active' || selectedInmate.isActive === true;
+                    return (
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold mt-1 ${
+                        isAktif
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-600 border border-slate-200'
+                      }`}>
+                        {isAktif ? 'Aktif' : 'Nonaktif'}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 

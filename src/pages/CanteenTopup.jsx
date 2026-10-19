@@ -35,6 +35,7 @@ import {
   getAllCanteenBillingReport,
 } from '../services/canteenTopupService';
 import { getBranches } from '../services/branchService';
+import { API_BASE_URL } from '../services/api';
 
 export default function CanteenTopup() {
   const now = new Date();
@@ -186,6 +187,131 @@ export default function CanteenTopup() {
     setTopupActionModal({ action: 'reject', item });
   };
 
+  const resolveProofUrl = (url) => {
+    if (!url || url === 'virtual-proof') return 'virtual-proof';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+      return url;
+    }
+    const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
+    const cleanPath = url.replace(/^\/+/, '');
+    return `${cleanBase}/${cleanPath}`;
+  };
+
+  const handleViewProof = (itemOrReport) => {
+    const payment = pendingRequests.find((p) => p.branchId === itemOrReport.branchId) ||
+      itemOrReport.latestPayment || {
+        id: `TOPUP-${itemOrReport.branchCode || 'UPT'}-${Date.now().toString().slice(-4)}`,
+        branchId: itemOrReport.branchId,
+        branchName: itemOrReport.branchName,
+        nominal: itemOrReport.totalAmount || itemOrReport.nominal,
+        totalBayar: itemOrReport.totalAmount || itemOrReport.totalBayar,
+        tanggal: itemOrReport.tanggal || new Date().toISOString(),
+        bankTarget: itemOrReport.bankTarget || 'Bank BRI / BCA Virtual Account Lapas',
+        proofUrl: itemOrReport.latestPayment?.proofUrl || itemOrReport.proofUrl || null,
+        staffName: itemOrReport.staffName || ('Operator Kasir ' + (itemOrReport.branchName || '')),
+        status: itemOrReport.billingStatus || itemOrReport.status || 'PENDING',
+      };
+    
+    const rawUrl = payment.proofUrl || itemOrReport.proofUrl || null;
+    const finalUrl = resolveProofUrl(rawUrl);
+    setProofPreviewItem(payment);
+    setProofPreviewUrl(finalUrl);
+    setProofImageFailed(finalUrl === 'virtual-proof');
+  };
+
+  const handleOpenNewTabProof = () => {
+    if (proofPreviewUrl && proofPreviewUrl !== 'virtual-proof') {
+      window.open(proofPreviewUrl, '_blank');
+      return;
+    }
+    const win = window.open('', '_blank');
+    if (win) {
+      win.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8" />
+            <title>Bukti Pembayaran Tagihan - ${proofPreviewItem?.branchName || 'Kantin'}</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px 20px; background: #f8fafc; color: #1e293b; margin: 0; }
+              .receipt-card { max-width: 480px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06); }
+              .header { text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
+              .brand { font-size: 26px; font-weight: 900; color: #1565C0; letter-spacing: -0.5px; }
+              .subtitle { font-size: 12px; color: #64748b; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+              .badge { display: inline-block; background: #fef3c7; color: #b45309; padding: 6px 14px; border-radius: 9999px; font-size: 11px; font-weight: 800; margin-top: 12px; border: 1px solid #fde68a; }
+              .info-list { margin: 20px 0; }
+              .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; }
+              .label { color: #64748b; font-weight: 500; }
+              .val { font-weight: 700; color: #0f172a; text-align: right; }
+              .divider { border-top: 1px dashed #e2e8f0; margin: 18px 0; }
+              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #1565C0; padding-top: 8px; }
+              .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 28px; border-top: 1px solid #f1f5f9; padding-top: 16px; line-height: 1.5; }
+              @media print { body { padding: 0; background: white; } .receipt-card { box-shadow: none; border: none; padding: 10px; } }
+            </style>
+          </head>
+          <body>
+            <div class="receipt-card">
+              <div class="header">
+                <div class="brand">PasCall</div>
+                <div class="subtitle">Bukti Transfer Pembayaran Tagihan Kantin</div>
+                <div class="badge">MENUNGGU VERIFIKASI ACC SUPERADMIN</div>
+              </div>
+              <div class="info-list">
+                <div class="info-row">
+                  <span class="label">Asal UPT / Kantin</span>
+                  <span class="val">${proofPreviewItem?.branchName || '-'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Petugas Kasir</span>
+                  <span class="val">${proofPreviewItem?.staffName || 'Operator Kasir'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Bank Tujuan</span>
+                  <span class="val">${proofPreviewItem?.bankTarget || 'Bank BRI / BCA Virtual Account'}</span>
+                </div>
+                <div class="info-row">
+                  <span class="label">Waktu Transaksi</span>
+                  <span class="val">${proofPreviewItem?.tanggal ? new Date(proofPreviewItem.tanggal).toLocaleString('id-ID') : '-'}</span>
+                </div>
+                <div class="divider"></div>
+                <div class="info-row">
+                  <span class="label">Nominal Tagihan Pokok</span>
+                  <span class="val">${formatRupiah(proofPreviewItem?.nominal || proofPreviewItem?.totalBayar || 0)}</span>
+                </div>
+                <div class="total-row">
+                  <span>TOTAL TRANSFER</span>
+                  <span>${formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}</span>
+                </div>
+              </div>
+              <div class="footer">
+                Slip bukti pembayaran digital resmi sistem PasCall.<br/>
+                Dicetak pada ${new Date().toLocaleString('id-ID')}
+              </div>
+            </div>
+            <script>window.onload = function() { window.print(); };</script>
+          </body>
+        </html>
+      `);
+      win.document.close();
+    }
+  };
+
+  const handleOpenVerifyModal = (report) => {
+    const payment = pendingRequests.find((p) => p.branchId === report.branchId) || report.latestPayment || {
+      id: `TOPUP-${report.branchCode || 'UPT'}-${Date.now().toString().slice(-4)}`,
+      branchId: report.branchId,
+      branchName: report.branchName,
+      nominal: report.totalAmount,
+      totalBayar: report.totalAmount,
+      tanggal: new Date().toISOString(),
+      bankTarget: 'Transfer Virtual Account BRI / BCA',
+      proofUrl: report.latestPayment?.proofUrl || null,
+      staffName: 'Operator Kantin ' + report.branchName,
+      status: 'PENDING',
+    };
+    handleOpenApproveModal(payment);
+  };
+
   const handleConfirmTopupAction = async () => {
     if (!topupActionModal?.item || isProcessingAction) return;
     const { action, item } = topupActionModal;
@@ -288,7 +414,11 @@ export default function CanteenTopup() {
         </div>
 
         {/* Kartu 4: Konfirmasi Masuk (Pending ACC) */}
-        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
+        <div 
+          onClick={() => setStatusTagihanFilter((prev) => prev === 'PENDING' ? 'semua' : 'PENDING')}
+          className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group cursor-pointer"
+          title="Klik untuk filter tagihan yang butuh ACC"
+        >
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Konfirmasi Pembayaran
@@ -324,623 +454,251 @@ export default function CanteenTopup() {
         </div>
       </div>
 
-      {/* NAVIGASI TAB & AKSI SINKRONISASI (1 BARIS TERPADU) */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* TAB SWITCHER NAVIGASI HALAMAN (SEGMENTED CONTROL) */}
-        <div className="flex bg-slate-200/60 p-1 rounded-2xl w-full md:w-fit gap-1 text-xs font-bold shadow-2xs overflow-x-auto">
-          <button
-            type="button"
-            onClick={() => setActiveTab('laporan')}
-            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'laporan'
-                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <Building2 className="w-4 h-4" />
-            <span>Monitoring Tagihan Seluruh UPT</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'laporan' ? 'bg-blue-100 text-[#1565C0]' : 'bg-slate-300/60 text-slate-600'
-            }`}>
-              {billingReports.length} UPT
-            </span>
-          </button>
+      {/* FILTER & PENCARIAN TERPADU */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Filter Bulan & Tahun */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
+            <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+            <span className="text-slate-500">Periode:</span>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              {monthNames.map((name, idx) => (
+                <option key={name} value={idx + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <span className="text-slate-300">|</span>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
+                <option key={yr} value={yr}>
+                  {yr}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('konfirmasi')}
-            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'konfirmasi'
-                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <UserCheck className="w-4 h-4" />
-            <span>Konfirmasi Pembayaran</span>
-            {pendingRequests.length > 0 ? (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
-                {pendingRequests.length} Baru
-              </span>
-            ) : (
-              <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-300/60 text-slate-600">
-                0
-              </span>
-            )}
-          </button>
+          {/* Filter Status Tagihan */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <select
+              value={statusTagihanFilter}
+              onChange={(e) => setStatusTagihanFilter(e.target.value)}
+              className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+            >
+              <option value="semua">Semua Status</option>
+              <option value="BERJALAN">Bulan Berjalan</option>
+              <option value="PENDING">Menunggu ACC</option>
+              <option value="LUNAS">Lunas (Disetujui)</option>
+              <option value="DIBLOKIR">Lewat Jatuh Tempo (Diblokir)</option>
+            </select>
+          </div>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('riwayat')}
-            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
-              activeTab === 'riwayat'
-                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-            }`}
-          >
-            <Clock className="w-4 h-4" />
-            <span>Riwayat Verifikasi</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-              activeTab === 'riwayat' ? 'bg-blue-100 text-[#1565C0]' : 'bg-slate-300/60 text-slate-600'
-            }`}>
-              {processedHistory.length}
-            </span>
-          </button>
+          {/* Counter info */}
+          <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
+            Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> UPT
+          </span>
         </div>
 
-        {/* UTILITY CHIPS & TOMBOL SINKRONISASI REALTIME */}
-        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold" title="Data disinkronkan otomatis saat ada transaksi atau pembayaran baru di kantin">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Sinkron Kantin</span>
-          </span>
-
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200/80 text-[#1565C0] text-xs font-bold" title="Aturan penagihan pascabayar dengan batas toleransi jatuh tempo tanggal 2 bulan berikutnya (H+2)">
-            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-            <span>Pascabayar (H+2)</span>
-          </span>
+        {/* Pencarian UPT & Tombol Sinkronisasi */}
+        <div className="flex items-center gap-2 w-full lg:w-auto">
+          <div className="relative flex-1 lg:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Cari nama UPT / Kanwil..."
+              value={searchUpt}
+              onChange={(e) => setSearchUpt(e.target.value)}
+              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+            />
+            {searchUpt && (
+              <button
+                type="button"
+                onClick={() => setSearchUpt('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
 
           <button
             type="button"
             onClick={() => loadData()}
             disabled={isLoadingBilling || isLoadingHistory}
-            className="px-3.5 py-2 bg-gradient-to-r from-[#1565C0] to-[#0D47A1] hover:from-[#0D47A1] hover:to-[#0A3880] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-blue-600/20 cursor-pointer active:scale-95 disabled:opacity-50"
-            title="Muat ulang dan sinkronkan data terkini dari seluruh kantin"
+            className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+            title="Sinkronkan data terkini dari seluruh kantin"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin' : ''}`} />
-            <span>Sinkronkan Real Time</span>
+            <span className="hidden sm:inline">Sinkronkan</span>
           </button>
         </div>
       </div>
 
-      {/* ========================================================================= */}
-      {/* TAB 1: LAPORAN MONITORING TAGIHAN SELURUH UPT (REAL TIME)                 */}
-      {/* ========================================================================= */}
-      {activeTab === 'laporan' && (
-        <div className="space-y-4 animate-in fade-in duration-200">
-          {/* Filter Bar Periode & Pencarian */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {/* Filter Bulan & Tahun */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
-                <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
-                <span className="text-slate-500">Periode:</span>
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  {monthNames.map((name, idx) => (
-                    <option key={name} value={idx + 1}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-slate-300">|</span>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
-                    <option key={yr} value={yr}>
-                      {yr}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Filter Status Tagihan */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
-                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                <select
-                  value={statusTagihanFilter}
-                  onChange={(e) => setStatusTagihanFilter(e.target.value)}
-                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
-                >
-                  <option value="semua">Semua Status</option>
-                  <option value="BERJALAN">Bulan Berjalan</option>
-                  <option value="LUNAS">Lunas (Disetujui)</option>
-                  <option value="PENDING">Menunggu Konfirmasi</option>
-                  <option value="DIBLOKIR">Lewat Jatuh Tempo (Diblokir)</option>
-                </select>
-              </div>
-
-              {/* Counter info */}
-              <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
-                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> UPT
-              </span>
-            </div>
-
-            {/* Pencarian UPT */}
-            <div className="relative w-full lg:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Cari nama UPT / Kanwil..."
-                value={searchUpt}
-                onChange={(e) => setSearchUpt(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-              {searchUpt && (
-                <button
-                  type="button"
-                  onClick={() => setSearchUpt('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Tabel Rekapitulasi Tagihan per UPT */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[900px]">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-5 min-w-[260px]">Asal UPT / Kantin</th>
-                    <th className="py-3.5 px-4 min-w-[130px]">Periode</th>
-                    <th className="py-3.5 px-4 text-center min-w-[140px]">Voucher & Durasi</th>
-                    <th className="py-3.5 px-4 text-right min-w-[150px]">DPP & PPN (11%)</th>
-                    <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
-                    <th className="py-3.5 px-4 text-center min-w-[170px]">Status & Jatuh Tempo</th>
-                    <th className="py-3.5 px-4 text-center min-w-[110px]">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {isLoadingBilling ? (
-                    <tr>
-                      <td colSpan="7" className="py-12 text-center text-slate-400 font-semibold">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
-                        <span>Memuat rekapitulasi tagihan seluruh kantin...</span>
-                      </td>
-                    </tr>
-                  ) : filteredBillingReports.length === 0 ? (
-                    <tr>
-                      <td colSpan="7" className="py-12 text-center text-slate-400">
-                        <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-700">Tidak ada data tagihan</p>
-                        <p className="text-[11px] text-slate-400">Tidak ada UPT yang cocok dengan filter yang dipilih.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredBillingReports.map((report) => {
-                      return (
-                        <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
-                          {/* Nama UPT & Kanwil */}
-                          <td className="py-4 px-5">
-                            <div className="flex items-start gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                                <Building2 className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <span className="font-bold text-slate-900 block leading-snug">
-                                  {report.branchName}
-                                </span>
-                                <div className="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                                  <span>{report.kanwilName}</span>
-                                  <span className="text-slate-300">•</span>
-                                  <span className="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
-                                    Kode: {report.branchCode}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Periode */}
-                          <td className="py-4 px-4 whitespace-nowrap text-slate-700 font-semibold">
-                            {report.period}
-                          </td>
-
-                          {/* Voucher & Menit Terjual */}
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            <div className="font-bold text-slate-800">
-                              {report.totalVouchers} Voucher
-                            </div>
-                            <div className="text-[11px] font-semibold text-emerald-600">
-                              {report.totalMinutes.toLocaleString('id-ID')} Menit
-                            </div>
-                          </td>
-
-                          {/* DPP & PPN */}
-                          <td className="py-4 px-4 text-right whitespace-nowrap">
-                            <div className="font-medium text-slate-600">
-                              DPP: {formatRupiah(report.totalDpp)}
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              PPN: {formatRupiah(report.totalPpn)}
-                            </div>
-                          </td>
-
-                          {/* Total Tagihan */}
-                          <td className="py-4 px-4 text-right whitespace-nowrap">
-                            <div className="font-black text-[#1565C0] text-sm">
-                              {formatRupiah(report.totalAmount)}
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              Termasuk PPN 11%
-                            </div>
-                          </td>
-
-                          {/* Status & Jatuh Tempo */}
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            {report.billingStatus === 'LUNAS' ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>Lunas (ACC)</span>
+      {/* Tabel Rekapitulasi Tagihan per UPT (Kolom Rapi, DPP/PPN di dalam Detail Modal) */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full text-left border-collapse min-w-[760px]">
+            <thead>
+              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                <th className="py-3.5 px-5 min-w-[220px]">Asal UPT / Kantin</th>
+                <th className="py-3.5 px-4 min-w-[110px]">Periode</th>
+                <th className="py-3.5 px-4 text-center min-w-[130px]">Voucher & Durasi</th>
+                <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
+                <th className="py-3.5 px-4 text-center min-w-[160px]">Status & Jatuh Tempo</th>
+                <th className="py-3.5 px-4 text-center min-w-[100px]">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 text-xs">
+              {isLoadingBilling ? (
+                <tr>
+                  <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold">
+                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                    <span>Memuat rekapitulasi tagihan seluruh kantin...</span>
+                  </td>
+                </tr>
+              ) : filteredBillingReports.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-12 text-center text-slate-400">
+                    <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                    <p className="text-xs font-bold text-slate-700">Tidak ada data tagihan</p>
+                    <p className="text-[11px] text-slate-400">Tidak ada UPT yang cocok dengan filter yang dipilih.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredBillingReports.map((report) => {
+                  const isPending = report.billingStatus === 'PENDING';
+                  return (
+                    <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
+                      {/* Nama UPT & Kanwil */}
+                      <td className="py-4 px-5">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <Building2 className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-900 block leading-snug">
+                              {report.branchName}
+                            </span>
+                            <div className="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                              <span>{report.kanwilName}</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                                Kode: {report.branchCode}
                               </span>
-                            ) : report.billingStatus === 'PENDING' ? (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                                  <Clock className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Menunggu ACC</span>
-                                </span>
-                              </div>
-                            ) : report.isBlocked ? (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-                                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                                  <span>DIBLOKIR</span>
-                                </span>
-                                <div className="text-[10px] font-bold text-rose-600 mt-1">
-                                  Lewat Jatuh Tempo (H+2)
-                                </div>
-                              </div>
-                            ) : report.billingStatus === 'BELUM_BAYAR' ? (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                                  <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
-                                  <span>Belum Dibayar</span>
-                                </span>
-                                <div className="text-[10px] text-slate-500 mt-1">
-                                  Jatuh Tempo: {report.dueDateFormatted}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span>Bulan Berjalan</span>
-                                </span>
-                                <div className="text-[10px] text-slate-400 mt-0.5">
-                                  Penjualan Aktif
-                                </div>
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Tombol Lihat Rincian Voucher */}
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedUptDetail(report)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
-                              title="Lihat rincian transaksi voucher"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              <span>Rincian</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 2: KONFIRMASI PEMBAYARAN TAGIHAN MASUK (ACC / TOLAK)                   */}
-      {/* ========================================================================= */}
-      {activeTab === 'konfirmasi' && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                Konfirmasi Transfer Pembayaran Tagihan
-              </h3>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Verifikasi transfer bukti pembayaran tagihan dari operator kantin UPT.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl border border-amber-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[760px]">
-                <thead>
-                  <tr className="bg-amber-50/70 border-b border-amber-100 text-[11px] font-bold text-amber-900/80 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-5 min-w-[240px]">Asal UPT / Kantin & Kasir</th>
-                    <th className="py-3.5 px-4 min-w-[150px]">Waktu Pengajuan</th>
-                    <th className="py-3.5 px-4 text-right min-w-[140px]">Nominal Tagihan</th>
-                    <th className="py-3.5 px-4 text-center min-w-[120px]">Bukti Bayar</th>
-                    <th className="py-3.5 px-4 text-center min-w-[180px]">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {isLoadingHistory ? (
-                    <tr>
-                      <td colSpan="5" className="py-8 text-center text-slate-400 font-semibold">
-                        Memeriksa transfer pembayaran masuk...
-                      </td>
-                    </tr>
-                  ) : pendingRequests.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="py-10 text-center text-slate-400">
-                        <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mx-auto mb-2">
-                          <CheckCircle2 className="w-5 h-5" />
+                            </div>
+                          </div>
                         </div>
-                        <p className="text-xs font-bold text-slate-700">
-                          Tidak Ada Pembayaran yang Menunggu Konfirmasi
-                        </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
-                          Semua bukti transfer pembayaran tagihan dari kantin telah selesai diproses.
-                        </p>
                       </td>
-                    </tr>
-                  ) : (
-                    pendingRequests.map((item) => (
-                      <tr key={item.id} className="hover:bg-amber-50/30 transition-colors">
-                        <td className="py-4 px-5">
-                          <div className="flex items-center gap-2">
-                            <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
-                            <span className="font-bold text-slate-800">
-                              {item.branchName || 'Cabang Lapas'}
+
+                      {/* Periode */}
+                      <td className="py-4 px-4 whitespace-nowrap text-slate-700 font-semibold">
+                        {report.period}
+                      </td>
+
+                      {/* Voucher & Menit Terjual */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                        <div className="font-bold text-slate-800">
+                          {report.totalVouchers} Voucher
+                        </div>
+                        <div className="text-[11px] font-semibold text-emerald-600">
+                          {report.totalMinutes.toLocaleString('id-ID')} Menit
+                        </div>
+                      </td>
+
+                      {/* Total Tagihan (DPP & PPN 11% dipindahkan ke Rincian modal) */}
+                      <td className="py-4 px-4 text-right whitespace-nowrap">
+                        <div className="font-black text-[#1565C0] text-sm">
+                          {formatRupiah(report.totalAmount)}
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          Termasuk PPN 11%
+                        </div>
+                      </td>
+
+                      {/* Status & Jatuh Tempo */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                        {report.billingStatus === 'LUNAS' ? (
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>Lunas (ACC)</span>
+                          </span>
+                        ) : report.billingStatus === 'PENDING' ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                              <Clock className="w-3.5 h-3.5 text-amber-600" />
+                              <span>Menunggu ACC</span>
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-500 font-medium pl-6 mt-0.5">
-                            Kasir: <span className="font-semibold text-slate-700">{item.staffName || 'Operator'}</span>
-                            <span className="text-slate-400 font-mono text-[10px] ml-2">({item.id})</span>
+                        ) : report.isBlocked ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
+                              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                              <span>DIBLOKIR</span>
+                            </span>
+                            <div className="text-[10px] font-bold text-rose-600 mt-1">
+                              Lewat Jatuh Tempo (H+2)
+                            </div>
                           </div>
-                        </td>
-
-                        <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
-                          {formatTanggal(item.tanggal)}
-                        </td>
-
-                        <td className="py-4 px-4 text-right whitespace-nowrap">
-                          <div className="font-black text-[#1565C0] text-sm">
-                            {formatRupiah(item.totalBayar || item.nominal)}
+                        ) : report.billingStatus === 'BELUM_BAYAR' ? (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
+                              <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
+                              <span>Belum Dibayar</span>
+                            </span>
+                            <div className="text-[10px] text-slate-500 mt-1">
+                              Jatuh Tempo: {report.dueDateFormatted}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-slate-400">
-                            Metode: {item.bankTarget || 'Transfer'}
+                        ) : (
+                          <div>
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>Bulan Berjalan</span>
+                            </span>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              Penjualan Aktif
+                            </div>
                           </div>
-                        </td>
+                        )}
+                      </td>
 
-                        <td className="py-4 px-4 text-center whitespace-nowrap">
-                          {item.proofUrl ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProofPreviewUrl(item.proofUrl);
-                                setProofPreviewItem(item);
-                                setProofImageFailed(false);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold border border-blue-200 transition cursor-pointer"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Lihat Bukti</span>
-                            </button>
-                          ) : (
-                            <span className="text-slate-400 text-[11px]">Tidak ada berkas</span>
+                      {/* Tombol Aksi: Verifikasi ACC jika Menunggu ACC, dan Rincian Detail */}
+                      <td className="py-4 px-4 text-center whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedUptDetail(report)}
+                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border shadow-2xs cursor-pointer active:scale-95 ${
+                            isPending
+                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
+                              : 'bg-blue-50 hover:bg-blue-100 text-[#1565C0] border-blue-200/80'
+                          }`}
+                          title={isPending ? 'Periksa rincian, bukti transfer, dan verifikasi ACC' : 'Lihat rincian tagihan, DPP, PPN, dan voucher'}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          <span>Rincian</span>
+                          {isPending && (
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping ml-0.5" />
                           )}
-                        </td>
-
-                        <td className="py-4 px-4 text-center whitespace-nowrap">
-                          <div className="flex items-center justify-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => handleOpenApproveModal(item)}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer active:scale-95"
-                              title="Setujui pembayaran (ACC)"
-                            >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Setujui (ACC)</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOpenRejectModal(item)}
-                              className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer active:scale-95"
-                              title="Tolak pembayaran"
-                            >
-                              <X className="w-3.5 h-3.5 text-rose-600" />
-                              <span>Tolak</span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 3: RIWAYAT PEMBAYARAN TAGIHAN                                         */}
-      {/* ========================================================================= */}
-      {activeTab === 'riwayat' && (
-        <div className="space-y-3 animate-in fade-in duration-200">
-          <div>
-            <h3 className="text-base sm:text-lg font-bold text-slate-800">Riwayat Pembayaran Tagihan</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Log transaksi pembayaran tagihan kantin yang telah diproses (Disetujui atau Ditolak).
-            </p>
-          </div>
-
-          {/* Filter Bar */}
-          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Cari ID transaksi, nama cabang UPT, kasir..."
-                value={searchHistory}
-                onChange={(e) => setSearchHistory(e.target.value)}
-                className="w-full pl-9.5 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-              />
-              {searchHistory && (
-                <button
-                  type="button"
-                  onClick={() => setSearchHistory('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
-            </div>
-
-            <div className="shrink-0">
-              <select
-                value={statusHistoryFilter}
-                onChange={(e) => setStatusHistoryFilter(e.target.value)}
-                className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition cursor-pointer"
-              >
-                <option value="semua">Status: Semua</option>
-                <option value="berhasil">Status: Disetujui (Lunas)</option>
-                <option value="ditolak">Status: Ditolak</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Tabel Riwayat */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse min-w-[760px]">
-                <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-5 min-w-[240px]">Asal UPT / Kantin</th>
-                    <th className="py-3.5 px-4 min-w-[150px]">Waktu Transaksi</th>
-                    <th className="py-3.5 px-4 text-right min-w-[140px]">Nominal Tagihan</th>
-                    <th className="py-3.5 px-4 text-center min-w-[160px]">Status</th>
-                    <th className="py-3.5 px-4 text-center min-w-[130px]">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs">
-                  {isLoadingHistory ? (
-                    <tr>
-                      <td colSpan="5" className="py-8 text-center text-slate-400 font-semibold">
-                        Memuat riwayat transaksi pembayaran...
-                      </td>
-                    </tr>
-                  ) : processedHistory.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="py-8 text-center text-slate-400">
-                        <Inbox className="w-7 h-7 mx-auto text-slate-300 mb-1" />
-                        <p className="text-xs font-bold text-slate-700">Tidak ada riwayat transaksi</p>
-                        <p className="text-[11px] text-slate-400">Coba ubah kata kunci atau filter status.</p>
-                      </td>
-                    </tr>
-                  ) : (
-                    processedHistory.map((item) => {
-                      const isApproved = item.status === 'APPROVED' || item.status === 'Berhasil';
-                      const isRejected = item.status === 'REJECTED' || item.status === 'Ditolak';
-
-                      return (
-                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                          <td className="py-4 px-5">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
-                              <span className="font-bold text-slate-800">
-                                {item.branchName || 'Cabang Lapas'}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-slate-500 font-medium pl-6 mt-0.5">
-                              Kasir: <span className="font-semibold text-slate-700">{item.staffName || 'Operator'}</span>
-                              <span className="text-slate-400 font-mono text-[10px] ml-2">({item.id})</span>
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
-                            {formatTanggal(item.tanggal)}
-                          </td>
-
-                          <td className="py-4 px-4 text-right whitespace-nowrap">
-                            <div className="font-black text-[#1565C0] text-sm">
-                              {formatRupiah(item.totalBayar || item.nominal)}
-                            </div>
-                            <div className="text-[10px] text-slate-400">
-                              Metode: {item.bankTarget || 'Transfer'}
-                            </div>
-                          </td>
-
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                                isApproved
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : isRejected
-                                  ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                  : 'bg-amber-50 text-amber-700 border-amber-200'
-                              }`}
-                            >
-                              {isApproved ? (
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                              ) : isRejected ? (
-                                <X className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-                              ) : (
-                                <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              )}
-                              <span>{isApproved ? 'Disetujui (Lunas)' : isRejected ? 'Ditolak' : item.status}</span>
-                            </span>
-                            {isRejected && item.rejectReason && (
-                              <div className="text-[10px] text-rose-600 font-medium mt-1 max-w-xs mx-auto truncate" title={item.rejectReason}>
-                                Alasan: {item.rejectReason}
-                              </div>
-                            )}
-                          </td>
-
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            <button
-                              type="button"
-                              onClick={() => setDetailModalItem(item)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
-                              title="Lihat Detail Transaksi"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>Detail</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
-      {/* ========================================================================= */}
-      {/* MODAL RINCIAN VOUCHER PER UPT (REAL-TIME SEPERTI GAMBAR 1)                 */}
       {/* ========================================================================= */}
       {selectedUptDetail && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -965,25 +723,49 @@ export default function CanteenTopup() {
               </button>
             </div>
 
-            {/* Modal Summary Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-6 bg-slate-50/50 border-b border-slate-100 shrink-0">
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80">
+            {/* Modal Summary Cards (5 Indikator Finansial Lengkap: Termasuk DPP & PPN 11%) */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-5 bg-slate-50/50 border-b border-slate-100 shrink-0">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Voucher Terjual</span>
                 <span className="text-lg font-black text-slate-800">{selectedUptDetail.totalVouchers}</span>
               </div>
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80">
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Durasi Terjual</span>
-                <span className="text-lg font-black text-slate-800">{selectedUptDetail.totalMinutes} Menit</span>
+                <span className="text-lg font-black text-emerald-600">{selectedUptDetail.totalMinutes} Menit</span>
               </div>
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DPP (Dasar Pengenaan)</span>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DPP (Pokok Tagihan)</span>
                 <span className="text-lg font-black text-slate-800">{formatRupiah(selectedUptDetail.totalDpp)}</span>
               </div>
-              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Tagihan Bruto</span>
+              <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">PPN (11%)</span>
+                <span className="text-lg font-black text-amber-600">{formatRupiah(selectedUptDetail.totalPpn)}</span>
+              </div>
+              <div className="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/30 shadow-2xs col-span-2 sm:col-span-1">
+                <span className="text-[10px] font-bold text-[#1565C0] uppercase tracking-wider block">Total Tagihan Bruto</span>
                 <span className="text-lg font-black text-[#1565C0]">{formatRupiah(selectedUptDetail.totalAmount)}</span>
               </div>
             </div>
+
+            {/* Banner Status jika Menunggu ACC (Tombol aksi terpusat di footer bawah) */}
+            {selectedUptDetail.billingStatus === 'PENDING' && (
+              <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-center gap-3 shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                  <Clock className="w-4 h-4 animate-spin" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                    <span>Tagihan Menunggu Verifikasi ACC Superadmin</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-200 text-amber-900 font-extrabold">
+                      1 Transfer Masuk
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-amber-800 mt-0.5">
+                    Nominal transfer: <strong>{formatRupiah(selectedUptDetail.totalAmount)}</strong>. Gunakan tombol di bagian bawah untuk membuka bukti transfer dan melakukan ACC.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Modal Table Transaksi */}
             <div className="p-6 overflow-y-auto flex-1 min-h-0">
@@ -1056,13 +838,39 @@ export default function CanteenTopup() {
               <span className="text-xs text-slate-500">
                 Total {selectedUptDetail.transactions.length} transaksi voucher tercatat.
               </span>
-              <button
-                type="button"
-                onClick={() => setSelectedUptDetail(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                Tutup
-              </button>
+              <div className="flex items-center gap-2">
+                {selectedUptDetail.billingStatus === 'PENDING' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleViewProof(selectedUptDetail)}
+                      className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Buka Bukti Bayar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const item = selectedUptDetail;
+                        setSelectedUptDetail(null);
+                        handleOpenVerifyModal(item);
+                      }}
+                      className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+                    >
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      <span>Verifikasi & ACC</span>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedUptDetail(null)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1122,23 +930,17 @@ export default function CanteenTopup() {
                     <span className="text-[#1565C0] font-black text-sm">{formatRupiah(modalItem.totalBayar || modalItem.nominal)}</span>
                   </div>
 
-                  {modalItem.proofUrl && (
-                    <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                      <span className="text-slate-500">Bukti Transfer:</span>
+                  <div className="flex justify-between items-center pt-2 border-t border-slate-200">
+                      <span className="text-slate-500 font-medium">Bukti Pembayaran:</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setProofPreviewUrl(modalItem.proofUrl);
-                          setProofPreviewItem(modalItem);
-                          setProofImageFailed(false);
-                        }}
-                        className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                        onClick={() => handleViewProof(modalItem)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold transition border border-blue-200/60 cursor-pointer"
                       >
                         <Eye className="w-3.5 h-3.5" />
-                        <span>Lihat Bukti Transfer</span>
+                        <span>Buka Bukti Transfer</span>
                       </button>
                     </div>
-                  )}
                 </div>
               );
             })()}
@@ -1220,16 +1022,20 @@ export default function CanteenTopup() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL PREVIEW BUKTI PEMBAYARAN STRUK / FOTO / PDF                        */}
+      {/* MODAL PREVIEW BUKTI PEMBAYARAN STRUK / FOTO / PDF */}
       {/* ========================================================================= */}
       {proofPreviewUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
+            {/* Header Modal */}
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
               <div>
-                <h4 className="text-sm font-bold text-slate-800">Bukti Pembayaran Tagihan</h4>
-                <p className="text-xs text-slate-400">
-                  {proofPreviewItem?.branchName || 'Cabang'} • {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal)}
+                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-[#1565C0]" />
+                  <span>Bukti Pembayaran Tagihan</span>
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  UPT: <span className="font-bold text-slate-700">{proofPreviewItem?.branchName || 'Cabang Kantin'}</span> • Total: <span className="font-bold text-[#1565C0]">{formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}</span>
                 </p>
               </div>
               <button
@@ -1241,44 +1047,87 @@ export default function CanteenTopup() {
               </button>
             </div>
 
-            <div className="p-4 overflow-y-auto flex-1 min-h-0 flex items-center justify-center bg-slate-100/50">
-              {!proofImageFailed ? (
-                <img
-                  src={proofPreviewUrl}
-                  alt="Bukti Transfer"
-                  onError={() => setProofImageFailed(true)}
-                  className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-md border border-slate-200 bg-white"
-                />
-              ) : (
-                <div className="p-8 text-center text-slate-400">
-                  <FileText className="w-12 h-12 mx-auto text-slate-300 mb-2" />
-                  <p className="text-xs font-bold text-slate-700">Berkas Dokumen Bukti Pembayaran</p>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    Format berkas PDF atau tautan dokumen eksternal.
+            {/* Isi Bukti Pembayaran: Gambar atau Slip Transfer Digital Resmi */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 flex items-center justify-center bg-slate-100/60">
+              {!proofImageFailed && proofPreviewUrl !== 'virtual-proof' ? (
+                <div className="text-center">
+                  <img
+                    src={proofPreviewUrl}
+                    alt="Bukti Transfer Pembayaran"
+                    onError={() => setProofImageFailed(true)}
+                    className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-md border border-slate-200 bg-white"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-2">
+                    Foto / Scan Slip Bukti Pembayaran dari Kasir Kantin
                   </p>
-                  <a
-                    href={proofPreviewUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 mt-4 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition shadow-sm"
-                  >
-                    <span>Buka Dokumen</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                </div>
+              ) : (
+                /* Struk Digital Resmi PasCall (Fallback slip transfer interaktif & elegan) */
+                <div className="w-full max-w-md bg-white rounded-2xl p-6 border border-slate-200 shadow-md text-slate-800">
+                  <div className="text-center border-b border-dashed border-slate-200 pb-4 mb-4">
+                    <span className="text-xl font-black text-[#1565C0] tracking-tight">PasCall</span>
+                    <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider mt-1">
+                      Struk Bukti Transfer Tagihan Kantin
+                    </h5>
+                    <div className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Clock className="w-3 h-3 text-amber-600" />
+                      <span>MENUNGGU VERIFIKASI ACC</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Asal UPT / Kantin:</span>
+                      <span className="font-bold text-slate-800">{proofPreviewItem?.branchName || '-'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Petugas Kasir Pengirim:</span>
+                      <span className="font-semibold text-slate-700">{proofPreviewItem?.staffName || 'Operator Kasir'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Bank & Rekening Tujuan:</span>
+                      <span className="font-semibold text-slate-700">{proofPreviewItem?.bankTarget || 'Bank BRI / BCA Virtual Account'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Waktu Pembayaran:</span>
+                      <span className="font-mono text-slate-700">
+                        {proofPreviewItem?.tanggal ? formatTanggal(proofPreviewItem.tanggal) : '-'}
+                      </span>
+                    </div>
+                    
+                    <div className="border-t border-dashed border-slate-200 pt-2.5 mt-2.5">
+                      <div className="flex justify-between text-slate-500">
+                        <span>Nominal Pokok Tagihan:</span>
+                        <span className="font-bold text-slate-800">
+                          {formatRupiah(proofPreviewItem?.nominal || proofPreviewItem?.totalBayar || 0)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-800 font-black text-sm pt-2 mt-1 border-t border-slate-100">
+                        <span>TOTAL TRANSFER:</span>
+                        <span className="text-[#1565C0]">
+                          {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-3 border-t border-slate-100 text-center text-[10px] text-slate-400">
+                    Dokumen bukti transfer digital sah dari transaksi kasir kantin.
+                  </div>
                 </div>
               )}
             </div>
 
+            {/* Footer Modal: Tombol Buka Tab Baru & Tutup */}
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-              <a
-                href={proofPreviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+              <button
+                type="button"
+                onClick={handleOpenNewTabProof}
+                className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
               >
-                <span>Buka di tab baru</span>
-                <ArrowRight className="w-3 h-3" />
-              </a>
+                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Buka di tab baru (Cetak / Unduh)</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setProofPreviewUrl(null)}
@@ -1291,8 +1140,6 @@ export default function CanteenTopup() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL DETAIL RIWAYAT                                                      */}
       {/* ========================================================================= */}
       {detailModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
