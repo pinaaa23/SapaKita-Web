@@ -10,7 +10,7 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { getMenuItemsByRole } from '../config/menuConfig';
+import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
 import { getPendingTopupCountSync } from '../services/canteenTopupService';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, closeMobileMenu }) => {
@@ -59,15 +59,23 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     navigate('/login', { replace: true });
   };
   
-  const effectiveRole = currentRole || 
+  const storedRole = localStorage.getItem('role') || localStorage.getItem('user_role') || user?.role;
+  const normalizedStored = normalizeRole(storedRole);
+  const normalizedCurrent = normalizeRole(currentRole);
+
+  const effectiveRole = normalizedCurrent || 
+    normalizedStored || 
     (isBranchAdmin 
-      ? (localStorage.getItem('role')?.toLowerCase().includes('spv') || localStorage.getItem('role')?.toLowerCase().includes('supervisor') 
-          ? 'supervisor' 
-          : 'kepala_upt') 
-      : (isKanwilAdmin ? 'admin_kanwil' : ''));
+      ? (storedRole?.toLowerCase().includes('spv') || storedRole?.toLowerCase().includes('supervisor') 
+          ? ROLES.SUPERVISOR 
+          : ROLES.KEPALA_UPT) 
+      : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
   
   const effectiveRoleLabel = roleLabel || 
-    (effectiveRole === 'admin_kanwil' ? 'Admin Kanwil' : (effectiveRole === 'supervisor' ? 'Supervisor' : (effectiveRole === 'kepala_upt' ? 'Kepala UPT' : '')));
+    ROLE_LABELS[effectiveRole] || 
+    (effectiveRole === ROLES.ADMIN_KANWIL ? 'Admin Kanwil' : 
+     effectiveRole === ROLES.SUPERVISOR ? 'Supervisor' : 
+     effectiveRole === ROLES.KEPALA_UPT ? 'Kepala UPT' : 'Super Administrator');
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { getCallById } from '../../services/callService';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
+import { logout } from '../../services/api';
 import { downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 
 const Detail = () => {

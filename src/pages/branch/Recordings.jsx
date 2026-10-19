@@ -454,7 +454,7 @@ const Recordings = () => {
                           {/* Aksi Play/Active Button */}
                           <td className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center">
-                              {isAnswered && call.hasRecording ? (
+                              {call.hasRecording ? (
                                 <button 
                                   type="button" 
                                   onClick={() => handlePlayRecording(call)}
@@ -472,7 +472,7 @@ const Recordings = () => {
                                   )}
                                 </button>
                               ) : (
-                                <span className="p-2 text-slate-300 font-bold inline-block" title="Panggilan tidak terjawab (tidak ada rekaman)">
+                                <span className="p-2 text-slate-300 font-bold inline-block" title="Belum ada rekaman untuk panggilan ini">
                                   -
                                 </span>
                               )}
