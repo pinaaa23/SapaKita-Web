@@ -344,6 +344,62 @@ export async function getAllCanteenBillingReport(monthParam, yearParam) {
   const targetMonth = monthParam !== undefined ? Number(monthParam) : now.getMonth() + 1;
   const targetYear = yearParam !== undefined ? Number(yearParam) : now.getFullYear();
 
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+  ];
+  const dueDate = new Date(targetYear, targetMonth, 2, 23, 59, 59, 999);
+  const periodLabel = `${monthNames[targetMonth - 1]} ${targetYear}`;
+
+  // 1. Coba panggil endpoint resmi Backend: GET /api/canteen/billing/national-summary
+  try {
+    const nationalRes = await apiFetch(`/api/canteen/billing/national-summary?month=${targetMonth}&year=${targetYear}`);
+    const resData = nationalRes?.data || nationalRes;
+    const branchesFromBe = resData?.branches;
+    if (Array.isArray(branchesFromBe) && branchesFromBe.length > 0) {
+      return branchesFromBe.map((b) => {
+        let statusLabel = 'Bulan Berjalan';
+        const st = (b.billingStatus || '').toUpperCase();
+        if (st === 'PAID' || st === 'LUNAS') {
+          statusLabel = 'Lunas';
+        } else if (st === 'PENDING_CONFIRMATION' || st === 'PENDING') {
+          statusLabel = 'Menunggu Konfirmasi';
+        } else if (st === 'REJECTED') {
+          statusLabel = 'Ditolak (Menunggak)';
+        } else if (st === 'DITAGIHKAN' || st === 'BELUM_BAYAR') {
+          statusLabel = 'Belum Dibayar (Tenggat 2 Hari)';
+        } else if (st === 'DIBLOKIR') {
+          statusLabel = 'Lewat Jatuh Tempo (Diblokir)';
+        }
+
+        return {
+          branchId: b.branchId,
+          branchName: b.branchName,
+          branchCode: b.branchId ? b.branchId.slice(0, 4).toUpperCase() : 'UPT',
+          kanwilName: b.kanwilName || 'Kanwil Kemenkumham',
+          period: resData.period || periodLabel,
+          month: targetMonth,
+          year: targetYear,
+          totalVouchers: b.totalTransactions || 0,
+          totalMinutes: b.totalMinutes || 0,
+          totalDpp: Math.round((b.dpp || 0) * 100) / 100,
+          totalPpn: Math.round((b.ppn || 0) * 100) / 100,
+          totalAmount: Number(b.totalAmount || 0),
+          billingStatus: st === 'PAID' ? 'LUNAS' : (st === 'PENDING_CONFIRMATION' ? 'PENDING' : (st || 'BERJALAN')),
+          statusLabel,
+          isBlocked: st === 'DIBLOKIR' || st === 'REJECTED',
+          dueDate: dueDate.toISOString(),
+          dueDateFormatted: '2 ' + monthNames[targetMonth % 12] + ' ' + (targetMonth === 12 ? targetYear + 1 : targetYear),
+          latestPayment: b.paymentProof || null,
+          transactions: b.transactions || [],
+        };
+      });
+    }
+  } catch (err) {
+    console.warn('[canteenTopupService] Gagal memuat national-summary dari backend, fallback ke agregasi lokal:', err?.message || err);
+  }
+
+  // Fallback agregasi lokal jika backend offline
   // 1. Ambil daftar cabang UPT
   const branchesRes = await apiFetch('/api/branches?limit=200').catch(() => ({ items: [] }));
   const branches = branchesRes?.items || branchesRes?.data || (Array.isArray(branchesRes) ? branchesRes : []);
@@ -361,15 +417,8 @@ export async function getAllCanteenBillingReport(monthParam, yearParam) {
   const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
 
   // Batas jatuh tempo: 2 hari setelah akhir periode (Tanggal 2 bulan berikutnya pukul 23:59:59)
-  const dueDate = new Date(targetYear, targetMonth, 2, 23, 59, 59, 999);
   const isPastMonth = endOfMonth < now;
   const isPastDue = now > dueDate;
-
-  const monthNames = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-  ];
-  const periodLabel = `${monthNames[targetMonth - 1]} ${targetYear}`;
 
   const reports = branches.map((branch) => {
     // Filter transaksi untuk cabang ini dalam periode

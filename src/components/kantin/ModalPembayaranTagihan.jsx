@@ -107,11 +107,17 @@ export default function ModalPembayaranTagihan({
     setSubmitError('');
 
     try {
+      const now = new Date();
+      const targetMonth = billingData?.month || (billingData?.period?.month) || (now.getMonth() + 1);
+      const targetYear = billingData?.year || (billingData?.period?.year) || now.getFullYear();
+
       await submitTagihanPayment({
         nominal: payableAmount,
         minutes: totalMinutes,
         bankTarget: metodePembayaran,
         proofFile,
+        billingMonth: targetMonth,
+        billingYear: targetYear,
       });
 
       // Dispatch event agar komponen lain ikut update

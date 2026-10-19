@@ -116,7 +116,7 @@ export default function StatusWartelPage() {
   };
 
   // Simpan Form (Tambah Baru atau Update)
-  const handleSaveBooth = (e) => {
+  const handleSaveBooth = async (e) => {
     e.preventDefault();
     if (!formData.nomor.trim()) {
       setFormError('Nomor bilik wajib diisi.');
@@ -125,7 +125,7 @@ export default function StatusWartelPage() {
 
     try {
       if (editingBooth) {
-        updateCustomBooth(editingBooth.id, {
+        await updateCustomBooth(editingBooth.id, {
           nomor: formData.nomor,
           nama: formData.nama,
           tipe: formData.tipe,
@@ -134,7 +134,7 @@ export default function StatusWartelPage() {
         });
         showFeedback(`Bilik "${formData.nama}" berhasil diperbarui.`);
       } else {
-        addCustomBooth({
+        await addCustomBooth({
           nomor: formData.nomor,
           nama: formData.nama,
           tipe: formData.tipe,
@@ -151,11 +151,11 @@ export default function StatusWartelPage() {
   };
 
   // Hapus Bilik
-  const handleDeleteBooth = (id, name) => {
+  const handleDeleteBooth = async (id, name) => {
     if (!window.confirm(`Yakin ingin menghapus ${name}?`)) {
       return;
     }
-    deleteCustomBooth(id);
+    await deleteCustomBooth(id);
     showFeedback(`${name} berhasil dihapus.`);
     setIsModalOpen(false);
     refetch();

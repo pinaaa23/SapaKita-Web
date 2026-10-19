@@ -516,3 +516,18 @@ export const resetKanwilAdminPassword = async (adminId, newPassword) => {
     body: JSON.stringify({ newPassword }),
   });
 };
+
+/**
+ * Mengambil daftar seluruh Kepala UPT di wilayah binaan Kanwil
+ * Endpoint: GET /api/branches/admins
+ */
+export const getKanwilBranchAdmins = async () => {
+  try {
+    const res = await apiFetch('/api/branches/admins');
+    return res.data || [];
+  } catch (err) {
+    console.warn('[KanwilService] Gagal memuat daftar kepala UPT kanwil:', err?.message || err);
+    return [];
+  }
+};
+

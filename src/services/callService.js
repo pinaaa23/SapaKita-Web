@@ -155,6 +155,38 @@ export const getCallHistory = async ({
   }
 
   try {
+    const query = new URLSearchParams();
+    if (page) query.append('page', String(page));
+    if (limit) query.append('limit', String(limit));
+    if (search) query.append('search', search);
+    if (branchId && branchId !== 'All' && branchId !== 'all') query.append('branchId', branchId);
+    if (status && status !== 'All' && status !== 'all') query.append('status', status);
+    if (startDate) query.append('startDate', startDate);
+    if (endDate) query.append('endDate', endDate);
+    if (callType && callType !== 'All' && callType !== 'all') query.append('callType', callType);
+
+    const callsRes = await apiFetch(`/api/calls?${query.toString()}`).catch(() => null);
+    if (callsRes && (Array.isArray(callsRes.data) || Array.isArray(callsRes.items))) {
+      const rawList = Array.isArray(callsRes.data) ? callsRes.data : callsRes.items;
+      let mappedItems = rawList.map(mapCallItem).filter(Boolean);
+
+      const total = typeof callsRes.pagination?.total === 'number'
+        ? callsRes.pagination.total
+        : mappedItems.length;
+
+      const totalPages = typeof callsRes.pagination?.totalPages === 'number'
+        ? callsRes.pagination.totalPages
+        : Math.max(1, Math.ceil(total / limit));
+
+      return {
+        items: mappedItems,
+        total,
+        page: Number(callsRes.pagination?.page || page),
+        limit: Number(callsRes.pagination?.limit || limit),
+        totalPages,
+      };
+    }
+
     const res = await getRecordingsApi({
       search,
       page,

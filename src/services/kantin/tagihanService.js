@@ -50,7 +50,7 @@ export async function getPaymentHistory() {
  * @param {File} payload.proofFile - Berkas bukti transfer (gambar/PDF max 2MB)
  * @returns {Promise<Object>}
  */
-export async function submitTagihanPayment({ nominal, minutes = 1, bankTarget, proofFile }) {
+export async function submitTagihanPayment({ nominal, minutes = 1, bankTarget, proofFile, billingMonth, billingYear }) {
   if (!nominal || Number(nominal) <= 0) {
     throw new Error('Nominal tagihan harus lebih besar dari 0.');
   }
@@ -83,6 +83,8 @@ export async function submitTagihanPayment({ nominal, minutes = 1, bankTarget, p
   formData.append('minutes', String(minutes > 0 ? minutes : 1));
   formData.append('bankTarget', String(bankTarget));
   formData.append('proofFile', proofFile);
+  if (billingMonth) formData.append('billingMonth', String(billingMonth));
+  if (billingYear) formData.append('billingYear', String(billingYear));
 
   try {
     const res = await apiFetch('/api/canteen/topups', {

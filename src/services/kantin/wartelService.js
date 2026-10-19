@@ -53,9 +53,9 @@ export function saveCustomBooths(booths) {
 }
 
 /**
- * Menambahkan bilik wartel baru oleh kasir kantin
+ * Menambahkan bilik wartel baru oleh kasir kantin (tersinkron ke backend API)
  */
-export function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik Lapas', status = 'tersedia' }) {
+export async function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik Lapas', status = 'tersedia' }) {
   const currentBooths = getCustomBooths();
 
   // Format nomor: jika angka 1 digit -> 01, jika 2 digit -> 11, jika teks -> pertahankan
@@ -67,14 +67,48 @@ export function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik 
   }
 
   const cleanNama = (nama && nama.trim()) || `Wartel ${cleanNomor}`;
-  const newId = `wartel-${Date.now().toString().slice(-5)}-${Math.random().toString(36).substring(2, 6)}`;
+  const cleanLokasi = (lokasi && lokasi.trim()) || 'Bilik Lapas';
 
+  // 1. Simpan ke Backend API: POST /api/wartel/booths
+  try {
+    const res = await apiFetch('/api/wartel/booths', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: cleanNama,
+        boothNumber: cleanNomor,
+        location: cleanLokasi,
+      }),
+    });
+
+    const created = res?.data || res;
+    if (created && created.id) {
+      const newBooth = {
+        id: created.id,
+        nomor: created.boothNumber || cleanNomor,
+        nama: created.name || cleanNama,
+        tipe: tipe || 'telepon',
+        lokasi: created.location || cleanLokasi,
+        status: created.status || status,
+        estimasiSelesai: null,
+        detail: null,
+        createdAt: created.createdAt || new Date().toISOString(),
+      };
+      const updatedBooths = [...currentBooths.filter(b => b.id !== newBooth.id), newBooth];
+      saveCustomBooths(updatedBooths);
+      return newBooth;
+    }
+  } catch (err) {
+    console.warn('[WartelService] Gagal menambahkan bilik ke backend, fallback simpan lokal:', err?.message || err);
+  }
+
+  // Fallback offline
+  const newId = `wartel-${Date.now().toString().slice(-5)}-${Math.random().toString(36).substring(2, 6)}`;
   const newBooth = {
     id: newId,
     nomor: cleanNomor,
     nama: cleanNama,
     tipe: tipe || 'telepon',
-    lokasi: (lokasi && lokasi.trim()) || 'Bilik Lapas',
+    lokasi: cleanLokasi,
     status: status === 'perbaikan' ? 'perbaikan' : 'tersedia',
     estimasiSelesai: null,
     detail: null,
@@ -87,25 +121,62 @@ export function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik 
 }
 
 /**
- * Memperbarui data bilik wartel tertentu
+ * Memperbarui data bilik wartel tertentu (tersinkron ke backend API)
  */
-export function updateCustomBooth(id, updates = {}) {
+export async function updateCustomBooth(id, updates = {}) {
   const currentBooths = getCustomBooths();
   const index = currentBooths.findIndex((b) => b.id === id);
-  if (index === -1) return null;
 
-  const current = currentBooths[index];
-  let cleanNomor = updates.nomor !== undefined ? String(updates.nomor).trim() : current.nomor;
-  if (/^\d+$/.test(cleanNomor)) {
+  let cleanNomor = updates.nomor !== undefined ? String(updates.nomor).trim() : undefined;
+  if (cleanNomor && /^\d+$/.test(cleanNomor)) {
     cleanNomor = cleanNomor.padStart(2, '0');
   }
 
+  const cleanNama = updates.nama ? updates.nama.trim() : undefined;
+  const cleanLokasi = updates.lokasi ? updates.lokasi.trim() : undefined;
+
+  // 1. Simpan ke Backend API: PATCH /api/wartel/booths/:id
+  try {
+    const res = await apiFetch(`/api/wartel/booths/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: cleanNama,
+        boothNumber: cleanNomor,
+        location: cleanLokasi,
+        status: updates.status,
+      }),
+    });
+
+    const updated = res?.data || res;
+    if (updated && updated.id) {
+      const boothResult = {
+        id: updated.id,
+        nomor: updated.boothNumber || cleanNomor || (index !== -1 ? currentBooths[index].nomor : '01'),
+        nama: updated.name || cleanNama || (index !== -1 ? currentBooths[index].nama : `Wartel ${cleanNomor}`),
+        tipe: updates.tipe || (index !== -1 ? currentBooths[index].tipe : 'telepon'),
+        lokasi: updated.location || cleanLokasi || (index !== -1 ? currentBooths[index].lokasi : 'Bilik Lapas'),
+        status: updated.status || updates.status || 'tersedia',
+      };
+
+      if (index !== -1) {
+        currentBooths[index] = { ...currentBooths[index], ...boothResult };
+      }
+      saveCustomBooths(currentBooths);
+      return boothResult;
+    }
+  } catch (err) {
+    console.warn('[WartelService] Gagal memperbarui bilik di backend, fallback update lokal:', err?.message || err);
+  }
+
+  // Fallback offline
+  if (index === -1) return null;
+  const current = currentBooths[index];
   const updatedBooth = {
     ...current,
     ...updates,
     nomor: cleanNomor || current.nomor,
-    nama: (updates.nama && updates.nama.trim()) || current.nama,
-    lokasi: (updates.lokasi && updates.lokasi.trim()) || current.lokasi,
+    nama: cleanNama || current.nama,
+    lokasi: cleanLokasi || current.lokasi,
     tipe: updates.tipe || current.tipe || 'telepon',
     status: updates.status || current.status || 'tersedia',
   };
@@ -116,9 +187,19 @@ export function updateCustomBooth(id, updates = {}) {
 }
 
 /**
- * Menghapus bilik wartel tertentu oleh kasir kantin
+ * Menghapus bilik wartel tertentu oleh kasir kantin (tersinkron ke backend API)
  */
-export function deleteCustomBooth(id) {
+export async function deleteCustomBooth(id) {
+  // 1. Hapus di Backend API: DELETE /api/wartel/booths/:id
+  try {
+    await apiFetch(`/api/wartel/booths/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    console.warn('[WartelService] Gagal menghapus bilik di backend, fallback hapus lokal:', err?.message || err);
+  }
+
+  // Hapus dari cache lokal
   const currentBooths = getCustomBooths();
   const filtered = currentBooths.filter((b) => b.id !== id);
   saveCustomBooths(filtered);
@@ -143,7 +224,7 @@ export function getStoredWartel() {
 
 /**
  * Mengambil data status bilik wartel:
- * Menggabungkan daftar bilik kustom kantin dengan status panggilan aktif dari Backend
+ * Menggabungkan daftar bilik dari Backend API dengan status panggilan aktif real-time
  */
 export async function getStatusWartel() {
   const configuredBooths = getCustomBooths();
@@ -163,74 +244,49 @@ export async function getStatusWartel() {
     const waktuServer = Number(data?.waktuServer || Date.now());
     const rawBeDaftar = Array.isArray(data?.daftar) ? data.daftar : [];
 
-    // Buat lookup map dari backend berdasarkan id, nama, atau nomor
-    const beCallMap = new Map();
-    rawBeDaftar.forEach((item) => {
-      if (item.status === 'digunakan') {
-        const keyId = item.id?.toString().toLowerCase();
-        const keyNama = item.nama?.toString().toLowerCase();
-        const keyNomor = item.nomor?.toString().toLowerCase();
-        if (keyId) beCallMap.set(keyId, item);
-        if (keyNama) beCallMap.set(keyNama, item);
-        if (keyNomor) beCallMap.set(keyNomor, item);
-      }
-    });
+    // Jika di database backend sudah ada daftar bilik fisik terdaftar, gunakan data database backend
+    if (rawBeDaftar.length > 0) {
+      const mapped = rawBeDaftar.map((item) => ({
+        id: item.id,
+        nomor: item.nomor || item.boothNumber || '01',
+        nama: item.nama || item.name || `Wartel ${item.nomor || item.boothNumber || '01'}`,
+        tipe: item.tipe || 'telepon',
+        lokasi: item.lokasi || item.location || 'Bilik Lapas',
+        status: item.status || 'tersedia',
+        estimasiSelesai: item.estimasiSelesai ? Number(item.estimasiSelesai) : null,
+        detail: item.detail || null,
+      }));
 
-    // Gabungkan konfigurasi bilik kasir dengan status panggilan aktif dari server
-    const mappedDaftar = configuredBooths.map((booth) => {
-      const matchId = booth.id?.toLowerCase();
-      const matchNama = booth.nama?.toLowerCase();
-      const matchNomor = booth.nomor?.toLowerCase();
-
-      const activeCall =
-        beCallMap.get(matchId) ||
-        beCallMap.get(matchNama) ||
-        beCallMap.get(matchNomor) ||
-        beCallMap.get(`wartel ${matchNomor}`) ||
-        null;
-
-      if (activeCall) {
-        return {
-          ...booth,
-          status: 'digunakan',
-          estimasiSelesai: activeCall.estimasiSelesai ? Number(activeCall.estimasiSelesai) : null,
-          detail: activeCall.detail || activeCall.inmate || null,
-        };
-      }
-
-      // Jika sedang disetel 'perbaikan' oleh kantin, pertahankan status perbaikan
-      if (booth.status === 'perbaikan') {
-        return {
-          ...booth,
-          status: 'perbaikan',
-          estimasiSelesai: null,
-          detail: null,
-        };
-      }
+      const summary = hitungRingkasanWartel(mapped, data.cabang);
+      saveCustomBooths(mapped); // Sinkronkan ke cache lokal
 
       return {
-        ...booth,
-        status: 'tersedia',
-        estimasiSelesai: null,
-        detail: null,
+        waktuServer,
+        cabang: {
+          id: data?.cabang?.id || null,
+          nama: data?.cabang?.nama || 'Cabang Lapas',
+          totalBilik: summary.total,
+          bilikDigunakan: summary.digunakan,
+          bilikTersedia: summary.tersedia,
+          bilikPerbaikan: summary.perbaikan,
+        },
+        daftar: mapped,
       };
-    });
+    }
 
-    const summary = hitungRingkasanWartel(mappedDaftar);
-
-    const cabang = {
-      id: data?.cabang?.id || null,
-      nama: data?.cabang?.nama || 'Cabang Lapas',
-      totalBilik: summary.total,
-      bilikDigunakan: summary.digunakan,
-      bilikTersedia: summary.tersedia,
-      bilikPerbaikan: summary.perbaikan,
-    };
-
+    // Jika di backend masih 0 bilik (UPT baru), gunakan konfigurasi default lokal
+    const summary = hitungRingkasanWartel(configuredBooths);
     return {
       waktuServer,
-      cabang,
-      daftar: mappedDaftar,
+      cabang: {
+        id: data?.cabang?.id || null,
+        nama: data?.cabang?.nama || 'Cabang Lapas',
+        totalBilik: summary.total,
+        bilikDigunakan: summary.digunakan,
+        bilikTersedia: summary.tersedia,
+        bilikPerbaikan: summary.perbaikan,
+      },
+      daftar: configuredBooths,
     };
   } catch (err) {
     if (err?.status === 401) {
