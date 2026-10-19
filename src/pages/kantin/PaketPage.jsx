@@ -6,18 +6,10 @@ import KartuPaket from '../../components/kantin/KartuPaket';
 import ModalBeli from '../../components/kantin/ModalBeli';
 import EmptyState from '../../components/kantin/EmptyState';
 import { getPaketKantin } from '../../services/packageService';
-import { Package, Wallet, AlertTriangle, ArrowRight, ShieldAlert } from 'lucide-react';
+import { Package, Wallet, AlertTriangle, ArrowRight, ShieldAlert, RefreshCw } from 'lucide-react';
 import { ENABLE_COMBO_PACKAGES } from '../../data/kantin/paket';
 import { formatRupiah } from '../../utils/formatKantin';
 import { useBlokirTagihan } from '../../hooks/useBlokirTagihan';
-/* FITUR LAMA DIKOMENTARI: Penggunaan saldo menit prabayar
-import {
-  SALDO_MINIMUM_WARNING,
-  getSaldo,
-  getSaldoSync,
-  subscribeSaldoUpdate,
-} from '../../services/kantin/saldoService';
-*/
 
 export { ENABLE_COMBO_PACKAGES };
 
@@ -26,55 +18,62 @@ export default function PaketPage() {
   const [kategori, setKategori] = useState('telepon');
   const [allPaket, setAllPaket] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [paketTerpilih, setPaketTerpilih] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Hook penentu blokir transaksi pascabayar (dari data tagihan bulan lalu yang belum lunas)
   const { isBlocked, isDueSoon, daysLeft, blockedPeriod } = useBlokirTagihan();
 
-  /* FITUR LAMA DIKOMENTARI: Saldo menit kasir prabayar
-  const [saldo, setSaldo] = useState(() => getSaldoSync());
-  const [saldoError, setSaldoError] = useState('');
-
-  useEffect(() => {
-    getSaldo().then((s) => setSaldo(s)).catch((e) => console.warn('Gagal memuat saldo:', e));
-    const unsubscribe = subscribeSaldoUpdate((newSaldo) => {
-      setSaldo(newSaldo);
-    });
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-  */
-
-  useEffect(() => {
-    let isMounted = true;
-    const loadPaket = async (isSilent = false) => {
-      if (!isSilent) setIsLoading(true);
-      try {
-        const data = await getPaketKantin({ kategori: 'semua' });
-        if (isMounted) {
-          setAllPaket(Array.isArray(data) ? data : []);
-        }
-      } catch (err) {
-        console.error('Gagal mengambil data paket:', err);
-      } finally {
-        if (isMounted && !isSilent) {
-          setIsLoading(false);
-        }
+  const loadPaket = async (isSilent = false) => {
+    if (!isSilent) setIsLoading(true);
+    try {
+      const data = await getPaketKantin({ kategori: 'semua' });
+      setAllPaket(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Gagal mengambil data paket:', err);
+    } finally {
+      if (!isSilent) {
+        setIsLoading(false);
       }
-    };
+    }
+  };
 
+  const handleManualRefresh = async () => {
+    setIsRefreshing(true);
+    await loadPaket(true);
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
     loadPaket(false);
 
     const handleUpdate = () => {
       loadPaket(true);
     };
+
+    const handleStorageUpdate = (e) => {
+      if (
+        !e.key ||
+        e.key === 'pascall_packages_last_updated' ||
+        e.key === 'pascall_upt_packages_v7'
+      ) {
+        loadPaket(true);
+      }
+    };
+
     window.addEventListener('pascall_packages_updated', handleUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+
+    // Auto-poll sinkronisasi setiap 4 detik untuk mendeteksi penetapan paket dari SPV secara instan
+    const interval = setInterval(() => {
+      loadPaket(true);
+    }, 4000);
 
     return () => {
-      isMounted = false;
+      clearInterval(interval);
       window.removeEventListener('pascall_packages_updated', handleUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
     };
   }, []);
 
@@ -118,6 +117,43 @@ export default function PaketPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">
+      {/* 1. Unified Page Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+              <Package className="w-3.5 h-3.5 text-blue-600" />
+              Katalog Voucher
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+            Katalog Paket Komunikasi
+          </h1>
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Pilihan paket telepon dan video call resmi untuk warga binaan pemasyarakatan. Voucher langsung dicetak dan siap digunakan di bilik wartel.
+          </p>
+        </div>
+
+        {/* Toolbar Kategori & Refresh */}
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+          <KategoriTabs
+            kategoriAktif={kategori}
+            onPilihKategori={(kat) => setKategori(kat)}
+          />
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isLoading || isRefreshing}
+            className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-blue-600 shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-60"
+            title="Segarkan daftar paket"
+          >
+            <RefreshCw className={`w-4 h-4 ${isLoading || isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+          </button>
+        </div>
+      </div>
+
       {/* Banner Pemblokiran Transaksi Jika Tagihan Bulan Lalu Belum Lunas & Melewati Jatuh Tempo */}
       {isBlocked && (
         <div className="p-4 sm:p-5 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
@@ -175,59 +211,20 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* FITUR LAMA DIKOMENTARI: Bar saldo menit peringatan lama
-      {saldoError && (
-        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
-            </div>
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800">
-                Kuota Menit Tidak Mencukupi
-              </h4>
-              <p className="text-xs text-amber-700 mt-0.5">{saldoError}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-            <button
-              type="button"
-              onClick={() => navigate('/kantin/top-up-saldo')}
-              className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <span>Top Up Sekarang</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setSaldoError('')}
-              className="px-2.5 py-1.5 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
-      */}
-
-      {/* 1. Promo Banner */}
+      {/* 2. Hero Promo Banner */}
       <PromoBanner />
 
-      {/* 3. Filter Kategori Tab */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">
-            Pilihan Paket Komunikasi
+      {/* 3. Section Heading Paket */}
+      <div className="flex items-center justify-between pt-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-blue-600" />
+          <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">
+            Daftar Paket {kategori === 'video' ? 'Video Call' : (kategori === 'combo' ? 'Combo' : 'Suara / Telepon')} ({paketList.length})
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Pilih paket yang diinginkan oleh warga binaan pemasyarakatan.
-          </p>
         </div>
-
-        <KategoriTabs
-          kategoriAktif={kategori}
-          onPilihKategori={(kat) => setKategori(kat)}
-        />
+        <span className="text-xs text-slate-400 font-medium">
+          Pilih paket untuk diterbitkan langsung kepada WBP
+        </span>
       </div>
 
       {/* 4. Grid Kartu Paket */}
@@ -246,11 +243,28 @@ export default function PaketPage() {
           ))}
         </div>
       ) : paketList.length === 0 ? (
-        <EmptyState
-          title={allPaket.length === 0 ? "Belum Ada Paket Komunikasi" : "Paket Tidak Ditemukan"}
-          description={allPaket.length === 0 ? "Paket komunikasi belum dibuat atau diterapkan oleh Supervisor UPT." : "Saat ini belum ada daftar paket untuk kategori yang dipilih."}
-          icon={Package}
-        />
+        <div className="flex flex-col items-center justify-center space-y-3">
+          <EmptyState
+            title={allPaket.length === 0 ? "Belum Ada Paket Komunikasi" : "Paket Tidak Ditemukan"}
+            description={
+              allPaket.length === 0
+                ? "Paket komunikasi belum dibuat atau diterapkan oleh Supervisor UPT untuk cabang ini. Jika Supervisor baru saja menetapkan paket, klik tombol di bawah untuk menyegarkan."
+                : "Saat ini belum ada daftar paket untuk kategori yang dipilih."
+            }
+            icon={Package}
+          />
+          {allPaket.length === 0 && (
+            <button
+              type="button"
+              onClick={handleManualRefresh}
+              disabled={isRefreshing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-70"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Segarkan Daftar Paket</span>
+            </button>
+          )}
+        </div>
       ) : (
         <div
           key={kategori}

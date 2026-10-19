@@ -355,11 +355,12 @@ const List = () => {
           <table className="w-full text-left border-collapse min-w-[700px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[24%]">Waktu &amp; ID Transaksi</th>
-                <th className="py-3.5 px-3 whitespace-nowrap w-[22%]">Warga Binaan &amp; NIP</th>
-                <th className="py-3.5 px-3 min-w-[150px] w-[20%]">Paket Komunikasi</th>
-                <th className="py-3.5 px-3 whitespace-nowrap w-[18%]">Kode Voucher</th>
-                <th className="py-3.5 px-3 text-right whitespace-nowrap w-[10%]">Total Bayar</th>
+                <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[22%]">Waktu &amp; ID Transaksi</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[19%]">Warga Binaan &amp; NIP</th>
+                <th className="py-3.5 px-3 min-w-[140px] w-[18%]">Paket Komunikasi</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[14%]">Kode Voucher</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[12%]">Status Voucher</th>
+                <th className="py-3.5 px-3 text-right whitespace-nowrap w-[9%]">Total Bayar</th>
                 <th className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap w-[6%]">Rincian</th>
               </tr>
             </thead>
@@ -371,6 +372,7 @@ const List = () => {
                     <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-28 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
                     <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-32 mb-1" /><div className="h-3 bg-slate-100 rounded w-16" /></td>
                     <td className="py-3.5 px-3"><div className="h-6 bg-slate-200 rounded-lg w-24" /></td>
+                    <td className="py-3.5 px-3 text-center"><div className="h-5 bg-slate-200 rounded-full w-14 mx-auto" /></td>
                     <td className="py-3.5 px-3 text-right"><div className="h-4 bg-slate-200 rounded w-16 ml-auto" /></td>
                     <td className="py-3.5 pl-3 pr-5 text-center"><div className="h-7 bg-slate-200 rounded-lg w-14 mx-auto" /></td>
                   </tr>
@@ -418,20 +420,23 @@ const List = () => {
                         )}
                       </td>
 
-                      {/* Kode Voucher & Status Pemakaian */}
+                      {/* Kode Voucher */}
                       <td className="py-3.5 px-3 whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <span className="px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 rounded-lg font-mono font-black text-xs tracking-wider shadow-2xs">
-                            {trx.kodeVoucher}
-                          </span>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                            trx.isVoucherUsed 
-                              ? 'bg-slate-100 text-slate-600 border border-slate-200' 
-                              : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          }`}>
-                            {trx.isVoucherUsed ? 'Terpakai' : 'Aktif'}
-                          </span>
-                        </div>
+                        <span className="inline-block px-2.5 py-1 bg-amber-50 text-amber-900 border border-amber-300/80 rounded-lg font-mono font-black text-xs tracking-wider shadow-2xs">
+                          {trx.kodeVoucher}
+                        </span>
+                      </td>
+
+                      {/* Status Pemakaian Voucher (Kolom Terpisah & Rapi) */}
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10.5px] font-bold shadow-2xs ${
+                          trx.isVoucherUsed 
+                            ? 'bg-slate-100 text-slate-600 border border-slate-200' 
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-200/80'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${trx.isVoucherUsed ? 'bg-slate-400' : 'bg-emerald-500'}`} />
+                          <span>{trx.isVoucherUsed ? 'Terpakai' : 'Aktif'}</span>
+                        </span>
                       </td>
 
                       {/* Total Pembayaran (Nominal) */}

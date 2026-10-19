@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Search, 
   Eye, 
@@ -12,15 +13,21 @@ import {
   ShieldCheck,
   CheckCircle2,
   Plus,
-  Check,
-  Key
+  FileText,
+  Edit3,
+  Power,
+  AlertTriangle,
+  Save
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getKanwilBranches, createKanwilBranch } from '../../services/kanwilService';
-import { exportToExcel } from '../../utils/exportUtils';
+import { getKanwilBranches } from '../../services/kanwilService';
+import { updateBranch, updateBranchStatus } from '../../services/branchService';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 export default function KanwilBranches() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const kanwilId = user?.kanwilId || user?.kanwil?.id;
   const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
 
@@ -34,33 +41,6 @@ export default function KanwilBranches() {
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
 
-  // Add UPT Modal State (Khusus Admin Kanwil mendaftarkan UPT baru)
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isSubmittingAdd, setIsSubmittingAdd] = useState(false);
-  const [showHeadPassword, setShowHeadPassword] = useState(false);
-  const [newBranchForm, setNewBranchForm] = useState({
-    name: '',
-    city: '',
-    address: '',
-    phone: '',
-    capacity: 1000,
-    status: 'Aktif',
-    headName: '',
-    headEmail: '',
-    headPassword: 'password123',
-    headPhone: '',
-  });
-
-  const generateRecommendedHeadEmail = (branchName, city) => {
-    const text = `${branchName || ''} ${city || ''}`
-      .toLowerCase()
-      .replace(/lembaga|pemasyarakatan|lapas|rumah|tahanan|rutan|kelas|iia|iib|ia|ib|iii|khusus|anak|perempuan/gi, '')
-      .replace(/[^a-z0-9]/g, '')
-      .trim();
-    const slug = text || (branchName ? branchName.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 15) : 'upt');
-    return `kepala.${slug}@pascall.id`;
-  };
-
   const [branchesData, setBranchesData] = useState({
     items: [],
     total: 0,
@@ -71,6 +51,15 @@ export default function KanwilBranches() {
     setToastMessage({ text, type });
     setTimeout(() => setToastMessage({ text: '', type: '' }), 5000);
   };
+
+  // Check incoming redirect message from branch creation
+  useEffect(() => {
+    if (location.state?.successMessage) {
+      showToast(location.state.successMessage, 'success');
+      // Clear state so toast doesn't re-trigger on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   // Debounce search 400ms
   useEffect(() => {
@@ -110,46 +99,52 @@ export default function KanwilBranches() {
     return true;
   });
 
-  const handleExport = () => {
+  const handleExportPDF = () => {
     if (filteredBranches.length === 0) {
       showToast('Tidak ada data UPT untuk diekspor.', 'error');
       return;
     }
 
-    const exportData = filteredBranches.map((b, idx) => ({
-      No: idx + 1,
-      'ID UPT': b.id,
-      'Nama UPT': b.name,
-      'Kota / Lokasi': b.city || b.location,
-      'Alamat Lengkap': b.address || '-',
-      'Nomor Telepon': b.phone || '-',
-      'Kapasitas Maksimal': b.capacity || 0,
-      'Jumlah WBP': b.inmateCount || 0,
-      'Status Operasional': (b.status === 'Active' || b.status === 'Aktif') ? 'Aktif' : 'Nonaktif',
-    }));
+    const headers = ['No', 'Nama UPT', 'Lokasi / Kota', 'Provinsi', 'Kapasitas', 'Jumlah WBP', 'Status', 'Nomor Telepon'];
+    const rows = filteredBranches.map((b, idx) => [
+      idx + 1,
+      b.name,
+      b.city || b.location || '-',
+      b.province || '-',
+      b.capacity ? `${b.capacity} Orang` : '0 Orang',
+      b.inmateCount ? `${b.inmateCount} Orang` : '0 Orang',
+      (b.status === 'Active' || b.status === 'Aktif') ? 'Aktif' : 'Nonaktif',
+      b.phone || '-'
+    ]);
 
     const activeCount = filteredBranches.filter(b => b.status === 'Active' || b.status === 'Aktif').length;
     const totalWbp = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+    const totalCapacity = filteredBranches.reduce((sum, b) => sum + (b.capacity || 0), 0);
 
-    const filename = `Daftar_UPT_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const success = exportToExcel(exportData, filename, 'Daftar UPT', {
+    const filename = `Daftar_UPT_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const success = exportToPDF({
       title: `DAFTAR UNIT PELAKSANA TEKNIS (UPT) - ${kanwilName.toUpperCase()}`,
-      subtitle: `Laporan Data UPT di Bawah Naungan ${kanwilName}`,
+      subtitle: `Laporan Data Unit Pelaksana Teknis di Bawah Naungan ${kanwilName}`,
+      filename,
+      headers,
+      rows,
+      orientation: 'landscape',
       metadata: {
-        'Tingkat': 'Kantor Wilayah',
-        'Wilayah': kanwilName,
+        'Tingkat Wilayah': 'Kantor Wilayah Pemasyarakatan',
+        'Nama Kanwil': kanwilName,
         'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Active' ? 'Aktif' : 'Nonaktif',
-        'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+        'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
       summaryMetrics: [
-        { label: 'Total UPT', value: `${filteredBranches.length} UPT` },
-        { label: 'UPT Aktif', value: `${activeCount} UPT` },
-        { label: 'Total WBP', value: `${totalWbp} Orang` },
-      ],
+        { label: 'TOTAL UPT BINAAN', value: `${filteredBranches.length} UPT` },
+        { label: 'UPT AKTIF BEROPERASI', value: `${activeCount} UPT` },
+        { label: 'TOTAL WBP DI WILAYAH', value: `${totalWbp} Orang` },
+        { label: 'TOTAL KAPASITAS', value: `${totalCapacity} Orang` },
+      ]
     });
 
     if (success !== false) {
-      showToast('Berhasil mengekspor daftar UPT ke format Excel!', 'success');
+      showToast('Berhasil mengekspor daftar UPT ke format PDF!', 'success');
     }
   };
 
@@ -158,35 +153,91 @@ export default function KanwilBranches() {
     setIsDetailModalOpen(true);
   };
 
-  const handleCreateBranch = async (e) => {
+  // Edit Modal State & Handlers
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    id: '',
+    name: '',
+    location: '',
+    address: '',
+    phone: '',
+    capacity: 500,
+    status: 'Aktif',
+  });
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+  const openEditModal = (branch) => {
+    setEditFormData({
+      id: branch.id,
+      name: branch.name || '',
+      location: branch.location || branch.city || '',
+      address: branch.address === '-' ? '' : (branch.address || ''),
+      phone: branch.phone === '-' ? '' : (branch.phone || ''),
+      capacity: branch.capacity || 500,
+      status: (branch.status === 'Active' || branch.status === 'Aktif') ? 'Aktif' : 'Nonaktif',
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (e) => {
     e.preventDefault();
-    if (!newBranchForm.name.trim()) {
-      showToast('Nama UPT wajib diisi!', 'error');
+    if (!editFormData.name.trim()) {
+      showToast('Nama UPT tidak boleh kosong.', 'error');
       return;
     }
-    setIsSubmittingAdd(true);
+    if (!editFormData.location.trim()) {
+      showToast('Lokasi / Kota tidak boleh kosong.', 'error');
+      return;
+    }
+
+    setIsSubmittingEdit(true);
     try {
-      await createKanwilBranch(kanwilId, newBranchForm);
-      showToast(`Berhasil mendaftarkan ${newBranchForm.name.trim()} di bawah naungan ${kanwilName}!`, 'success');
-      setIsAddModalOpen(false);
-      setNewBranchForm({
-        name: '',
-        city: '',
-        address: '',
-        phone: '',
-        capacity: 1000,
-        status: 'Aktif',
-        headName: '',
-        headEmail: '',
-        headPassword: 'password123',
-        headPhone: '',
+      await updateBranch(editFormData.id, {
+        name: editFormData.name.trim(),
+        location: editFormData.location.trim(),
+        address: editFormData.address.trim(),
+        phone: editFormData.phone.trim(),
+        capacity: Number(editFormData.capacity) || 500,
+        status: editFormData.status,
       });
-      loadBranches();
+      showToast(`Data UPT "${editFormData.name.trim()}" berhasil diperbarui!`, 'success');
+      setIsEditModalOpen(false);
+      await loadBranches();
     } catch (err) {
-      console.error('Error creating UPT:', err);
-      showToast(err.message || 'Gagal mendaftarkan UPT baru.', 'error');
+      console.error('Error updating branch:', err);
+      showToast(err?.message || 'Gagal memperbarui data UPT.', 'error');
     } finally {
-      setIsSubmittingAdd(false);
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  // Status Toggle Modal State & Handlers
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [branchToToggle, setBranchToToggle] = useState(null);
+  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+
+  const openToggleStatusModal = (branch) => {
+    setBranchToToggle(branch);
+    setIsStatusModalOpen(true);
+  };
+
+  const handleConfirmToggleStatus = async () => {
+    if (!branchToToggle) return;
+    const isAktif = branchToToggle.status === 'Active' || branchToToggle.status === 'Aktif';
+    const targetStatus = isAktif ? 'Nonaktif' : 'Aktif';
+
+    setIsTogglingStatus(true);
+    try {
+      await updateBranchStatus(branchToToggle.id, targetStatus);
+      showToast(`Status UPT "${branchToToggle.name}" berhasil diubah menjadi ${targetStatus}.`, 'success');
+      setIsStatusModalOpen(false);
+      setBranchToToggle(null);
+      await loadBranches();
+    } catch (err) {
+      console.error('Error updating branch status:', err);
+      showToast(err?.message || 'Gagal mengubah status operasional UPT.', 'error');
+    } finally {
+      setIsTogglingStatus(false);
     }
   };
 
@@ -247,35 +298,19 @@ export default function KanwilBranches() {
 
             <button 
               type="button"
-              onClick={handleExport}
+              onClick={handleExportPDF}
               disabled={filteredBranches.length === 0}
               className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer disabled:opacity-50"
             >
-              <Download className="w-3.5 h-3.5" /> Export
+              <Download className="w-3.5 h-3.5" /> Export PDF
             </button>
 
-            <button 
-              type="button"
-              onClick={() => {
-                setShowHeadPassword(false);
-                setNewBranchForm({
-                  name: '',
-                  city: '',
-                  address: '',
-                  phone: '',
-                  capacity: 1000,
-                  status: 'Aktif',
-                  headName: '',
-                  headEmail: '',
-                  headPassword: 'password123',
-                  headPhone: '',
-                });
-                setIsAddModalOpen(true);
-              }}
+            <Link 
+              to="/kanwil/branches/create"
               className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all text-xs cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Tambah UPT
-            </button>
+            </Link>
           </div>
         </div>
       </div>
@@ -357,15 +392,42 @@ export default function KanwilBranches() {
                           {isAktif ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <button 
-                          type="button"
-                          onClick={() => openDetailModal(branch)}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer inline-flex items-center justify-center"
-                          title="Lihat Detail UPT"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* 1. Ikon View: Melihat Detail Lengkap UPT */}
+                          <button 
+                            type="button"
+                            onClick={() => openDetailModal(branch)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                            title="Lihat Detail UPT"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* 2. Ikon Pensil: Mengedit Data UPT */}
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(branch)}
+                            className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                            title="Edit Data UPT"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+
+                          {/* 3. Ikon Power: Toggle Status Aktif/Nonaktif UPT */}
+                          <button
+                            type="button"
+                            onClick={() => openToggleStatusModal(branch)}
+                            className={`p-2 rounded-xl border border-transparent transition-all cursor-pointer shadow-2xs hover:shadow-xs ${
+                              isAktif 
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200' 
+                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
+                            }`}
+                            title={isAktif ? 'Nonaktifkan Akun / UPT' : 'Aktifkan Akun / UPT'}
+                          >
+                            <Power className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -455,7 +517,14 @@ export default function KanwilBranches() {
               </div>
             </div>
 
-            <div className="p-4 bg-slate-50 border-t border-slate-100 text-right">
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <Link
+                to={`/kanwil/inmates?branchId=${selectedBranch.id}`}
+                className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Lihat Data WBP Cabang Ini</span>
+              </Link>
               <button 
                 type="button"
                 onClick={() => setIsDetailModalOpen(false)}
@@ -468,254 +537,124 @@ export default function KanwilBranches() {
         </div>
       )}
 
-      {/* Modal Tambah UPT Baru (Kewenangan Khusus Admin Kanwil) */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 text-primary rounded-xl">
-                  <Building2 className="w-5 h-5" />
+      {/* Modal Edit UPT */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                  <Edit3 className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Tambah UPT Baru</h3>
-                  <p className="text-[11px] text-slate-500">Pendaftaran UPT di bawah naungan {kanwilName}</p>
+                  <h3 className="text-sm font-bold text-slate-800">Edit Data UPT</h3>
+                  <p className="text-[11px] text-slate-400">Perbarui profil dan kapasitas operasional UPT</p>
                 </div>
               </div>
               <button 
                 type="button"
-                onClick={() => setIsAddModalOpen(false)}
+                onClick={() => setIsEditModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Modal Body / Form */}
-            <form onSubmit={handleCreateBranch}>
-              <div className="p-6 space-y-4 text-xs">
-                {/* Info Wilayah */}
-                <div className="p-3 bg-blue-50/80 border border-blue-200/60 rounded-xl flex items-center gap-2.5 text-blue-800">
-                  <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-[11px] leading-relaxed">
-                    UPT yang didaftarkan akan otomatis dinaungi oleh <strong>{kanwilName}</strong> dan tersinkronisasi ke seluruh sistem PasCall.
-                  </span>
-                </div>
+            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Nama Unit Pelaksana Teknis (UPT) *</label>
+                <input
+                  type="text"
+                  required
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  placeholder="Contoh: Lapas Kelas I Cipinang"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+              </div>
 
+              <div className="grid grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">
-                    Nama UPT / Lapas / Rutan <span className="text-rose-500">*</span>
-                  </label>
+                  <label className="block text-slate-700 font-semibold mb-1">Kota / Lokasi *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Contoh: Lapas Kelas IIA Sleman"
-                    value={newBranchForm.name}
-                    onChange={(e) => {
-                      const newName = e.target.value;
-                      const nextForm = { ...newBranchForm, name: newName };
-                      if (!nextForm.headEmail || nextForm.headEmail.includes('@pascall.id')) {
-                        nextForm.headEmail = generateRecommendedHeadEmail(newName, nextForm.city);
-                        nextForm.headName = newName ? `Kepala ${newName}` : '';
-                      }
-                      setNewBranchForm(nextForm);
-                    }}
-                    className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
+                    value={editFormData.location}
+                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
+                    placeholder="Contoh: Jakarta Timur"
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
                 </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Kota / Kabupaten</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Sleman"
-                      value={newBranchForm.city}
-                      onChange={(e) => {
-                        const newCity = e.target.value;
-                        const nextForm = { ...newBranchForm, city: newCity };
-                        if (!nextForm.headEmail || nextForm.headEmail.includes('@pascall.id')) {
-                          nextForm.headEmail = generateRecommendedHeadEmail(nextForm.name, newCity);
-                        }
-                        setNewBranchForm(nextForm);
-                      }}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Nomor Telepon UPT</label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: 0274-8921234"
-                      value={newBranchForm.phone}
-                      onChange={(e) => setNewBranchForm({ ...newBranchForm, phone: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-slate-600 font-semibold mb-1">Alamat Lengkap</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Alamat jalan, kelurahan, kecamatan..."
-                    value={newBranchForm.address}
-                    onChange={(e) => setNewBranchForm({ ...newBranchForm, address: e.target.value })}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium resize-none"
+                  <label className="block text-slate-700 font-semibold mb-1">Kapasitas Maksimal (WBP)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={editFormData.capacity}
+                    onChange={(e) => setEditFormData({ ...editFormData, capacity: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
                   />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Kapasitas Maksimal WBP</label>
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="1000"
-                      value={newBranchForm.capacity}
-                      onChange={(e) => setNewBranchForm({ ...newBranchForm, capacity: Number(e.target.value) || 0 })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-slate-600 font-semibold mb-1">Status Operasional</label>
-                    <select
-                      value={newBranchForm.status}
-                      onChange={(e) => setNewBranchForm({ ...newBranchForm, status: e.target.value })}
-                      className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium bg-white"
-                    >
-                      <option value="Aktif">Aktif</option>
-                      <option value="Nonaktif">Nonaktif</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* SECTION AKUN LOGIN KEPALA UPT */}
-                <div className="pt-3 border-t border-slate-100 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                        <Key className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Akun Login Kepala UPT (Branch Admin)</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        Akun ini digunakan oleh Kepala UPT untuk mengelola data narapidana dan operasional UPT.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="block text-slate-600 font-semibold">
-                          Email Login Kepala UPT <span className="text-rose-500">*</span>
-                        </label>
-                        {(() => {
-                          const rec = generateRecommendedHeadEmail(newBranchForm.name, newBranchForm.city);
-                          if (rec && newBranchForm.headEmail !== rec) {
-                            return (
-                              <button
-                                type="button"
-                                onClick={() => setNewBranchForm({ ...newBranchForm, headEmail: rec })}
-                                className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
-                              >
-                                Pakai Rekomendasi
-                              </button>
-                            );
-                          }
-                          return null;
-                        })()}
-                      </div>
-                      <input
-                        type="email"
-                        required
-                        placeholder="kepala.upt@pascall.id"
-                        value={newBranchForm.headEmail}
-                        onChange={(e) => setNewBranchForm({ ...newBranchForm, headEmail: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono"
-                      />
-                      {newBranchForm.headEmail && (
-                        <span className="text-[10px] text-slate-400 mt-1 block">
-                          Email login: <span className="font-mono text-primary font-semibold">{newBranchForm.headEmail}</span>
-                        </span>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-600 font-semibold mb-1">
-                        Nama Lengkap Kepala UPT
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: Kepala Lapas Kelas IIA Sleman"
-                        value={newBranchForm.headName}
-                        onChange={(e) => setNewBranchForm({ ...newBranchForm, headName: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-slate-600 font-semibold mb-1">
-                        Kata Sandi Login <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showHeadPassword ? 'text' : 'password'}
-                          required
-                          placeholder="Minimal 6 karakter"
-                          value={newBranchForm.headPassword}
-                          onChange={(e) => setNewBranchForm({ ...newBranchForm, headPassword: e.target.value })}
-                          className="w-full pl-3.5 pr-12 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowHeadPassword(!showHeadPassword)}
-                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 text-[10px] font-semibold cursor-pointer"
-                        >
-                          {showHeadPassword ? 'Tutup' : 'Lihat'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-slate-600 font-semibold mb-1">
-                        No. Telepon Kepala UPT
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Contoh: 08123456789"
-                        value={newBranchForm.headPhone}
-                        onChange={(e) => setNewBranchForm({ ...newBranchForm, headPhone: e.target.value })}
-                        className="w-full px-3.5 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-medium"
-                      />
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              {/* Modal Footer */}
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2.5">
+              <div className="grid grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Nomor Telepon UPT</label>
+                  <input
+                    type="text"
+                    value={editFormData.phone}
+                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                    placeholder="021-..."
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Status Operasional</label>
+                  <select
+                    value={editFormData.status}
+                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
+                  >
+                    <option value="Aktif">Aktif</option>
+                    <option value="Nonaktif">Nonaktif</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1">Alamat Lengkap</label>
+                <textarea
+                  rows={2}
+                  value={editFormData.address}
+                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
+                  placeholder="Jl. Raya..."
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  disabled={isSubmittingAdd}
-                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                  onClick={() => setIsEditModalOpen(false)}
+                  disabled={isSubmittingEdit}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmittingAdd}
-                  className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                  disabled={isSubmittingEdit}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                 >
-                  {isSubmittingAdd ? (
-                    <span>Menyimpan...</span>
+                  {isSubmittingEdit ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Menyimpan...</span>
+                    </>
                   ) : (
                     <>
-                      <Check className="w-4 h-4" /> Simpan UPT
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Simpan Perubahan</span>
                     </>
                   )}
                 </button>
@@ -724,6 +663,86 @@ export default function KanwilBranches() {
           </div>
         </div>
       )}
+
+      {/* Modal Konfirmasi Toggle Status UPT */}
+      {isStatusModalOpen && branchToToggle && (() => {
+        const isAktif = branchToToggle.status === 'Active' || branchToToggle.status === 'Aktif';
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in">
+            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
+              <div className={`p-5 border-b border-slate-100 flex items-center gap-3 ${isAktif ? 'bg-amber-50/70 text-amber-900' : 'bg-emerald-50/70 text-emerald-900'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAktif ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                  <Power className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold">
+                    {isAktif ? 'Nonaktifkan Akun / UPT' : 'Aktifkan Akun / UPT'}
+                  </h3>
+                  <p className="text-[11px] opacity-80">
+                    Konfirmasi perubahan status operasional UPT
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-3 text-xs">
+                <p className="text-slate-600 leading-relaxed">
+                  Apakah Anda yakin ingin {isAktif ? <strong className="text-amber-700">menonaktifkan</strong> : <strong className="text-emerald-700">mengaktifkan kembali</strong>} operasional akun UPT:
+                </p>
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                  <p className="font-bold text-slate-800 text-sm">{branchToToggle.name}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{branchToToggle.city || branchToToggle.location || 'Indonesia'}</p>
+                </div>
+                {isAktif ? (
+                  <p className="text-[11px] text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200/60 leading-relaxed">
+                    Perhatian: UPT yang dinonaktifkan sementara tidak dapat melakukan aktivasi panggilan baru bagi warga binaan sampai statusnya diaktifkan kembali.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-emerald-700 bg-emerald-50 p-3 rounded-xl border border-emerald-200/60 leading-relaxed">
+                    UPT akan segera kembali aktif dan seluruh layanan panggilan serta administrasi warga binaan dapat beroperasi normal.
+                  </p>
+                )}
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsStatusModalOpen(false);
+                    setBranchToToggle(null);
+                  }}
+                  disabled={isTogglingStatus}
+                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmToggleStatus}
+                  disabled={isTogglingStatus}
+                  className={`px-4 py-2 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50 ${
+                    isAktif 
+                      ? 'bg-amber-600 hover:bg-amber-700' 
+                      : 'bg-emerald-600 hover:bg-emerald-700'
+                  }`}
+                >
+                  {isTogglingStatus ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Memproses...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Power className="w-3.5 h-3.5" />
+                      <span>{isAktif ? 'Ya, Nonaktifkan UPT' : 'Ya, Aktifkan UPT'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }

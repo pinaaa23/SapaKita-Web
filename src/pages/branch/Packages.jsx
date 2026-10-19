@@ -21,13 +21,14 @@ import {
   createPackage, 
   updatePackage, 
   togglePackageStatus,
-  deletePackage
+  deletePackage,
+  notifyPackagesUpdated
 } from '../../services/packageService';
 import { DEFAULT_PACKAGES } from '../../config/defaultPackages';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BranchPackages() {
-  const { uptName } = useAuth();
+  const { uptName, user } = useAuth();
   const [packages, setPackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -69,6 +70,7 @@ export default function BranchPackages() {
         status: 'Aktif',
       });
 
+      notifyPackagesUpdated();
       showToast(`Paket "${tpl.nama}" berhasil diterapkan dan kini aktif untuk cabang Anda.`);
       await fetchPackagesData();
     } catch (err) {
@@ -101,6 +103,7 @@ export default function BranchPackages() {
           console.error(`Gagal menerapkan paket "${tpl.nama}":`, err);
         }
       }
+      notifyPackagesUpdated();
       showToast(`Berhasil menerapkan ${count} paket template ke cabang Anda.`);
       await fetchPackagesData();
     } catch (err) {
@@ -124,12 +127,29 @@ export default function BranchPackages() {
         (p) => Boolean(p.branchId && String(p.branchId).trim() !== '')
       );
       setPackages(uptPackages);
+
+      // Sinkronisasikan paket cabang yang aktif ke shared storage agar Kantin langsung sinkron
+      if (uptPackages.length > 0) {
+        try {
+          localStorage.setItem('pascall_latest_branch_packages', JSON.stringify(uptPackages));
+          localStorage.setItem('pascall_upt_packages_v7', JSON.stringify(uptPackages));
+          const currentBId = user?.branchId || user?.branch?.id || uptPackages[0]?.branchId;
+          if (currentBId) {
+            localStorage.setItem('pascall_active_branch_id', currentBId);
+          }
+          const currentBName = uptName || user?.branch?.name || uptPackages[0]?.branch;
+          if (currentBName) {
+            localStorage.setItem('pascall_active_branch_name', currentBName);
+          }
+        } catch {}
+        notifyPackagesUpdated();
+      }
     } catch (err) {
       console.error('Gagal memuat paket:', err);
     } finally {
       setIsLoading(false);
     }
-  }, [search, selectedCategory, statusFilter]);
+  }, [search, selectedCategory, statusFilter, uptName, user]);
 
   useEffect(() => {
     fetchPackagesData();

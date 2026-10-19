@@ -35,6 +35,7 @@ import { CallChannelBadge } from '../../utils/callChannel';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { canViewRecordings, logout, isSupervisor, uptName, userName, roleLabel, user, role } = useAuth();
 
   const effectiveIsSupervisor = Boolean(
@@ -155,8 +156,9 @@ const Dashboard = () => {
             const trxList = Array.isArray(trxData?.items) ? trxData.items : (Array.isArray(trxData) ? trxData : []);
             const todayStr = new Date().toISOString().split('T')[0];
             const todayTrx = trxList.filter(t => {
+              if (!t) return false;
               const d = t.date || t.createdAt || t.waktu;
-              return d && d.startsWith(todayStr);
+              return typeof d === 'string' && d.startsWith(todayStr);
             });
             const todayTrxCount = todayTrx.length > 0 ? todayTrx.length : trxList.length;
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Search, 
   Eye, 
@@ -13,24 +14,37 @@ import {
   AlertCircle,
   Calendar,
   Wallet,
-  CheckCircle2
+  CheckCircle2,
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getKanwilInmates, getKanwilBranches } from '../../services/kanwilService';
-import { exportToExcel } from '../../utils/exportUtils';
+import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 export default function KanwilInmates() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const kanwilId = user?.kanwilId || user?.kanwil?.id;
   const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+
+  const queryBranch = searchParams.get('branchId') || 'All';
 
   // State for filters & pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [branchFilter, setBranchFilter] = useState('All');
+  const [branchFilter, setBranchFilter] = useState(queryBranch);
   const [statusFilter, setStatusFilter] = useState('All');
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
+
+  // Sync if searchParam changes
+  useEffect(() => {
+    const bId = searchParams.get('branchId');
+    if (bId && bId !== branchFilter) {
+      setBranchFilter(bId);
+      setPage(1);
+    }
+  }, [searchParams]);
 
   // Data state
   const [inmates, setInmates] = useState([]);
@@ -94,13 +108,12 @@ export default function KanwilInmates() {
     fetchInmatesData();
   }, [fetchInmatesData]);
 
-  const handleExport = () => {
+  const handleExportPDF = () => {
     if (inmates.length === 0) {
       showToast('Tidak ada data WBP untuk diekspor.', 'error');
       return;
     }
 
-    // Export all matching inmates in kanwil
     getKanwilInmates(kanwilId, {
       search: debouncedSearch,
       branchId: branchFilter,
@@ -108,36 +121,44 @@ export default function KanwilInmates() {
       limit: 500,
     }).then((res) => {
       const allItems = res.items || [];
-      const exportData = allItems.map((inmate, idx) => ({
-        No: idx + 1,
-        'NIP / No. Registrasi': inmate.nip || '-',
-        'Nama Lengkap WBP': inmate.name || '-',
-        'UPT Asal': inmate.branchName || '-',
-        'Blok / Kamar': inmate.block || '-',
-        'Tanggal Terdaftar': inmate.registeredAt || '-',
-        'Saldo (IDR)': inmate.balance || 0,
-        'Status Akun': inmate.status === 'Aktif' ? 'Aktif' : 'Nonaktif',
-      }));
+      const headers = ['No', 'No. Registrasi / NIP', 'Nama WBP', 'UPT Asal', 'Blok / Kamar', 'Saldo (IDR)', 'Status Akun'];
+      const rows = allItems.map((w, idx) => [
+        idx + 1,
+        w.nip || '-',
+        w.name || '-',
+        w.branchName || '-',
+        w.block || '-',
+        new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(w.balance || 0),
+        w.status === 'Aktif' || w.status === 'Active' ? 'Aktif' : 'Nonaktif',
+      ]);
 
-      const filename = `Data_WBP_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      const success = exportToExcel(exportData, filename, 'Data WBP', {
+      const activeCount = allItems.filter(w => w.status === 'Aktif' || w.status === 'Active').length;
+      const totalBalance = allItems.reduce((sum, w) => sum + (Number(w.balance) || 0), 0);
+
+      const filename = `Data_WBP_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const success = exportToPDF({
         title: `DATA WARGA BINAAN PEMASYARAKATAN (WBP) - ${kanwilName.toUpperCase()}`,
         subtitle: `Daftar Gabungan WBP Seluruh UPT Pemasyarakatan Wilayah ${kanwilName}`,
+        filename,
+        headers,
+        rows,
+        orientation: 'landscape',
         metadata: {
-          'Tingkat': 'Kantor Wilayah',
-          'Wilayah': kanwilName,
+          'Tingkat Wilayah': 'Kantor Wilayah Pemasyarakatan',
+          'Nama Kanwil': kanwilName,
           'Filter UPT': branchFilter === 'All' ? 'Semua UPT' : (branches.find(b => b.id === branchFilter)?.name || branchFilter),
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
-          'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+          'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         },
         summaryMetrics: [
-          { label: 'Total WBP', value: `${allItems.length} Orang` },
-          { label: 'WBP Aktif', value: `${allItems.filter(w => w.status === 'Aktif').length} Orang` },
-        ],
+          { label: 'TOTAL WARGA BINAAN', value: `${allItems.length} Orang` },
+          { label: 'STATUS AKTIF', value: `${activeCount} Orang` },
+          { label: 'TOTAL SALDO TERSIMPAN', value: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalBalance) },
+        ]
       });
 
       if (success !== false) {
-        showToast('Berhasil mengekspor data WBP ke format Excel!', 'success');
+        showToast('Berhasil mengekspor data WBP ke format PDF!', 'success');
       }
     });
   };
@@ -185,13 +206,13 @@ export default function KanwilInmates() {
 
           <button 
             type="button"
-            onClick={handleExport}
+            onClick={handleExportPDF}
             disabled={inmates.length === 0}
             className="px-3.5 py-2.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer disabled:opacity-50"
-            title="Export data WBP ke Excel (.xlsx)"
+            title="Export data WBP ke format PDF (.pdf)"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" /> 
-            <span>Export</span>
+            <span>Export PDF</span>
           </button>
         </div>
 
@@ -263,13 +284,12 @@ export default function KanwilInmates() {
           <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-                <th className="py-3.5 pl-5 pr-3 font-bold text-left w-[28%]">Nama Lengkap</th>
-                <th className="py-3.5 px-3 font-bold text-left w-[24%]">UPT</th>
+                <th className="py-3.5 pl-5 pr-3 font-bold text-left w-[30%]">Nama Lengkap</th>
+                <th className="py-3.5 px-3 font-bold text-left w-[25%]">UPT</th>
                 <th className="py-3.5 px-3 font-bold text-left w-[18%]">Blok / Kamar</th>
-                <th className="py-3.5 px-3 font-bold text-left w-[12%]">Tgl Terdaftar</th>
-                <th className="py-3.5 px-3 font-bold text-center w-[10%]">Saldo</th>
-                <th className="py-3.5 px-3 font-bold text-center w-[8%]">Status Akun</th>
-                <th className="py-3.5 pr-5 pl-2 font-bold text-center w-[6%]">Aksi</th>
+                <th className="py-3.5 px-3 font-bold text-left w-[13%]">Tgl Terdaftar</th>
+                <th className="py-3.5 px-3 font-bold text-center w-[14%]">Status Akun</th>
+                <th className="py-3.5 pr-5 pl-2 font-bold text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -280,7 +300,6 @@ export default function KanwilInmates() {
                     <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-32" /></td>
                     <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-24" /></td>
                     <td className="py-3.5 px-3"><div className="h-4 bg-slate-200 rounded w-20" /></td>
-                    <td className="py-3.5 px-3 text-center"><div className="h-4 bg-slate-200 rounded w-16 mx-auto" /></td>
                     <td className="py-3.5 px-3 text-center"><div className="h-5 bg-slate-200 rounded-full w-14 mx-auto" /></td>
                     <td className="py-3.5 pr-5 pl-2 text-center"><div className="h-6 bg-slate-200 rounded w-6 mx-auto" /></td>
                   </tr>
@@ -325,21 +344,15 @@ export default function KanwilInmates() {
                       {inmate.registeredAt ? new Date(inmate.registeredAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                     </td>
 
-                    {/* Saldo */}
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
-                      <span className="font-bold text-slate-800">
-                        {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(inmate.balance || 0)}
-                      </span>
-                    </td>
-
                     {/* Status Akun */}
-                    <td className="py-3 px-3 text-center">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold shadow-2xs ${
                         inmate.status === 'Aktif' 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' 
                           : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}>
-                        {inmate.status === 'Aktif' ? 'Aktif' : 'Nonaktif'}
+                        <span className={`w-1.5 h-1.5 rounded-full ${inmate.status === 'Aktif' ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                        <span>{inmate.status === 'Aktif' ? 'Aktif' : 'Nonaktif'}</span>
                       </span>
                     </td>
 

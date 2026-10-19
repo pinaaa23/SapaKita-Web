@@ -102,6 +102,7 @@ export default function KantinLayout() {
   const getJudulHalaman = () => {
     const path = location.pathname;
     if (path === '/kantin' || path === '/kantin/') return 'Katalog Paket Komunikasi';
+    if (path.startsWith('/kantin/kontak')) return 'Kontak Keluarga WBP';
     if (path.startsWith('/kantin/status-wartel')) return 'Status Wartel Lapas';
     if (path.startsWith('/kantin/riwayat')) return 'Rekap & Riwayat Transaksi';
     if (path.startsWith('/kantin/top-up-saldo')) return 'Top Up Saldo Kantin';

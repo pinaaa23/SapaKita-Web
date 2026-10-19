@@ -11,23 +11,23 @@ const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Konf
         onClick={onClose}
       ></div>
       
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md relative z-10 overflow-hidden transform transition-all">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col relative z-10 overflow-hidden transform transition-all my-auto">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-100 shrink-0">
+          <h3 className="text-base sm:text-lg font-bold text-slate-800 truncate pr-2">{title}</h3>
           <button 
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1 rounded-md transition-colors"
+            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 p-1.5 rounded-lg transition-colors shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
         
-        <div className="p-5">
+        <div className="p-4 sm:p-5 overflow-y-auto flex-1 overscroll-contain">
           {message && <p className="text-slate-600 text-sm mb-4">{message}</p>}
           {children}
         </div>
         
-        <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+        <div className="p-4 sm:p-5 bg-slate-50 border-t border-slate-100 flex justify-end gap-3 shrink-0">
           <button 
             onClick={onClose}
             className="px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 rounded-lg font-medium text-sm transition-colors"

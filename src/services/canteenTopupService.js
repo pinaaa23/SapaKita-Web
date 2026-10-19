@@ -234,6 +234,10 @@ export async function approveTopupTransaction(id, notes = '') {
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+    window.dispatchEvent(new CustomEvent('pascall_billing_updated'));
+    try {
+      localStorage.setItem('pascall_billing_last_sync', Date.now().toString());
+    } catch (_) {}
   }
 
   return { success: true, data: res?.data || res };
@@ -274,6 +278,10 @@ export async function rejectTopupTransaction(id, reason = '') {
 
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+    window.dispatchEvent(new CustomEvent('pascall_billing_updated'));
+    try {
+      localStorage.setItem('pascall_billing_last_sync', Date.now().toString());
+    } catch (_) {}
   }
 
   return { success: true, data: res?.data || res };

@@ -23,6 +23,7 @@ import {
   RefreshCw,
   ChevronRight,
   UserCheck,
+  Sparkles,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../utils/formatKantin';
 import {
@@ -112,12 +113,14 @@ export default function CanteenTopup() {
     };
 
     window.addEventListener('canteen_topup_changed', handleRealtimeUpdate);
+    window.addEventListener('pascall_billing_updated', handleRealtimeUpdate);
     window.addEventListener('pascall_packages_updated', handleRealtimeUpdate);
     window.addEventListener('storage', handleRealtimeUpdate);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('canteen_topup_changed', handleRealtimeUpdate);
+      window.removeEventListener('pascall_billing_updated', handleRealtimeUpdate);
       window.removeEventListener('pascall_packages_updated', handleRealtimeUpdate);
       window.removeEventListener('storage', handleRealtimeUpdate);
     };
@@ -215,7 +218,7 @@ export default function CanteenTopup() {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="space-y-5 pb-16 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200">
@@ -226,54 +229,28 @@ export default function CanteenTopup() {
         </div>
       )}
 
-      {/* Header Halaman */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2.5">
-            <span>Manajemen Tagihan Kantin</span>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-[#1565C0] uppercase tracking-wider">
-              Pascabayar
-            </span>
-          </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Monitoring laporan tagihan bulanan seluruh UPT, penggunaan menit bicara, verifikasi transfer tagihan, dan aturan jatuh tempo (H+2).
-          </p>
-        </div>
-
-        {/* Tombol Refresh Realtime */}
-        <button
-          type="button"
-          onClick={() => loadData()}
-          disabled={isLoadingBilling || isLoadingHistory}
-          className="self-start md:self-center px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin text-blue-600' : 'text-slate-500'}`} />
-          <span>Sinkronkan Real Time</span>
-        </button>
-      </div>
-
-      {/* 4 KARTU RINGKASAN STATISTIK FINANSIAL REAL-TIME */}
+      {/* 4 KARTU RINGKASAN STATISTIK FINANSIAL REAL-TIME (LANGSUNG DI ATAS TANPA JUDUL GANDA) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Kartu 1: Total Tagihan Periode Ini */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Tagihan {monthNames[selectedMonth - 1]}
+              Tagihan {monthNames[selectedMonth - 1]} {selectedYear}
             </span>
             <div className="text-2xl font-black text-[#1565C0] tracking-tight">
               {formatRupiah(totalTagihanBulanIni)}
             </div>
             <span className="text-[11px] font-medium text-slate-500 block">
-              Dari {totalVoucherBulanIni} voucher terjual
+              Akumulasi dari <strong className="text-slate-700">{totalVoucherBulanIni}</strong> voucher terjual
             </span>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0">
-            <Receipt className="w-5 h-5" />
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+            <Receipt className="w-6 h-6" />
           </div>
         </div>
 
         {/* Kartu 2: Penggunaan Menit Bicara */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Durasi Menit Terjual
@@ -287,13 +264,13 @@ export default function CanteenTopup() {
               <span>Penggunaan aktif WBP</span>
             </span>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-            <Clock className="w-5 h-5" />
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform">
+            <Clock className="w-6 h-6" />
           </div>
         </div>
 
         {/* Kartu 3: Total Pembayaran Lunas */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Total Tagihan Lunas
@@ -305,13 +282,13 @@ export default function CanteenTopup() {
               Telah di-ACC Superadmin
             </span>
           </div>
-          <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-            <CheckCircle className="w-5 h-5" />
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-105 transition-transform">
+            <CheckCircle className="w-6 h-6" />
           </div>
         </div>
 
         {/* Kartu 4: Konfirmasi Masuk (Pending ACC) */}
-        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs flex items-center justify-between">
+        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
           <div className="space-y-1">
             <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
               Konfirmasi Pembayaran
@@ -321,75 +298,118 @@ export default function CanteenTopup() {
               <span className="text-xs font-semibold text-slate-400">Transfer</span>
             </div>
             <span
-              className={`text-[11px] font-bold ${
-                pendingRequests.length > 0 ? 'text-amber-600 animate-pulse' : 'text-slate-400'
+              className={`text-[11px] font-bold inline-flex items-center gap-1.5 ${
+                pendingRequests.length > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400'
               }`}
             >
-              {pendingRequests.length > 0
-                ? `${pendingRequests.length} Butuh verifikasi ACC`
-                : 'Semua telah diverifikasi'}
+              {pendingRequests.length > 0 ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                  <span>{pendingRequests.length} Butuh verifikasi ACC</span>
+                </>
+              ) : (
+                'Semua telah diverifikasi'
+              )}
             </span>
           </div>
           <div
-            className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border group-hover:scale-105 transition-transform ${
               pendingRequests.length > 0
-                ? 'bg-amber-50 text-amber-600'
-                : 'bg-slate-100 text-slate-400'
+                ? 'bg-amber-50 text-amber-600 border-amber-200'
+                : 'bg-slate-100 text-slate-400 border-slate-200'
             }`}
           >
-            <Wallet className="w-5 h-5" />
+            <Wallet className="w-6 h-6" />
           </div>
         </div>
       </div>
 
-      {/* TAB SWITCHER NAVIGASI HALAMAN */}
-      <div className="flex border-b border-slate-200 text-xs sm:text-sm font-bold gap-6">
-        <button
-          type="button"
-          onClick={() => setActiveTab('laporan')}
-          className={`pb-3.5 border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'laporan'
-              ? 'border-[#1565C0] text-[#1565C0]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Building2 className="w-4 h-4" />
-          <span>Monitoring Tagihan Seluruh UPT</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-blue-100 text-[#1565C0]">
-            {billingReports.length} UPT
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('konfirmasi')}
-          className={`pb-3.5 border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'konfirmasi'
-              ? 'border-[#1565C0] text-[#1565C0]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <UserCheck className="w-4 h-4" />
-          <span>Konfirmasi Pembayaran Tagihan</span>
-          {pendingRequests.length > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
-              {pendingRequests.length} Baru
+      {/* NAVIGASI TAB & AKSI SINKRONISASI (1 BARIS TERPADU) */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* TAB SWITCHER NAVIGASI HALAMAN (SEGMENTED CONTROL) */}
+        <div className="flex bg-slate-200/60 p-1 rounded-2xl w-full md:w-fit gap-1 text-xs font-bold shadow-2xs overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('laporan')}
+            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'laporan'
+                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            }`}
+          >
+            <Building2 className="w-4 h-4" />
+            <span>Monitoring Tagihan Seluruh UPT</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'laporan' ? 'bg-blue-100 text-[#1565C0]' : 'bg-slate-300/60 text-slate-600'
+            }`}>
+              {billingReports.length} UPT
             </span>
-          )}
-        </button>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('riwayat')}
-          className={`pb-3.5 border-b-2 transition flex items-center gap-2 cursor-pointer ${
-            activeTab === 'riwayat'
-              ? 'border-[#1565C0] text-[#1565C0]'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Clock className="w-4 h-4" />
-          <span>Riwayat Verifikasi Pembayaran</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('konfirmasi')}
+            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'konfirmasi'
+                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            }`}
+          >
+            <UserCheck className="w-4 h-4" />
+            <span>Konfirmasi Pembayaran</span>
+            {pendingRequests.length > 0 ? (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
+                {pendingRequests.length} Baru
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-300/60 text-slate-600">
+                0
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('riwayat')}
+            className={`px-4 py-2.5 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer ${
+              activeTab === 'riwayat'
+                ? 'bg-white text-[#1565C0] shadow-sm font-extrabold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+            }`}
+          >
+            <Clock className="w-4 h-4" />
+            <span>Riwayat Verifikasi</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              activeTab === 'riwayat' ? 'bg-blue-100 text-[#1565C0]' : 'bg-slate-300/60 text-slate-600'
+            }`}>
+              {processedHistory.length}
+            </span>
+          </button>
+        </div>
+
+        {/* UTILITY CHIPS & TOMBOL SINKRONISASI REALTIME */}
+        <div className="flex items-center gap-2 self-start md:self-auto shrink-0 flex-wrap">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold" title="Data disinkronkan otomatis saat ada transaksi atau pembayaran baru di kantin">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Sinkron Kantin</span>
+          </span>
+
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200/80 text-[#1565C0] text-xs font-bold" title="Aturan penagihan pascabayar dengan batas toleransi jatuh tempo tanggal 2 bulan berikutnya (H+2)">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+            <span>Pascabayar (H+2)</span>
+          </span>
+
+          <button
+            type="button"
+            onClick={() => loadData()}
+            disabled={isLoadingBilling || isLoadingHistory}
+            className="px-3.5 py-2 bg-gradient-to-r from-[#1565C0] to-[#0D47A1] hover:from-[#0D47A1] hover:to-[#0A3880] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm shadow-blue-600/20 cursor-pointer active:scale-95 disabled:opacity-50"
+            title="Muat ulang dan sinkronkan data terkini dari seluruh kantin"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin' : ''}`} />
+            <span>Sinkronkan Real Time</span>
+          </button>
+        </div>
       </div>
 
       {/* ========================================================================= */}
@@ -398,16 +418,16 @@ export default function CanteenTopup() {
       {activeTab === 'laporan' && (
         <div className="space-y-4 animate-in fade-in duration-200">
           {/* Filter Bar Periode & Pencarian */}
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200/80 shadow-2xs">
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2.5">
-              {/* Filter Bulan */}
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-700">
-                <Calendar className="w-4 h-4 text-[#1565C0]" />
-                <span>Periode:</span>
+              {/* Filter Bulan & Tahun */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
+                <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+                <span className="text-slate-500">Periode:</span>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
+                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
                 >
                   {monthNames.map((name, idx) => (
                     <option key={name} value={idx + 1}>
@@ -415,47 +435,55 @@ export default function CanteenTopup() {
                     </option>
                   ))}
                 </select>
+                <span className="text-slate-300">|</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Filter Tahun */}
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
-              >
-                {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
-                  <option key={yr} value={yr}>
-                    {yr}
-                  </option>
-                ))}
-              </select>
-
               {/* Filter Status Tagihan */}
-              <select
-                value={statusTagihanFilter}
-                onChange={(e) => setStatusTagihanFilter(e.target.value)}
-                className="px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:border-blue-500"
-              >
-                <option value="semua">Semua Status</option>
-                <option value="BERJALAN">Bulan Berjalan</option>
-                <option value="LUNAS">Lunas (Disetujui)</option>
-                <option value="PENDING">Menunggu Konfirmasi</option>
-                <option value="DIBLOKIR">Lewat Jatuh Tempo (Diblokir)</option>
-              </select>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={statusTagihanFilter}
+                  onChange={(e) => setStatusTagihanFilter(e.target.value)}
+                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="semua">Semua Status</option>
+                  <option value="BERJALAN">Bulan Berjalan</option>
+                  <option value="LUNAS">Lunas (Disetujui)</option>
+                  <option value="PENDING">Menunggu Konfirmasi</option>
+                  <option value="DIBLOKIR">Lewat Jatuh Tempo (Diblokir)</option>
+                </select>
+              </div>
+
+              {/* Counter info */}
+              <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
+                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> UPT
+              </span>
             </div>
 
             {/* Pencarian UPT */}
             <div className="relative w-full lg:w-72">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari nama UPT / Kanwil..."
                 value={searchUpt}
                 onChange={(e) => setSearchUpt(e.target.value)}
-                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
               />
               {searchUpt && (
                 <button
+                  type="button"
                   onClick={() => setSearchUpt('')}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
@@ -467,17 +495,17 @@ export default function CanteenTopup() {
 
           {/* Tabel Rekapitulasi Tagihan per UPT */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[840px]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[900px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-6">Asal UPT / Kantin</th>
-                    <th className="py-3.5 px-6">Periode</th>
-                    <th className="py-3.5 px-6 text-center">Voucher & Durasi</th>
-                    <th className="py-3.5 px-6 text-right">DPP & PPN (11%)</th>
-                    <th className="py-3.5 px-6 text-right">Total Tagihan</th>
-                    <th className="py-3.5 px-6 text-center">Status & Jatuh Tempo</th>
-                    <th className="py-3.5 px-6 text-center">Aksi</th>
+                    <th className="py-3.5 px-5 min-w-[260px]">Asal UPT / Kantin</th>
+                    <th className="py-3.5 px-4 min-w-[130px]">Periode</th>
+                    <th className="py-3.5 px-4 text-center min-w-[140px]">Voucher & Durasi</th>
+                    <th className="py-3.5 px-4 text-right min-w-[150px]">DPP & PPN (11%)</th>
+                    <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
+                    <th className="py-3.5 px-4 text-center min-w-[170px]">Status & Jatuh Tempo</th>
+                    <th className="py-3.5 px-4 text-center min-w-[110px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -499,27 +527,35 @@ export default function CanteenTopup() {
                   ) : (
                     filteredBillingReports.map((report) => {
                       return (
-                        <tr key={report.branchId} className="hover:bg-slate-50/70 transition-colors">
+                        <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
                           {/* Nama UPT & Kanwil */}
-                          <td className="py-4 px-6">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="w-4 h-4 text-[#1565C0] shrink-0" />
-                              <span className="font-bold text-slate-800">
-                                {report.branchName}
-                              </span>
-                            </div>
-                            <div className="text-[11px] text-slate-400 font-medium pl-6 mt-0.5">
-                              {report.kanwilName} • Kode: <span className="font-mono text-slate-600">{report.branchCode}</span>
+                          <td className="py-4 px-5">
+                            <div className="flex items-start gap-2.5">
+                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <Building2 className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <span className="font-bold text-slate-900 block leading-snug">
+                                  {report.branchName}
+                                </span>
+                                <div className="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
+                                  <span>{report.kanwilName}</span>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
+                                    Kode: {report.branchCode}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </td>
 
                           {/* Periode */}
-                          <td className="py-4 px-6 whitespace-nowrap text-slate-700 font-medium">
+                          <td className="py-4 px-4 whitespace-nowrap text-slate-700 font-semibold">
                             {report.period}
                           </td>
 
                           {/* Voucher & Menit Terjual */}
-                          <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
                             <div className="font-bold text-slate-800">
                               {report.totalVouchers} Voucher
                             </div>
@@ -529,7 +565,7 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* DPP & PPN */}
-                          <td className="py-4 px-6 text-right whitespace-nowrap">
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
                             <div className="font-medium text-slate-600">
                               DPP: {formatRupiah(report.totalDpp)}
                             </div>
@@ -539,7 +575,7 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* Total Tagihan */}
-                          <td className="py-4 px-6 text-right whitespace-nowrap">
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
                             <div className="font-black text-[#1565C0] text-sm">
                               {formatRupiah(report.totalAmount)}
                             </div>
@@ -549,7 +585,7 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* Status & Jatuh Tempo */}
-                          <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
                             {report.billingStatus === 'LUNAS' ? (
                               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -596,11 +632,11 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* Tombol Lihat Rincian Voucher */}
-                          <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => setSelectedUptDetail(report)}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
                               title="Lihat rincian transaksi voucher"
                             >
                               <FileText className="w-3.5 h-3.5" />
@@ -635,15 +671,15 @@ export default function CanteenTopup() {
           </div>
 
           <div className="bg-white rounded-2xl border border-amber-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[760px]">
                 <thead>
                   <tr className="bg-amber-50/70 border-b border-amber-100 text-[11px] font-bold text-amber-900/80 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-6">Asal UPT / Kantin & Kasir</th>
-                    <th className="py-3.5 px-6">Waktu Pengajuan</th>
-                    <th className="py-3.5 px-6 text-right">Nominal Tagihan</th>
-                    <th className="py-3.5 px-6 text-center">Bukti Bayar</th>
-                    <th className="py-3.5 px-6 text-center">Aksi</th>
+                    <th className="py-3.5 px-5 min-w-[240px]">Asal UPT / Kantin & Kasir</th>
+                    <th className="py-3.5 px-4 min-w-[150px]">Waktu Pengajuan</th>
+                    <th className="py-3.5 px-4 text-right min-w-[140px]">Nominal Tagihan</th>
+                    <th className="py-3.5 px-4 text-center min-w-[120px]">Bukti Bayar</th>
+                    <th className="py-3.5 px-4 text-center min-w-[180px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -670,7 +706,7 @@ export default function CanteenTopup() {
                   ) : (
                     pendingRequests.map((item) => (
                       <tr key={item.id} className="hover:bg-amber-50/30 transition-colors">
-                        <td className="py-3.5 px-6">
+                        <td className="py-4 px-5">
                           <div className="flex items-center gap-2">
                             <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
                             <span className="font-bold text-slate-800">
@@ -683,11 +719,11 @@ export default function CanteenTopup() {
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-6 text-slate-600 whitespace-nowrap">
+                        <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
                           {formatTanggal(item.tanggal)}
                         </td>
 
-                        <td className="py-3.5 px-6 text-right whitespace-nowrap">
+                        <td className="py-4 px-4 text-right whitespace-nowrap">
                           <div className="font-black text-[#1565C0] text-sm">
                             {formatRupiah(item.totalBayar || item.nominal)}
                           </div>
@@ -696,7 +732,7 @@ export default function CanteenTopup() {
                           </div>
                         </td>
 
-                        <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                        <td className="py-4 px-4 text-center whitespace-nowrap">
                           {item.proofUrl ? (
                             <button
                               type="button"
@@ -715,7 +751,7 @@ export default function CanteenTopup() {
                           )}
                         </td>
 
-                        <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                        <td className="py-4 px-4 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               type="button"
@@ -762,7 +798,7 @@ export default function CanteenTopup() {
           {/* Filter Bar */}
           <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Cari ID transaksi, nama cabang UPT, kasir..."
@@ -772,6 +808,7 @@ export default function CanteenTopup() {
               />
               {searchHistory && (
                 <button
+                  type="button"
                   onClick={() => setSearchHistory('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
@@ -795,15 +832,15 @@ export default function CanteenTopup() {
 
           {/* Tabel Riwayat */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[760px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-6">Asal UPT / Kantin</th>
-                    <th className="py-3.5 px-6">Waktu Transaksi</th>
-                    <th className="py-3.5 px-6 text-right">Nominal Tagihan</th>
-                    <th className="py-3.5 px-6 text-center">Status</th>
-                    <th className="py-3.5 px-6 text-center">Aksi</th>
+                    <th className="py-3.5 px-5 min-w-[240px]">Asal UPT / Kantin</th>
+                    <th className="py-3.5 px-4 min-w-[150px]">Waktu Transaksi</th>
+                    <th className="py-3.5 px-4 text-right min-w-[140px]">Nominal Tagihan</th>
+                    <th className="py-3.5 px-4 text-center min-w-[160px]">Status</th>
+                    <th className="py-3.5 px-4 text-center min-w-[130px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -827,8 +864,8 @@ export default function CanteenTopup() {
                       const isRejected = item.status === 'REJECTED' || item.status === 'Ditolak';
 
                       return (
-                        <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                          <td className="py-3.5 px-6">
+                        <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                          <td className="py-4 px-5">
                             <div className="flex items-center gap-2">
                               <Building2 className="w-4 h-4 text-blue-500 shrink-0" />
                               <span className="font-bold text-slate-800">
@@ -841,11 +878,11 @@ export default function CanteenTopup() {
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-6 text-slate-600 whitespace-nowrap">
+                          <td className="py-4 px-4 text-slate-600 whitespace-nowrap">
                             {formatTanggal(item.tanggal)}
                           </td>
 
-                          <td className="py-3.5 px-6 text-right whitespace-nowrap">
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
                             <div className="font-black text-[#1565C0] text-sm">
                               {formatRupiah(item.totalBayar || item.nominal)}
                             </div>
@@ -854,7 +891,7 @@ export default function CanteenTopup() {
                             </div>
                           </td>
 
-                          <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
                             <span
                               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
                                 isApproved
@@ -880,11 +917,11 @@ export default function CanteenTopup() {
                             )}
                           </td>
 
-                          <td className="py-3.5 px-6 text-center whitespace-nowrap">
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
                             <button
                               type="button"
                               onClick={() => setDetailModalItem(item)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/60 shadow-2xs cursor-pointer active:scale-95"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition border border-blue-200/80 shadow-2xs cursor-pointer active:scale-95"
                               title="Lihat Detail Transaksi"
                             >
                               <Eye className="w-3.5 h-3.5" />

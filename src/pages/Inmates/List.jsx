@@ -384,7 +384,7 @@ const InmatesList = () => {
           onScroll={checkScroll}
           className="overflow-x-auto w-full"
         >
-          <table className="w-full text-left border-collapse min-w-[950px]">
+          <table className="w-full text-left border-collapse min-w-[760px]">
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className={`py-3 pl-5 pr-3 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
@@ -396,8 +396,7 @@ const InmatesList = () => {
                 <th className="py-3 px-2.5 font-bold text-left">Keluarga</th>
                 */}
                 <th className="py-3 px-2.5 font-bold text-left">Tgl Masuk</th>
-                <th className="py-3 px-2.5 font-bold text-center">Saldo</th>
-                <th className="py-3 px-2.5 font-bold text-center">Status Akun</th>
+                <th className="py-3 px-3 font-bold text-center">Status Akun</th>
                 <th className={`py-3 pl-3 pr-5 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''} w-28`}>
                   Aksi
                 </th>
@@ -427,10 +426,7 @@ const InmatesList = () => {
                     <td className="py-3 px-2.5 text-left">
                       <div className="h-4 bg-slate-200 rounded w-16"></div>
                     </td>
-                    <td className="py-3 px-2.5 text-center">
-                      <div className="h-4 bg-slate-200 rounded w-16 mx-auto"></div>
-                    </td>
-                    <td className="py-3 px-2.5 text-center">
+                    <td className="py-3 px-3 text-center">
                       <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto"></div>
                     </td>
                     <td className={`py-3 pl-3 pr-5 text-center sticky right-0 z-10 bg-white ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
@@ -512,25 +508,13 @@ const InmatesList = () => {
                         {inmate.entryDate ? new Date(inmate.entryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                       </td>
 
-                      {/* Saldo Panggilan (Rata Tengah) */}
-                      <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
-                        {typeof inmate.callBalance === 'number' && !isNaN(inmate.callBalance) ? (
-                          <div className="inline-flex items-center justify-center gap-1 font-bold text-emerald-700 text-xs">
-                            <Wallet className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                            <span>{formatCurrency(inmate.callBalance)}</span>
-                          </div>
-                        ) : (
-                          <span className="text-slate-400 text-xs">-</span>
-                        )}
-                      </td>
-
                       {/* Status Akun */}
-                      <td className="py-2.5 px-2.5 text-center whitespace-nowrap">
+                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
                         {inmate.commStatus ? (
-                          <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                             inmate.commStatus === 'Aktif' 
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
-                              : 'bg-rose-50 text-rose-700 border border-rose-200/60'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-2xs' 
+                              : 'bg-rose-50 text-rose-700 border border-rose-200/80 shadow-2xs'
                           }`}>
                             <span className={`w-1.5 h-1.5 rounded-full ${inmate.commStatus === 'Aktif' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                             {inmate.commStatus === 'Aktif' ? 'Aktif' : 'Nonaktif'}

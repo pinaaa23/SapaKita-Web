@@ -65,21 +65,76 @@ export default function Login() {
       try {
         responseData = await loginApi(identifier, password);
       } catch (apiErr) {
-        // DEV Mode fallback untuk kantin
+        // Jika server aktif dan mengembalikan kredensial salah (401/400), jangan fallback ke mock
+        if (apiErr.status === 401 || apiErr.status === 400) {
+          throw apiErr;
+        }
+
+        // DEV Mode fallback untuk pengujian lokal HANYA jika backend offline (network error)
         const idLower = identifier.trim().toLowerCase();
-        if (import.meta.env.DEV && (idLower.includes('kantin') || idLower.includes('kasir'))) {
-          responseData = {
-            token: 'mock-jwt-token-kantin-' + Date.now(),
-            user: {
-              id: 'u-kantin-demo',
-              name: 'Siti Aminah',
-              email: idLower.includes('@') ? idLower : 'kantin@pascall.id',
-              role: 'operator_kantin',
-              branchId: 'b1',
-              branchName: 'Lapas Cipinang',
-              branch: { id: 'b1', name: 'Lapas Kelas I Cipinang' },
-            },
-          };
+        if (import.meta.env.DEV) {
+          if (idLower.includes('kantin') || idLower.includes('kasir')) {
+            responseData = {
+              token: 'mock-jwt-token-kantin-' + Date.now(),
+              user: {
+                id: 'u-kantin-demo',
+                name: 'Siti Aminah',
+                email: idLower.includes('@') ? idLower : 'kantin@pascall.id',
+                role: 'operator_kantin',
+                branchId: 'b1',
+                branchName: 'Lapas Cipinang',
+                branch: { id: 'b1', name: 'Lapas Kelas I Cipinang' },
+              },
+            };
+          } else if (idLower.includes('superadmin') || idLower.includes('super')) {
+            responseData = {
+              token: 'mock-jwt-token-superadmin-' + Date.now(),
+              user: {
+                id: '9bad760c-2ae8-4879-a1e7-fdb4cb50c9fc',
+                name: 'Super Administrator',
+                email: idLower.includes('@') ? idLower : 'superadmin@pascall.id',
+                role: 'superadmin',
+              },
+            };
+          } else if (idLower.includes('spv') || idLower.includes('supervisor')) {
+            responseData = {
+              token: 'mock-jwt-token-spv-' + Date.now(),
+              user: {
+                id: 'u-spv-demo',
+                name: 'Budi Santoso',
+                email: idLower.includes('@') ? idLower : 'supervisor.lapas@pascall.id',
+                role: 'supervisor',
+                branchId: 'b1',
+                branchName: 'Lapas Cipinang',
+                branch: { id: 'b1', name: 'Lapas Kelas I Cipinang' },
+              },
+            };
+          } else if (idLower.includes('kepala') || idLower.includes('upt')) {
+            responseData = {
+              token: 'mock-jwt-token-upt-' + Date.now(),
+              user: {
+                id: 'u-upt-demo',
+                name: 'Hendra (Kepala UPT)',
+                email: idLower.includes('@') ? idLower : 'kepala.bandung@pascall.id',
+                role: 'kepala_upt',
+                branchId: 'b1',
+                branchName: 'Lapas Cipinang',
+                branch: { id: 'b1', name: 'Lapas Kelas I Cipinang' },
+              },
+            };
+          } else if (idLower.includes('kanwil')) {
+            responseData = {
+              token: 'mock-jwt-token-kanwil-' + Date.now(),
+              user: {
+                id: 'u-kanwil-demo',
+                name: 'Admin Kanwil',
+                email: idLower.includes('@') ? idLower : 'admin.jateng@pascall.id',
+                role: 'admin_kanwil',
+              },
+            };
+          } else {
+            throw apiErr;
+          }
         } else {
           throw apiErr;
         }

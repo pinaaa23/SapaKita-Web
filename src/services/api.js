@@ -90,10 +90,15 @@ export const apiFetch = async (endpoint, options = {}) => {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
+  const timeoutMs = options.timeout || 10000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(url, {
       ...options,
-      headers
+      headers,
+      signal: options.signal || controller.signal
     });
 
     let data = null;
@@ -119,12 +124,19 @@ export const apiFetch = async (endpoint, options = {}) => {
     if (err.status) {
       throw err;
     }
-    // Network error / connection refused
-    const networkError = new Error('Server tidak dapat dihubungi, coba lagi nanti');
+    // Network error / connection refused / timeout
+    const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('aborted');
+    const networkError = new Error(
+      isTimeout 
+        ? 'Koneksi ke server timeout, coba lagi nanti' 
+        : 'Server tidak dapat dihubungi, coba lagi nanti'
+    );
     networkError.status = 0;
     networkError.isNetworkError = true;
     networkError.originalError = err;
     throw networkError;
+  } finally {
+    clearTimeout(timeoutId);
   }
 };
 

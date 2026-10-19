@@ -36,9 +36,12 @@ import BranchPackages from './pages/branch/Packages';
 // Kanwil Pages (Demo Role: ADMIN_KANWIL)
 import KanwilDashboard from './pages/kanwil/Dashboard';
 import KanwilBranches from './pages/kanwil/Branches';
+import KanwilBranchCreate from './pages/kanwil/branches/Create';
 import KanwilInmates from './pages/kanwil/Inmates';
 import KanwilReports from './pages/kanwil/Reports';
+import KanwilProfile from './pages/kanwil/Profile';
 import KanwilManagement from './pages/kanwil/KanwilManagement';
+import KanwilCreate from './pages/kanwil/Create';
 import KanwilAdmins from './pages/kanwil/KanwilAdmins';
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
@@ -109,6 +112,8 @@ function App() {
                 <Route path="packages" element={<PackagesList />} />
                 <Route path="canteen-topup" element={<CanteenTopup />} />
                 <Route path="kanwil-management" element={<KanwilManagement />} />
+                <Route path="kanwil-management/create" element={<KanwilCreate />} />
+                <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />
                 <Route path="kanwil-admins" element={<KanwilAdmins />} />
 
                 <Route path="reports" element={<Reports />} />
@@ -198,8 +203,10 @@ function App() {
                 <Route index element={<Navigate to="/kanwil/dashboard" replace />} />
                 <Route path="dashboard" element={<KanwilDashboard />} />
                 <Route path="branches" element={<KanwilBranches />} />
+                <Route path="branches/create" element={<KanwilBranchCreate />} />
                 <Route path="inmates" element={<KanwilInmates />} />
                 <Route path="reports" element={<KanwilReports />} />
+                <Route path="profile" element={<KanwilProfile />} />
               </Route>
             </Route>
           </Route>

@@ -267,6 +267,8 @@ const Create = () => {
         role,
         password,
         status,
+        phone: phone.trim() || '-',
+        branchName: resolvedBranchName || uptName || 'UPT PasCall',
       });
     } catch (err) {
       console.log('[UserCreate] Error submit user:', err);
@@ -292,8 +294,11 @@ const Create = () => {
   };
 
   const handleCloseSuccessModal = () => {
+    const successText = `Pengguna "${createdCredentials?.name}" (${ROLE_LABELS[createdCredentials?.role] || createdCredentials?.role}) berhasil didaftarkan.`;
     setCreatedCredentials(null);
-    navigate('/branch/users');
+    navigate('/branch/users', {
+      state: { successMessage: successText },
+    });
   };
 
   return (
@@ -667,15 +672,22 @@ const Create = () => {
                 <CheckCircle2 className="w-9 h-9" />
               </div>
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
-                Akun Pengguna Berhasil Didaftarkan!
+                Akun Pengguna Baru Berhasil Didaftarkan!
               </h3>
               <p className="text-xs text-slate-500">
-                Salin dan berikan kredensial login berikut kepada staf yang bersangkutan.
+                Kredensial login akun petugas telah berhasil dibuat. Salin dan berikan kredensial login berikut kepada staf yang bersangkutan.
               </p>
             </div>
 
             {/* Credentials Card */}
             <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
+                <span className="text-slate-500 font-medium">UPT / Cabang</span>
+                <span className="font-bold text-slate-800">
+                  {createdCredentials.branchName || resolvedBranchName || uptName || 'UPT PasCall'}
+                </span>
+              </div>
+
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                 <span className="text-slate-500 font-medium">Nama Petugas</span>
                 <span className="font-bold text-slate-800">{createdCredentials.name}</span>
@@ -693,13 +705,13 @@ const Create = () => {
               </div>
 
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Email Login</span>
+                <span className="text-slate-500 font-medium">Email / Username Login</span>
                 <div className="flex items-center gap-2">
                   <span className="font-bold font-mono text-slate-800">{createdCredentials.email}</span>
                   <button
                     type="button"
                     onClick={() => handleCopy(createdCredentials.email, 'modal-email')}
-                    className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer"
+                    className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer transition-colors"
                     title="Salin Email"
                   >
                     {copiedField === 'modal-email' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
@@ -707,7 +719,7 @@ const Create = () => {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                 <span className="text-slate-500 font-medium">Password Sementara</span>
                 <div className="flex items-center gap-2">
                   <span className="font-bold font-mono text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200/80">
@@ -716,12 +728,24 @@ const Create = () => {
                   <button
                     type="button"
                     onClick={() => handleCopy(createdCredentials.password, 'modal-pass')}
-                    className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer"
+                    className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer transition-colors"
                     title="Salin Password"
                   >
                     {copiedField === 'modal-pass' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
                   </button>
                 </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                <span className="text-slate-500 font-medium">Status Akun Awal</span>
+                <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold ${
+                  createdCredentials.status === 'Active'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${createdCredentials.status === 'Active' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                  {createdCredentials.status === 'Active' ? 'Aktif' : 'Nonaktif'}
+                </span>
               </div>
             </div>
 
@@ -730,7 +754,10 @@ const Create = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const fullText = `*Kredensial Akun PasCall*\nNama: ${createdCredentials.name}\nRole: ${ROLE_LABELS[createdCredentials.role]}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\n\nSilakan login di portal PasCall.`;
+                  const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'UPT PasCall';
+                  const roleLabel = ROLE_LABELS[createdCredentials.role] || createdCredentials.role;
+                  const statusLabel = createdCredentials.status === 'Active' ? 'Aktif' : 'Nonaktif';
+                  const fullText = `*Kredensial Akun Pengguna UPT PasCall*\nUPT / Cabang: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal PasCall.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

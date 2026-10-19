@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Wallet, 
   Calendar, 
@@ -11,7 +11,19 @@ import {
   Zap,
   Printer,
   AlertTriangle,
-  ArrowRight
+  ArrowRight,
+  Search,
+  Ticket,
+  User,
+  Info,
+  Phone,
+  Video,
+  Copy,
+  Check,
+  CreditCard,
+  ChevronRight,
+  HelpCircle,
+  Receipt
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { 
@@ -27,6 +39,9 @@ export default function TagihanPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedInvoice, setCopiedInvoice] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   // Modal Pembayaran Tagihan State
   const [isModalBayarOpen, setIsModalBayarOpen] = useState(false);
@@ -88,6 +103,14 @@ export default function TagihanPage() {
     window.print();
   };
 
+  const handleCopyInvoice = () => {
+    if (billingData?.invoiceNumber) {
+      navigator.clipboard.writeText(billingData.invoiceNumber);
+      setCopiedInvoice(true);
+      setTimeout(() => setCopiedInvoice(false), 2000);
+    }
+  };
+
   const handlePaymentSuccess = () => {
     setToastMessage('Bukti pembayaran tagihan berhasil dikirim ke Superadmin untuk diverifikasi.');
     fetchBillingAndPayments(selectedMonth, selectedYear);
@@ -101,131 +124,251 @@ export default function TagihanPage() {
   const totalAmount = Number(billingData?.summary?.totalAmount || 0);
   const canPay = billingStatusInfo.canPay && totalAmount > 0;
 
+  // Filter transaksi berdasarkan pencarian
+  const transactions = billingData?.transactions || [];
+  const filteredTransactions = useMemo(() => {
+    if (!searchQuery.trim()) return transactions;
+    const q = searchQuery.toLowerCase().trim();
+    return transactions.filter((t) => {
+      const id = String(t.id || '').toLowerCase();
+      const code = String(t.kodeVoucher || '').toLowerCase();
+      const inmateName = String(t.inmate?.name || '').toLowerCase();
+      const inmateNip = String(t.inmate?.identifier || '').toLowerCase();
+      const pkgName = String(t.package?.name || '').toLowerCase();
+      const cashierName = String(t.cashier?.name || t.cashier?.identifier || '').toLowerCase();
+      return (
+        id.includes(q) ||
+        code.includes(q) ||
+        inmateName.includes(q) ||
+        inmateNip.includes(q) ||
+        pkgName.includes(q) ||
+        cashierName.includes(q)
+      );
+    });
+  }, [transactions, searchQuery]);
+
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-50 p-4 md:p-6 text-slate-800">
+    <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300 text-slate-800 print:bg-white print:p-0">
+      {/* CSS Khusus Print Dokumen Tagihan */}
+      <style>{`
+        @media print {
+          nav, aside, header, .no-print {
+            display: none !important;
+          }
+          body, html {
+            background: #fff !important;
+            color: #000 !important;
+          }
+          .print-header {
+            display: block !important;
+          }
+        }
+      `}</style>
+
       {/* Toast Sukses Pembayaran */}
       {toastMessage && (
-        <div className="mb-4 p-4 bg-emerald-50 border border-emerald-300 text-emerald-800 rounded-2xl flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="no-print mb-6 p-4 bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-2xl flex items-center justify-between gap-3 shadow-xs animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-2.5 text-xs font-bold">
-            <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             <span>{toastMessage}</span>
           </div>
           <button
             type="button"
             onClick={() => setToastMessage('')}
-            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold px-2 py-1 rounded-lg hover:bg-emerald-100 transition"
+            className="text-xs text-emerald-700 hover:text-emerald-900 font-bold px-2 py-1 rounded-lg hover:bg-emerald-100 transition cursor-pointer"
           >
             Tutup
           </button>
         </div>
       )}
 
-      {/* Header */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Header Halaman & Filter Controls */}
+      <div className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
         <div>
-          <div className="flex items-center gap-2.5 text-blue-700 font-bold text-xs uppercase tracking-wider mb-1">
-            <Wallet className="w-4 h-4" />
-            <span>Sistem Pascabayar • Tagihan Bulanan Kantin</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+              <Receipt className="w-3.5 h-3.5 text-blue-600" />
+              Sistem Pascabayar
+            </span>
+            <span className="text-slate-300">•</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Tagihan & Penggunaan Bulanan
           </h1>
-          <p className="text-slate-500 text-xs md:text-sm mt-0.5">
-            Model operasional pascabayar (unlimited) tanpa prabayar. Total penjualan menit ditagihkan di awal bulan berikutnya.
+          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Rekapitulasi penjualan voucher menit bicara WBP. Tagihan diakumulasikan otomatis dan jatuh tempo pada awal bulan berikutnya.
           </p>
         </div>
 
-        {/* Filter Bulan & Print */}
-        <div className="flex items-center gap-2.5">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          >
-            {monthOptions.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-            className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
-          >
-            <option value={2025}>2025</option>
-            <option value={2026}>2026</option>
-            <option value={2027}>2027</option>
-          </select>
+        {/* Toolbar Filter & Cetak */}
+        <div className="no-print flex flex-wrap items-center gap-2.5 self-start lg:self-center">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs">
+            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer pr-1"
+            >
+              {monthOptions.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+            <span className="text-slate-200">|</span>
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="bg-transparent text-xs font-bold text-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value={2025}>2025</option>
+              <option value={2026}>2026</option>
+              <option value={2027}>2027</option>
+            </select>
+          </div>
 
           <button
+            type="button"
             onClick={handlePrint}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-2xs hover:shadow-xs active:scale-95 cursor-pointer"
+            title="Cetak faktur / tagihan bulan ini"
           >
-            <Printer className="w-3.5 h-3.5" />
+            <Printer className="w-3.5 h-3.5 text-slate-600" />
             <span>Cetak Tagihan</span>
           </button>
         </div>
       </div>
 
-      {/* Model Pascabayar Banner */}
-      <div className="mb-6 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-lg shadow-blue-950/20 relative overflow-hidden">
-        <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-10 pointer-events-none">
-          <Zap className="w-48 h-48 text-white" />
+      {/* Banner Ringkasan Eksekutif Tagihan Pascabayar */}
+      <div className="mb-6 bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white rounded-3xl p-5 sm:p-6 shadow-lg shadow-blue-950/20 relative overflow-hidden border border-slate-800">
+        {/* Latar belakang aksen watermark halus */}
+        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
+          <Zap className="w-56 h-56 text-white" />
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-blue-500/30 text-blue-200 border border-blue-400/30">
-              <Zap className="w-3.5 h-3.5 text-blue-400" />
-              <span>Model Pascabayar (Unlimited Pool)</span>
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          {/* Sisi Kiri: Penjelasan Operasional yang Ringkas & Jelas */}
+          <div className="space-y-2 max-w-2xl">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30">
+              <Zap className="w-3 h-3 text-blue-400 shrink-0" />
+              <span>Operasional Pascabayar (Unlimited Pool)</span>
             </div>
-            <h2 className="text-xl font-black text-white tracking-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
               Kantin Bebas Menjual Voucher Tanpa Kuota Awal
             </h2>
-            <p className="text-slate-300 text-xs max-w-2xl leading-relaxed">
-              Kantin tidak perlu membeli deposit token menit terlebih dahulu ke Super Admin. Semua voucher dapat langsung dicetak untuk WBP, dan rekapitulasi tagihan dihitung otomatis pada tanggal 1 setiap bulannya.
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Kantin tidak perlu membeli deposit token prabayar terlebih dahulu. Seluruh voucher panggilan langsung aktif untuk WBP, dan rekapitulasi pembayaran dihitung otomatis setiap tanggal 1.
             </p>
+
+            {/* Micro Feature Pills */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 font-medium bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                <Check className="w-3 h-3 text-emerald-400" /> Kuota Bicara Bebas
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 font-medium bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                <Check className="w-3 h-3 text-emerald-400" /> Tagihan Tiap Awal Bulan
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 font-medium bg-white/5 px-2.5 py-1 rounded-lg border border-white/10">
+                <Check className="w-3 h-3 text-emerald-400" /> Audit Trail Otomatis
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-md rounded-xl p-3.5 border border-white/10 shrink-0 text-right min-w-[200px]">
-            <div className="text-[10px] font-bold text-blue-200 uppercase tracking-wider">Status Tagihan</div>
-            <div className="text-sm font-black mt-0.5">
-              {billingStatusInfo.status === 'LUNAS' && (
-                <span className="text-emerald-400">🟢 Lunas</span>
-              )}
-              {billingStatusInfo.status === 'PENDING' && (
-                <span className="text-amber-300">🟡 Menunggu Konfirmasi</span>
-              )}
-              {billingStatusInfo.status === 'REJECTED' && (
-                <span className="text-rose-400">🔴 Ditolak</span>
-              )}
-              {billingStatusInfo.status === 'UNPAID' && (
-                <span className="text-rose-300">🟠 Belum Dibayar</span>
-              )}
-              {billingStatusInfo.status === 'BERJALAN' && (
-                <span className="text-blue-300">🔵 Bulan Berjalan</span>
-              )}
+          {/* Sisi Kanan: Kartu Status Invoice & Tombol Aksi Pembayaran */}
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-white/15 flex flex-col justify-between shrink-0 min-w-full sm:min-w-[260px] lg:min-w-[280px] shadow-inner">
+            <div>
+              <div className="flex items-center justify-between text-xs text-blue-200 font-bold mb-1.5">
+                <span className="text-[10px] uppercase tracking-wider text-slate-300">Status Tagihan</span>
+                <span className="text-[11px] text-slate-300">{billingData?.period || '-'}</span>
+              </div>
+
+              {/* Status Badge */}
+              <div className="mb-3">
+                {billingStatusInfo.status === 'LUNAS' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Lunas Terverifikasi</span>
+                  </div>
+                )}
+                {billingStatusInfo.status === 'PENDING' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                    <span>Menunggu Konfirmasi</span>
+                  </div>
+                )}
+                {billingStatusInfo.status === 'REJECTED' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/25 text-rose-300 border border-rose-400/40">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Pembayaran Ditolak</span>
+                  </div>
+                )}
+                {billingStatusInfo.status === 'UNPAID' && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/20 text-rose-300 border border-rose-400/30">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Belum Dibayar</span>
+                  </div>
+                )}
+                {billingStatusInfo.status === 'BERJALAN' && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-400" />
+                    </span>
+                    <span>Bulan Berjalan</span>
+                  </div>
+                )}
+              </div>
+
+              {/* No Invoice dengan Fitur Salin */}
+              <div className="flex items-center justify-between bg-black/25 px-2.5 py-1.5 rounded-xl border border-white/10 text-xs font-mono">
+                <span className="text-slate-300 truncate">{billingData?.invoiceNumber || '-'}</span>
+                {billingData?.invoiceNumber && (
+                  <button
+                    type="button"
+                    onClick={handleCopyInvoice}
+                    className="text-slate-400 hover:text-white transition p-1 cursor-pointer"
+                    title="Salin nomor invoice"
+                  >
+                    {copiedInvoice ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="text-[11px] text-slate-300 font-mono mt-1">
-              {billingData?.invoiceNumber || '-'}
-            </div>
+
+            {/* Quick Action Button jika Bisa Bayar */}
+            {canPay && (
+              <button
+                type="button"
+                onClick={() => setIsModalBayarOpen(true)}
+                className="mt-3.5 w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-md shadow-emerald-900/30 active:scale-95 cursor-pointer"
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Bayar Tagihan Sekarang</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Alert jika pembayaran ditolak */}
+        {/* Alert Khusus Jika Pembayaran Ditolak */}
         {billingStatusInfo.status === 'REJECTED' && (
-          <div className="relative z-10 mt-4 p-3 bg-rose-500/25 border border-rose-400/40 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-rose-100 animate-in fade-in">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-rose-300 shrink-0" />
+          <div className="relative z-10 mt-5 p-3.5 bg-rose-500/25 border border-rose-400/40 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-rose-100 animate-in fade-in">
+            <div className="flex items-center gap-2.5">
+              <AlertTriangle className="w-5 h-5 text-rose-300 shrink-0" />
               <span>
-                <strong>Pembayaran Ditolak:</strong> {billingStatusInfo.rejectReason} Silakan unggah ulang bukti transfer yang benar.
+                <strong>Pembayaran Ditolak:</strong> {billingStatusInfo.rejectReason} Silakan unggah ulang bukti transfer yang sah.
               </span>
             </div>
             <button
               type="button"
               onClick={() => setIsModalBayarOpen(true)}
-              className="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-800 font-bold rounded-lg transition shrink-0 cursor-pointer shadow-xs self-end sm:self-center"
+              className="px-3.5 py-1.5 bg-white hover:bg-rose-50 text-rose-800 font-bold rounded-xl transition shrink-0 cursor-pointer shadow-xs"
             >
               Unggah Ulang Bukti
             </button>
@@ -233,177 +376,360 @@ export default function TagihanPage() {
         )}
       </div>
 
-      {/* 4 Cards Summary */}
+      {/* 4 Kartu Metrik Ringkasan Finansial */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Voucher Terjual</span>
-            <FileText className="w-4 h-4 text-blue-600" />
+        {/* Kartu 1: Total Voucher Terjual */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Total Voucher Terjual
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                <Ticket className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {isLoading ? '...' : (billingData?.summary?.totalTransactions || 0)}
+              </span>
+              <span className="text-xs font-bold text-slate-400">Voucher</span>
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">
-            {isLoading ? '...' : (billingData?.summary?.totalTransactions || 0)}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium mt-1">
-            Transaksi pada periode {billingData?.period}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">Durasi Terjual</span>
-            <Clock className="w-4 h-4 text-indigo-600" />
-          </div>
-          <div className="text-2xl font-black text-slate-900">
-            {isLoading ? '...' : `${billingData?.summary?.totalMinutes || 0} Menit`}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium mt-1">
-            Total kuota menit bicara aktif
+          <div className="text-[11px] text-slate-500 font-medium mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5">
+            <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+            <span className="truncate">Periode {billingData?.period || '-'}</span>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider">DPP (Dasar Pengenaan)</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+        {/* Kartu 2: Durasi Terjual */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Durasi Terjual
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {isLoading ? '...' : (billingData?.summary?.totalMinutes || 0)}
+              </span>
+              <span className="text-xs font-bold text-slate-400">Menit</span>
+            </div>
           </div>
-          <div className="text-2xl font-black text-slate-900">
-            {isLoading ? '...' : formatRupiah(billingData?.summary?.totalDpp || 0)}
-          </div>
-          <div className="text-[11px] text-slate-500 font-medium mt-1">
-            PPN (11%): {isLoading ? '...' : formatRupiah(billingData?.summary?.totalPpn || 0)}
+          <div className="text-[11px] text-slate-500 font-medium mt-3 pt-2.5 border-t border-slate-100 flex items-center gap-1.5">
+            <Phone className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <span className="truncate">Total kuota menit bicara aktif</span>
           </div>
         </div>
 
-        {/* Kartu 4: Total Tagihan Bulan Ini (Clickable untuk bayar tagihan) */}
+        {/* Kartu 3: DPP (Dasar Pengenaan Pajak) */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 p-4 sm:p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                DPP (Dasar Pengenaan)
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {isLoading ? '...' : formatRupiah(billingData?.summary?.totalDpp || 0)}
+            </div>
+          </div>
+          <div className="text-[11px] text-slate-500 font-medium mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1">
+            <span>PPN (11%):</span>
+            <span className="font-bold text-slate-700">
+              {isLoading ? '...' : formatRupiah(billingData?.summary?.totalPpn || 0)}
+            </span>
+          </div>
+        </div>
+
+        {/* Kartu 4: Total Tagihan Bulan Ini (Highlight Utama) */}
         <div 
           onClick={canPay ? () => setIsModalBayarOpen(true) : undefined}
-          className={`bg-white rounded-2xl border border-slate-200/80 p-4 shadow-xs border-l-4 border-l-blue-600 transition-all ${
-            canPay ? 'cursor-pointer hover:shadow-md hover:border-blue-300 group' : ''
+          className={`bg-white rounded-2xl border p-4 sm:p-5 shadow-xs transition-all duration-200 flex flex-col justify-between relative overflow-hidden ${
+            canPay
+              ? 'border-blue-300 ring-2 ring-blue-500/10 hover:shadow-md hover:border-blue-400 cursor-pointer group'
+              : 'border-slate-200/80'
           }`}
-          title={canPay ? 'Klik untuk melakukan pembayaran tagihan' : undefined}
         >
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-700">Total Tagihan Bulan Ini</span>
-            <Wallet className={`w-4 h-4 text-blue-600 ${canPay ? 'group-hover:scale-110 transition-transform' : ''}`} />
-          </div>
-          <div className="text-2xl font-black text-blue-700">
-            {isLoading ? '...' : formatRupiah(totalAmount)}
-          </div>
-          <div className="flex items-center justify-between text-[11px] font-medium mt-1">
-            <span className="text-slate-500">Termasuk PPN 11%</span>
+          {/* Subtle top indicator bar */}
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-600 to-indigo-600" />
 
-            {/* Status teks interaktif di kartu */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                Total Tagihan Bulan Ini
+              </span>
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                <Wallet className="w-4 h-4" />
+              </div>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-blue-700 tracking-tight">
+              {isLoading ? '...' : formatRupiah(totalAmount)}
+            </div>
+          </div>
+
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[11px]">
+            <span className="text-slate-500 font-medium">Termasuk PPN 11%</span>
+
+            {/* Action text or status badge */}
             {billingStatusInfo.status === 'LUNAS' && (
               <span className="text-emerald-700 font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Lunas
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Lunas
               </span>
             )}
             {billingStatusInfo.status === 'PENDING' && (
-              <span className="text-amber-700 font-bold flex items-center gap-1 text-[10px]">
-                <Clock className="w-3 h-3 text-amber-600" /> Menunggu konfirmasi Superadmin
+              <span className="text-amber-700 font-bold flex items-center gap-1">
+                <Clock className="w-3 h-3 text-amber-600" /> Menunggu verifikasi
               </span>
             )}
             {billingStatusInfo.status === 'REJECTED' && (
-              <span className="text-rose-700 font-bold group-hover:underline text-[10px]">
-                Ditolak • Klik untuk bayar
+              <span className="text-rose-700 font-bold group-hover:underline flex items-center gap-0.5">
+                Ditolak • Bayar lagi
               </span>
             )}
             {(billingStatusInfo.status === 'UNPAID' || billingStatusInfo.status === 'BERJALAN') && canPay && (
               <span className="text-blue-700 font-bold group-hover:underline flex items-center gap-0.5">
-                Klik untuk bayar →
+                Bayar Sekarang →
               </span>
             )}
             {(billingStatusInfo.status === 'UNPAID' || billingStatusInfo.status === 'BERJALAN') && !canPay && (
               <span className="text-slate-400 font-semibold text-[10px]">
-                Tidak ada tagihan
+                Nihil Tagihan
               </span>
             )}
           </div>
         </div>
       </div>
 
+      {/* Info Accordion / Panduan Ringkas Alur Pascabayar */}
+      <div className="no-print mb-6 bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 transition-all">
+        <button
+          type="button"
+          onClick={() => setShowGuide(!showGuide)}
+          className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
+        >
+          <div className="flex items-center gap-2.5 text-xs font-bold text-blue-900">
+            <Info className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>Bagaimana Cara Kerja Sistem Pascabayar PasCall Kantin?</span>
+          </div>
+          <span className="text-xs text-blue-700 font-semibold underline shrink-0">
+            {showGuide ? 'Sembunyikan' : 'Pelajari Selengkapnya'}
+          </span>
+        </button>
+
+        {showGuide && (
+          <div className="mt-4 pt-3 border-t border-blue-200/60 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs text-slate-600 animate-in fade-in duration-200">
+            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-blue-700 block mb-1">1. Penjualan Voucher</span>
+              <span>Kasir langsung mencetak voucher tanpa saldo menit prabayar. Menit langsung tersedia untuk WBP.</span>
+            </div>
+            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-blue-700 block mb-1">2. Panggilan Bilik</span>
+              <span>WBP menebus voucher di bilik wartel lapas untuk melakukan panggilan suara atau video.</span>
+            </div>
+            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-blue-700 block mb-1">3. Rekapitulasi Otomatis</span>
+              <span>Total durasi menit yang terjual otomatis dihitung DPP & PPN menjadi faktur tagihan bulanan.</span>
+            </div>
+            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
+              <span className="font-extrabold text-blue-700 block mb-1">4. Pelunasan Faktur</span>
+              <span>Kantin menyetorkan pembayaran via transfer/QRIS, diverifikasi oleh Superadmin setiap awal bulan.</span>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Tabel Rincian Transaksi */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
+        {/* Table Top Bar */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h3 className="text-sm font-extrabold text-slate-800">
-              Rincian Transaksi Penjualan Voucher Masuk Tagihan ({billingData?.period})
-            </h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Daftar voucher yang diterbitkan oleh kasir kantin untuk WBP
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-800">
+                Rincian Transaksi Penjualan Voucher Masuk Tagihan
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                {billingData?.period || 'Bulan Ini'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Daftar seluruh voucher yang diterbitkan kasir kantin dan masuk dalam faktur tagihan periode ini.
             </p>
           </div>
-          <button
-            onClick={() => fetchBillingAndPayments(selectedMonth, selectedYear)}
-            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer"
-            title="Refresh tagihan"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+
+          {/* Search Box & Refresh */}
+          <div className="no-print flex items-center gap-2.5">
+            <div className="relative min-w-[200px] sm:min-w-[240px]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Cari kode, WBP, atau paket..."
+                className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fetchBillingAndPayments(selectedMonth, selectedYear)}
+              disabled={isLoading}
+              className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl border border-slate-200 transition-colors cursor-pointer shrink-0 disabled:opacity-50"
+              title="Perbarui data tagihan"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-blue-600' : ''}`} />
+            </button>
+          </div>
         </div>
 
+        {/* Isi Tabel */}
         {isLoading ? (
-          <div className="text-center py-12 text-slate-400 text-xs font-medium">Memuat data transaksi...</div>
-        ) : !billingData?.transactions || billingData.transactions.length === 0 ? (
-          <div className="text-center py-12 text-slate-400 text-xs font-medium">
-            Belum ada transaksi penjualan pada bulan ini.
+          <div className="text-center py-16 space-y-3">
+            <RefreshCw className="w-6 h-6 text-blue-600 animate-spin mx-auto" />
+            <p className="text-slate-500 text-xs font-medium">Memuat data transaksi tagihan...</p>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="text-center py-16 px-4">
+            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+              <Ticket className="w-6 h-6" />
+            </div>
+            <h4 className="text-sm font-bold text-slate-700">
+              {searchQuery ? 'Tidak Ada Hasil Transaksi' : 'Belum Ada Transaksi Penjualan'}
+            </h4>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {searchQuery 
+                ? `Tidak ditemukan transaksi dengan kata kunci "${searchQuery}". Coba kata kunci lainnya.`
+                : `Belum ada voucher yang diterbitkan pada periode ${billingData?.period || 'bulan ini'}. Penjualan baru akan langsung terakumulasi di sini.`}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-50/70 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   <th className="py-3 px-4">No Transaksi</th>
                   <th className="py-3 px-4">Waktu</th>
                   <th className="py-3 px-4">Kode Voucher</th>
-                  <th className="py-3 px-4">WBP (NIP)</th>
-                  <th className="py-3 px-4">Paket / Durasi</th>
-                  <th className="py-3 px-4">Kasir</th>
+                  <th className="py-3 px-4">WBP (Penerima)</th>
+                  <th className="py-3 px-4">Paket / Layanan</th>
+                  <th className="py-3 px-4">Petugas Kasir</th>
                   <th className="py-3 px-4 text-right">Nominal Tagihan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {billingData.transactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-slate-900">{t.id}</td>
-                    <td className="py-3 px-4 text-slate-500">
-                      {new Date(t.createdAt).toLocaleString('id-ID', {
-                        day: 'numeric',
-                        month: 'short',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
-                        {t.kodeVoucher}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-slate-800">{t.inmate?.name || '-'}</div>
-                      <div className="text-[10px] font-mono text-slate-400">
-                        NIP: {t.inmate?.identifier || '-'}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="font-semibold text-slate-800">{t.package?.name}</div>
-                      <div className="text-[10px] text-slate-500">{t.package?.duration} Menit</div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-600 font-medium">
-                      {t.cashier?.name || t.cashier?.identifier || 'Kasir'}
-                    </td>
-                    <td className="py-3 px-4 text-right font-bold text-slate-900 font-mono">
-                      {formatRupiah(Number(t.totalAmount || 0))}
-                    </td>
-                  </tr>
-                ))}
+                {filteredTransactions.map((t) => {
+                  const isVideo = String(t.package?.name || '').toLowerCase().includes('video');
+                  return (
+                    <tr key={t.id} className="hover:bg-blue-50/40 transition-colors">
+                      {/* ID Transaksi */}
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                        {t.id}
+                      </td>
+
+                      {/* Waktu */}
+                      <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
+                        {new Date(t.createdAt).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+
+                      {/* Kode Voucher */}
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className="font-mono font-bold text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-200/80 inline-flex items-center gap-1">
+                          <Ticket className="w-3 h-3 text-blue-500" />
+                          {t.kodeVoucher}
+                        </span>
+                      </td>
+
+                      {/* WBP */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
+                            {(t.inmate?.name || 'W').charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 leading-tight">
+                              {t.inmate?.name || 'WBP Tanpa Nama'}
+                            </div>
+                            <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                              NIP: {t.inmate?.identifier || '-'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Paket */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5">
+                          {isVideo ? (
+                            <span className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0" title="Video Call">
+                              <Video className="w-3 h-3" />
+                            </span>
+                          ) : (
+                            <span className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0" title="Panggilan Suara">
+                              <Phone className="w-3 h-3" />
+                            </span>
+                          )}
+                          <div>
+                            <div className="font-semibold text-slate-800">{t.package?.name}</div>
+                            <div className="text-[10px] text-slate-500">{t.package?.duration} Menit</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Kasir */}
+                      <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
+                        <div className="flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5 text-slate-400" />
+                          <span className="font-medium">{t.cashier?.name || t.cashier?.identifier || 'Kasir'}</span>
+                        </div>
+                      </td>
+
+                      {/* Nominal */}
+                      <td className="py-3 px-4 text-right font-black text-slate-900 font-mono whitespace-nowrap">
+                        {formatRupiah(Number(t.totalAmount || 0))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
+
+        {/* Footer Ringkasan Tabel */}
+        {!isLoading && filteredTransactions.length > 0 && (
+          <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+            <span>
+              Menampilkan <strong>{filteredTransactions.length}</strong> dari <strong>{transactions.length}</strong> transaksi pada periode {billingData?.period}
+            </span>
+            <div className="font-medium text-slate-700">
+              Total Akumulasi: <strong className="text-blue-700 font-mono text-sm ml-1">{formatRupiah(totalAmount)}</strong>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Pop Up Pembayaran Tagihan */}
+      {/* Pop Up Pembayaran Tagihan Modal */}
       {isModalBayarOpen && billingData && (
         <ModalPembayaranTagihan
           isOpen={isModalBayarOpen}

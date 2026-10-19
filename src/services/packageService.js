@@ -26,157 +26,51 @@ export const getCurrentBranch = () => {
  */
 export const defaultPackages = [
   {
-    id: 'pkt-telp-6',
-    nama: 'Paket Telepon 6 Menit',
-    name: 'Paket Telepon 6 Menit',
+    id: 'd51b1c3d-388b-434b-8275-8aa1614fc406',
+    nama: 'Paket Suara 5 Menit',
+    name: 'Paket Suara 5 Menit',
     kategori: 'telepon',
     type: 'AUDIO',
-    durasi: 6,
-    durationMinutes: 6,
-    harga: 5994,
-    price: 5994,
+    durasi: 5,
+    durationMinutes: 5,
+    harga: 5000,
+    price: 5000,
     status: 'Aktif',
     isActive: true,
+    branchId: 'f628171c-3c38-4c97-909b-a4ec5e2e0fa1',
+    branch: 'Lapas II Yogyakarta',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
   {
-    id: 'pkt-telp-12',
-    nama: 'Paket Telepon 12 Menit',
-    name: 'Paket Telepon 12 Menit',
+    id: '2e3855bf-5fbe-4e81-ae15-f333f1d31648',
+    nama: 'Paket Suara 15 Menit',
+    name: 'Paket Suara 15 Menit',
     kategori: 'telepon',
     type: 'AUDIO',
-    durasi: 12,
-    durationMinutes: 12,
-    harga: 11988,
-    price: 11988,
+    durasi: 15,
+    durationMinutes: 15,
+    harga: 12000,
+    price: 12000,
     status: 'Aktif',
     isActive: true,
+    branchId: 'f628171c-3c38-4c97-909b-a4ec5e2e0fa1',
+    branch: 'Lapas II Yogyakarta',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
   {
-    id: 'pkt-telp-18',
-    nama: 'Paket Telepon 18 Menit',
-    name: 'Paket Telepon 18 Menit',
-    kategori: 'telepon',
-    type: 'AUDIO',
-    durasi: 18,
-    durationMinutes: 18,
-    harga: 17982,
-    price: 17982,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-telp-24',
-    nama: 'Paket Telepon 24 Menit',
-    name: 'Paket Telepon 24 Menit',
-    kategori: 'telepon',
-    type: 'AUDIO',
-    durasi: 24,
-    durationMinutes: 24,
-    harga: 23976,
-    price: 23976,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-telp-30',
-    nama: 'Paket Telepon 30 Menit',
-    name: 'Paket Telepon 30 Menit',
-    kategori: 'telepon',
-    type: 'AUDIO',
-    durasi: 30,
-    durationMinutes: 30,
-    harga: 29970,
-    price: 29970,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-telp-36',
-    nama: 'Paket Telepon 36 Menit',
-    name: 'Paket Telepon 36 Menit',
-    kategori: 'telepon',
-    type: 'AUDIO',
-    durasi: 36,
-    durationMinutes: 36,
-    harga: 35964,
-    price: 35964,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-telp-3-non',
-    nama: 'Paket Telepon Hemat 3 Menit',
-    name: 'Paket Telepon Hemat 3 Menit',
-    kategori: 'telepon',
-    type: 'AUDIO',
-    durasi: 3,
-    durationMinutes: 3,
-    harga: 3000,
-    price: 3000,
-    status: 'Nonaktif',
-    isActive: false,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-vid-10',
+    id: '1efccde6-af3c-4bb0-be50-3cb7326df247',
     nama: 'Paket Video Call 10 Menit',
     name: 'Paket Video Call 10 Menit',
     kategori: 'video',
     type: 'VIDEO',
     durasi: 10,
     durationMinutes: 10,
-    harga: 15000,
-    price: 15000,
+    harga: 20000,
+    price: 20000,
     status: 'Aktif',
     isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-vid-15',
-    nama: 'Paket Video Call 15 Menit',
-    name: 'Paket Video Call 15 Menit',
-    kategori: 'video',
-    type: 'VIDEO',
-    durasi: 15,
-    durationMinutes: 15,
-    harga: 22500,
-    price: 22500,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-vid-30',
-    nama: 'Paket Video Call 30 Menit',
-    name: 'Paket Video Call 30 Menit',
-    kategori: 'video',
-    type: 'VIDEO',
-    durasi: 30,
-    durationMinutes: 30,
-    harga: 45000,
-    price: 45000,
-    status: 'Aktif',
-    isActive: true,
-    createdAt: '2026-01-01T08:00:00.000Z',
-  },
-  {
-    id: 'pkt-vid-45-non',
-    nama: 'Paket Video Call Spesial 45 Menit',
-    name: 'Paket Video Call Spesial 45 Menit',
-    kategori: 'video',
-    type: 'VIDEO',
-    durasi: 45,
-    durationMinutes: 45,
-    harga: 65000,
-    price: 65000,
-    status: 'Nonaktif',
-    isActive: false,
+    branchId: 'f628171c-3c38-4c97-909b-a4ec5e2e0fa1',
+    branch: 'Lapas II Yogyakarta',
     createdAt: '2026-01-01T08:00:00.000Z',
   },
 ];
@@ -228,22 +122,38 @@ export const getStoredPackages = () => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return [];
+      return defaultPackages;
     }
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(mapPackageItem).filter(Boolean) : [];
+    const mapped = Array.isArray(parsed) ? parsed.map(mapPackageItem).filter(Boolean) : [];
+    // Bersihkan data paket legacy lama (5994, 11988, dst) dari storage browser
+    const cleaned = mapped.filter((p) => {
+      const h = Number(p.harga || p.price || 0);
+      return ![5994, 11988, 17982, 23976, 29970, 35964].includes(h);
+    });
+    if (cleaned.length === 0) {
+      return defaultPackages;
+    }
+    return cleaned;
   } catch (err) {
     console.error('Error membaca storage paket:', err);
-    return [];
+    return defaultPackages;
+  }
+};
+
+export const notifyPackagesUpdated = () => {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('pascall_packages_updated'));
+    try {
+      localStorage.setItem('pascall_packages_last_updated', Date.now().toString());
+    } catch {}
   }
 };
 
 export const saveStoredPackages = (items) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('pascall_packages_updated', { detail: items }));
-    }
+    notifyPackagesUpdated();
   } catch (err) {
     console.error('Error menyimpan storage paket:', err);
   }
@@ -345,12 +255,95 @@ export const getPackages = async ({
 
 /**
  * Mengambil paket aktif khusus untuk Halaman Paket Kantin
+ * Aturan: Paket di kantin selalu sinkron dengan paket yang diaktifkan oleh Supervisor untuk cabang UPT tersebut.
  */
 export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
-  const list = await getPackages({
-    kategori,
-    activeOnly: true,
-    allowEmpty: true,
+  const user = getAuthUser();
+  const activeBranchIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('pascall_active_branch_id') : null;
+  const activeBranchNameFromStorage = typeof window !== 'undefined' ? localStorage.getItem('pascall_active_branch_name') : null;
+
+  // Tentukan target branch (prioritas: user branch -> branch tersimpan di session/SPV)
+  let userBranchId = user?.branchId || user?.branch?.id;
+  if (!userBranchId || userBranchId === 'b1') {
+    if (activeBranchIdFromStorage && activeBranchIdFromStorage !== 'b1') {
+      userBranchId = activeBranchIdFromStorage;
+    }
+  }
+
+  const userBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || activeBranchNameFromStorage || '';
+
+  // 1. Ambil paket dari BE
+  let rawList = [];
+  try {
+    rawList = await getPackages({
+      branchId: userBranchId,
+      kategori: 'semua',
+      activeOnly: true,
+      allowEmpty: true,
+    });
+  } catch (err) {
+    console.warn('[getPaketKantin] BE fetch error, falling back to sync cache:', err?.message || err);
+  }
+
+  let list = Array.isArray(rawList) ? rawList : [];
+
+  // Filter paket berdasarkan cabang yang diaktifkan SPV
+  let branchSpecific = [];
+  if (list.length > 0) {
+    if (userBranchId || userBranchName) {
+      branchSpecific = list.filter((p) => {
+        if (!p.branchId) return false;
+        if (userBranchId && (p.branchId === userBranchId || String(p.branchId).toLowerCase() === String(userBranchId).toLowerCase())) {
+          return true;
+        }
+        if (userBranchName && p.branch && typeof p.branch === 'string' && p.branch.toLowerCase().includes(userBranchName.toLowerCase())) {
+          return true;
+        }
+        return false;
+      });
+    }
+
+    // Jika user kantin adalah generic cashier atau branchId tidak match, tapi di BE ada paket UPT yang dibuat SPV
+    if (branchSpecific.length === 0) {
+      const allBranchPkgs = list.filter((p) => Boolean(p.branchId && String(p.branchId).trim() !== ''));
+      if (allBranchPkgs.length > 0) {
+        branchSpecific = allBranchPkgs;
+      }
+    }
+  }
+
+  if (branchSpecific.length > 0) {
+    list = branchSpecific;
+    // Simpan ke local cache agar saat refresh atau offline tetap sinkron
+    try {
+      localStorage.setItem('pascall_latest_branch_packages', JSON.stringify(list));
+      localStorage.setItem('pascall_upt_packages_v7', JSON.stringify(list));
+      if (list[0]?.branchId) {
+        localStorage.setItem('pascall_active_branch_id', list[0].branchId);
+      }
+    } catch {}
+  } else {
+    // 2. Fallback jika dari BE kosong / offline: ambil dari cache sinkronisasi yang disimpan SPV
+    try {
+      const cached = localStorage.getItem('pascall_latest_branch_packages') || localStorage.getItem('pascall_upt_packages_v7');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          list = parsed.filter((p) => p.isActive !== false && p.status !== 'Nonaktif');
+        }
+      }
+    } catch {}
+
+    if (list.length === 0) {
+      // Gunakan defaultPackages resmi (Paket Suara 5m, 15m, Video Call 10m)
+      list = defaultPackages.filter((p) => p.isActive !== false && p.status !== 'Nonaktif');
+    }
+  }
+
+  // 3. Pastikan tidak ada paket legacy preset 6/12/18/24/30/36 yang lolos
+  list = list.filter((p) => {
+    const harga = Number(p.harga || p.price || 0);
+    return ![5994, 11988, 17982, 23976, 29970, 35964].includes(harga);
   });
 
   return list.map((pkg) => {
@@ -372,6 +365,8 @@ export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
       ppn,
       status: pkg.status || 'Aktif',
       isActive: true,
+      branchId: pkg.branchId || null,
+      branch: pkg.branch || null,
     };
   });
 };
@@ -405,6 +400,7 @@ export const createPackage = async (data) => {
     });
     const current = getStoredPackages();
     saveStoredPackages([newPackage, ...current]);
+    notifyPackagesUpdated();
     return newPackage;
   }
 
@@ -427,6 +423,12 @@ export const createPackage = async (data) => {
   });
 
   const item = mapPackageItem(res?.data || res);
+  // Simpan ke local storage backup & trigger event realtime
+  try {
+    const current = getStoredPackages();
+    saveStoredPackages([item, ...current.filter((p) => p.id !== item.id)]);
+  } catch {}
+  notifyPackagesUpdated();
   return item;
 };
 
@@ -470,6 +472,7 @@ export const updatePackage = async (id, data) => {
         : item
     );
     saveStoredPackages(updated);
+    notifyPackagesUpdated();
     return updated.find((i) => i.id === id);
   }
 
@@ -487,7 +490,13 @@ export const updatePackage = async (id, data) => {
     body: JSON.stringify(payload),
   });
 
-  return mapPackageItem(res?.data || res);
+  const item = mapPackageItem(res?.data || res);
+  try {
+    const current = getStoredPackages();
+    saveStoredPackages(current.map((p) => (p.id === id ? item : p)));
+  } catch {}
+  notifyPackagesUpdated();
+  return item;
 };
 
 /**
@@ -509,6 +518,7 @@ export const updatePackageStatus = async (id, statusOrIsActive) => {
     target.status = statusEnum;
     target.isActive = isActive;
     saveStoredPackages(current);
+    notifyPackagesUpdated();
     return target;
   }
 
@@ -517,7 +527,13 @@ export const updatePackageStatus = async (id, statusOrIsActive) => {
     body: JSON.stringify({ status: statusEnum }),
   });
 
-  return mapPackageItem(res?.data || res);
+  const item = mapPackageItem(res?.data || res);
+  try {
+    const current = getStoredPackages();
+    saveStoredPackages(current.map((p) => (p.id === id ? item : p)));
+  } catch {}
+  notifyPackagesUpdated();
+  return item;
 };
 
 /**
@@ -538,6 +554,7 @@ export const deletePackage = async (id) => {
     const current = getStoredPackages();
     const filtered = current.filter((i) => i.id !== id);
     saveStoredPackages(filtered);
+    notifyPackagesUpdated();
     return { success: true, message: 'Paket berhasil dihapus' };
   }
 
@@ -545,6 +562,11 @@ export const deletePackage = async (id) => {
     const res = await apiFetch(PACKAGE_DETAIL_ENDPOINT(id), {
       method: 'DELETE',
     });
+    try {
+      const current = getStoredPackages();
+      saveStoredPackages(current.filter((i) => i.id !== id));
+    } catch {}
+    notifyPackagesUpdated();
     return res;
   } catch (error) {
     if (error?.status === 401) {

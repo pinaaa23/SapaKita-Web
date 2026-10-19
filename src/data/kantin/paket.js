@@ -45,42 +45,51 @@ export function calcPrice(type, minutes) {
  */
 export function buildPackages(type = 'telepon') {
   const typeKey = (type || 'telepon').toLowerCase();
-  const presets = TARIFF.presets || [6, 12, 18, 24, 30, 36];
 
   if (typeKey === 'telepon') {
-    return presets.map((min) => {
-      const { dpp, ppn, total } = calcPrice('telepon', min);
-      return {
-        id: `pkt-telp-${min}`,
-        nama: `Paket Telepon ${min} Menit`,
+    return [
+      {
+        id: 'd51b1c3d-388b-434b-8275-8aa1614fc406',
+        nama: 'Paket Suara 5 Menit',
         kategori: 'telepon',
-        menit: min,
-        durasi: `${min} Menit`,
+        menit: 5,
+        durasi: '5 Menit',
         keterangan: 'Semua Operator',
-        dpp,
-        ppn,
-        total,
-        harga: total,
-      };
-    });
+        dpp: 4505,
+        ppn: 495,
+        total: 5000,
+        harga: 5000,
+      },
+      {
+        id: '2e3855bf-5fbe-4e81-ae15-f333f1d31648',
+        nama: 'Paket Suara 15 Menit',
+        kategori: 'telepon',
+        menit: 15,
+        durasi: '15 Menit',
+        keterangan: 'Semua Operator',
+        dpp: 10811,
+        ppn: 1189,
+        total: 12000,
+        harga: 12000,
+      },
+    ];
   }
 
   if (typeKey === 'video' || typeKey === 'video call') {
-    return presets.map((min) => {
-      const { dpp, ppn, total } = calcPrice('video', min);
-      return {
-        id: `pkt-video-${min}`,
-        nama: `Paket Video ${min} Menit`,
+    return [
+      {
+        id: '1efccde6-af3c-4bb0-be50-3cb7326df247',
+        nama: 'Paket Video Call 10 Menit',
         kategori: 'video',
-        menit: min,
-        durasi: `${min} Menit`,
+        menit: 10,
+        durasi: '10 Menit',
         keterangan: 'Semua Operator',
-        dpp,
-        ppn,
-        total,
-        harga: total,
-      };
-    });
+        dpp: 18018,
+        ppn: 1982,
+        total: 20000,
+        harga: 20000,
+      },
+    ];
   }
 
   return [];

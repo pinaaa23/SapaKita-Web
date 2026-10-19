@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Building2, 
   Users, 
-  PhoneCall, 
   TrendingUp, 
   CheckCircle2, 
   MapPin, 
   Activity, 
   RefreshCw,
   Wallet,
-  ArrowUpRight
+  ArrowUpRight,
+  Plus,
+  ExternalLink
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -27,6 +29,7 @@ import { getKanwilDashboardSummary, getKanwilBranches } from '../../services/kan
 
 export default function KanwilDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [branches, setBranches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,108 +69,128 @@ export default function KanwilDashboard() {
     return new Intl.NumberFormat('id-ID').format(val || 0);
   };
 
+  // Compute aggregated stats
+  const totalUptsCount = summary?.totalUpts || branches.length || 0;
+  const activeUptsCount = summary?.activeBranches || branches.filter(b => b.status === 'Active' || b.status === 'Aktif').length || 0;
+  const totalWbpsCount = summary?.totalWbps || summary?.totalInmates || branches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+
   return (
     <div className="space-y-5 relative">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3D91] via-[#1E5FCC] to-[#2563EB] p-6 sm:p-7 text-white shadow-lg">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 text-xs font-semibold backdrop-blur-xs mb-2.5">
-              <Building2 className="w-3.5 h-3.5" />
-              <span>Kantor Wilayah Pemasyarakatan</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              {kanwilName}
-            </h1>
-            <p className="mt-1 text-xs sm:text-sm text-blue-100 max-w-xl">
-              Pemantauan terpusat operasional Wartel Khusus Pemasyarakatan pada seluruh Unit Pelaksana Teknis (UPT).
-            </p>
-          </div>
-          <button
-            onClick={fetchData}
-            disabled={isLoading}
-            className="self-start md:self-auto inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs backdrop-blur-xs transition-colors cursor-pointer"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
-            <span>Segarkan</span>
-          </button>
-        </div>
-      </div>
-
-      {/* 4 KPI Cards Grid */}
+      {/* 4 Clickable KPI Cards Grid - Seamless Integration with Pages */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Total UPT */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        
+        {/* Card 1: Total UPT -> Links to /kanwil/branches */}
+        <Link 
+          to="/kanwil/branches"
+          className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-primary/50 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total UPT</span>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold">
-              <Building2 className="w-5 h-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-primary transition-colors">
+              Total UPT
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold group-hover:bg-primary group-hover:text-white transition-all">
+                <Building2 className="w-5 h-5" />
+              </div>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-extrabold text-slate-800">
-              {isLoading ? '...' : summary?.totalUpts || 0}
-            </p>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                {isLoading ? '...' : totalUptsCount}
+              </p>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
+            </div>
             <span className="text-[11px] text-emerald-600 font-bold mt-1 inline-block">
-              {summary?.activeBranches || 0} UPT Aktif Beroperasi
+              {activeUptsCount} UPT Aktif Beroperasi
             </span>
           </div>
-        </div>
+        </Link>
 
-        {/* Card 2: WBP Terdata */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        {/* Card 2: WBP Terdata -> Links to /kanwil/inmates */}
+        <Link 
+          to="/kanwil/inmates"
+          className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">WBP Terdata</span>
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <Users className="w-5 h-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-indigo-600 transition-colors">
+              WBP Terdata
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                <Users className="w-5 h-5" />
+              </div>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-extrabold text-slate-800">
-              {isLoading ? '...' : formatNumber(summary?.totalWbps)}
-            </p>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                {isLoading ? '...' : formatNumber(totalWbpsCount)}
+              </p>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+            </div>
             <span className="text-[11px] text-slate-400 mt-1 inline-block">
-              Seluruh UPT di wilayah
+              Seluruh UPT di wilayah {kanwilName}
             </span>
           </div>
-        </div>
+        </Link>
 
-        {/* Card 3: Success Rate */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        {/* Card 3: Success Rate -> Links to /kanwil/reports */}
+        <Link 
+          to="/kanwil/reports"
+          className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Success Rate</span>
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-              <Activity className="w-5 h-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-emerald-600 transition-colors">
+              Success Rate
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                <Activity className="w-5 h-5" />
+              </div>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-extrabold text-slate-800">
-              {isLoading ? '...' : `${summary?.successRate || 98.4}%`}
-            </p>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold text-slate-800 tracking-tight">
+                {isLoading ? '...' : `${summary?.successRate || 98.4}%`}
+              </p>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-600 transition-colors" />
+            </div>
             <div className="flex items-center gap-1 mt-1 text-[11px] font-bold text-emerald-600">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Optimal (koneksi stabil)</span>
             </div>
           </div>
-        </div>
+        </Link>
 
-        {/* Card 4: Estimasi Transaksi */}
-        <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col justify-between">
+        {/* Card 4: Estimasi Transaksi -> Links to /kanwil/reports */}
+        <Link 
+          to="/kanwil/reports"
+          className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-amber-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Estimasi Transaksi</span>
-            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-              <Wallet className="w-5 h-5" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-amber-600 transition-colors">
+              Estimasi Transaksi
+            </span>
+            <div className="flex items-center gap-1.5">
+              <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-bold group-hover:bg-amber-600 group-hover:text-white transition-all">
+                <Wallet className="w-5 h-5" />
+              </div>
             </div>
           </div>
           <div className="mt-4">
-            <p className="text-2xl font-extrabold text-slate-800 truncate">
-              {isLoading ? '...' : formatCurrency(summary?.totalRevenue)}
-            </p>
+            <div className="flex items-baseline justify-between">
+              <p className="text-2xl font-extrabold text-slate-800 truncate tracking-tight">
+                {isLoading ? '...' : formatCurrency(summary?.totalRevenue || 0)}
+              </p>
+              <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-amber-600 transition-colors" />
+            </div>
             <span className="text-[11px] text-emerald-600 font-bold mt-1 inline-flex items-center">
               <TrendingUp className="w-3.5 h-3.5 mr-0.5" /> +{summary?.revenueGrowth || 14.2}% pertumbuhan
             </span>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Charts Grid */}
@@ -177,8 +200,14 @@ export default function KanwilDashboard() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Tren Pendapatan Wilayah</h3>
-              <p className="text-[11px] text-slate-400">Konsolidasi seluruh UPT di {kanwilName}</p>
+              <p className="text-[11px] text-slate-400">Konsolidasi seluruh UPT di bawah {kanwilName}</p>
             </div>
+            <Link 
+              to="/kanwil/reports"
+              className="text-primary hover:text-primary-dark text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
+            >
+              Lihat Laporan <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -215,6 +244,14 @@ export default function KanwilDashboard() {
               <h3 className="text-sm font-bold text-slate-800">Volume Panggilan</h3>
               <p className="text-[11px] text-slate-400">Aktivitas 7 hari terakhir</p>
             </div>
+            <button
+              onClick={fetchData}
+              disabled={isLoading}
+              title="Segarkan data"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -240,19 +277,28 @@ export default function KanwilDashboard() {
             <h2 className="text-sm font-bold text-slate-800">Daftar UPT di Wilayah</h2>
             <p className="text-[11px] text-slate-400">Monitoring operasional seluruh UPT di bawah naungan {kanwilName}</p>
           </div>
-          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-primary border border-blue-100">
-            {branches.length} UPT Terdata
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-primary border border-blue-100">
+              {branches.length} UPT Terdata
+            </span>
+            <Link 
+              to="/kanwil/branches"
+              className="text-primary hover:text-primary-dark text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
+            >
+              Kelola UPT <ArrowUpRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
         </div>
 
         <div className="overflow-x-auto w-full">
           <table className="w-full text-left border-collapse min-w-[650px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-left w-[36%]">Nama UPT</th>
-                <th className="py-3.5 px-4 text-left w-[24%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[28%]">Kapasitas & WBP</th>
-                <th className="py-3.5 px-4 text-center w-[12%]">Status</th>
+                <th className="py-3.5 px-4 text-left w-[34%]">Nama UPT</th>
+                <th className="py-3.5 px-4 text-left w-[22%]">Lokasi</th>
+                <th className="py-3.5 px-4 text-left w-[24%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-center w-[10%]">Status</th>
+                <th className="py-3.5 px-4 text-center w-[10%]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -263,6 +309,7 @@ export default function KanwilDashboard() {
                     <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-28 mb-1.5" /><div className="h-1.5 bg-slate-100 rounded w-36" /></td>
                     <td className="py-4 px-4 text-center"><div className="h-6 bg-slate-200 rounded-full w-14 mx-auto" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-6 bg-slate-200 rounded w-16 mx-auto" /></td>
                   </tr>
                 ))
               ) : branches.length > 0 ? (
@@ -278,7 +325,12 @@ export default function KanwilDashboard() {
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div>
-                            <p className="font-bold text-slate-800 text-sm whitespace-nowrap">{b.name}</p>
+                            <Link 
+                              to={`/kanwil/inmates?branchId=${b.id}`}
+                              className="font-bold text-slate-800 text-sm whitespace-nowrap hover:text-primary transition-colors inline-block"
+                            >
+                              {b.name}
+                            </Link>
                             <p className="text-[11px] text-slate-400 font-medium">{b.phone || '-'}</p>
                           </div>
                         </div>
@@ -290,24 +342,30 @@ export default function KanwilDashboard() {
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-slate-600">
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-slate-800 text-sm">
-                            {formatNumber(b.inmateCount)}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-medium">/ {b.capacity} Kapasitas</span>
-                        </div>
-                        <div className="w-36 bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1.5">
-                          <div 
-                            className={`h-full rounded-full ${
-                              occupancyPct > 100 
-                                ? 'bg-rose-500' 
-                                : occupancyPct > 80 
-                                  ? 'bg-amber-500' 
-                                  : 'bg-primary'
-                            }`}
-                            style={{ width: `${Math.min(100, occupancyPct)}%` }}
-                          ></div>
-                        </div>
+                        <Link 
+                          to={`/kanwil/inmates?branchId=${b.id}`}
+                          title="Klik untuk melihat data WBP cabang ini"
+                          className="group inline-block"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-extrabold text-slate-800 text-sm group-hover:text-primary transition-colors">
+                              {formatNumber(b.inmateCount)}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-medium">/ {b.capacity} Kapasitas</span>
+                          </div>
+                          <div className="w-36 bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1.5">
+                            <div 
+                              className={`h-full rounded-full ${
+                                occupancyPct > 100 
+                                  ? 'bg-rose-500' 
+                                  : occupancyPct > 80 
+                                    ? 'bg-amber-500' 
+                                    : 'bg-primary'
+                              }`}
+                              style={{ width: `${Math.min(100, occupancyPct)}%` }}
+                            ></div>
+                          </div>
+                        </Link>
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${
@@ -318,13 +376,36 @@ export default function KanwilDashboard() {
                           {isAktif ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <Link 
+                          to={`/kanwil/inmates?branchId=${b.id}`}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <span>Data WBP</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
-                    Belum ada UPT yang terdaftar di wilayah ini.
+                  <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
+                        <Building2 className="w-6 h-6" />
+                      </div>
+                      <p className="font-bold text-slate-700 text-sm">Belum ada UPT di wilayah ini</p>
+                      <p className="text-slate-400 max-w-sm">
+                        Kantor Wilayah {kanwilName} belum memiliki Unit Pelaksana Teknis yang terdaftar.
+                      </p>
+                      <Link 
+                        to="/kanwil/branches/create"
+                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4" /> Tambah UPT Baru
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               )}

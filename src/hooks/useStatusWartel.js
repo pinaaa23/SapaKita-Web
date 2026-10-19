@@ -168,6 +168,13 @@ export function useStatusWartel() {
 
     listeners.add(handleStateChange);
 
+    const handleBoothsUpdated = () => {
+      fetchAndUpdate();
+    };
+
+    window.addEventListener('pascall_wartel_booths_updated', handleBoothsUpdated);
+    window.addEventListener('storage', handleBoothsUpdated);
+
     // Ketika listener pertama terdaftar, jalankan fetching awal & polling
     if (listeners.size === 1) {
       fetchAndUpdate();
@@ -192,6 +199,8 @@ export function useStatusWartel() {
     }, 1000);
 
     return () => {
+      window.removeEventListener('pascall_wartel_booths_updated', handleBoothsUpdated);
+      window.removeEventListener('storage', handleBoothsUpdated);
       listeners.delete(handleStateChange);
       clearInterval(ticker);
 
