@@ -99,11 +99,11 @@ export default function RiwayatPage() {
     };
 
     const handleStorageEvent = (e) => {
-      // Hanya refetch jika key storage berkaitan dengan kantin atau jika key null (storage.clear())
+      // Hanya refetch jika key storage berkaitan dengan kantin
       if (
-        !e.key ||
-        e.key.includes('canteen') ||
-        e.key.includes('pascall_canteen')
+        e &&
+        e.key &&
+        (e.key.includes('canteen') || e.key.includes('pascall_canteen'))
       ) {
         handleCanteenEvent();
       }

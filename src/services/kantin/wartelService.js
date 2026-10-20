@@ -46,7 +46,6 @@ export function saveCustomBooths(booths) {
   try {
     localStorage.setItem(WARTEL_STORAGE_KEY, JSON.stringify(booths));
     window.dispatchEvent(new CustomEvent('pascall_wartel_booths_updated', { detail: booths }));
-    window.dispatchEvent(new Event('storage'));
   } catch (e) {
     console.error('[WartelService] Gagal menyimpan custom booths:', e);
   }
@@ -258,7 +257,11 @@ export async function getStatusWartel() {
       }));
 
       const summary = hitungRingkasanWartel(mapped, data.cabang);
-      saveCustomBooths(mapped); // Sinkronkan ke cache lokal
+      try {
+        localStorage.setItem(WARTEL_STORAGE_KEY, JSON.stringify(mapped));
+      } catch (e) {
+        // Abaikan error cache lokal
+      }
 
       return {
         waktuServer,

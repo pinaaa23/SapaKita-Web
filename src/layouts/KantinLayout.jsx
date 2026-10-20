@@ -64,7 +64,7 @@ export default function KantinLayout() {
     };
 
     const handleStorage = (e) => {
-      if (!e.key || e.key.includes('notif') || e.key.includes('topup')) {
+      if (e && e.key && (e.key.includes('notif') || e.key.includes('topup'))) {
         fetchNotifData();
       }
     };

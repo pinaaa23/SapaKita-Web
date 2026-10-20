@@ -168,13 +168,18 @@ export function useStatusWartel({ enableTicker = false } = {}) {
 
     listeners.add(handleStateChange);
 
-    const handleBoothsUpdated = (e) => {
-      if (e && e.key && !e.key.includes('wartel')) return;
+    const handleCustomBoothsUpdated = () => {
       fetchAndUpdate();
     };
 
-    window.addEventListener('pascall_wartel_booths_updated', handleBoothsUpdated);
-    window.addEventListener('storage', handleBoothsUpdated);
+    const handleStorageBoothsUpdated = (e) => {
+      if (e && e.key && e.key.includes('wartel')) {
+        fetchAndUpdate();
+      }
+    };
+
+    window.addEventListener('pascall_wartel_booths_updated', handleCustomBoothsUpdated);
+    window.addEventListener('storage', handleStorageBoothsUpdated);
 
     // Ketika listener pertama terdaftar, jalankan fetching awal & polling
     if (listeners.size === 1) {
@@ -203,8 +208,8 @@ export function useStatusWartel({ enableTicker = false } = {}) {
     }
 
     return () => {
-      window.removeEventListener('pascall_wartel_booths_updated', handleBoothsUpdated);
-      window.removeEventListener('storage', handleBoothsUpdated);
+      window.removeEventListener('pascall_wartel_booths_updated', handleCustomBoothsUpdated);
+      window.removeEventListener('storage', handleStorageBoothsUpdated);
       listeners.delete(handleStateChange);
       if (ticker) {
         clearInterval(ticker);

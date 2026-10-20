@@ -54,9 +54,10 @@ export default function PaketPage() {
 
     const handleStorageUpdate = (e) => {
       if (
-        !e.key ||
-        e.key === 'pascall_packages_last_updated' ||
-        e.key === 'pascall_upt_packages_v7'
+        e &&
+        e.key &&
+        (e.key === 'pascall_packages_last_updated' ||
+         e.key === 'pascall_upt_packages_v7')
       ) {
         loadPaket(true);
       }
