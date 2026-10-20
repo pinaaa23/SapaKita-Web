@@ -192,8 +192,9 @@ export async function getSuperadminTopupHistory({
     staffName: item.user?.name || item.staffName || 'Operator Kantin',
     staffEmail: item.user?.email || item.staffEmail || '-',
     nominal: Number(item.nominal) || 0,
-    ppn: Math.round((Number(item.nominal) || 0) * PPN_RATE),
-    totalBayar: Number(item.nominal) + Math.round((Number(item.nominal) || 0) * PPN_RATE),
+    dpp: Math.round((Number(item.nominal) || 0) / (1 + PPN_RATE)),
+    ppn: (Number(item.nominal) || 0) - Math.round((Number(item.nominal) || 0) / (1 + PPN_RATE)),
+    totalBayar: Number(item.nominal) || 0,
     menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
     bankTarget: item.bankTarget || 'Rekening Lapas',
     proofUrl: item.proofUrl || null,
@@ -512,3 +513,45 @@ export async function getAllCanteenBillingReport(monthParam, yearParam) {
 
   return reports;
 }
+
+/**
+ * 11. Mengambil detail transaksi voucher untuk cabang UPT tertentu pada periode tertentu
+ * Digunakan untuk modal Rincian Transaksi Penjualan Masuk Tagihan di Superadmin.
+ *
+ * @param {string} branchId - ID Cabang UPT
+ * @param {number} [monthParam] - Bulan (1-12)
+ * @param {number} [yearParam] - Tahun (contoh: 2026)
+ * @returns {Promise<Array>}
+ */
+export async function getCanteenBranchTransactions(branchId, monthParam, yearParam) {
+  if (!branchId) return [];
+  try {
+    const targetMonth = monthParam !== undefined ? Number(monthParam) : new Date().getMonth() + 1;
+    const targetYear = yearParam !== undefined ? Number(yearParam) : new Date().getFullYear();
+    const monthStr = String(targetMonth).padStart(2, '0');
+    const bulanParam = `${targetYear}-${monthStr}`;
+
+    const res = await apiFetch(`/api/canteen/transactions?branchId=${encodeURIComponent(branchId)}&bulan=${bulanParam}&limit=100`);
+    const items = res?.data || res?.items || (Array.isArray(res) ? res : []);
+    return items.map((t) => ({
+      id: t.id,
+      createdAt: t.createdAt,
+      kodeVoucher: t.kodeVoucher,
+      inmate: t.inmate || null,
+      inmateName: t.inmate?.name || t.inmateName || '-',
+      inmateIdentifier: t.inmate?.identifier || t.inmateIdentifier || '-',
+      package: t.package || null,
+      packageName: t.package?.name || t.packageName || 'Paket Bicara',
+      duration: t.duration || t.package?.durationMinutes || t.package?.duration || 0,
+      cashier: t.cashier || null,
+      cashierName: t.cashier?.name || t.cashierName || 'Kasir',
+      totalAmount: Number(t.totalAmount || 0),
+      dpp: Number(t.dpp || 0),
+      ppn: Number(t.ppn || 0),
+    }));
+  } catch (err) {
+    console.warn('[canteenTopupService] Gagal memuat transaksi cabang:', err?.message || err);
+    return [];
+  }
+}
+

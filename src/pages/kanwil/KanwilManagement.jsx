@@ -93,7 +93,7 @@ export default function KanwilManagement() {
   const [assignTargetBranch, setAssignTargetBranch] = useState(null);
   const [assignForm, setAssignForm] = useState({
     branchId: '',
-    province: '',
+    province: '', 
     kanwilId: '',
     reason: 'Penetapan resmi oleh Superadmin',
   });

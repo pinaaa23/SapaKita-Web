@@ -129,21 +129,26 @@ export default function BranchPackages() {
       setPackages(uptPackages);
 
       // Sinkronisasikan paket cabang yang aktif ke shared storage agar Kantin langsung sinkron
-      if (uptPackages.length > 0) {
-        try {
+      const currentBId = user?.branchId || user?.branch?.id || uptPackages[0]?.branchId;
+      const currentBName = uptName || user?.branch?.name || uptPackages[0]?.branch;
+      try {
+        if (currentBId) {
+          localStorage.setItem(`pascall_branch_packages_${currentBId}`, JSON.stringify(uptPackages));
+          localStorage.setItem('pascall_active_branch_id', currentBId);
+        }
+        if (currentBName) {
+          localStorage.setItem('pascall_active_branch_name', currentBName);
+        }
+
+        if (uptPackages.length > 0) {
           localStorage.setItem('pascall_latest_branch_packages', JSON.stringify(uptPackages));
           localStorage.setItem('pascall_upt_packages_v7', JSON.stringify(uptPackages));
-          const currentBId = user?.branchId || user?.branch?.id || uptPackages[0]?.branchId;
-          if (currentBId) {
-            localStorage.setItem('pascall_active_branch_id', currentBId);
-          }
-          const currentBName = uptName || user?.branch?.name || uptPackages[0]?.branch;
-          if (currentBName) {
-            localStorage.setItem('pascall_active_branch_name', currentBName);
-          }
-        } catch {}
-        notifyPackagesUpdated();
-      }
+        } else {
+          localStorage.removeItem('pascall_latest_branch_packages');
+          localStorage.removeItem('pascall_upt_packages_v7');
+        }
+      } catch {}
+      notifyPackagesUpdated();
     } catch (err) {
       console.error('Gagal memuat paket:', err);
     } finally {
