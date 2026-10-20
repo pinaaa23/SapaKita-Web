@@ -41,12 +41,18 @@ export default function KantinLayout() {
   const [activeNotifTab, setActiveNotifTab] = useState('all'); // 'all' | 'unread'
   const notifRef = useRef(null);
 
+  const isFetchingNotifRef = useRef(false);
+
   const fetchNotifData = async () => {
+    if (isFetchingNotifRef.current) return;
+    isFetchingNotifRef.current = true;
     try {
       const list = await getNotifications();
       setNotifications(Array.isArray(list) ? list : []);
     } catch (err) {
       console.error('Gagal mengambil notifikasi kantin:', err);
+    } finally {
+      isFetchingNotifRef.current = false;
     }
   };
 
@@ -57,10 +63,16 @@ export default function KantinLayout() {
       fetchNotifData();
     };
 
+    const handleStorage = (e) => {
+      if (!e.key || e.key.includes('notif') || e.key.includes('topup')) {
+        fetchNotifData();
+      }
+    };
+
     window.addEventListener('canteen_topup_changed', handleUpdate);
     window.addEventListener('pascall_notification_updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
-    const interval = setInterval(fetchNotifData, 6000);
+    window.addEventListener('storage', handleStorage);
+    const interval = setInterval(fetchNotifData, 20000);
 
     const handleClickOutside = (e) => {
       if (notifRef.current && !notifRef.current.contains(e.target)) {
@@ -72,7 +84,7 @@ export default function KantinLayout() {
     return () => {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
       window.removeEventListener('pascall_notification_updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('storage', handleStorage);
       document.removeEventListener('mousedown', handleClickOutside);
       clearInterval(interval);
     };

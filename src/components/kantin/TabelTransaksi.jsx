@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ArrowUpRight, FileSpreadsheet, Download, Receipt, Ticket } from 'lucide-react';
+import { Search, FileSpreadsheet, Download, Receipt, Ticket } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { exportToPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
@@ -24,8 +24,12 @@ export default function TabelTransaksi({
     navigate(`/kantin/struk/${id}`);
   };
 
-  const totalNominal = transaksiList.reduce(
-    (acc, curr) => acc + (curr.paket?.harga || 0),
+  const validTransaksiList = Array.isArray(transaksiList)
+    ? transaksiList.filter(Boolean)
+    : [];
+
+  const totalNominal = validTransaksiList.reduce(
+    (acc, curr) => acc + Number(curr?.paket?.harga || curr?.paket?.total || 0),
     0
   );
 
@@ -44,7 +48,7 @@ export default function TabelTransaksi({
     const suffix = str.length >= 2 ? str.slice(-2) : str;
     const defaultMaskLen = Math.max(VOUCHER_CODE_LENGTH - 2, 3);
     const maskedLength = str.length > suffix.length ? str.length - suffix.length : defaultMaskLen;
-    return `PAS-${'•'.repeat(maskedLength)}-${suffix}`;
+    return `PAS-${'•'.repeat(Math.max(maskedLength, 1))}-${suffix}`;
   };
 
   const getPeriodeLabel = (per, tgl) => {
@@ -62,7 +66,7 @@ export default function TabelTransaksi({
   };
 
   const handleExportPDF = () => {
-    if (!transaksiList || transaksiList.length === 0) {
+    if (!validTransaksiList || validTransaksiList.length === 0) {
       alert('Tidak ada data untuk diekspor ke PDF.');
       return;
     }
@@ -78,19 +82,19 @@ export default function TabelTransaksi({
       'NOMINAL',
     ];
 
-    const rows = transaksiList.map((item) => [
-      item.id || '-',
-      formatTanggal(item.waktu, true),
-      item.napi?.nama || '-',
-      item.napi?.id || '-',
-      item.paket?.nama || '-',
-      maskVoucher(item.kodeVoucher),
-      item.metode || 'Tunai',
-      formatRupiah(item.paket?.harga || 0),
+    const rows = validTransaksiList.map((item) => [
+      item?.id || '-',
+      formatTanggal(item?.waktu, true),
+      item?.napi?.nama || '-',
+      item?.napi?.id || '-',
+      item?.paket?.nama || '-',
+      maskVoucher(item?.kodeVoucher),
+      item?.metode || 'Tunai',
+      formatRupiah(item?.paket?.harga || item?.paket?.total || 0),
     ]);
 
     const summaryMetrics = [
-      { label: 'JUMLAH TRANSAKSI', value: `${transaksiList.length} Transaksi` },
+      { label: 'JUMLAH TRANSAKSI', value: `${validTransaksiList.length} Transaksi` },
       { label: 'TOTAL PEMASUKAN', value: formatRupiah(totalNominal) },
     ];
 
@@ -218,50 +222,43 @@ export default function TabelTransaksi({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {transaksiList.map((item, idx) => (
+              {validTransaksiList.map((item, idx) => (
                 <tr
-                  key={item.id ? `${item.id}-${idx}` : idx}
-                  onClick={() => handleRowClick(item.id)}
+                  key={item?.id ? `${item.id}-${idx}` : idx}
+                  onClick={() => item?.id && handleRowClick(item.id)}
                   className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
                 >
                   <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
-                    <div>{item.id}</div>
+                    <div>{item?.id || '-'}</div>
                     <span className="text-[10px] text-slate-400 font-mono block">
-                      {maskVoucher(item.kodeVoucher)}
+                      {maskVoucher(item?.kodeVoucher)}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
-                    {formatTanggal(item.waktu, true)}
+                    {formatTanggal(item?.waktu, true)}
                   </td>
                   <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">
-                    {item.napi?.nama}
+                    {item?.napi?.nama || '-'}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <span className="font-mono text-slate-700 font-semibold block">
-                      {item.napi?.id}
+                      {item?.napi?.id || '-'}
                     </span>
-                    {/* Disembunyikan: tidak ada lagi nomor telepon keluarga WBP
-                    {item.napi?.noTelp && (
-                      <span className="text-[10px] text-slate-400 font-mono block">
-                        {item.napi?.noTelp}
-                      </span>
-                    )}
-                    */}
                   </td>
                   <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
-                    {item.paket?.nama}
+                    {item?.paket?.nama || '-'}
                   </td>
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-md font-bold text-[11px] border ${getMetodeBadge(
-                        item.metode
+                        item?.metode
                       )}`}
                     >
-                      {item.metode}
+                      {item?.metode || 'Tunai'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-sm">
-                    {formatRupiah(item.paket?.harga)}
+                    {formatRupiah(item?.paket?.harga || item?.paket?.total || 0)}
                   </td>
                   <td className="py-3.5 px-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-center justify-center gap-1.5">

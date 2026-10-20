@@ -9,7 +9,7 @@
  * - PATCH /api/canteen/topups/:id/reject
  */
 
-import { apiFetch } from './api';
+import { apiFetch, getAuthToken, API_BASE_URL } from './api';
 import { isDummyMode } from '../dummy';
 import {
   PPN_RATE,
@@ -198,6 +198,7 @@ export async function getSuperadminTopupHistory({
     menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
     bankTarget: item.bankTarget || 'Rekening Lapas',
     proofUrl: item.proofUrl || null,
+    proofStreamUrl: item.proofStreamUrl || (item.id && item.proofUrl ? `/api/canteen/topups/${item.id}/proof` : null),
     status: item.status, // 'PENDING' | 'APPROVED' | 'REJECTED'
     rejectReason: item.rejectReason || null,
     user: item.user || null,
@@ -391,7 +392,12 @@ export async function getAllCanteenBillingReport(monthParam, yearParam) {
           isBlocked: st === 'DIBLOKIR' || st === 'REJECTED',
           dueDate: dueDate.toISOString(),
           dueDateFormatted: '2 ' + monthNames[targetMonth % 12] + ' ' + (targetMonth === 12 ? targetYear + 1 : targetYear),
-          latestPayment: b.paymentProof || null,
+          latestPayment: b.paymentProof
+            ? {
+                ...b.paymentProof,
+                proofStreamUrl: b.paymentProof.proofStreamUrl || (b.paymentProof.id && b.paymentProof.proofUrl ? `/api/canteen/topups/${b.paymentProof.id}/proof` : null),
+              }
+            : null,
           transactions: b.transactions || [],
         };
       });
@@ -505,8 +511,12 @@ export async function getAllCanteenBillingReport(monthParam, yearParam) {
       statusLabel,
       isBlocked,
       dueDate: dueDate.toISOString(),
-      dueDateFormatted: '2 ' + monthNames[targetMonth % 12] + ' ' + (targetMonth === 12 ? targetYear + 1 : targetYear),
-      latestPayment: pendingPayment || approvedPayments[0] || rejectedPayment || null,
+      latestPayment: pendingPayment
+        ? {
+            ...pendingPayment,
+            proofStreamUrl: pendingPayment.proofStreamUrl || (pendingPayment.id && pendingPayment.proofUrl ? `/api/canteen/topups/${pendingPayment.id}/proof` : null),
+          }
+        : (approvedPayments[0] || rejectedPayment || null),
       transactions: branchTrx,
     };
   });
@@ -553,5 +563,60 @@ export async function getCanteenBranchTransactions(branchId, monthParam, yearPar
     console.warn('[canteenTopupService] Gagal memuat transaksi cabang:', err?.message || err);
     return [];
   }
+}
+
+/**
+ * 12. Menghasilkan URL streaming bukti pembayaran topup kantin dari backend (MinIO Proxy).
+ *     GET /api/canteen/topups/:id/proof?token=...
+ *     Backend akan mengalirkan gambar langsung dari MinIO dengan header image/jpeg atau image/png.
+ *     Mendukung otentikasi via token query param sehingga bisa langsung dipasang pada tag <img> atau window.open.
+ *
+ * @param {string|object} topupOrId - Objek topup atau ID pengajuan top up
+ * @returns {string|null} URL lengkap proxy streaming bukti transfer
+ */
+export function getTopupProofStreamUrl(topupOrId) {
+  if (!topupOrId) return null;
+  const id = typeof topupOrId === 'string' ? topupOrId : (topupOrId.id || topupOrId.topupId);
+  if (!id) return null;
+
+  // Jika item hanya bukti virtual mock tanpa berkas nyata
+  if (typeof id === 'string' && id.startsWith('TOPUP-') && (!topupOrId.proofUrl || topupOrId.proofUrl === 'virtual-proof')) {
+    return null;
+  }
+
+  const token = getAuthToken();
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+  const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
+  return `${cleanBase}/api/canteen/topups/${encodeURIComponent(id)}/proof${tokenQuery}`;
+}
+
+/**
+ * 13. Mengunduh stream bukti pembayaran dari backend sebagai Blob menggunakan Authorization Bearer header.
+ *
+ * @param {string|object} topupOrId - ID transaksi atau objek topup
+ * @returns {Promise<{ blob: Blob, objectUrl: string, contentType: string }>}
+ */
+export async function fetchTopupProofBlob(topupOrId) {
+  const id = typeof topupOrId === 'string' ? topupOrId : (topupOrId.id || topupOrId.topupId);
+  if (!id) throw new Error('ID Pengajuan top up diperlukan.');
+
+  const token = getAuthToken();
+  const headers = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
+  const url = `${cleanBase}/api/canteen/topups/${encodeURIComponent(id)}/proof`;
+
+  const res = await fetch(url, { headers });
+  if (!res.ok) {
+    throw new Error(`Gagal memuat bukti pembayaran: ${res.statusText} (${res.status})`);
+  }
+
+  const blob = await res.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const contentType = res.headers.get('content-type') || 'image/jpeg';
+  return { blob, objectUrl, contentType };
 }
 

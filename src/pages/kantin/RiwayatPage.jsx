@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import FilterPeriode from '../../components/kantin/FilterPeriode';
 import KartuRingkasan from '../../components/kantin/KartuRingkasan';
@@ -8,10 +8,11 @@ import { getRekap, getRiwayat } from '../../services/kantin/kantinService';
 
 export default function RiwayatPage() {
   const [periode, setPeriode] = useState('bulanan');
-  const [tanggal, setTanggal] = useState(new Date());
+  const [tanggal, setTanggal] = useState(() => new Date());
 
   const [metodeFilter, setMetodeFilter] = useState('Semua');
   const [pencarian, setPencarian] = useState('');
+  const [debouncedPencarian, setDebouncedPencarian] = useState('');
 
   const [rekapData, setRekapData] = useState({
     totalPemasukan: 0,
@@ -21,43 +22,102 @@ export default function RiwayatPage() {
   const [transaksiList, setTransaksiList] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = useCallback(async (currentPeriode, currentTanggal, currentMetode, currentPencarian) => {
-    setIsLoading(true);
-    try {
-      const [rekapRes, riwayatRes] = await Promise.allSettled([
-        getRekap({ periode: currentPeriode, tanggal: currentTanggal }),
-        getRiwayat({ cari: currentPencarian, metode: currentMetode, periode: currentPeriode, tanggal: currentTanggal }),
-      ]);
+  // Request ID ref untuk mencegah race condition (respons lama menimpa respons baru)
+  const requestIdRef = useRef(0);
+  const debounceTimerRef = useRef(null);
 
-      if (rekapRes.status === 'fulfilled' && rekapRes.value) {
-        setRekapData(rekapRes.value);
-      }
-      if (riwayatRes.status === 'fulfilled' && Array.isArray(riwayatRes.value)) {
-        setTransaksiList(riwayatRes.value);
-      }
-    } catch (err) {
-      console.error('Gagal mengambil data riwayat & rekap:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  // Ambil data rekap & riwayat saat periode, tanggal, metode, atau pencarian berubah
+  // Debounce search query 350ms agar tidak spam API setiap ketikan huruf
   useEffect(() => {
-    fetchData(periode, tanggal, metodeFilter, pencarian);
+    const timer = setTimeout(() => {
+      setDebouncedPencarian(pencarian.trim());
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [pencarian]);
 
-    const handleTransactionUpdate = () => {
-      fetchData(periode, tanggal, metodeFilter, pencarian);
+  const fetchData = useCallback(
+    async (currentPeriode, currentTanggal, currentMetode, currentPencarian) => {
+      const currentRequestId = ++requestIdRef.current;
+      setIsLoading(true);
+
+      try {
+        const [rekapRes, riwayatRes] = await Promise.allSettled([
+          getRekap({ periode: currentPeriode, tanggal: currentTanggal }),
+          getRiwayat({
+            cari: currentPencarian,
+            metode: currentMetode,
+            periode: currentPeriode,
+            tanggal: currentTanggal,
+          }),
+        ]);
+
+        // Cek apakah ada request yang lebih baru yang sudah berjalan
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
+        if (rekapRes.status === 'fulfilled' && rekapRes.value) {
+          setRekapData(rekapRes.value);
+        } else {
+          setRekapData((prev) => ({
+            ...prev,
+            totalPemasukan: 0,
+            jumlahTransaksi: 0,
+            chartData: [],
+          }));
+        }
+
+        if (riwayatRes.status === 'fulfilled' && Array.isArray(riwayatRes.value)) {
+          setTransaksiList(riwayatRes.value);
+        } else {
+          setTransaksiList([]);
+        }
+      } catch (err) {
+        if (currentRequestId === requestIdRef.current) {
+          console.error('Gagal mengambil data riwayat & rekap:', err);
+        }
+      } finally {
+        if (currentRequestId === requestIdRef.current) {
+          setIsLoading(false);
+        }
+      }
+    },
+    []
+  );
+
+  // Ambil data saat filter periode, tanggal, metode, atau debounced search berubah
+  useEffect(() => {
+    fetchData(periode, tanggal, metodeFilter, debouncedPencarian);
+  }, [fetchData, periode, tanggal, metodeFilter, debouncedPencarian]);
+
+  // Listener untuk transaksi kantin baru tersimpan atau storage update (dengan debounce & filter key)
+  useEffect(() => {
+    const handleCanteenEvent = () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = setTimeout(() => {
+        fetchData(periode, tanggal, metodeFilter, debouncedPencarian);
+      }, 500);
     };
 
-    window.addEventListener('canteen_transaction_saved', handleTransactionUpdate);
-    window.addEventListener('storage', handleTransactionUpdate);
+    const handleStorageEvent = (e) => {
+      // Hanya refetch jika key storage berkaitan dengan kantin atau jika key null (storage.clear())
+      if (
+        !e.key ||
+        e.key.includes('canteen') ||
+        e.key.includes('pascall_canteen')
+      ) {
+        handleCanteenEvent();
+      }
+    };
+
+    window.addEventListener('canteen_transaction_saved', handleCanteenEvent);
+    window.addEventListener('storage', handleStorageEvent);
 
     return () => {
-      window.removeEventListener('canteen_transaction_saved', handleTransactionUpdate);
-      window.removeEventListener('storage', handleTransactionUpdate);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      window.removeEventListener('canteen_transaction_saved', handleCanteenEvent);
+      window.removeEventListener('storage', handleStorageEvent);
     };
-  }, [fetchData, periode, tanggal, metodeFilter, pencarian]);
+  }, [fetchData, periode, tanggal, metodeFilter, debouncedPencarian]);
 
   const handleUbahPeriode = (newPeriode) => {
     setPeriode(newPeriode);
@@ -68,7 +128,7 @@ export default function RiwayatPage() {
   };
 
   const handleManualRefresh = () => {
-    fetchData(periode, tanggal, metodeFilter, pencarian);
+    fetchData(periode, tanggal, metodeFilter, debouncedPencarian);
   };
 
   return (

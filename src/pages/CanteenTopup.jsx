@@ -34,9 +34,11 @@ import {
   rejectTopupTransaction,
   getAllCanteenBillingReport,
   getCanteenBranchTransactions,
+  getTopupProofStreamUrl,
+  fetchTopupProofBlob,
 } from '../services/canteenTopupService';
 import { getBranches } from '../services/branchService';
-import { API_BASE_URL } from '../services/api';
+import { API_BASE_URL, getAuthToken } from '../services/api';
 
 export default function CanteenTopup() {
   const now = new Date();
@@ -74,6 +76,8 @@ export default function CanteenTopup() {
   const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
   const [proofPreviewItem, setProofPreviewItem] = useState(null);
   const [proofImageFailed, setProofImageFailed] = useState(false);
+  const [isProofLoading, setIsProofLoading] = useState(false);
+  const [isDownloadingProof, setIsDownloadingProof] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -190,18 +194,42 @@ export default function CanteenTopup() {
     setTopupActionModal({ action: 'reject', item });
   };
 
-  const resolveProofUrl = (url) => {
+  const resolveProofUrl = (url, item) => {
+    // 1. Jika item topup memiliki ID backend nyata, hubungkan ke proxy MinIO backend:
+    // GET /api/canteen/topups/:id/proof?token=...
+    if (item && item.id && !String(item.id).startsWith('TOPUP-') && item.proofUrl && item.proofUrl !== 'virtual-proof') {
+      const streamUrl = getTopupProofStreamUrl(item);
+      if (streamUrl) return streamUrl;
+    }
+
     if (!url || url === 'virtual-proof') return 'virtual-proof';
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    if (url.startsWith('data:') || url.startsWith('blob:')) {
       return url;
     }
+
+    // 2. Jika URL sudah mengarah ke endpoint streaming bukti
+    if (url.includes('/api/canteen/topups/') && url.includes('/proof')) {
+      const token = getAuthToken();
+      const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+      const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
+      const cleanPath = url.startsWith('http') ? url : `${cleanBase}/${url.replace(/^\/+/, '')}`;
+      return cleanPath.includes('token=') ? cleanPath : `${cleanPath}${cleanPath.includes('?') ? '&' : '?'}${tokenQuery.replace('?', '')}`;
+    }
+
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+
     const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
     const cleanPath = url.replace(/^\/+/, '');
     return `${cleanBase}/${cleanPath}`;
   };
 
   const handleViewProof = (itemOrReport) => {
-    const payment = pendingRequests.find((p) => p.branchId === itemOrReport.branchId) ||
+    const payment =
+      (itemOrReport && itemOrReport.nominal && itemOrReport.id && !itemOrReport.transactions ? itemOrReport : null) ||
+      pendingRequests.find((p) => p.branchId === itemOrReport.branchId) ||
+      allHistory.find((h) => h.branchId === itemOrReport.branchId && (h.status === 'PENDING' || h.status === 'Menunggu')) ||
       itemOrReport.latestPayment || {
         id: `TOPUP-${itemOrReport.branchCode || 'UPT'}-${Date.now().toString().slice(-4)}`,
         branchId: itemOrReport.branchId,
@@ -211,15 +239,46 @@ export default function CanteenTopup() {
         tanggal: itemOrReport.tanggal || new Date().toISOString(),
         bankTarget: itemOrReport.bankTarget || 'Bank BRI / BCA Virtual Account Lapas',
         proofUrl: itemOrReport.latestPayment?.proofUrl || itemOrReport.proofUrl || null,
+        proofStreamUrl: itemOrReport.latestPayment?.proofStreamUrl || itemOrReport.proofStreamUrl || null,
         staffName: itemOrReport.staffName || ('Operator Kasir ' + (itemOrReport.branchName || '')),
         status: itemOrReport.billingStatus || itemOrReport.status || 'PENDING',
       };
     
-    const rawUrl = payment.proofUrl || itemOrReport.proofUrl || null;
-    const finalUrl = resolveProofUrl(rawUrl);
-    setProofPreviewItem(payment);
+    const targetItem = {
+      ...payment,
+      id: payment.id || itemOrReport.id,
+      proofUrl: payment.proofUrl || itemOrReport.proofUrl || null,
+      proofStreamUrl: payment.proofStreamUrl || itemOrReport.proofStreamUrl || null,
+    };
+
+    const finalUrl = resolveProofUrl(targetItem.proofUrl, targetItem);
+    setProofPreviewItem(targetItem);
     setProofPreviewUrl(finalUrl);
     setProofImageFailed(finalUrl === 'virtual-proof');
+    setIsProofLoading(finalUrl !== 'virtual-proof');
+  };
+
+  const handleDownloadProof = async () => {
+    if (!proofPreviewItem?.id || String(proofPreviewItem.id).startsWith('TOPUP-')) {
+      handleOpenNewTabProof();
+      return;
+    }
+    setIsDownloadingProof(true);
+    try {
+      const { objectUrl } = await fetchTopupProofBlob(proofPreviewItem.id);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = `bukti-transfer-${proofPreviewItem.branchName || 'kantin'}-${proofPreviewItem.id}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showToast('✓ Berkas bukti pembayaran berhasil diunduh');
+    } catch (err) {
+      console.warn('Gagal unduh blob proof, fallback buka tab baru:', err);
+      handleOpenNewTabProof();
+    } finally {
+      setIsDownloadingProof(false);
+    }
   };
 
   const handleOpenNewTabProof = () => {
@@ -1195,18 +1254,32 @@ export default function CanteenTopup() {
             </div>
 
             {/* Isi Bukti Pembayaran: Gambar atau Slip Transfer Digital Resmi */}
-            <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 flex items-center justify-center bg-slate-100/60">
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 flex items-center justify-center bg-slate-100/60 relative">
               {!proofImageFailed && proofPreviewUrl !== 'virtual-proof' ? (
-                <div className="text-center">
+                <div className="text-center relative max-w-full">
+                  {isProofLoading && (
+                    <div className="py-16 px-8 flex flex-col items-center justify-center text-slate-500">
+                      <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mb-2" />
+                      <span className="text-xs font-semibold">Mengalirkan gambar bukti dari MinIO...</span>
+                    </div>
+                  )}
                   <img
                     src={proofPreviewUrl}
                     alt="Bukti Transfer Pembayaran"
-                    onError={() => setProofImageFailed(true)}
-                    className="max-h-[60vh] max-w-full rounded-xl object-contain shadow-md border border-slate-200 bg-white"
+                    onLoad={() => setIsProofLoading(false)}
+                    onError={() => {
+                      setIsProofLoading(false);
+                      setProofImageFailed(true);
+                    }}
+                    className={`max-h-[60vh] max-w-full rounded-xl object-contain shadow-md border border-slate-200 bg-white transition-opacity duration-200 ${
+                      isProofLoading ? 'opacity-0 h-0 w-0' : 'opacity-100'
+                    }`}
                   />
-                  <p className="text-[11px] text-slate-400 mt-2">
-                    Foto / Scan Slip Bukti Pembayaran dari Kasir Kantin
-                  </p>
+                  {!isProofLoading && (
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      Foto / Scan Berkas Bukti Transfer (Streaming MinIO Backend)
+                    </p>
+                  )}
                 </div>
               ) : (
                 /* Struk Digital Resmi PasCall (Fallback slip transfer interaktif & elegan) */
@@ -1265,16 +1338,31 @@ export default function CanteenTopup() {
               )}
             </div>
 
-            {/* Footer Modal: Tombol Buka Tab Baru & Tutup */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-              <button
-                type="button"
-                onClick={handleOpenNewTabProof}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
-              >
-                <ArrowRight className="w-3.5 h-3.5" />
-                <span>Buka di tab baru (Cetak / Unduh)</span>
-              </button>
+            {/* Footer Modal: Tombol Buka Tab Baru, Unduh, & Tutup */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleOpenNewTabProof}
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
+                  title="Buka gambar langsung di tab browser baru"
+                >
+                  <ArrowRight className="w-3.5 h-3.5" />
+                  <span>Buka di tab baru</span>
+                </button>
+                {!proofImageFailed && proofPreviewUrl !== 'virtual-proof' && (
+                  <button
+                    type="button"
+                    onClick={handleDownloadProof}
+                    disabled={isDownloadingProof}
+                    className="text-xs font-bold text-slate-700 hover:text-slate-900 hover:underline flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    title="Unduh berkas bukti pembayaran asli"
+                  >
+                    <Download className={`w-3.5 h-3.5 ${isDownloadingProof ? 'animate-bounce' : ''}`} />
+                    <span>{isDownloadingProof ? 'Mengunduh...' : 'Unduh'}</span>
+                  </button>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setProofPreviewUrl(null)}

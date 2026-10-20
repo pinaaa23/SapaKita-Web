@@ -149,7 +149,7 @@ function handleVisibilityChange() {
  * Custom Hook useStatusWartel
  * Digunakan oleh Halaman Status Wartel dan WartelBadgeSidebar
  */
-export function useStatusWartel() {
+export function useStatusWartel({ enableTicker = false } = {}) {
   const [state, setState] = useState(() => ({
     ...sharedState,
     daftar: [...sharedState.daftar],
@@ -158,7 +158,7 @@ export function useStatusWartel() {
     newlyAvailableIds: new Set(sharedState.newlyAvailableIds),
   }));
 
-  // State untuk timer detik real-time hitung mundur di layar
+  // State untuk timer detik real-time hitung mundur di layar (hanya aktif jika enableTicker=true)
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
@@ -168,7 +168,8 @@ export function useStatusWartel() {
 
     listeners.add(handleStateChange);
 
-    const handleBoothsUpdated = () => {
+    const handleBoothsUpdated = (e) => {
+      if (e && e.key && !e.key.includes('wartel')) return;
       fetchAndUpdate();
     };
 
@@ -193,16 +194,21 @@ export function useStatusWartel() {
       });
     }
 
-    // Timer 1 detik untuk menghitung mundur di UI
-    const ticker = setInterval(() => {
-      setNow(Date.now());
-    }, 1000);
+    // Timer 1 detik untuk menghitung mundur di UI hanya jika diaktifkan (misal di StatusWartelPage)
+    let ticker = null;
+    if (enableTicker) {
+      ticker = setInterval(() => {
+        setNow(Date.now());
+      }, 1000);
+    }
 
     return () => {
       window.removeEventListener('pascall_wartel_booths_updated', handleBoothsUpdated);
       window.removeEventListener('storage', handleBoothsUpdated);
       listeners.delete(handleStateChange);
-      clearInterval(ticker);
+      if (ticker) {
+        clearInterval(ticker);
+      }
 
       // Jika tidak ada listener yang mendengarkan lagi, hentikan polling & event listener
       if (listeners.size === 0) {
@@ -212,7 +218,7 @@ export function useStatusWartel() {
         }
       }
     };
-  }, []);
+  }, [enableTicker]);
 
   const refetch = useCallback(() => {
     return fetchAndUpdate(true);

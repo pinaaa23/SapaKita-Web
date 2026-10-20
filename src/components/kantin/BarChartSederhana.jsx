@@ -5,7 +5,14 @@ import { BarChart3 } from 'lucide-react';
 export default function BarChartSederhana({ data = [], periode = 'harian' }) {
   const [hoveredIdx, setHoveredIdx] = useState(null);
 
-  if (!data || data.length === 0) {
+  const validData = (Array.isArray(data) ? data : []).filter(Boolean).map((d) => ({
+    ...d,
+    label: d?.label || '-',
+    nominal: Number(d?.nominal || 0),
+    count: Number(d?.count || 0),
+  }));
+
+  if (validData.length === 0) {
     return (
       <div className="bg-white p-6 rounded-2xl border border-slate-200 text-center text-sm text-slate-400">
         Belum ada data grafik untuk periode ini.
@@ -14,7 +21,7 @@ export default function BarChartSederhana({ data = [], periode = 'harian' }) {
   }
 
   // Cari nominal tertinggi untuk kalkulasi tinggi persentase batang
-  const maxNominal = Math.max(...data.map((d) => d.nominal), 1);
+  const maxNominal = Math.max(0, ...validData.map((d) => d.nominal)) || 1;
 
   const getPeriodeSubtitle = () => {
     if (periode === 'harian') return 'Distribusi pemasukan per rentang jam operasional';
@@ -45,7 +52,7 @@ export default function BarChartSederhana({ data = [], periode = 'harian' }) {
       {/* Area Bar Chart */}
       <div className="overflow-x-auto pb-2 scrollbar-none">
         <div className="min-w-[280px] h-48 sm:h-56 flex items-end justify-between gap-2 sm:gap-4 pt-8 pb-2 px-1 sm:px-4 border-b border-slate-100">
-        {data.map((item, idx) => {
+        {validData.map((item, idx) => {
           const persentase = maxNominal > 0 ? (item.nominal / maxNominal) * 100 : 0;
           const isHovered = hoveredIdx === idx;
           const isAdaData = item.nominal > 0;

@@ -41,7 +41,7 @@ export default function StatusWartelPage() {
     dismissToast,
     newlyAvailableIds,
     refetch,
-  } = useStatusWartel();
+  } = useStatusWartel({ enableTicker: true });
 
   // State Modal Tambah / Sesuaikan Bilik
   const [isModalOpen, setIsModalOpen] = useState(false);
