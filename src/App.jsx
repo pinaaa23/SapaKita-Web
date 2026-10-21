@@ -39,6 +39,7 @@ import KanwilBranches from './pages/kanwil/Branches';
 import KanwilBranchCreate from './pages/kanwil/branches/Create';
 import KanwilInmates from './pages/kanwil/Inmates';
 import KanwilReports from './pages/kanwil/Reports';
+import KanwilCalls from './pages/kanwil/Calls';
 import KanwilProfile from './pages/kanwil/Profile';
 import KanwilManagement from './pages/kanwil/KanwilManagement';
 import KanwilCreate from './pages/kanwil/Create';
@@ -203,8 +204,10 @@ function App() {
                 <Route index element={<Navigate to="/kanwil/dashboard" replace />} />
                 <Route path="dashboard" element={<KanwilDashboard />} />
                 <Route path="branches" element={<KanwilBranches />} />
-                <Route path="branches/create" element={<KanwilBranchCreate />} />
+                {/* Proteksi route: Kanwil bersifat read-only, dialihkan kembali ke daftar UPT */}
+                <Route path="branches/create" element={<Navigate to="/kanwil/branches" replace />} />
                 <Route path="inmates" element={<KanwilInmates />} />
+                <Route path="calls" element={<KanwilCalls />} />
                 <Route path="reports" element={<KanwilReports />} />
                 <Route path="profile" element={<KanwilProfile />} />
               </Route>

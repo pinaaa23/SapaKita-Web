@@ -399,12 +399,6 @@ export default function KanwilDashboard() {
                       <p className="text-slate-400 max-w-sm">
                         Kantor Wilayah {kanwilName} belum memiliki Unit Pelaksana Teknis yang terdaftar.
                       </p>
-                      <Link 
-                        to="/kanwil/branches/create"
-                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" /> Tambah UPT Baru
-                      </Link>
                     </div>
                   </td>
                 </tr>

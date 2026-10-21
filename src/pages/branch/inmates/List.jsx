@@ -123,7 +123,7 @@ const InmatesList = () => {
       } else if (err?.status === 400) {
         showToast(err?.message || 'Permintaan tidak valid.', 'error');
       } else {
-        showToast('Gagal memuat data narapidana.', 'error');
+        showToast('Gagal memuat data WBP.', 'error');
       }
       setInmatesList([]);
     } finally {
@@ -172,10 +172,21 @@ const InmatesList = () => {
       ? 'Blok A / Kamar 1A' 
       : inmate.blockRoom;
 
+    let formattedBirthDate = '';
+    const rawBirthDate = inmate.dateOfBirth || inmate.birthDate || '';
+    if (rawBirthDate) {
+      try {
+        formattedBirthDate = new Date(rawBirthDate).toISOString().split('T')[0];
+      } catch {
+        formattedBirthDate = rawBirthDate;
+      }
+    }
+
     setEditingInmate({
       id: inmate.id,
       name: inmate.name || '',
       identifier: inmate.wbpRegNumber || inmate.identifier || '',
+      birthDate: formattedBirthDate,
       initialPin: '',
       branchName: effectiveBranch,
       blockRoom: effectiveBlockRoom,
@@ -192,6 +203,19 @@ const InmatesList = () => {
     e.preventDefault();
     if (!editingInmate.name.trim() || !editingInmate.identifier.trim()) {
       setEditError('Nama Lengkap dan NIP wajib diisi.');
+      return;
+    }
+
+    if (!editingInmate.birthDate || !editingInmate.birthDate.trim()) {
+      setEditError('Tanggal lahir wajib diisi');
+      return;
+    }
+
+    const birthDateObj = new Date(editingInmate.birthDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (isNaN(birthDateObj.getTime()) || birthDateObj > today) {
+      setEditError('Tanggal lahir tidak valid atau tidak boleh di masa depan.');
       return;
     }
 
@@ -222,6 +246,8 @@ const InmatesList = () => {
       await updateInmate(editingInmate.id, {
         name: editingInmate.name,
         identifier: editingInmate.identifier,
+        birthDate: editingInmate.birthDate,
+        dateOfBirth: editingInmate.birthDate,
         initialPin: editingInmate.initialPin,
         blockRoom: editingInmate.blockRoom,
         branchName: editingInmate.branchName,
@@ -268,8 +294,8 @@ const InmatesList = () => {
       setIsPowerModalOpen(false);
       showToast(
         newIsActive 
-          ? `Akun narapidana ${powerTargetInmate.name} berhasil diaktifkan.` 
-          : `Akun narapidana ${powerTargetInmate.name} berhasil dinonaktifkan.`,
+          ? `Akun WBP ${powerTargetInmate.name} berhasil diaktifkan.` 
+          : `Akun WBP ${powerTargetInmate.name} berhasil dinonaktifkan.`,
         'success'
       );
       await loadData();
@@ -296,7 +322,7 @@ const InmatesList = () => {
 
   const handleExport = () => {
     if (filteredInmates.length === 0) {
-      showToast('Tidak ada data narapidana untuk diekspor.', 'error');
+      showToast('Tidak ada data WBP untuk diekspor.', 'error');
       return;
     }
 
@@ -322,9 +348,9 @@ const InmatesList = () => {
       { label: 'DIBLOKIR / NONAKTIF', value: `${inactiveCount} Orang` },
     ];
 
-    const filename = `Data_Narapidana_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
+    const filename = `Data_WBP_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
     const success = exportToPDF({
-      title: 'LAPORAN DATA REGISTRASI NARAPIDANA (WBP)',
+      title: 'LAPORAN DATA REGISTRASI WBP',
       subtitle: 'Data master warga binaan pemasyarakatan dan status layanan komunikasi',
       filename,
       headers,
@@ -340,7 +366,7 @@ const InmatesList = () => {
     });
 
     if (success !== false) {
-      showToast('Berhasil mengekspor data narapidana ke format PDF!', 'success');
+      showToast('Berhasil mengekspor data WBP ke format PDF!', 'success');
     }
   };
 
@@ -402,7 +428,7 @@ const InmatesList = () => {
               type="button"
               onClick={handleExport}
               className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary hover:border-primary/40 rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
-              title="Export Data Narapidana"
+              title="Export Data WBP"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export</span>
@@ -414,7 +440,7 @@ const InmatesList = () => {
                 to="/branch/inmates/create"
                 className="px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-2 shadow-sm transition-all text-xs cursor-pointer ml-auto md:ml-1"
               >
-                <Plus className="w-4 h-4" /> Tambah Narapidana
+                <Plus className="w-4 h-4" /> Tambah WBP
               </Link>
             )}
           </div>
@@ -481,7 +507,7 @@ const InmatesList = () => {
                             {inmate.name || '-'}
                           </p>
                           <div className="mt-1">
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold border border-slate-200/80" title="NIP Narapidana">
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-mono text-[10px] font-bold border border-slate-200/80" title="NIP WBP">
                               {inmate.wbpRegNumber || inmate.identifier || '-'}
                             </span>
                           </div>
@@ -577,7 +603,7 @@ const InmatesList = () => {
                           <Link
                             to={`/branch/inmates/${encodeURIComponent(nipIdentifier)}`}
                             className="p-1.5 bg-blue-50 text-primary hover:bg-blue-100 rounded-lg transition-all cursor-pointer shrink-0 shadow-2xs hover:scale-105"
-                            title="Lihat Detail Narapidana"
+                            title="Lihat Detail WBP"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </Link>
@@ -588,7 +614,7 @@ const InmatesList = () => {
                               type="button"
                               onClick={() => handleOpenEdit(inmate)}
                               className="p-1.5 bg-slate-100 text-slate-600 hover:bg-blue-50 hover:text-primary rounded-lg transition-all cursor-pointer shrink-0 shadow-2xs hover:scale-105"
-                              title="Edit Data Narapidana & Keluarga"
+                              title="Edit Data WBP & Keluarga"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -619,9 +645,9 @@ const InmatesList = () => {
                   <td colSpan="7" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
-                      <p className="font-bold text-slate-700">Belum ada data narapidana</p>
+                      <p className="font-bold text-slate-700">Belum ada data WBP</p>
                       <p className="text-xs mt-1 text-slate-400">
-                        {searchInput ? 'Tidak ada data yang sesuai dengan pencarian.' : 'Belum ada narapidana yang terdaftar pada cabang ini.'}
+                        {searchInput ? 'Tidak ada data yang sesuai dengan pencarian.' : 'Belum ada WBP yang terdaftar pada cabang ini.'}
                       </p>
                     </div>
                   </td>
@@ -635,7 +661,7 @@ const InmatesList = () => {
         {!isLoading && filteredInmates.length > 0 && (
           <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-600 bg-slate-50/50">
             <div className="font-medium text-center sm:text-left">
-              Menampilkan {filteredInmates.length} dari total {pagination.total || filteredInmates.length} narapidana (Halaman {page} dari {pagination.totalPages || 1})
+              Menampilkan {filteredInmates.length} dari total {pagination.total || filteredInmates.length} WBP (Halaman {page} dari {pagination.totalPages || 1})
             </div>
             <div className="flex items-center gap-1">
               <button 
@@ -728,7 +754,7 @@ const InmatesList = () => {
                   {/* NIP */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      NIP (Nomor Induk Narapidana) <span className="text-rose-500">*</span>
+                      NIP (Nomor Induk WBP) <span className="text-rose-500">*</span>
                     </label>
                     <input 
                       type="text"
@@ -736,6 +762,20 @@ const InmatesList = () => {
                       onChange={(e) => setEditingInmate({ ...editingInmate, identifier: e.target.value })}
                       placeholder="Contoh: NIP-1029"
                       className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                      required
+                    />
+                  </div>
+
+                  {/* Tanggal Lahir */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Tanggal Lahir <span className="text-rose-500">*</span>
+                    </label>
+                    <input 
+                      type="date"
+                      value={editingInmate.birthDate || ''}
+                      onChange={(e) => setEditingInmate({ ...editingInmate, birthDate: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                       required
                     />
                   </div>
@@ -777,7 +817,7 @@ const InmatesList = () => {
                       type={showEditPassword ? "text" : "password"}
                       value={editingInmate.initialPin}
                       onChange={(e) => setEditingInmate({ ...editingInmate, initialPin: e.target.value })}
-                      placeholder="Masukkan minimal 6 karakter password baru (misal: napi123)..."
+                      placeholder="Masukkan minimal 6 karakter password baru (misal: wbp123)..."
                       className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                     />
                     <button
@@ -790,7 +830,7 @@ const InmatesList = () => {
                       {showEditPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                     </button>
                   </div>
-                  <p className="text-[10.5px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah password narapidana. Minimal 6 karakter (bisa huruf/angka).</p>
+                  <p className="text-[10.5px] text-slate-400 mt-1">Kosongkan jika tidak ingin mengubah password WBP. Minimal 6 karakter (bisa huruf/angka).</p>
                 </div>
               </div>
 
@@ -843,7 +883,7 @@ const InmatesList = () => {
       <Modal
         isOpen={isPowerModalOpen}
         onClose={() => !isSubmittingStatus && setIsPowerModalOpen(false)}
-        title={powerTargetInmate?.isActive ? "Nonaktifkan Akun Narapidana" : "Aktifkan Akun Narapidana"}
+        title={powerTargetInmate?.isActive ? "Nonaktifkan Akun WBP" : "Aktifkan Akun WBP"}
         confirmText={isSubmittingStatus ? "Memproses..." : (powerTargetInmate?.isActive ? "Ya, Nonaktifkan" : "Ya, Aktifkan")}
         cancelText="Batal"
         isDanger={powerTargetInmate?.isActive}
@@ -853,18 +893,18 @@ const InmatesList = () => {
           <p>
             {powerTargetInmate?.isActive ? (
               <>
-                Apakah Anda yakin ingin <strong>menonaktifkan akun</strong> narapidana{' '}
+                Apakah Anda yakin ingin <strong>menonaktifkan akun</strong> WBP{' '}
                 <span className="font-bold text-slate-800">{powerTargetInmate?.name}</span> (NIP: {powerTargetInmate?.wbpRegNumber})?
               </>
             ) : (
               <>
-                Apakah Anda yakin ingin <strong>mengaktifkan kembali akun</strong> narapidana{' '}
+                Apakah Anda yakin ingin <strong>mengaktifkan kembali akun</strong> WBP{' '}
                 <span className="font-bold text-slate-800">{powerTargetInmate?.name}</span> (NIP: {powerTargetInmate?.wbpRegNumber})?
               </>
             )}
           </p>
           <p className="text-[11px] text-slate-400">
-            Tindakan ini hanya mengubah hak akses komunikasi narapidana pada aplikasi PasCall, dan bukan penghapusan permanen data.
+            Tindakan ini hanya mengubah hak akses komunikasi WBP pada aplikasi PasCall, dan bukan penghapusan permanen data.
           </p>
         </div>
       </Modal>

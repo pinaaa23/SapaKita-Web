@@ -6,53 +6,88 @@ import {
   CheckCircle2,
   Clock,
   X,
-  Building2,
   Check,
-  AlertCircle,
   Inbox,
-  CheckCircle,
   Eye,
   FileText,
   Calendar,
   AlertTriangle,
   ShieldAlert,
-  ArrowRight,
-  TrendingUp,
-  Download,
   Filter,
   RefreshCw,
-  ChevronRight,
-  UserCheck,
-  Sparkles,
+  Edit3,
+  Calculator,
+  Percent,
+  Coins,
+  Store,
+  ExternalLink,
+  Download,
+  Sliders,
+  Settings,
+  ArrowRight,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../utils/formatKantin';
 import {
-  PPN_RATE,
-  getTopupSummary,
   getSuperadminTopupHistory,
   approveTopupTransaction,
   rejectTopupTransaction,
-  getAllCanteenBillingReport,
-  getCanteenBranchTransactions,
   getTopupProofStreamUrl,
   fetchTopupProofBlob,
 } from '../services/canteenTopupService';
+import {
+  getCanteenBillingNational,
+  getAllCanteenContracts,
+  updateCanteenContract,
+  formatDetikKeMenit,
+} from '../services/canteenBillingService';
 import { getBranches } from '../services/branchService';
-import { API_BASE_URL, getAuthToken } from '../services/api';
+import { API_BASE_URL, getAuthToken, getAuthUser } from '../services/api';
+import { ROLES, normalizeRole } from '../config/menuConfig';
 
 export default function CanteenTopup() {
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  // 1. Tab Aktif
-  const [activeTab, setActiveTab] = useState('laporan'); // 'laporan' | 'konfirmasi' | 'riwayat'
+  // Role pengguna saat ini
+  const currentUser = getAuthUser();
+  const isSuperadmin = normalizeRole(currentUser?.role) === ROLES.SUPERADMIN;
 
-  // 2. Filter Periode Tagihan
+  // 1. Tab Utama (TAB 1: Tagihan Bulanan | TAB 2: Pengaturan Kontrak)
+  // Menggunakan inisialisasi instan tanpa memicu re-render React Router
+  const [activeMainTab, setActiveMainTabState] = useState(() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get('tab');
+      return p === 'kontrak' ? 'kontrak' : 'tagihan';
+    } catch {
+      return 'tagihan';
+    }
+  });
+
+  const setActiveMainTab = (tab) => {
+    setActiveMainTabState(tab);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState(null, '', url.toString());
+    } catch {
+      // ignore
+    }
+  };
+
+  const [billingSubTab, setBillingSubTab] = useState('laporan'); // 'laporan' | 'konfirmasi' | 'riwayat'
+
+  // Tab 2: State Pengaturan Kontrak Seluruh Kantin
+  const [contractsList, setContractsList] = useState([]);
+  const [isLoadingContracts, setIsLoadingContracts] = useState(true);
+  const [searchContract, setSearchContract] = useState('');
+  const [statusContractFilter, setStatusContractFilter] = useState('semua');
+
+  // 2. Filter Periode Tagihan (Khusus Tab 1)
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  // 3. Data Laporan Tagihan Seluruh UPT
+  // 3. Data Laporan Tagihan Berbasis Detik Seluruh Kantin
   const [billingReports, setBillingReports] = useState([]);
   const [isLoadingBilling, setIsLoadingBilling] = useState(true);
   const [searchUpt, setSearchUpt] = useState('');
@@ -63,36 +98,46 @@ export default function CanteenTopup() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [searchHistory, setSearchHistory] = useState('');
   const [statusHistoryFilter, setStatusHistoryFilter] = useState('semua');
-  const [branchOptions, setBranchOptions] = useState([]);
+  const [, setBranchOptions] = useState([]);
 
   // 5. Modal State
   const [topupActionModal, setTopupActionModal] = useState(null); // { action: 'approve' | 'reject', item: object }
-  const [detailModalItem, setDetailModalItem] = useState(null);
-  const [selectedUptDetail, setSelectedUptDetail] = useState(null); // Modal Rincian Voucher UPT
-  const [uptDetailTab, setUptDetailTab] = useState('active'); // 'active' | 'settled' | 'all'
-  const [isLoadingUptDetail, setIsLoadingUptDetail] = useState(false);
+  const [detailModalItem, setDetailModalItem] = useState(null); // Modal rincian tagihan detik & verifikasi terpadu
+  const [detailModalNotes, setDetailModalNotes] = useState('');
+  const [detailModalReason, setDetailModalReason] = useState('');
+  const [detailModalRejectMode, setDetailModalRejectMode] = useState(false);
+  const [isProcessingModalAction, setIsProcessingModalAction] = useState(false);
+  const [historyDetailModalItem, setHistoryDetailModalItem] = useState(null); // Modal detail riwayat lama
   const [actionNotes, setActionNotes] = useState('');
   const [actionReason, setActionReason] = useState('');
   const [proofPreviewUrl, setProofPreviewUrl] = useState(null);
   const [proofPreviewItem, setProofPreviewItem] = useState(null);
   const [proofImageFailed, setProofImageFailed] = useState(false);
-  const [isProofLoading, setIsProofLoading] = useState(false);
+  const [, setIsProofLoading] = useState(false);
   const [isDownloadingProof, setIsDownloadingProof] = useState(false);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // 6. Modal Edit Kontrak Tarif (Khusus Superadmin)
+  const [editContractModal, setEditContractModal] = useState(null); // item objek kantin
+  const [editRate, setEditRate] = useState('');
+  const [editSuperadminPercent, setEditSuperadminPercent] = useState('');
+  const [, setEditCanteenPercent] = useState('');
+  const [editError, setEditError] = useState('');
+  const [isSavingContract, setIsSavingContract] = useState(false);
 
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // Load Semua Data
+  // Load Semua Data Tagihan Berbasis Detik (Tab 1)
   const loadData = async () => {
     setIsLoadingBilling(true);
     setIsLoadingHistory(true);
     try {
       const [reports, historyData, branchesRes] = await Promise.all([
-        getAllCanteenBillingReport(selectedMonth, selectedYear),
+        getCanteenBillingNational(selectedMonth, selectedYear),
         getSuperadminTopupHistory({ search: '', status: 'semua', branchId: 'semua' }),
         getBranches({ limit: 100 }).catch(() => ({ items: [] })),
       ]);
@@ -101,43 +146,68 @@ export default function CanteenTopup() {
       const bList = Array.isArray(branchesRes?.items) ? branchesRes.items : (Array.isArray(branchesRes) ? branchesRes : []);
       setBranchOptions(bList);
     } catch (err) {
-      console.error('Gagal memuat data tagihan:', err);
+      console.error('Gagal memuat data tagihan kantin:', err);
     } finally {
       setIsLoadingBilling(false);
       setIsLoadingHistory(false);
     }
   };
 
+  // Load Data Kontrak Seluruh Kantin (Tab 2)
+  const loadContractsData = async () => {
+    setIsLoadingContracts(true);
+    try {
+      const list = await getAllCanteenContracts();
+      setContractsList(list || []);
+    } catch (err) {
+      console.error('Gagal memuat daftar kontrak kantin:', err);
+    } finally {
+      setIsLoadingContracts(false);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadContractsData();
 
-    // Event listener realtime saat kasir kantin submit bukti bayar atau ada transaksi baru
+    // Event listener realtime saat kasir kantin submit bukti bayar atau ada perubahan kontrak
     let debounceTimer = null;
     const handleRealtimeUpdate = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
         loadData();
+        loadContractsData();
       }, 400);
     };
 
     window.addEventListener('canteen_topup_changed', handleRealtimeUpdate);
     window.addEventListener('pascall_billing_updated', handleRealtimeUpdate);
-    window.addEventListener('pascall_packages_updated', handleRealtimeUpdate);
+    window.addEventListener('pascall_contract_changed', handleRealtimeUpdate);
     window.addEventListener('storage', handleRealtimeUpdate);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('canteen_topup_changed', handleRealtimeUpdate);
       window.removeEventListener('pascall_billing_updated', handleRealtimeUpdate);
-      window.removeEventListener('pascall_packages_updated', handleRealtimeUpdate);
+      window.removeEventListener('pascall_contract_changed', handleRealtimeUpdate);
       window.removeEventListener('storage', handleRealtimeUpdate);
     };
   }, [selectedMonth, selectedYear]);
 
   // Permintaan Pembayaran yang butuh persetujuan (Status: PENDING)
-  const pendingRequests = allHistory.filter(
-    (item) => item.status === 'PENDING' || item.status === 'Menunggu'
-  );
+  // Hanya menghitung pengajuan untuk periode yang SUDAH TUTUP BUKU
+  const pendingRequests = allHistory.filter((item) => {
+    if (item.status !== 'PENDING' && item.status !== 'Menunggu') return false;
+    if (item.billingMonth && item.billingYear) {
+      const bMonth = Number(item.billingMonth);
+      const bYear = Number(item.billingYear);
+      const isCur = (bYear === currentYear && bMonth === currentMonth);
+      const lastDay = new Date(bYear, bMonth, 0).getDate();
+      const isClosed = !isCur || now >= new Date(bYear, bMonth - 1, lastDay, 23, 59, 59, 999);
+      return isClosed;
+    }
+    return false;
+  });
 
   // Riwayat Pembayaran Tagihan Selesai
   const processedHistory = allHistory
@@ -160,30 +230,113 @@ export default function CanteenTopup() {
   // Filter Laporan Tagihan UPT
   const filteredBillingReports = billingReports.filter((report) => {
     if (statusTagihanFilter !== 'semua') {
-      if (statusTagihanFilter === 'LUNAS' && report.billingStatus !== 'LUNAS') return false;
-      if (statusTagihanFilter === 'PENDING' && report.billingStatus !== 'PENDING') return false;
-      if (statusTagihanFilter === 'DIBLOKIR' && !report.isBlocked) return false;
-      if (statusTagihanFilter === 'BERJALAN' && report.billingStatus !== 'BERJALAN') return false;
+      const statusMap = {
+        'LUNAS': report.statusPembayaran === 'Lunas',
+        'PENDING': report.statusPembayaran === 'Menunggu ACC',
+        'BELUM_BAYAR': report.statusPembayaran === 'Belum Bayar',
+        'TELAT': report.statusPembayaran === 'Telat' || report.isBlocked,
+        'BERJALAN': String(report.statusPembayaran || '').includes('Bulan Berjalan'),
+      };
+      if (!statusMap[statusTagihanFilter]) return false;
     }
     if (searchUpt.trim() !== '') {
       const q = searchUpt.toLowerCase();
-      const matchName = report.branchName?.toLowerCase().includes(q);
+      const matchName = report.canteenName?.toLowerCase().includes(q);
+      const matchUpt = report.uptName?.toLowerCase().includes(q);
       const matchKanwil = report.kanwilName?.toLowerCase().includes(q);
-      const matchCode = report.branchCode?.toLowerCase().includes(q);
-      if (!matchName && !matchKanwil && !matchCode) return false;
+      if (!matchName && !matchUpt && !matchKanwil) return false;
     }
     return true;
   });
 
+  // Filter Daftar Kontrak Tab 2
+  const filteredContracts = contractsList.filter((c) => {
+    if (statusContractFilter === 'sudah_diatur' && !c.isContractSet) return false;
+    if (statusContractFilter === 'belum_diatur' && c.isContractSet) return false;
+    if (searchContract.trim() !== '') {
+      const q = searchContract.toLowerCase();
+      const matchName = c.canteenName?.toLowerCase().includes(q);
+      const matchUpt = c.uptName?.toLowerCase().includes(q);
+      const matchKanwil = c.kanwilName?.toLowerCase().includes(q);
+      if (!matchName && !matchUpt && !matchKanwil) return false;
+    }
+    return true;
+  });
+
+  const configuredContractsCount = contractsList.filter((c) => c.isContractSet).length;
+  const unconfiguredContractsCount = contractsList.length - configuredContractsCount;
+
   // Kalkulasi Statistik Real-Time
   const totalTagihanBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalAmount) || 0), 0);
-  const totalMenitBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalMinutes) || 0), 0);
-  const totalVoucherBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalVouchers) || 0), 0);
-  const totalTagihanLunas = allHistory
-    .filter((h) => h.status === 'APPROVED')
-    .reduce((acc, h) => acc + (Number(h.totalBayar || h.nominal) || 0), 0);
+  const totalDetikBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalSeconds) || 0), 0);
+  const kantinTerkonfigurasiCount = billingReports.filter((r) => r.isContractSet).length;
 
-  // Handlers Approve & Reject
+  // Handlers Edit Kontrak Tarif (Khusus Superadmin)
+  const handleOpenEditContract = (target) => {
+    setEditError('');
+    setEditContractModal(target);
+    setEditRate(target.ratePerSecond !== null && target.ratePerSecond !== undefined ? String(target.ratePerSecond) : '');
+
+    const saP = target.superadminPercent !== null && target.superadminPercent !== undefined
+      ? target.superadminPercent
+      : (target.negotiationPercent !== null && target.negotiationPercent !== undefined ? target.negotiationPercent : '');
+
+    setEditSuperadminPercent(saP !== '' ? String(saP) : '60');
+    setEditCanteenPercent(saP !== '' ? String(100 - Number(saP)) : '40');
+  };
+
+  const handleSuperadminPercentChange = (val) => {
+    setEditSuperadminPercent(val);
+    if (val === '') {
+      setEditCanteenPercent('');
+      return;
+    }
+    const num = Number(val);
+    if (!isNaN(num) && num >= 0 && num <= 100) {
+      setEditCanteenPercent(String(100 - num));
+    }
+  };
+
+  const handleSaveContract = async (e) => {
+    e.preventDefault();
+    if (!editContractModal) return;
+
+    const rateNum = Number(editRate);
+    const saPercentNum = Number(editSuperadminPercent);
+    const canteenPercentNum = 100 - saPercentNum;
+
+    if (editRate === '' || isNaN(rateNum) || rateNum < 0) {
+      setEditError('Tarif per detik wajib diisi dan tidak boleh bernilai negatif.');
+      return;
+    }
+    if (editSuperadminPercent === '' || isNaN(saPercentNum) || saPercentNum < 0 || saPercentNum > 100) {
+      setEditError('Persentase Superadmin wajib diisi antara 0% hingga 100%.');
+      return;
+    }
+
+    setIsSavingContract(true);
+    setEditError('');
+    try {
+      await updateCanteenContract(editContractModal.branchId, {
+        ratePerSecond: rateNum,
+        superadminPercent: saPercentNum,
+        canteenPercent: canteenPercentNum,
+        negotiationPercent: saPercentNum,
+        canteenName: editContractModal.canteenName,
+        branchName: editContractModal.uptName,
+      });
+
+      showToast(`Kontrak tarif untuk ${editContractModal.canteenName} berhasil disimpan. Perhitungan tagihan otomatis diperbarui.`);
+      setEditContractModal(null);
+      await Promise.all([loadData(), loadContractsData()]);
+    } catch (err) {
+      setEditError(err.message || 'Gagal menyimpan kontrak tarif.');
+    } finally {
+      setIsSavingContract(false);
+    }
+  };
+
+  // Handlers Approve & Reject Bukti Bayar
   const handleOpenApproveModal = (item) => {
     setActionNotes('');
     setTopupActionModal({ action: 'approve', item });
@@ -195,8 +348,6 @@ export default function CanteenTopup() {
   };
 
   const resolveProofUrl = (url, item) => {
-    // 1. Jika item topup memiliki ID backend nyata, hubungkan ke proxy MinIO backend:
-    // GET /api/canteen/topups/:id/proof?token=...
     if (item && item.id && !String(item.id).startsWith('TOPUP-') && item.proofUrl && item.proofUrl !== 'virtual-proof') {
       const streamUrl = getTopupProofStreamUrl(item);
       if (streamUrl) return streamUrl;
@@ -207,7 +358,6 @@ export default function CanteenTopup() {
       return url;
     }
 
-    // 2. Jika URL sudah mengarah ke endpoint streaming bukti
     if (url.includes('/api/canteen/topups/') && url.includes('/proof')) {
       const token = getAuthToken();
       const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
@@ -227,28 +377,26 @@ export default function CanteenTopup() {
 
   const handleViewProof = (itemOrReport) => {
     const payment =
-      (itemOrReport && itemOrReport.nominal && itemOrReport.id && !itemOrReport.transactions ? itemOrReport : null) ||
+      (itemOrReport && itemOrReport.nominal && itemOrReport.id && !itemOrReport.uptName ? itemOrReport : null) ||
       pendingRequests.find((p) => p.branchId === itemOrReport.branchId) ||
       allHistory.find((h) => h.branchId === itemOrReport.branchId && (h.status === 'PENDING' || h.status === 'Menunggu')) ||
-      itemOrReport.latestPayment || {
-        id: `TOPUP-${itemOrReport.branchCode || 'UPT'}-${Date.now().toString().slice(-4)}`,
+      itemOrReport.paymentProof || {
+        id: `TOPUP-${itemOrReport.branchId || 'UPT'}-${Date.now().toString().slice(-4)}`,
         branchId: itemOrReport.branchId,
-        branchName: itemOrReport.branchName,
+        branchName: itemOrReport.uptName || itemOrReport.branchName,
         nominal: itemOrReport.totalAmount || itemOrReport.nominal,
         totalBayar: itemOrReport.totalAmount || itemOrReport.totalBayar,
-        tanggal: itemOrReport.tanggal || new Date().toISOString(),
-        bankTarget: itemOrReport.bankTarget || 'Bank BRI / BCA Virtual Account Lapas',
-        proofUrl: itemOrReport.latestPayment?.proofUrl || itemOrReport.proofUrl || null,
-        proofStreamUrl: itemOrReport.latestPayment?.proofStreamUrl || itemOrReport.proofStreamUrl || null,
-        staffName: itemOrReport.staffName || ('Operator Kasir ' + (itemOrReport.branchName || '')),
-        status: itemOrReport.billingStatus || itemOrReport.status || 'PENDING',
+        tanggal: new Date().toISOString(),
+        bankTarget: 'Bank Transfer / QRIS',
+        proofUrl: itemOrReport.paymentProof?.proofUrl || null,
+        staffName: 'Petugas ' + (itemOrReport.canteenName || itemOrReport.uptName || ''),
+        status: itemOrReport.statusPembayaran || 'PENDING',
       };
-    
+
     const targetItem = {
       ...payment,
       id: payment.id || itemOrReport.id,
-      proofUrl: payment.proofUrl || itemOrReport.proofUrl || null,
-      proofStreamUrl: payment.proofStreamUrl || itemOrReport.proofStreamUrl || null,
+      proofUrl: payment.proofUrl || itemOrReport.paymentProof?.proofUrl || null,
     };
 
     const finalUrl = resolveProofUrl(targetItem.proofUrl, targetItem);
@@ -286,106 +434,7 @@ export default function CanteenTopup() {
       window.open(proofPreviewUrl, '_blank');
       return;
     }
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8" />
-            <title>Bukti Pembayaran Tagihan - ${proofPreviewItem?.branchName || 'Kantin'}</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 40px 20px; background: #f8fafc; color: #1e293b; margin: 0; }
-              .receipt-card { max-width: 480px; margin: 0 auto; background: #ffffff; padding: 32px; border-radius: 20px; border: 1px solid #e2e8f0; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.06); }
-              .header { text-align: center; border-bottom: 2px dashed #e2e8f0; padding-bottom: 20px; margin-bottom: 20px; }
-              .brand { font-size: 26px; font-weight: 900; color: #1565C0; letter-spacing: -0.5px; }
-              .subtitle { font-size: 12px; color: #64748b; font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-              .badge { display: inline-block; background: #fef3c7; color: #b45309; padding: 6px 14px; border-radius: 9999px; font-size: 11px; font-weight: 800; margin-top: 12px; border: 1px solid #fde68a; }
-              .info-list { margin: 20px 0; }
-              .info-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; }
-              .label { color: #64748b; font-weight: 500; }
-              .val { font-weight: 700; color: #0f172a; text-align: right; }
-              .divider { border-top: 1px dashed #e2e8f0; margin: 18px 0; }
-              .total-row { display: flex; justify-content: space-between; font-size: 16px; font-weight: 900; color: #1565C0; padding-top: 8px; }
-              .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 28px; border-top: 1px solid #f1f5f9; padding-top: 16px; line-height: 1.5; }
-              @media print { body { padding: 0; background: white; } .receipt-card { box-shadow: none; border: none; padding: 10px; } }
-            </style>
-          </head>
-          <body>
-            <div class="receipt-card">
-              <div class="header">
-                <div class="brand">PasCall</div>
-                <div class="subtitle">Bukti Transfer Pembayaran Tagihan Kantin</div>
-                <div class="badge">MENUNGGU VERIFIKASI ACC SUPERADMIN</div>
-              </div>
-              <div class="info-list">
-                <div class="info-row">
-                  <span class="label">Asal UPT / Kantin</span>
-                  <span class="val">${proofPreviewItem?.branchName || '-'}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Petugas Kasir</span>
-                  <span class="val">${proofPreviewItem?.staffName || 'Operator Kasir'}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Bank Tujuan</span>
-                  <span class="val">${proofPreviewItem?.bankTarget || 'Bank BRI / BCA Virtual Account'}</span>
-                </div>
-                <div class="info-row">
-                  <span class="label">Waktu Transaksi</span>
-                  <span class="val">${proofPreviewItem?.tanggal ? new Date(proofPreviewItem.tanggal).toLocaleString('id-ID') : '-'}</span>
-                </div>
-                <div class="divider"></div>
-                <div class="info-row">
-                  <span class="label">Nominal Tagihan Pokok</span>
-                  <span class="val">${formatRupiah(proofPreviewItem?.nominal || proofPreviewItem?.totalBayar || 0)}</span>
-                </div>
-                <div class="total-row">
-                  <span>TOTAL TRANSFER</span>
-                  <span>${formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}</span>
-                </div>
-              </div>
-              <div class="footer">
-                Slip bukti pembayaran digital resmi sistem PasCall.<br/>
-                Dicetak pada ${new Date().toLocaleString('id-ID')}
-              </div>
-            </div>
-            <script>window.onload = function() { window.print(); };</script>
-          </body>
-        </html>
-      `);
-      win.document.close();
-    }
-  };
-
-  const handleOpenVerifyModal = (report) => {
-    const payment = pendingRequests.find((p) => p.branchId === report.branchId) || report.latestPayment || {
-      id: `TOPUP-${report.branchCode || 'UPT'}-${Date.now().toString().slice(-4)}`,
-      branchId: report.branchId,
-      branchName: report.branchName,
-      nominal: report.totalAmount,
-      totalBayar: report.totalAmount,
-      tanggal: new Date().toISOString(),
-      bankTarget: 'Transfer Virtual Account BRI / BCA',
-      proofUrl: report.latestPayment?.proofUrl || null,
-      staffName: 'Operator Kantin ' + report.branchName,
-      status: 'PENDING',
-    };
-    handleOpenApproveModal(payment);
-  };
-
-  const handleOpenUptDetail = async (report) => {
-    setSelectedUptDetail(report);
-    setUptDetailTab('active');
-    if (!report.transactions || report.transactions.length === 0) {
-      setIsLoadingUptDetail(true);
-      try {
-        const trxs = await getCanteenBranchTransactions(report.branchId, selectedMonth, selectedYear);
-        setSelectedUptDetail((prev) => (prev && prev.branchId === report.branchId ? { ...prev, transactions: trxs } : prev));
-      } finally {
-        setIsLoadingUptDetail(false);
-      }
-    }
+    window.open('', '_blank');
   };
 
   const handleConfirmTopupAction = async () => {
@@ -395,7 +444,7 @@ export default function CanteenTopup() {
     try {
       if (action === 'approve') {
         await approveTopupTransaction(item.id, actionNotes);
-        showToast(`Pembayaran tagihan ${item.id} dari ${item.branchName} BERHASIL DISETUJUI (ACC). Status tagihan kini LUNAS.`);
+        showToast(`Pembayaran tagihan ${item.id} dari ${item.branchName || item.canteenName} BERHASIL DISETUJUI (ACC).`);
       } else {
         if (!actionReason.trim()) {
           showToast('Alasan penolakan wajib diisi.');
@@ -403,7 +452,7 @@ export default function CanteenTopup() {
           return;
         }
         await rejectTopupTransaction(item.id, actionReason);
-        showToast(`Pembayaran tagihan ${item.id} dari ${item.branchName} DITOLAK.`);
+        showToast(`Pembayaran tagihan ${item.id} dari ${item.branchName || item.canteenName} DITOLAK.`);
       }
       setTopupActionModal(null);
       await loadData();
@@ -414,13 +463,73 @@ export default function CanteenTopup() {
     }
   };
 
+  // Handler Terpadu: Buka Modal Detail (Memuat Tagihan + Pembayaran + Verifikasi / Review)
+  const handleOpenDetailModal = (report) => {
+    const payment =
+      report.paymentProof ||
+      allHistory.find((h) => h.branchId === report.branchId && (h.status === 'PENDING' || h.status === 'Menunggu')) ||
+      allHistory.find((h) => h.branchId === report.branchId && (h.status === 'APPROVED' || h.status === 'Berhasil')) ||
+      allHistory.find((h) => h.branchId === report.branchId) ||
+      null;
+
+    setDetailModalItem({
+      ...report,
+      matchedPayment: payment,
+    });
+    setDetailModalNotes('');
+    setDetailModalReason('');
+    setDetailModalRejectMode(false);
+  };
+
+  // Handler Terpadu: Setujui (ACC) Langsung dari Dalam Modal Detail
+  const handleApproveFromDetailModal = async () => {
+    if (!detailModalItem || isProcessingModalAction) return;
+    const payment = detailModalItem.matchedPayment || detailModalItem.paymentProof;
+    const paymentId = payment?.id || `TOPUP-${detailModalItem.branchId}`;
+
+    setIsProcessingModalAction(true);
+    try {
+      await approveTopupTransaction(paymentId, detailModalNotes);
+      showToast(`✓ Pembayaran tagihan dari ${detailModalItem.canteenName || detailModalItem.uptName} BERHASIL DISETUJUI (ACC).`);
+      setDetailModalItem(null);
+      await loadData();
+    } catch (err) {
+      showToast(err.message || 'Gagal menyetujui pembayaran tagihan.');
+    } finally {
+      setIsProcessingModalAction(false);
+    }
+  };
+
+  // Handler Terpadu: Tolak Pembayaran Langsung dari Dalam Modal Detail
+  const handleRejectFromDetailModal = async () => {
+    if (!detailModalItem || isProcessingModalAction) return;
+    if (!detailModalReason.trim()) {
+      showToast('Alasan penolakan wajib diisi.');
+      return;
+    }
+    const payment = detailModalItem.matchedPayment || detailModalItem.paymentProof;
+    const paymentId = payment?.id || `TOPUP-${detailModalItem.branchId}`;
+
+    setIsProcessingModalAction(true);
+    try {
+      await rejectTopupTransaction(paymentId, detailModalReason);
+      showToast(`Pembayaran tagihan dari ${detailModalItem.canteenName || detailModalItem.uptName} DITOLAK.`);
+      setDetailModalItem(null);
+      await loadData();
+    } catch (err) {
+      showToast(err.message || 'Gagal menolak pembayaran tagihan.');
+    } finally {
+      setIsProcessingModalAction(false);
+    }
+  };
+
   const monthNames = [
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
   ];
 
   return (
-    <div className="space-y-5 pb-16 animate-in fade-in duration-300">
+    <div className="space-y-5 pb-16">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs font-semibold animate-in slide-in-from-bottom-3 duration-200">
@@ -431,770 +540,1532 @@ export default function CanteenTopup() {
         </div>
       )}
 
-      {/* 4 KARTU RINGKASAN STATISTIK FINANSIAL REAL-TIME (LANGSUNG DI ATAS TANPA JUDUL GANDA) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Kartu 1: Total Tagihan Periode Ini */}
-        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Tagihan {monthNames[selectedMonth - 1]} {selectedYear}
-            </span>
-            <div className="text-2xl font-black text-[#1565C0] tracking-tight">
-              {formatRupiah(totalTagihanBulanIni)}
-            </div>
-            <span className="text-[11px] font-medium text-slate-500 block">
-              Akumulasi dari <strong className="text-slate-700">{totalVoucherBulanIni}</strong> voucher terjual
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
-            <Receipt className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Kartu 2: Penggunaan Menit Bicara */}
-        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Durasi Menit Terjual
-            </span>
-            <div className="text-2xl font-black text-slate-800 tracking-tight">
-              {totalMenitBulanIni.toLocaleString('id-ID')}{' '}
-              <span className="text-xs font-bold text-slate-500">Menit</span>
-            </div>
-            <span className="text-[11px] font-medium text-emerald-600 flex items-center gap-1">
-              <TrendingUp className="w-3.5 h-3.5" />
-              <span>Penggunaan aktif WBP</span>
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100 group-hover:scale-105 transition-transform">
-            <Clock className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Kartu 3: Total Pembayaran Lunas */}
-        <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Total Tagihan Lunas
-            </span>
-            <div className="text-2xl font-black text-emerald-600 tracking-tight">
-              {formatRupiah(totalTagihanLunas)}
-            </div>
-            <span className="text-[11px] font-medium text-slate-500 block">
-              Telah di-ACC Superadmin
-            </span>
-          </div>
-          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-105 transition-transform">
-            <CheckCircle className="w-6 h-6" />
-          </div>
-        </div>
-
-        {/* Kartu 4: Konfirmasi Masuk (Pending ACC) */}
-        <div 
-          onClick={() => setStatusTagihanFilter((prev) => prev === 'PENDING' ? 'semua' : 'PENDING')}
-          className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group cursor-pointer"
-          title="Klik untuk filter tagihan yang butuh ACC"
-        >
-          <div className="space-y-1">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-              Konfirmasi Pembayaran
-            </span>
-            <div className="text-2xl font-black text-slate-800 tracking-tight">
-              {pendingRequests.length}{' '}
-              <span className="text-xs font-semibold text-slate-400">Transfer</span>
-            </div>
-            <span
-              className={`text-[11px] font-bold inline-flex items-center gap-1.5 ${
-                pendingRequests.length > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400'
-              }`}
-            >
-              {pendingRequests.length > 0 ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                  <span>{pendingRequests.length} Butuh verifikasi ACC</span>
-                </>
-              ) : (
-                'Semua telah diverifikasi'
-              )}
-            </span>
-          </div>
-          <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border group-hover:scale-105 transition-transform ${
-              pendingRequests.length > 0
-                ? 'bg-amber-50 text-amber-600 border-amber-200'
-                : 'bg-slate-100 text-slate-400 border-slate-200'
-            }`}
-          >
-            <Wallet className="w-6 h-6" />
-          </div>
-        </div>
-      </div>
-
-      {/* FILTER & PENCARIAN TERPADU */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Filter Bulan & Tahun */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
-            <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
-            <span className="text-slate-500">Periode:</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              {monthNames.map((name, idx) => (
-                <option key={name} value={idx + 1}>
-                  {name}
-                </option>
-              ))}
-            </select>
-            <span className="text-slate-300">|</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter Status Tagihan */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
-            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <select
-              value={statusTagihanFilter}
-              onChange={(e) => setStatusTagihanFilter(e.target.value)}
-              className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
-            >
-              <option value="semua">Semua Status</option>
-              <option value="BERJALAN">Bulan Berjalan</option>
-              <option value="PENDING">Menunggu ACC</option>
-              <option value="LUNAS">Lunas (Disetujui)</option>
-              <option value="DIBLOKIR">Lewat Jatuh Tempo (Diblokir)</option>
-            </select>
-          </div>
-
-          {/* Counter info */}
-          <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
-            Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> UPT
-          </span>
-        </div>
-
-        {/* Pencarian UPT & Tombol Sinkronisasi */}
-        <div className="flex items-center gap-2 w-full lg:w-auto">
-          <div className="relative flex-1 lg:w-72">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Cari nama UPT / Kanwil..."
-              value={searchUpt}
-              onChange={(e) => setSearchUpt(e.target.value)}
-              className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
-            />
-            {searchUpt && (
-              <button
-                type="button"
-                onClick={() => setSearchUpt('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
+      {/* =========================================================================
+          HEADER NAVIGASI DUA TAB UTAMA (SUPERADMIN)
+          TAB 1: TAGIHAN BULANAN | TAB 2: PENGATURAN KONTRAK
+          ========================================================================= */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl p-3 sm:p-4 border border-slate-200/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Tombol Dua Tab Berukuran Nyaman dan Kontras Tinggi */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* TAB 1: TAGIHAN BULANAN */}
           <button
             type="button"
-            onClick={() => loadData()}
-            disabled={isLoadingBilling || isLoadingHistory}
-            className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
-            title="Sinkronkan data terkini dari seluruh kantin"
+            onClick={() => setActiveMainTab('tagihan')}
+            className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
+              activeMainTab === 'tagihan'
+                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+            }`}
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Sinkronkan</span>
+            <Receipt className={`w-4 h-4 ${activeMainTab === 'tagihan' ? 'text-white' : 'text-slate-500'}`} />
+            <span>Tagihan Bulanan</span>
+            {pendingRequests.length > 0 && (
+              <span
+                className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  activeMainTab === 'tagihan'
+                    ? 'bg-amber-400 text-slate-950 shadow-2xs'
+                    : 'bg-amber-500 text-white'
+                }`}
+              >
+                {pendingRequests.length} ACC
+              </span>
+            )}
           </button>
+
+          {/* TAB 2: PENGATURAN KONTRAK */}
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('kontrak')}
+            className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
+              activeMainTab === 'kontrak'
+                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+            }`}
+          >
+            <Sliders className={`w-4 h-4 ${activeMainTab === 'kontrak' ? 'text-white' : 'text-slate-500'}`} />
+            <span>Pengaturan Kontrak</span>
+            {unconfiguredContractsCount > 0 ? (
+              <span
+                className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
+                  activeMainTab === 'kontrak'
+                    ? 'bg-amber-400 text-slate-950 shadow-2xs'
+                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                }`}
+              >
+                {unconfiguredContractsCount} Belum Diatur
+              </span>
+            ) : (
+              <span
+                className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                  activeMainTab === 'kontrak'
+                    ? 'bg-emerald-400 text-slate-950'
+                    : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}
+              >
+                Semua Diatur
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Status / Aksi Cepat Sisi Kanan */}
+        <div className="flex items-center gap-2 self-start md:self-center">
+          {activeMainTab === 'tagihan' ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden lg:inline text-xs font-semibold text-slate-400">Periode:</span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
+                <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
+                {monthNames[selectedMonth - 1]} {selectedYear}
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('kontrak')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+                title="Buka Tab Pengaturan Kontrak"
+              >
+                <Sliders className="w-3.5 h-3.5 text-slate-500" />
+                <span>Buka Pengaturan Kontrak</span>
+                <ArrowRight className="w-3 h-3 text-slate-400" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="hidden lg:inline text-xs font-semibold text-slate-400">Status:</span>
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                Master Tarif ({contractsList.length} Kantin)
+              </span>
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('tagihan')}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+                title="Kembali ke Tab Tagihan Bulanan"
+              >
+                <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                <span>Lihat Tagihan Bulanan</span>
+                <ArrowRight className="w-3 h-3 text-slate-400" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabel Rekapitulasi Tagihan per UPT (Kolom Rapi, DPP/PPN di dalam Detail Modal) */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[760px]">
-            <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                <th className="py-3.5 px-5 min-w-[220px]">Asal UPT / Kantin</th>
-                <th className="py-3.5 px-4 min-w-[110px]">Periode</th>
-                <th className="py-3.5 px-4 text-center min-w-[130px]">Voucher & Durasi</th>
-                <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
-                <th className="py-3.5 px-4 text-center min-w-[160px]">Status & Jatuh Tempo</th>
-                <th className="py-3.5 px-4 text-center min-w-[100px]">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {isLoadingBilling ? (
-                <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold">
-                    <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
-                    <span>Memuat rekapitulasi tagihan seluruh kantin...</span>
-                  </td>
-                </tr>
-              ) : filteredBillingReports.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="py-12 text-center text-slate-400">
-                    <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                    <p className="text-xs font-bold text-slate-700">Tidak ada data tagihan</p>
-                    <p className="text-[11px] text-slate-400">Tidak ada UPT yang cocok dengan filter yang dipilih.</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredBillingReports.map((report) => {
-                  const isPending = report.billingStatus === 'PENDING';
-                  return (
-                    <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
-                      {/* Nama UPT & Kanwil */}
-                      <td className="py-4 px-5">
-                        <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <Building2 className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <span className="font-bold text-slate-900 block leading-snug">
-                              {report.branchName}
+      {/* =========================================================================
+          TAB 1: TAGIHAN BULANAN
+          ========================================================================= */}
+      <div className={activeMainTab === 'tagihan' ? 'space-y-5' : 'hidden'}>
+        {/* 4 KARTU STATISTIK FINANSIAL DENGAN QUICK FILTER INTERAKTIF */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Kartu 1: Total Tagihan Periode Ini (Klik untuk tampilkan semua) */}
+          <div
+            onClick={() => setStatusTagihanFilter('semua')}
+            className={`bg-white rounded-2xl p-4.5 sm:p-5 border transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+              statusTagihanFilter === 'semua'
+                ? 'border-blue-400 ring-2 ring-blue-500/10 shadow-xs'
+                : 'border-slate-200/80 shadow-xs hover:shadow-md'
+            }`}
+            title="Klik untuk melihat seluruh tagihan kantin"
+          >
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Tagihan {monthNames[selectedMonth - 1]} {selectedYear}
+              </span>
+              <div className="text-2xl font-black text-[#1565C0] tracking-tight">
+                {formatRupiah(totalTagihanBulanIni)}
+              </div>
+              <span className="text-[11px] font-medium text-slate-500 block">
+                Rumus: Detik × Tarif × % SA
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+              <Receipt className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Kartu 2: Total Detik Panggilan WBP */}
+          <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Durasi Bicara WBP
+              </span>
+              <div className="text-2xl font-black text-slate-800 tracking-tight">
+                {totalDetikBulanIni.toLocaleString('id-ID')}{' '}
+                <span className="text-xs font-semibold text-slate-400">Detik</span>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600 block">
+                ≈ {Math.floor(totalDetikBulanIni / 60).toLocaleString('id-ID')} Menit Panggilan
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-105 transition-transform">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Kartu 3: Pembayaran Lunas (Riwayat Pembayaran - Klik untuk filter Lunas) */}
+          <div
+            onClick={() => setStatusTagihanFilter(statusTagihanFilter === 'LUNAS' ? 'semua' : 'LUNAS')}
+            className={`bg-white rounded-2xl p-4.5 sm:p-5 border transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+              statusTagihanFilter === 'LUNAS'
+                ? 'border-emerald-500 ring-2 ring-emerald-500/20 shadow-md bg-emerald-50/20'
+                : 'border-slate-200/80 shadow-xs hover:shadow-md'
+            }`}
+            title="Klik untuk memfilter riwayat pembayaran lunas (Review / Lihat Saja)"
+          >
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Lunas (Riwayat Bayar)
+              </span>
+              <div className="text-2xl font-black text-emerald-600 tracking-tight">
+                {billingReports.filter((r) => r.statusPembayaran === 'Lunas').length}{' '}
+                <span className="text-xs font-semibold text-slate-400">/ {billingReports.length} Kantin</span>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600 inline-flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>{statusTagihanFilter === 'LUNAS' ? 'Filter Aktif (Klik Reset)' : 'Klik untuk filter riwayat'}</span>
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100 group-hover:scale-105 transition-transform">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+          </div>
+
+          {/* Kartu 4: Menunggu Verifikasi ACC (Klik untuk filter Menunggu ACC) */}
+          <div
+            onClick={() => setStatusTagihanFilter(statusTagihanFilter === 'PENDING' ? 'semua' : 'PENDING')}
+            className={`bg-white rounded-2xl p-4.5 sm:p-5 border transition-all duration-200 flex items-center justify-between group cursor-pointer ${
+              statusTagihanFilter === 'PENDING'
+                ? 'border-amber-500 ring-2 ring-amber-500/20 shadow-md bg-amber-50/20'
+                : 'border-slate-200/80 shadow-xs hover:shadow-md'
+            }`}
+            title="Klik untuk memfilter daftar tagihan yang menunggu verifikasi ACC"
+          >
+            <div className="space-y-1">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Menunggu Verifikasi ACC
+              </span>
+              <div className="text-2xl font-black text-slate-800 tracking-tight">
+                {pendingRequests.length}{' '}
+                <span className="text-xs font-semibold text-slate-400">Transfer</span>
+              </div>
+              <span
+                className={`text-[11px] font-bold inline-flex items-center gap-1.5 ${
+                  pendingRequests.length > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400'
+                }`}
+              >
+                {pendingRequests.length > 0 ? (
+                  <>
+                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                    <span>{statusTagihanFilter === 'PENDING' ? 'Filter Aktif (Klik Reset)' : `${pendingRequests.length} Butuh persetujuan`}</span>
+                  </>
+                ) : (
+                  'Tidak ada antrean ACC'
+                )}
+              </span>
+            </div>
+            <div
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border group-hover:scale-105 transition-transform ${
+                pendingRequests.length > 0
+                  ? 'bg-amber-50 text-amber-600 border-amber-200'
+                  : 'bg-slate-100 text-slate-400 border-slate-200'
+              }`}
+            >
+              <Wallet className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* TABEL TAGIHAN BULANAN TERPADU */}
+        <div className="space-y-4">
+          {/* FILTER & PENCARIAN */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Filter Periode Bulan & Tahun */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
+                <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+                <span className="text-slate-500">Periode:</span>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  {monthNames.map((name, idx) => (
+                    <option key={name} value={idx + 1}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <span className="text-slate-300">|</span>
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
+                    <option key={yr} value={yr}>
+                      {yr}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filter Status Tagihan */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={statusTagihanFilter}
+                  onChange={(e) => setStatusTagihanFilter(e.target.value)}
+                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="semua">Semua Status</option>
+                  <option value="BERJALAN">Bulan Berjalan</option>
+                  <option value="BELUM_BAYAR">Belum Bayar</option>
+                  <option value="PENDING">Menunggu ACC</option>
+                  <option value="LUNAS">Lunas</option>
+                  <option value="TELAT">Telat</option>
+                </select>
+              </div>
+
+              <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
+                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> Kantin UPT
+              </span>
+            </div>
+
+            {/* Pencarian Kantin / UPT */}
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <div className="relative flex-1 lg:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari Kantin, UPT, atau Kanwil..."
+                  value={searchUpt}
+                  onChange={(e) => setSearchUpt(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                />
+                {searchUpt && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchUpt('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('kontrak')}
+                className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-200 cursor-pointer shrink-0"
+                title="Buka Pengaturan Kontrak Tarif Kantin"
+              >
+                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                <span className="hidden sm:inline">Pengaturan Kontrak</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loadData()}
+                disabled={isLoadingBilling || isLoadingHistory}
+                className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+                title="Sinkronkan data tagihan"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Sinkronkan</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TABEL DAFTAR SEMUA KANTIN DIKELOMPOKKAN PER UPT */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="py-3.5 px-5">Nama Kantin</th>
+                    <th className="py-3.5 px-4">UPT</th>
+                    <th className="py-3.5 px-4 text-center">Total Detik</th>
+                    <th className="py-3.5 px-4 text-right">Total Tagihan</th>
+                    <th className="py-3.5 px-4 text-center">Status Pembayaran</th>
+                    <th className="py-3.5 px-5 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {isLoadingBilling ? (
+                    <tr>
+                      <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold">
+                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                        <span>Memuat daftar tagihan detik kantin...</span>
+                      </td>
+                    </tr>
+                  ) : filteredBillingReports.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="py-12 text-center text-slate-400">
+                        <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                        <p className="text-xs font-bold text-slate-700">Tidak ada data kantin</p>
+                        <p className="text-[11px] text-slate-400">Tidak ada kantin yang cocok dengan filter yang dipilih.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredBillingReports.map((report) => {
+                      const isPending = report.statusPembayaran === 'Menunggu ACC';
+                      return (
+                        <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
+                          {/* 1. Nama Kantin */}
+                          <td className="py-4 px-5">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                                <Store className="w-4 h-4" />
+                              </div>
+                              <div className="min-w-0">
+                                <span className="font-bold text-slate-900 block leading-snug">
+                                  {report.canteenName}
+                                </span>
+                                <span className="text-[11px] text-slate-400 font-medium">
+                                  Operator Kantin Lapas
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. UPT & Kanwil */}
+                          <td className="py-4 px-4">
+                            <span className="font-semibold text-slate-800 block leading-snug">
+                              {report.uptName}
                             </span>
-                            <div className="text-[11px] text-slate-400 font-medium mt-0.5 flex items-center gap-1.5 flex-wrap">
-                              <span>{report.kanwilName}</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded text-[10px]">
-                                Kode: {report.branchCode}
+                            <span className="text-[11px] text-slate-400 block mt-0.5">
+                              {report.kanwilName}
+                            </span>
+                          </td>
+
+                          {/* 3. Total Detik (dan dalam menit) */}
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
+                            <div className="font-bold text-slate-900 text-sm">
+                              {report.totalSeconds.toLocaleString('id-ID')} detik
+                            </div>
+                            <div className="text-[11px] font-semibold text-emerald-600 mt-0.5">
+                              ≈ {Math.floor(report.totalSeconds / 60).toLocaleString('id-ID')} menit
+                            </div>
+                          </td>
+
+                          {/* 4. Total Tagihan (Rincian tarif & bagi hasil tersedia di tombol Detail) */}
+                          <td className="py-4 px-4 text-right whitespace-nowrap">
+                            {report.isContractSet ? (
+                              <div>
+                                <div className="font-black text-[#1565C0] text-sm">
+                                  {formatRupiah(report.totalAmount)}
+                                </div>
+                                <div className="text-[11px] text-slate-400 mt-0.5">
+                                  Subtotal: {formatRupiah(report.subtotal)}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="font-black text-slate-400 text-sm">
+                                  Rp 0
+                                </div>
+                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-0.5">
+                                  Belum diatur
+                                </span>
+                              </div>
+                            )}
+                          </td>
+
+                          {/* 5. Status Pembayaran */}
+                          <td className="py-4 px-4 text-center whitespace-nowrap">
+                            {report.statusPembayaran === 'Lunas' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Lunas</span>
+                              </span>
+                            ) : report.statusPembayaran === 'Menunggu ACC' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
+                                <Clock className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Menunggu ACC</span>
+                              </span>
+                            ) : String(report.statusPembayaran || '').includes('Bulan Berjalan') ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                                <span>{report.statusPembayaran}</span>
+                              </span>
+                            ) : report.statusPembayaran === 'Telat' ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300">
+                                <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                                <span>Telat</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                <AlertTriangle className="w-3.5 h-3.5 text-slate-500" />
+                                <span>Belum Bayar</span>
+                              </span>
+                            )}
+                          </td>
+
+                          {/* 6. Aksi Terpadu (Periksa & ACC / Review & Lihat / Detail Tagihan) */}
+                          <td className="py-4 px-5 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center justify-center gap-2">
+                              {isPending ? (
+                                /* Aksi Utama saat Butuh Verifikasi: Periksa & ACC */
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDetailModal(report)}
+                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white bg-amber-500 hover:bg-amber-600 transition shadow-xs cursor-pointer group animate-pulse"
+                                  title="Periksa bukti transfer dan lakukan persetujuan (ACC)"
+                                >
+                                  <CheckCircle2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                  <span>Periksa & ACC</span>
+                                </button>
+                              ) : report.statusPembayaran === 'Lunas' ? (
+                                /* Aksi saat Lunas: Mode Review / Lihat Saja */
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDetailModal(report)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
+                                  title="Review rincian tagihan dan arsip bukti pembayaran lunas (Hanya Lihat)"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>Review / Lihat</span>
+                                </button>
+                              ) : (
+                                /* Aksi saat Belum Bayar / Telat: Detail Tagihan */
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenDetailModal(report)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#1565C0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer shadow-2xs"
+                                  title="Lihat rincian tarif per detik, bagi hasil, dan formula tagihan"
+                                >
+                                  <FileText className="w-3.5 h-3.5 text-[#1565C0]" />
+                                  <span>Detail</span>
+                                </button>
+                              )}
+
+                              {/* Tombol Shortcut Atur Kontrak jika belum diatur */}
+                              {!report.isContractSet && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMainTab('kontrak');
+                                    handleOpenEditContract(report);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                                  title="Atur kontrak tarif tetap di Tab 2"
+                                >
+                                  <Sliders className="w-3.5 h-3.5 text-amber-600" />
+                                  <span>Atur</span>
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* END TAB 1: TAGIHAN BULANAN */}
+
+      {/* =========================================================================
+          TAB 2: PENGATURAN KONTRAK TARIF KANTIN (BARU)
+          ========================================================================= */}
+      <div className={activeMainTab === 'kontrak' ? 'space-y-4' : 'hidden'}>
+          {/* Header Banner Penjelasan */}
+          <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden border border-blue-900/40">
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                    Master Pengaturan Kontrak
+                  </span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-xs text-blue-200 font-medium">Khusus Superadmin</span>
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
+                  <Sliders className="w-6 h-6 text-blue-400" />
+                  Pengaturan Kontrak Tarif Kantin
+                </h3>
+                <p className="text-xs text-blue-100/80 mt-1 max-w-2xl leading-relaxed">
+                  Konfigurasi tarif per detik dan persentase bagi hasil (Superadmin &amp; Kantin) yang bersifat tetap per kantin. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2.5 shrink-0">
+                <div className="px-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[95px]">
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Total Kantin</span>
+                  <span className="text-xl font-black text-white">{contractsList.length}</span>
+                </div>
+                <div className="px-4 py-3 bg-emerald-500/20 backdrop-blur-md rounded-2xl border border-emerald-400/30 text-center min-w-[95px]">
+                  <span className="text-[10px] uppercase font-bold text-emerald-200 block">Sudah Diatur</span>
+                  <span className="text-xl font-black text-emerald-300">{configuredContractsCount}</span>
+                </div>
+                <div className="px-4 py-3 bg-amber-500/20 backdrop-blur-md rounded-2xl border border-amber-400/30 text-center min-w-[95px]">
+                  <span className="text-[10px] uppercase font-bold text-amber-200 block">Belum Diatur</span>
+                  <span className="text-xl font-black text-amber-300">{unconfiguredContractsCount}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filter & Toolbar Pencarian Tab 2 */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              {/* Filter Status Kontrak */}
+              <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <select
+                  value={statusContractFilter}
+                  onChange={(e) => setStatusContractFilter(e.target.value)}
+                  className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer"
+                >
+                  <option value="semua">Semua Status Kontrak</option>
+                  <option value="sudah_diatur">Sudah Diatur ({configuredContractsCount})</option>
+                  <option value="belum_diatur">Belum Diatur ({unconfiguredContractsCount})</option>
+                </select>
+              </div>
+
+              <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
+                Menampilkan <strong>{filteredContracts.length}</strong> dari <strong>{contractsList.length}</strong> Kantin
+              </span>
+            </div>
+
+            {/* Pencarian Kantin / UPT / Kanwil */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Cari Kantin, UPT, atau Kanwil..."
+                  value={searchContract}
+                  onChange={(e) => setSearchContract(e.target.value)}
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                />
+                {searchContract && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchContract('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('tagihan')}
+                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-blue-200 cursor-pointer shrink-0"
+                title="Kembali ke Tab Tagihan Bulanan"
+              >
+                <Receipt className="w-3.5 h-3.5 text-[#1565C0]" />
+                <span className="hidden sm:inline">Tagihan Bulanan</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => loadContractsData()}
+                disabled={isLoadingContracts}
+                className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+                title="Muat ulang daftar kontrak"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingContracts ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+            </div>
+          </div>
+
+          {/* TABEL PENGATURAN KONTRAK TARIF KANTIN */}
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full text-left border-collapse min-w-[640px]">
+                <thead>
+                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                    <th className="py-3.5 px-6">Nama Kantin</th>
+                    <th className="py-3.5 px-4">UPT &amp; Kanwil</th>
+                    <th className="py-3.5 px-4 text-right">Tarif per Detik</th>
+                    <th className="py-3.5 px-4 text-center">Bagi Hasil (SA %, Kantin %)</th>
+                    <th className="py-3.5 px-6 text-center">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs">
+                  {isLoadingContracts ? (
+                    <tr>
+                      <td colSpan="5" className="py-12 text-center text-slate-400 font-semibold">
+                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                        <span>Memuat data kontrak tarif kantin...</span>
+                      </td>
+                    </tr>
+                  ) : filteredContracts.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="py-12 text-center text-slate-400">
+                        <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                        <p className="text-xs font-bold text-slate-700">Tidak ada data kantin</p>
+                        <p className="text-[11px] text-slate-400">Tidak ada kantin yang cocok dengan filter yang dipilih.</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredContracts.map((c) => (
+                      <tr key={c.branchId} className="hover:bg-slate-50/80 transition-colors">
+                        {/* 1. Nama Kantin */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-start gap-3">
+                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                              <Store className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-bold text-slate-900 block leading-snug">
+                                {c.canteenName}
+                              </span>
+                              <span className="text-[11px] text-slate-400 font-medium">
+                                Operator Kantin Lapas
                               </span>
                             </div>
                           </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Periode */}
-                      <td className="py-4 px-4 whitespace-nowrap text-slate-700 font-semibold">
-                        {report.period}
-                      </td>
-
-                      {/* Voucher & Menit Terjual */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap">
-                        <div className="font-bold text-slate-800">
-                          {report.totalVouchers} Voucher
-                        </div>
-                        <div className="text-[11px] font-semibold text-emerald-600">
-                          {report.totalMinutes.toLocaleString('id-ID')} Menit
-                        </div>
-                      </td>
-
-                      {/* Total Tagihan (Langsung Nominal yang Perlu Dibayar) */}
-                      <td className="py-4 px-4 text-right whitespace-nowrap">
-                        {(() => {
-                          const branchPayments = allHistory.filter((h) => h.branchId === report.branchId);
-                          const approved = branchPayments.filter((h) => h.status === 'APPROVED').reduce((sum, h) => sum + (Number(h.nominal || h.totalBayar) || 0), 0);
-                          const pending = branchPayments.find((h) => h.status === 'PENDING' || h.status === 'Menunggu');
-                          const pendingNominal = pending ? Number(pending.nominal || pending.totalBayar || 0) : 0;
-                          const amountDue = report.billingStatus === 'LUNAS' ? 0 : (pendingNominal > 0 ? pendingNominal : Math.max(0, (report.totalAmount || 0) - approved));
-                          return (
-                            <div>
-                              <div className="font-black text-[#1565C0] text-sm">
-                                {formatRupiah(amountDue)}
-                              </div>
-                            </div>
-                          );
-                        })()}
-                      </td>
-
-                      {/* Status & Jatuh Tempo */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap">
-                        {report.billingStatus === 'LUNAS' ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Lunas (ACC)</span>
+                        {/* 2. UPT & Kanwil */}
+                        <td className="py-4 px-4">
+                          <span className="font-semibold text-slate-800 block leading-snug">
+                            {c.uptName}
                           </span>
-                        ) : report.billingStatus === 'PENDING' ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-                              <Clock className="w-3.5 h-3.5 text-amber-600" />
-                              <span>Menunggu ACC</span>
-                            </span>
-                          </div>
-                        ) : report.isBlocked ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-black bg-rose-100 text-rose-800 border border-rose-300 shadow-2xs">
-                              <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                              <span>DIBLOKIR</span>
-                            </span>
-                            <div className="text-[10px] font-bold text-rose-600 mt-1">
-                              Lewat Jatuh Tempo (H+2)
-                            </div>
-                          </div>
-                        ) : report.billingStatus === 'BELUM_BAYAR' ? (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-orange-50 text-orange-700 border border-orange-200">
-                              <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />
-                              <span>Belum Dibayar</span>
-                            </span>
-                            <div className="text-[10px] text-slate-500 mt-1">
-                              Jatuh Tempo: {report.dueDateFormatted}
-                            </div>
-                          </div>
-                        ) : (
-                          <div>
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
-                              <Clock className="w-3.5 h-3.5" />
-                              <span>Bulan Berjalan</span>
-                            </span>
-                            <div className="text-[10px] text-slate-400 mt-0.5">
-                              Penjualan Aktif
-                            </div>
-                          </div>
-                        )}
-                      </td>
+                          <span className="text-[11px] text-slate-400 block mt-0.5">
+                            {c.kanwilName}
+                          </span>
+                        </td>
 
-                      {/* Tombol Aksi: Verifikasi ACC jika Menunggu ACC, dan Rincian Detail */}
-                      <td className="py-4 px-4 text-center whitespace-nowrap">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenUptDetail(report)}
-                          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition border shadow-2xs cursor-pointer active:scale-95 ${
-                            isPending
-                              ? 'bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300 font-extrabold'
-                              : 'bg-blue-50 hover:bg-blue-100 text-[#1565C0] border-blue-200/80'
-                          }`}
-                          title={isPending ? 'Periksa rincian, bukti transfer, dan verifikasi ACC' : 'Lihat rincian tagihan, DPP, PPN, dan voucher'}
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                          <span>Rincian</span>
-                          {isPending && (
-                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping ml-0.5" />
+                        {/* 3. Tarif per Detik */}
+                        <td className="py-4 px-4 text-right whitespace-nowrap">
+                          {c.isContractSet ? (
+                            <span className="font-black text-slate-900 text-sm">
+                              {formatRupiah(c.ratePerSecond)}/detik
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                              <AlertTriangle className="w-3 h-3 text-amber-500" />
+                              <span>Belum diatur</span>
+                            </span>
                           )}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                        </td>
 
-      {/* ========================================================================= */}
-      {selectedUptDetail && (
+                        {/* 4. Bagi Hasil (SA %, Kantin %) */}
+                        <td className="py-4 px-4 text-center whitespace-nowrap">
+                          {c.isContractSet ? (
+                            <div className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-xl text-xs">
+                              <Percent className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                              <span>SA: {c.superadminPercent}%</span>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-emerald-700">Kantin: {c.canteenPercent}%</span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                              <AlertTriangle className="w-3 h-3 text-amber-500" />
+                              <span>Belum diatur</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 5. Aksi (Atur/Edit) - HANYA SUPERADMIN */}
+                        <td className="py-4 px-6 text-center whitespace-nowrap">
+                          {isSuperadmin ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditContract(c)}
+                              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
+                                c.isContractSet
+                                  ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
+                                  : 'bg-[#1565C0] hover:bg-[#0D47A1] text-white shadow-sm font-black'
+                              }`}
+                              title={c.isContractSet ? 'Ubah kontrak tarif tetap kantin' : 'Atur kontrak tarif tetap kantin'}
+                            >
+                              <Sliders className="w-3.5 h-3.5" />
+                              <span>{c.isContractSet ? 'Edit' : 'Atur'}</span>
+                            </button>
+                          ) : (
+                            <span className="text-slate-400 text-xs">Read-Only</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      {/* END TAB 2: PENGATURAN KONTRAK */}
+
+      {/* =========================================================================
+          MODAL 1: EDIT KONTRAK TARIF KANTIN (HANYA SUPERADMIN)
+          ========================================================================= */}
+      {editContractModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-5xl bg-white rounded-2xl shadow-2xl border border-slate-100 flex flex-col max-h-[92vh] overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                  <Receipt className="w-5 h-5 text-[#1565C0]" />
-                  <span>Rincian Transaksi Penjualan Masuk Tagihan</span>
-                </h3>
+                <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Coins className="w-5 h-5 text-blue-600" />
+                  Atur Kontrak Tarif Kantin
+                </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  UPT: <span className="font-bold text-slate-700">{selectedUptDetail.branchName}</span> • Periode: <span className="font-bold text-slate-700">{selectedUptDetail.period}</span>
+                  {editContractModal.canteenName} • {editContractModal.uptName}
                 </p>
               </div>
               <button
                 type="button"
-                onClick={() => setSelectedUptDetail(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition cursor-pointer"
+                onClick={() => setEditContractModal(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Konten Modal dengan Penghitungan Status Pembayaran & FIFO Voucher */}
-            {(() => {
-              const branchPayments = allHistory.filter((h) => h.branchId === selectedUptDetail.branchId);
-              const approvedPayments = branchPayments.filter((h) => h.status === 'APPROVED');
-              const totalApproved = approvedPayments.reduce((sum, h) => sum + (Number(h.nominal || h.totalBayar) || 0), 0);
-              const pendingPayment = branchPayments.find((h) => h.status === 'PENDING' || h.status === 'Menunggu') || selectedUptDetail.latestPayment;
-              const pendingTransferAmount = pendingPayment ? Number(pendingPayment.nominal || pendingPayment.totalBayar || 0) : selectedUptDetail.totalAmount;
+            <form onSubmit={handleSaveContract} className="space-y-4">
+              {editError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
+                  <span>{editError}</span>
+                </div>
+              )}
 
-              // FIFO matching terhadap pembayaran terdahulu
-              const trxs = selectedUptDetail.transactions || [];
-              const sorted = [...trxs].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-              let cum = 0;
-              const vMap = {};
-              for (const t of sorted) {
-                cum += Number(t.totalAmount || 0);
-                if (cum <= totalApproved) {
-                  vMap[t.id] = { status: 'LUNAS', label: 'Lunas' };
-                } else if (cum <= totalApproved + pendingTransferAmount) {
-                  vMap[t.id] = { status: 'PENDING', label: 'Menunggu ACC' };
-                } else {
-                  vMap[t.id] = { status: 'UNPAID', label: 'Belum Dibayar' };
-                }
-              }
+              {/* Input Tarif per Detik */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Tarif per Detik (Rp) <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-400">
+                    Rp
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    required
+                    placeholder="Contoh: 10"
+                    value={editRate}
+                    onChange={(e) => setEditRate(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.
+                </p>
+              </div>
 
-              // Filter berdasarkan tab aktif
-              const activeVouchers = trxs.filter((t) => vMap[t.id]?.status !== 'LUNAS');
-              const settledVouchers = trxs.filter((t) => vMap[t.id]?.status === 'LUNAS');
-              const displayVouchers = uptDetailTab === 'active' ? activeVouchers : (uptDetailTab === 'settled' ? settledVouchers : trxs);
-
-              return (
-                <>
-                  {/* Modal Summary Cards (5 Indikator Finansial Lengkap: Termasuk DPP & PPN 11%) */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 p-5 bg-slate-50/50 border-b border-slate-100 shrink-0">
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Voucher Terjual</span>
-                      <span className="text-lg font-black text-slate-800">{selectedUptDetail.totalVouchers}</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Durasi Terjual</span>
-                      <span className="text-lg font-black text-emerald-600">{selectedUptDetail.totalMinutes} Menit</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">DPP (Pokok Tagihan)</span>
-                      <span className="text-lg font-black text-slate-800">{formatRupiah(selectedUptDetail.totalDpp)}</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-2xs">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">PPN (11%)</span>
-                      <span className="text-lg font-black text-amber-600">{formatRupiah(selectedUptDetail.totalPpn)}</span>
-                    </div>
-                    <div className="bg-white p-3.5 rounded-xl border border-blue-200 bg-blue-50/30 shadow-2xs col-span-2 sm:col-span-1">
-                      <span className="text-[10px] font-bold text-[#1565C0] uppercase tracking-wider block">Sisa Tagihan / Menunggu ACC</span>
-                      <span className="text-lg font-black text-[#1565C0]">
-                        {formatRupiah(Math.max(0, selectedUptDetail.totalAmount - totalApproved))}
-                      </span>
-                      <div className="text-[10px] text-slate-500 font-semibold mt-0.5">
-                        Total Omset: {formatRupiah(selectedUptDetail.totalAmount)}
-                        {totalApproved > 0 && <span> • Lunas: <span className="text-emerald-700 font-bold">{formatRupiah(totalApproved)}</span></span>}
-                      </div>
-                    </div>
+              {/* Input Bagi Hasil: Persen SA (Input) dan Persen Kantin (Tampil, tidak diinput) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Form Kiri: Input Persen SA */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Bagi Hasil Superadmin / SA (%) <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      required
+                      placeholder="Contoh: 60"
+                      value={editSuperadminPercent}
+                      onChange={(e) => handleSuperadminPercentChange(e.target.value)}
+                      className="w-full pl-3.5 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-400">
+                      %
+                    </span>
                   </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Porsi yang disetor ke Superadmin (Total Tagihan).
+                  </p>
+                </div>
 
-                  {/* Banner Status jika Menunggu ACC */}
-                  {selectedUptDetail.billingStatus === 'PENDING' && (
-                    <div className="mx-6 mt-4 p-3.5 rounded-2xl bg-amber-50 border border-amber-200/90 flex items-center gap-3 shrink-0">
-                      <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                        <Clock className="w-4 h-4 animate-spin" />
+                {/* Form Kanan: Tampilan Persen Kantin (Read-only, otomatis = 100 - SA) */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Bagi Hasil Kantin (%) <span className="text-slate-400 font-normal">(Otomatis)</span>
+                  </label>
+                  <div className="w-full pl-3.5 pr-4 py-2 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-between">
+                    <span className="text-slate-800 text-sm font-black">
+                      {editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent))
+                        ? Math.max(0, Math.min(100, 100 - Number(editSuperadminPercent)))
+                        : 40}%
+                    </span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                      100% - SA
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Hak porsi operasional kantin (tampil otomatis).
+                  </p>
+                </div>
+              </div>
+
+              {/* Live Preview Perhitungan Rumus Tagihan */}
+              {(() => {
+                const rateNum = Number(editRate) || 0;
+                const saPercentNum = editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent))
+                  ? Math.max(0, Math.min(100, Number(editSuperadminPercent)))
+                  : 60;
+                const canteenPercentNum = Math.max(0, 100 - saPercentNum);
+                const displaySeconds = (editContractModal.totalSeconds && editContractModal.totalSeconds > 0)
+                  ? editContractModal.totalSeconds
+                  : 1140;
+                const isSimulatedSec = !(editContractModal.totalSeconds && editContractModal.totalSeconds > 0);
+                const subtotal = displaySeconds * rateNum;
+                const totalTagihan = Math.round(subtotal * (saPercentNum / 100));
+                const hakKantin = Math.round(subtotal * (canteenPercentNum / 100));
+
+                return (
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
+                      <span>Simulasi Rumus Tagihan</span>
+                      <span className="text-blue-600 font-bold">
+                        {isSimulatedSec ? 'Contoh 1.140 Detik' : 'Detik Riil Kantin'}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex justify-between text-slate-600">
+                        <span>Total Detik Panggilan:</span>
+                        <span className="font-bold text-slate-800">
+                          {displaySeconds.toLocaleString('id-ID')} detik {isSimulatedSec && <span className="text-[10px] text-slate-400 font-normal">(contoh simulasi)</span>}
+                        </span>
                       </div>
-                      <div className="flex-1">
-                        <div className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                          <span>Tagihan Menunggu Verifikasi ACC Superadmin</span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] bg-amber-200 text-amber-900 font-extrabold">
-                            1 Transfer Masuk
+                      <div className="flex justify-between text-slate-600">
+                        <span>Subtotal ({displaySeconds.toLocaleString('id-ID')} detik × Rp {rateNum.toLocaleString('id-ID')}):</span>
+                        <span className="font-bold text-slate-800">
+                          {formatRupiah(subtotal)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-600">
+                        <span>Bagi Hasil (SA / Kantin):</span>
+                        <span className="font-bold text-slate-800">
+                          {saPercentNum}% SA • {canteenPercentNum}% Kantin
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
+                        <span>• Porsi Hak Kantin ({canteenPercentNum}%):</span>
+                        <span className="font-semibold text-emerald-700">
+                          {formatRupiah(hakKantin)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-slate-900 font-black text-sm">
+                        <div>
+                          <span>Total Tagihan Disetor (SA):</span>
+                          <span className="block text-[10px] text-slate-400 font-normal">
+                            Subtotal × {saPercentNum}% Persen SA
                           </span>
                         </div>
-                        <p className="text-[11px] text-amber-800 mt-0.5">
-                          Nominal transfer yang diajukan: <strong>{formatRupiah(pendingTransferAmount)}</strong>
-                          {totalApproved > 0 && (
-                            <span> (Melunasi sisa tagihan berjalan). Sudah lunas sebelumnya: <strong>{formatRupiah(totalApproved)}</strong> dari total omset <strong>{formatRupiah(selectedUptDetail.totalAmount)}</strong>.</span>
-                          )}
-                          {' '}Gunakan tombol di bagian bawah untuk membuka bukti transfer dan melakukan ACC.
-                        </p>
+                        <span className="text-blue-600 font-black text-base">
+                          {formatRupiah(totalTagihan)}
+                        </span>
                       </div>
                     </div>
-                  )}
-
-                  {/* Modal Table Transaksi */}
-                  <div className="p-6 overflow-y-auto flex-1 min-h-0 flex flex-col">
-                    {/* Tab Switcher: Tagihan Masuk vs Riwayat Voucher Lunas */}
-                    <div className="flex items-center justify-between mb-3 shrink-0">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setUptDetailTab('active')}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            uptDetailTab === 'active'
-                              ? 'bg-[#1565C0] text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-                          }`}
-                        >
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>Tagihan Masuk / Menunggu ACC ({activeVouchers.length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUptDetailTab('settled')}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                            uptDetailTab === 'settled'
-                              ? 'bg-emerald-600 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
-                          }`}
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>Riwayat Voucher Lunas ({settledVouchers.length})</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setUptDetailTab('all')}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                            uptDetailTab === 'all'
-                              ? 'bg-slate-800 text-white shadow-xs'
-                              : 'bg-slate-100 text-slate-500 hover:bg-slate-200/70'
-                          }`}
-                        >
-                          <span>Semua ({trxs.length})</span>
-                        </button>
-                      </div>
-                      <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
-                        Menampilkan {displayVouchers.length} dari {trxs.length} voucher
-                      </span>
-                    </div>
-
-                    <div className="border border-slate-200 rounded-xl overflow-x-auto overflow-y-auto max-h-[380px] min-h-[180px] shadow-2xs">
-                      <table className="w-full min-w-[780px] text-left border-collapse text-xs">
-                        <thead className="sticky top-0 bg-slate-50 z-10 shadow-2xs">
-                          <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            <th className="py-2.5 px-4">No Transaksi</th>
-                            <th className="py-2.5 px-4">Waktu</th>
-                            <th className="py-2.5 px-4 text-center">Kode Voucher</th>
-                            <th className="py-2.5 px-4">WBP (NIP)</th>
-                            <th className="py-2.5 px-4">Paket / Durasi</th>
-                            <th className="py-2.5 px-4">Kasir</th>
-                            <th className="py-2.5 px-4 text-center">Status</th>
-                            <th className="py-2.5 px-4 text-right">Nominal Tagihan</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100">
-                          {isLoadingUptDetail ? (
-                            <tr>
-                              <td colSpan="8" className="py-8 text-center text-slate-400">
-                                <RefreshCw className="w-5 h-5 animate-spin mx-auto text-blue-500 mb-2" />
-                                <span>Memuat rincian transaksi voucher...</span>
-                              </td>
-                            </tr>
-                          ) : displayVouchers.length === 0 ? (
-                            <tr>
-                              <td colSpan="8" className="py-8 text-center text-slate-400">
-                                {uptDetailTab === 'active'
-                                  ? 'Tidak ada tagihan voucher aktif / menunggu ACC.'
-                                  : uptDetailTab === 'settled'
-                                  ? 'Belum ada riwayat voucher yang telah dilunasi.'
-                                  : 'Belum ada transaksi voucher pada periode ini.'}
-                              </td>
-                            </tr>
-                          ) : (
-                            displayVouchers.map((trx) => {
-                              const vStatus = vMap[trx.id];
-                              return (
-                                <tr key={trx.id} className="hover:bg-slate-50/60">
-                                  <td className="py-2.5 px-4 font-mono font-bold text-slate-800">
-                                    {trx.id}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-slate-600 whitespace-nowrap">
-                                    {formatTanggal(trx.createdAt)}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-center">
-                                    <span className="px-2 py-0.5 bg-blue-50 text-[#1565C0] border border-blue-200 rounded-md font-mono font-bold text-[11px]">
-                                      {trx.kodeVoucher || '-'}
-                                    </span>
-                                  </td>
-                                  <td className="py-2.5 px-4">
-                                    <div className="font-bold text-slate-800">
-                                      {trx.inmate?.name || trx.inmateName || '-'}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 font-mono">
-                                      NIP: {trx.inmate?.identifier || trx.inmateIdentifier || '-'}
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 px-4">
-                                    <div className="font-semibold text-slate-700">
-                                      {trx.package?.name || trx.packageName || 'Paket Bicara'}
-                                    </div>
-                                    <div className="text-[10px] text-slate-400">
-                                      {trx.duration || trx.package?.durationMinutes || trx.package?.duration || 0} Menit
-                                    </div>
-                                  </td>
-                                  <td className="py-2.5 px-4 text-slate-600">
-                                    {trx.cashier?.name || trx.cashierName || 'Kasir'}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-center whitespace-nowrap">
-                                    {vStatus?.status === 'LUNAS' ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                        <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                                        <span>Lunas</span>
-                                      </span>
-                                    ) : vStatus?.status === 'PENDING' ? (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-50 text-amber-800 border border-amber-200">
-                                        <Clock className="w-3 h-3 text-amber-600" />
-                                        <span>Menunggu ACC</span>
-                                      </span>
-                                    ) : (
-                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[10px] bg-slate-100 text-slate-600 border border-slate-200">
-                                        <span>Belum Dibayar</span>
-                                      </span>
-                                    )}
-                                  </td>
-                                  <td className="py-2.5 px-4 text-right font-bold text-slate-800 whitespace-nowrap">
-                                    {formatRupiah(trx.totalAmount)}
-                                  </td>
-                                </tr>
-                              );
-                            })
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
                   </div>
+                );
+              })()}
 
-                  {/* Modal Footer */}
-                  <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
-                    <span className="text-xs text-slate-500">
-                      Total {selectedUptDetail.transactions?.length || 0} transaksi voucher tercatat
-                      {totalApproved > 0 && ` • Sudah Lunas: ${formatRupiah(totalApproved)}`}
-                      {` • Tagihan Aktif: ${formatRupiah(Math.max(0, selectedUptDetail.totalAmount - totalApproved))}`}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {selectedUptDetail.billingStatus === 'PENDING' && (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => handleViewProof(selectedUptDetail)}
-                            className="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
-                          >
-                            <Eye className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Buka Bukti Bayar</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const item = selectedUptDetail;
-                              setSelectedUptDetail(null);
-                              handleOpenVerifyModal(item);
-                            }}
-                            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
-                          >
-                            <CheckCircle className="w-3.5 h-3.5" />
-                            <span>Verifikasi & ACC</span>
-                          </button>
-                        </>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setSelectedUptDetail(null)}
-                        className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition cursor-pointer"
-                      >
-                        Tutup
-                      </button>
-                    </div>
-                  </div>
-                </>
-              );
-            })()}
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditContractModal(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingContract}
+                  className="px-5 py-2 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isSavingContract ? 'Menyimpan...' : 'Simpan Kontrak Tarif'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL KONFIRMASI APPROVE / REJECT PEMBAYARAN TAGIHAN                      */}
-      {/* ========================================================================= */}
-      {topupActionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 mb-4">
-              <div
-                className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                  topupActionModal.action === 'approve'
-                    ? 'bg-emerald-100 text-emerald-600'
-                    : 'bg-rose-100 text-rose-600'
-                }`}
-              >
-                {topupActionModal.action === 'approve' ? (
-                  <Check className="w-6 h-6" />
-                ) : (
-                  <X className="w-6 h-6" />
-                )}
-              </div>
-              <div>
-                <h4 className="text-base font-bold text-slate-800">
-                  {topupActionModal.action === 'approve'
-                    ? 'Konfirmasi ACC Pembayaran Tagihan'
-                    : 'Tolak Pembayaran Tagihan?'}
-                </h4>
-                <p className="text-xs text-slate-400">
-                  ID Transaksi: <span className="font-mono font-bold text-slate-600">{topupActionModal.item.id}</span>
-                </p>
-              </div>
-            </div>
+      {/* =========================================================================
+          MODAL DETAIL TERPADU:
+          1. Rincian Perhitungan Tagihan Kantin Berbasis Detik
+          2. Detail Pembayaran & Bukti Transfer Kantin (Gambar & Aksi Berkas)
+          3. Verifikasi Pembayaran (Jika Menunggu ACC) / Mode Review (Jika Lunas)
+          ========================================================================= */}
+      {detailModalItem && (() => {
+        const payment = detailModalItem.matchedPayment || detailModalItem.paymentProof;
+        const isPending = detailModalItem.statusPembayaran === 'Menunggu ACC';
+        const isLunas = detailModalItem.statusPembayaran === 'Lunas';
+        const isTelat = detailModalItem.statusPembayaran === 'Telat';
+        const hasPayment = !!payment;
+        const proofResolvedUrl = payment?.proofUrl
+          ? resolveProofUrl(payment.proofUrl, payment)
+          : (detailModalItem.proofUrl ? resolveProofUrl(detailModalItem.proofUrl, detailModalItem) : null);
 
-            {/* Rincian Permintaan */}
-            {(() => {
-              const modalItem = topupActionModal.item;
-              return (
-                <div className="p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-200/70 text-xs mb-4">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Asal UPT / Kantin:</span>
-                    <span className="font-bold text-slate-800">{modalItem.branchName || '-'}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Petugas Kasir:</span>
-                    <span className="font-bold text-slate-800">{modalItem.staffName || 'Operator Kantin'}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-600">
-                    <span>Metode / Bank:</span>
-                    <span className="font-semibold text-slate-700">{modalItem.bankTarget || 'Transfer Bank'}</span>
-                  </div>
-                  <div className="flex justify-between text-slate-800 font-bold pt-2 border-t border-slate-200">
-                    <span>Nominal Pembayaran:</span>
-                    <span className="text-[#1565C0] font-black text-sm">{formatRupiah(modalItem.totalBayar || modalItem.nominal)}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center pt-2 border-t border-slate-200">
-                      <span className="text-slate-500 font-medium">Bukti Pembayaran:</span>
-                      <button
-                        type="button"
-                        onClick={() => handleViewProof(modalItem)}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-xs font-bold transition border border-blue-200/60 cursor-pointer"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span>Buka Bukti Transfer</span>
-                      </button>
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+            <div className="relative w-full max-w-2xl lg:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] overflow-hidden">
+              
+              {/* Header Modal */}
+              <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-white shrink-0">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2.5 rounded-2xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center">
+                      <Calculator className="w-5 h-5" />
+                    </span>
+                    <div>
+                      <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
+                        Detail Tagihan & Pembayaran Kantin
+                      </h3>
+                      <p className="text-xs text-slate-500 font-medium">
+                        {detailModalItem.canteenName} • {detailModalItem.uptName} • Periode {monthNames[selectedMonth - 1]} {selectedYear}
+                      </p>
                     </div>
+                  </div>
                 </div>
-              );
-            })()}
 
-            {/* Input Notes / Reason */}
-            {topupActionModal.action === 'approve' ? (
-              <div className="mb-4 text-left">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Catatan Persetujuan (opsional):
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Bukti transfer tagihan telah sesuai dan dana masuk"
-                  value={actionNotes}
-                  onChange={(e) => setActionNotes(e.target.value)}
-                  disabled={isProcessingAction}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                />
+                <div className="flex items-center gap-2.5">
+                  {/* Status Badge */}
+                  {isLunas ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Lunas (Terverifikasi)</span>
+                    </span>
+                  ) : isPending ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-amber-50 text-amber-700 border border-amber-300 animate-pulse">
+                      <Clock className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Menunggu ACC</span>
+                    </span>
+                  ) : String(detailModalItem.statusPembayaran || '').includes('Bulan Berjalan') ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                      <Clock className="w-3.5 h-3.5 text-blue-600" />
+                      <span>{detailModalItem.statusPembayaran}</span>
+                    </span>
+                  ) : isTelat ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800 border border-rose-300">
+                      <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                      <span>Telat Bayar</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                      <AlertTriangle className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Belum Bayar</span>
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModalItem(null);
+                      setDetailModalRejectMode(false);
+                    }}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="mb-4 text-left">
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Alasan Penolakan <span className="text-rose-500">*</span>:
-                </label>
-                <textarea
-                  rows={2}
-                  required
-                  placeholder="Sebutkan alasan penolakan agar kasir dapat memperbaikinya..."
-                  value={actionReason}
-                  onChange={(e) => setActionReason(e.target.value)}
-                  disabled={isProcessingAction}
-                  className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500"
-                />
+
+              {/* Body Modal (Scrollable) */}
+              <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+
+                {/* -------------------------------------------------------------
+                    BAGIAN 1: RINCIAN TAGIHAN KANTIN BERBASIS DETIK
+                    ------------------------------------------------------------- */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-3.5">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Coins className="w-4 h-4 text-blue-600" />
+                      1. Rincian Perhitungan Tagihan Kantin (Berbasis Detik)
+                    </h4>
+                    <span className="text-[11px] font-semibold text-slate-400">
+                      Rumus: Detik × Tarif × % SA
+                    </span>
+                  </div>
+
+                  {!detailModalItem.isContractSet && (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-2 font-medium">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+                      <span>Kontrak tarif belum diatur oleh Superadmin. Total tagihan saat ini Rp 0.</span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    {/* Total Detik */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                      <span className="text-slate-500 block mb-0.5 font-medium">Total Detik Bicara WBP:</span>
+                      <span className="text-sm font-black text-slate-900 block">
+                        {detailModalItem.totalSeconds.toLocaleString('id-ID')} Detik
+                      </span>
+                      <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5">
+                        ≈ {Math.floor(detailModalItem.totalSeconds / 60).toLocaleString('id-ID')} menit bicara
+                      </span>
+                    </div>
+
+                    {/* Tarif Kontrak per Detik */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                      <span className="text-slate-500 block mb-0.5 font-medium">Tarif Kontrak per Detik:</span>
+                      <span className="text-sm font-black text-slate-900 block">
+                        {detailModalItem.isContractSet
+                          ? `${formatRupiah(detailModalItem.ratePerSecond)} / detik`
+                          : 'Belum diatur'}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        Ditetapkan oleh Superadmin
+                      </span>
+                    </div>
+
+                    {/* Subtotal Kotor */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                      <span className="text-slate-500 block mb-0.5 font-medium">Subtotal (Detik × Tarif):</span>
+                      <span className="text-sm font-black text-slate-900 block">
+                        {formatRupiah(detailModalItem.subtotal)}
+                      </span>
+                      <span className="text-[11px] text-slate-400 block mt-0.5">
+                        Sebelum pembagian bagi hasil
+                      </span>
+                    </div>
+
+                    {/* Pembagian Persen */}
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                      <span className="text-slate-500 block mb-0.5 font-medium">Bagi Hasil SA / Kantin:</span>
+                      <span className="text-sm font-black text-blue-700 block">
+                        {detailModalItem.isContractSet
+                          ? `${detailModalItem.superadminPercent ?? 60}% SA • ${detailModalItem.canteenPercent ?? 40}% Kantin`
+                          : 'Belum diatur'}
+                      </span>
+                      {detailModalItem.isContractSet && (
+                        <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">
+                          Hak Kantin ({detailModalItem.canteenPercent ?? 40}%): {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.canteenPercent || 40) / 100)))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Highlight Total Tagihan yang Disetor */}
+                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
+                        Total Tagihan Bersih (Disetor ke Superadmin):
+                      </span>
+                      <span className="text-[11px] text-blue-700 font-medium">
+                        Subtotal × {detailModalItem.superadminPercent ?? 60}% Porsi SA
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xl sm:text-2xl font-black text-[#1565C0] tracking-tight">
+                        {formatRupiah(detailModalItem.totalAmount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* -------------------------------------------------------------
+                    BAGIAN 2: DETAIL PEMBAYARAN & BERKAS BUKTI TRANSFER
+                    ------------------------------------------------------------- */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <Receipt className="w-4 h-4 text-indigo-600" />
+                      2. Detail Pembayaran & Bukti Transfer Kantin
+                    </h4>
+                    {hasPayment && (
+                      <span className="text-[11px] font-mono text-slate-400">
+                        {payment.id || 'TRX-TAGIHAN'}
+                      </span>
+                    )}
+                  </div>
+
+                  {hasPayment ? (
+                    <div className="space-y-4">
+                      {/* Grid Rincian Transaksi Transfer */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                          <span className="text-slate-500 block mb-0.5">Waktu Transfer / Upload:</span>
+                          <span className="font-bold text-slate-800 block">
+                            {formatTanggal(payment.tanggal || payment.createdAt || new Date())}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                          <span className="text-slate-500 block mb-0.5">Petugas Kantin Pengirim:</span>
+                          <span className="font-bold text-slate-800 block">
+                            {payment.staffName || `Operator ${detailModalItem.canteenName}`}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                          <span className="text-slate-500 block mb-0.5">Nominal Ditransfer:</span>
+                          <span className="font-black text-sm text-[#1565C0] block">
+                            {formatRupiah(payment.totalBayar || payment.nominal || detailModalItem.totalAmount)}
+                          </span>
+                        </div>
+                        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
+                          <span className="text-slate-500 block mb-0.5">Metode / Bank Tujuan:</span>
+                          <span className="font-bold text-slate-800 block">
+                            {payment.bankTarget || 'Bank Transfer / QRIS'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Box Pratinjau Berkas Bukti Transfer */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-slate-700 block">
+                          Berkas Bukti Transfer Pembayaran:
+                        </span>
+                        <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col items-center justify-center min-h-[220px] text-center">
+                          {proofResolvedUrl && proofResolvedUrl !== 'virtual-proof' ? (
+                            <img
+                              src={proofResolvedUrl}
+                              alt="Bukti Transfer Kantin"
+                              className="max-h-72 max-w-full rounded-xl object-contain border border-slate-200 shadow-sm bg-white"
+                            />
+                          ) : (
+                            /* Dokumen Struk Digital Elegan jika file fisik kosong / offline */
+                            <div className="w-full max-w-md bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
+                              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+                                <div>
+                                  <span className="font-black text-sm text-[#1565C0] block">PasCall Billing</span>
+                                  <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
+                                    Dokumen Struk Transfer Tagihan
+                                  </span>
+                                </div>
+                                <span
+                                  className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    isLunas
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}
+                                >
+                                  {isLunas ? 'LUNAS (ACC)' : 'MENUNGGU VERIFIKASI'}
+                                </span>
+                              </div>
+                              <div className="space-y-1.5 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Asal Kantin:</span>
+                                  <span className="font-bold text-slate-800">{detailModalItem.canteenName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">UPT Cabang:</span>
+                                  <span className="font-bold text-slate-800">{detailModalItem.uptName}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-slate-500">Nominal Transfer:</span>
+                                  <span className="font-black text-[#1565C0]">
+                                    {formatRupiah(payment.totalBayar || payment.nominal || detailModalItem.totalAmount)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Tombol aksi buka & unduh berkas */}
+                          <div className="mt-3 flex items-center justify-center gap-4">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (proofResolvedUrl && proofResolvedUrl !== 'virtual-proof') {
+                                  window.open(proofResolvedUrl, '_blank');
+                                } else {
+                                  handleViewProof(detailModalItem);
+                                }
+                              }}
+                              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-blue-200 shadow-2xs hover:bg-blue-50 transition"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              <span>Buka Ukuran Penuh (Tab Baru)</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleViewProof(detailModalItem);
+                              }}
+                              className="text-xs font-bold text-slate-700 hover:text-slate-900 flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs hover:bg-slate-50 transition"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                              <span>Unduh / Simpan Berkas</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Tampilan jika Kantin Belum Bayar / Belum Upload Bukti */
+                    <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
+                      <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                        <Inbox className="w-5 h-5" />
+                      </div>
+                      <p className="text-xs font-bold text-slate-700">
+                        Kantin Belum Mengunggah Bukti Pembayaran
+                      </p>
+                      <p className="text-[11px] text-slate-500 max-w-md mx-auto leading-relaxed">
+                        Tagihan periode {monthNames[selectedMonth - 1]} {selectedYear} belum dibayarkan oleh pengelola kantin. Pembayaran dapat dilakukan via Transfer Bank / QRIS dan struk diunggah oleh kantin sebelum batas jatuh tempo.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* -------------------------------------------------------------
+                    BAGIAN 3: VERIFIKASI PEMBAYARAN (ACC) ATAU MODE REVIEW ARSIP
+                    ------------------------------------------------------------- */}
+                <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      {isPending ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-amber-600" />
+                          3. Aksi Verifikasi Pembayaran (ACC Superadmin)
+                        </>
+                      ) : isLunas ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                          3. Arsip Riwayat Pembayaran (Mode Review / Lihat Saja)
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-4 h-4 text-slate-500" />
+                          3. Status Tagihan
+                        </>
+                      )}
+                    </h4>
+                    {isLunas && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        Mode Review / Lihat Saja
+                      </span>
+                    )}
+                  </div>
+
+                  {/* KONDISI A: JIKA MENUNGGU ACC -> FORM VERIFIKASI AKTIF */}
+                  {isPending && (
+                    <div className="space-y-4">
+                      <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs text-amber-900 leading-relaxed">
+                        <span className="font-bold block mb-1">Pemberitahuan Verifikasi:</span>
+                        Pastikan nominal transfer di atas ({formatRupiah(payment?.totalBayar || payment?.nominal || detailModalItem.totalAmount)}) telah sesuai dengan mutasi rekening kas sebelum menekan tombol Setujui (ACC).
+                      </div>
+
+                      {/* Catatan Persetujuan (Opsional) */}
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1">
+                          Catatan Verifikasi Persetujuan (Opsional):
+                        </label>
+                        <input
+                          type="text"
+                          value={detailModalNotes}
+                          onChange={(e) => setDetailModalNotes(e.target.value)}
+                          placeholder="Contoh: Dana telah masuk rekening giro BSI PasCall"
+                          className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                      </div>
+
+                      {/* Form Penolakan (Toggle jika ditolak) */}
+                      {detailModalRejectMode && (
+                        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3 animate-in fade-in duration-200">
+                          <label className="block text-xs font-bold text-rose-800">
+                            Alasan Penolakan Pembayaran <span className="text-rose-600">*</span>:
+                          </label>
+                          <textarea
+                            rows={3}
+                            value={detailModalReason}
+                            onChange={(e) => setDetailModalReason(e.target.value)}
+                            placeholder="Tuliskan alasan penolakan, contoh: Bukti transfer tidak terbaca / nominal transfer kurang"
+                            required
+                            className="w-full p-2.5 bg-white border border-rose-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+                          />
+                          <div className="flex items-center justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDetailModalRejectMode(false);
+                                setDetailModalReason('');
+                              }}
+                              className="px-3.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl text-xs transition border border-slate-200 cursor-pointer"
+                            >
+                              Batal Tolak
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRejectFromDetailModal}
+                              disabled={isProcessingModalAction}
+                              className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition shadow-xs cursor-pointer disabled:opacity-50"
+                            >
+                              {isProcessingModalAction ? 'Memproses...' : 'Konfirmasi Tolak Pembayaran'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tombol Utama Verifikasi */}
+                      {!detailModalRejectMode && (
+                        <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
+                          <button
+                            type="button"
+                            onClick={() => setDetailModalRejectMode(true)}
+                            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition cursor-pointer text-center"
+                          >
+                            Tolak Pembayaran...
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleApproveFromDetailModal}
+                            disabled={isProcessingModalAction}
+                            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition shadow-md cursor-pointer flex items-center justify-center gap-2 disabled:opacity-50"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span>{isProcessingModalAction ? 'Memproses ACC...' : 'Setujui Pembayaran (ACC)'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* KONDISI B: JIKA SUDAH LUNAS -> MODE REVIEW / LIHAT SAJA (READ-ONLY) */}
+                  {isLunas && (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-start gap-3">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                        <div className="space-y-1 text-xs">
+                          <span className="font-black text-emerald-900 block text-sm">
+                            Pembayaran Telah Disetujui (Lunas)
+                          </span>
+                          <p className="text-emerald-800 leading-relaxed">
+                            Tagihan periode ini telah diverifikasi dan lunas tercatat di buku kas sistem. Transaksi ini bersifat tetap sebagai arsip riwayat pembayaran <strong>(Mode Review / Lihat Saja)</strong>.
+                          </p>
+                          {payment?.approvedAt && (
+                            <span className="text-[11px] text-emerald-700 font-semibold block pt-1">
+                              Waktu Persetujuan: {formatTanggal(payment.approvedAt)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Catatan Verifikasi Read-Only */}
+                      {(payment?.notes || detailModalItem.contractNote) && (
+                        <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+                          <span className="font-bold text-slate-500 block mb-0.5">Catatan Verifikasi Superadmin:</span>
+                          <span className="italic">"{payment?.notes || detailModalItem.contractNote}"</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* KONDISI C: JIKA BELUM BAYAR / TELAT */}
+                  {!isPending && !isLunas && (
+                    <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600 space-y-2">
+                      <p className="leading-relaxed">
+                        Tagihan kantin ini masih menunggu pelunasan. Jika tarif per detik atau persentase bagi hasil perlu diubah sebelum kantin membayar, Anda dapat memperbaruinya di Tab Pengaturan Kontrak.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
               </div>
-            )}
 
-            <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-              {topupActionModal.action === 'approve'
-                ? 'Dengan menyetujui, tagihan kantin periode ini akan ditandai LUNAS dan kasir dapat terus menjual paket secara normal.'
-                : 'Permintaan akan ditolak dan kantin akan menerima alasan penolakan ini untuk segera mengunggah bukti pembayaran ulang.'}
-            </p>
+              {/* Footer Modal */}
+              <div className="p-4 sm:p-5 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
+                {isSuperadmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = detailModalItem;
+                      setDetailModalItem(null);
+                      setActiveMainTab('kontrak');
+                      handleOpenEditContract(item);
+                    }}
+                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Ubah Kontrak Tarif Ini</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDetailModalItem(null);
+                    setDetailModalRejectMode(false);
+                  }}
+                  className="ml-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
 
-            <div className="flex items-center justify-end gap-2.5">
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* =========================================================================
+          MODAL 3: APPROVE / REJECT TOPUP MODAL
+          ========================================================================= */}
+      {topupActionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h4 className="text-base font-bold text-slate-900">
+                {topupActionModal.action === 'approve'
+                  ? 'Konfirmasi Persetujuan (ACC)'
+                  : 'Konfirmasi Penolakan'}
+              </h4>
               <button
                 type="button"
                 onClick={() => setTopupActionModal(null)}
-                disabled={isProcessingAction}
-                className="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-100 rounded-xl text-xs font-semibold transition cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs mb-5">
+              <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Asal UPT / Kantin:</span>
+                  <span className="font-bold text-slate-800">
+                    {topupActionModal.item.branchName || topupActionModal.item.canteenName || '-'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Nominal Transfer:</span>
+                  <span className="font-black text-[#1565C0]">
+                    {formatRupiah(topupActionModal.item.totalBayar || topupActionModal.item.nominal)}
+                  </span>
+                </div>
+              </div>
+
+              {topupActionModal.action === 'approve' ? (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Catatan Persetujuan (Opsional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={actionNotes}
+                    onChange={(e) => setActionNotes(e.target.value)}
+                    placeholder="Contoh: Pembayaran tagihan telah diverifikasi masuk rekening"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Alasan Penolakan <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={actionReason}
+                    onChange={(e) => setActionReason(e.target.value)}
+                    placeholder="Contoh: Bukti transfer buram / nominal tidak sesuai"
+                    required
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-400"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setTopupActionModal(null)}
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
               >
                 Batal
               </button>
@@ -1202,171 +2073,101 @@ export default function CanteenTopup() {
                 type="button"
                 onClick={handleConfirmTopupAction}
                 disabled={isProcessingAction}
-                className={`px-4 py-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50 ${
+                className={`px-4 py-2 rounded-xl text-xs font-bold text-white transition shadow-sm cursor-pointer disabled:opacity-50 ${
                   topupActionModal.action === 'approve'
                     ? 'bg-emerald-600 hover:bg-emerald-700'
                     : 'bg-rose-600 hover:bg-rose-700'
                 }`}
               >
-                {isProcessingAction ? (
-                  <span>Memproses...</span>
-                ) : topupActionModal.action === 'approve' ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Setujui (ACC)</span>
-                  </>
-                ) : (
-                  <>
-                    <X className="w-3.5 h-3.5" />
-                    <span>Tolak Pembayaran</span>
-                  </>
-                )}
+                {isProcessingAction
+                  ? 'Memproses...'
+                  : topupActionModal.action === 'approve'
+                  ? 'Setujui Pembayaran'
+                  : 'Tolak Pembayaran'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {/* MODAL PREVIEW BUKTI PEMBAYARAN STRUK / FOTO / PDF */}
-      {/* ========================================================================= */}
+      {/* =========================================================================
+          MODAL 4: PREVIEW BUKTI TRANSFER PEMBAYARAN
+          ========================================================================= */}
       {proofPreviewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh]">
-            {/* Header Modal */}
-            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
-              <div>
-                <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-[#1565C0]" />
-                  <span>Bukti Pembayaran Tagihan</span>
-                </h4>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  UPT: <span className="font-bold text-slate-700">{proofPreviewItem?.branchName || 'Cabang Kantin'}</span> • Total: <span className="font-bold text-[#1565C0]">{formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}</span>
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-blue-600" />
+                Bukti Transfer Pembayaran Kantin
+              </h4>
               <button
                 type="button"
                 onClick={() => setProofPreviewUrl(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Isi Bukti Pembayaran: Gambar atau Slip Transfer Digital Resmi */}
-            <div className="p-4 sm:p-5 overflow-y-auto flex-1 min-h-0 flex items-center justify-center bg-slate-100/60 relative">
+            <div className="p-5 overflow-y-auto flex-1 text-center bg-slate-50 flex flex-col items-center justify-center min-h-[260px]">
               {!proofImageFailed && proofPreviewUrl !== 'virtual-proof' ? (
-                <div className="text-center relative max-w-full">
-                  {isProofLoading && (
-                    <div className="py-16 px-8 flex flex-col items-center justify-center text-slate-500">
-                      <RefreshCw className="w-7 h-7 animate-spin text-blue-600 mb-2" />
-                      <span className="text-xs font-semibold">Mengalirkan gambar bukti dari MinIO...</span>
-                    </div>
-                  )}
-                  <img
-                    src={proofPreviewUrl}
-                    alt="Bukti Transfer Pembayaran"
-                    onLoad={() => setIsProofLoading(false)}
-                    onError={() => {
-                      setIsProofLoading(false);
-                      setProofImageFailed(true);
-                    }}
-                    className={`max-h-[60vh] max-w-full rounded-xl object-contain shadow-md border border-slate-200 bg-white transition-opacity duration-200 ${
-                      isProofLoading ? 'opacity-0 h-0 w-0' : 'opacity-100'
-                    }`}
-                  />
-                  {!isProofLoading && (
-                    <p className="text-[11px] text-slate-400 mt-2">
-                      Foto / Scan Berkas Bukti Transfer (Streaming MinIO Backend)
-                    </p>
-                  )}
-                </div>
+                <img
+                  src={proofPreviewUrl}
+                  alt="Bukti Transfer"
+                  onError={() => setProofImageFailed(true)}
+                  className="max-h-96 max-w-full rounded-xl object-contain border border-slate-200 shadow-sm"
+                />
               ) : (
-                /* Struk Digital Resmi PasCall (Fallback slip transfer interaktif & elegan) */
-                <div className="w-full max-w-md bg-white rounded-2xl p-6 border border-slate-200 shadow-md text-slate-800">
-                  <div className="text-center border-b border-dashed border-slate-200 pb-4 mb-4">
-                    <span className="text-xl font-black text-[#1565C0] tracking-tight">PasCall</span>
-                    <h5 className="text-xs font-bold text-slate-600 uppercase tracking-wider mt-1">
-                      Struk Bukti Transfer Tagihan Kantin
-                    </h5>
-                    <div className="inline-flex items-center gap-1.5 mt-2.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200">
-                      <Clock className="w-3 h-3 text-amber-600" />
-                      <span>MENUNGGU VERIFIKASI ACC</span>
-                    </div>
+                <div className="w-full max-w-sm bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
+                  <div className="text-center pb-3 border-b border-slate-100 mb-3">
+                    <span className="font-black text-base text-blue-600">PasCall</span>
+                    <p className="text-[11px] text-slate-400 uppercase tracking-wider font-bold">
+                      Dokumen Bukti Transfer Tagihan
+                    </p>
                   </div>
-
-                  <div className="space-y-2.5 text-xs">
+                  <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Asal UPT / Kantin:</span>
+                      <span className="text-slate-500">Asal UPT:</span>
                       <span className="font-bold text-slate-800">{proofPreviewItem?.branchName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Petugas Kasir Pengirim:</span>
-                      <span className="font-semibold text-slate-700">{proofPreviewItem?.staffName || 'Operator Kasir'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Bank & Rekening Tujuan:</span>
-                      <span className="font-semibold text-slate-700">{proofPreviewItem?.bankTarget || 'Bank BRI / BCA Virtual Account'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-500">Waktu Pembayaran:</span>
-                      <span className="font-mono text-slate-700">
-                        {proofPreviewItem?.tanggal ? formatTanggal(proofPreviewItem.tanggal) : '-'}
+                      <span className="text-slate-500">Nominal Tagihan:</span>
+                      <span className="font-black text-[#1565C0]">
+                        {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}
                       </span>
                     </div>
-                    
-                    <div className="border-t border-dashed border-slate-200 pt-2.5 mt-2.5">
-                      <div className="flex justify-between text-slate-500">
-                        <span>Nominal Pokok Tagihan:</span>
-                        <span className="font-bold text-slate-800">
-                          {formatRupiah(proofPreviewItem?.nominal || proofPreviewItem?.totalBayar || 0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-slate-800 font-black text-sm pt-2 mt-1 border-t border-slate-100">
-                        <span>TOTAL TRANSFER:</span>
-                        <span className="text-[#1565C0]">
-                          {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-3 border-t border-slate-100 text-center text-[10px] text-slate-400">
-                    Dokumen bukti transfer digital sah dari transaksi kasir kantin.
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Footer Modal: Tombol Buka Tab Baru, Unduh, & Tutup */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0">
-              <div className="flex items-center gap-3">
+            <div className="p-4 bg-white border-t border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleOpenNewTabProof}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1.5 cursor-pointer"
-                  title="Buka gambar langsung di tab browser baru"
+                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  <span>Buka di tab baru</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Buka Tab Baru</span>
                 </button>
-                {!proofImageFailed && proofPreviewUrl !== 'virtual-proof' && (
+                {!proofImageFailed && (
                   <button
                     type="button"
                     onClick={handleDownloadProof}
                     disabled={isDownloadingProof}
-                    className="text-xs font-bold text-slate-700 hover:text-slate-900 hover:underline flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                    title="Unduh berkas bukti pembayaran asli"
+                    className="text-xs font-bold text-slate-700 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
                   >
-                    <Download className={`w-3.5 h-3.5 ${isDownloadingProof ? 'animate-bounce' : ''}`} />
-                    <span>{isDownloadingProof ? 'Mengunduh...' : 'Unduh'}</span>
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Unduh</span>
                   </button>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setProofPreviewUrl(null)}
-                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-slate-800 transition"
               >
                 Tutup
               </button>
@@ -1375,18 +2176,20 @@ export default function CanteenTopup() {
         </div>
       )}
 
-      {/* ========================================================================= */}
-      {detailModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+      {/* =========================================================================
+          MODAL 5: DETAIL RIWAYAT PEMBAYARAN
+          ========================================================================= */}
+      {historyDetailModalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
-                <h4 className="text-base font-bold text-slate-800">Detail Pembayaran Tagihan</h4>
-                <p className="text-xs text-slate-400 font-mono">{detailModalItem.id}</p>
+                <h4 className="text-base font-bold text-slate-800">Detail Riwayat Pembayaran</h4>
+                <p className="text-xs text-slate-400 font-mono">{historyDetailModalItem.id}</p>
               </div>
               <button
                 type="button"
-                onClick={() => setDetailModalItem(null)}
+                onClick={() => setHistoryDetailModalItem(null)}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -1396,45 +2199,31 @@ export default function CanteenTopup() {
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between text-slate-600">
                 <span>Asal UPT:</span>
-                <span className="font-bold text-slate-800">{detailModalItem.branchName}</span>
+                <span className="font-bold text-slate-800">{historyDetailModalItem.branchName}</span>
               </div>
               <div className="flex justify-between text-slate-600">
                 <span>Waktu Pembayaran:</span>
-                <span className="font-medium text-slate-700">{formatTanggal(detailModalItem.tanggal)}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Petugas Kasir:</span>
-                <span className="font-medium text-slate-700">{detailModalItem.staffName}</span>
-              </div>
-              <div className="flex justify-between text-slate-600">
-                <span>Metode Bayar:</span>
-                <span className="font-medium text-slate-700">{detailModalItem.bankTarget || 'Transfer'}</span>
+                <span className="font-medium text-slate-700">{formatTanggal(historyDetailModalItem.tanggal || historyDetailModalItem.createdAt)}</span>
               </div>
               <div className="flex justify-between text-slate-800 font-bold pt-2 border-t border-slate-100">
-                <span>Total Tagihan:</span>
-                <span className="text-[#1565C0] font-black text-sm">{formatRupiah(detailModalItem.totalBayar || detailModalItem.nominal)}</span>
+                <span>Total Transfer:</span>
+                <span className="text-[#1565C0] font-black text-sm">{formatRupiah(historyDetailModalItem.totalBayar || historyDetailModalItem.nominal)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                <span>Status Verifikasi:</span>
+                <span>Status:</span>
                 <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                  detailModalItem.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                  historyDetailModalItem.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
-                  {detailModalItem.status === 'APPROVED' ? 'Disetujui (Lunas)' : 'Ditolak'}
+                  {historyDetailModalItem.status === 'APPROVED' ? 'Lunas (Disetujui)' : 'Ditolak'}
                 </span>
               </div>
-              {detailModalItem.rejectReason && (
-                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs">
-                  <span className="font-bold block mb-0.5">Alasan Penolakan:</span>
-                  <span>{detailModalItem.rejectReason}</span>
-                </div>
-              )}
             </div>
 
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={() => setDetailModalItem(null)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
+                onClick={() => setHistoryDetailModalItem(null)}
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold transition cursor-pointer"
               >
                 Tutup
               </button>

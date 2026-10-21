@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -23,6 +23,7 @@ import {
   X
 } from 'lucide-react';
 import { createBranch, buildCreateBranchPayload } from '../../services/branchService';
+import { getAllKanwilsForSuperadmin } from '../../services/kanwilService';
 import { logout } from '../../services/api';
 
 export const ADMIN_EMAIL_DOMAIN = 'pascall.id';
@@ -74,9 +75,13 @@ const generateRandomPassword = () => {
 const Create = () => {
   const navigate = useNavigate();
   
+  // Kanwils list state for dropdown
+  const [kanwils, setKanwils] = useState([]);
+
   // Branch form state
   const [formData, setFormData] = useState({
     name: '',
+    kanwilId: '',
     location: '',
     address: '',
     phone: '',
@@ -84,6 +89,18 @@ const Create = () => {
     status: 'Active',
     headName: ''
   });
+
+  useEffect(() => {
+    const fetchKanwils = async () => {
+      try {
+        const list = await getAllKanwilsForSuperadmin();
+        setKanwils(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.log('[BranchCreate] Error fetching kanwils:', err);
+      }
+    };
+    fetchKanwils();
+  }, []);
 
   // Admin account state
   const [adminEmail, setAdminEmail] = useState('');
@@ -150,7 +167,11 @@ const Create = () => {
     setErrorMsg('');
 
     if (!formData.name.trim()) {
-      setErrorMsg('Nama cabang tidak boleh kosong.');
+      setErrorMsg('Nama cabang / UPT tidak boleh kosong.');
+      return;
+    }
+    if (kanwils.length > 0 && !formData.kanwilId) {
+      setErrorMsg('Kanwil Induk pengawas wajib dipilih.');
       return;
     }
     if (!formData.location.trim()) {
@@ -260,24 +281,24 @@ const Create = () => {
         </div>
       </div>
 
-      {/* Notice: Pendelegasian Pendaftaran UPT ke Kanwil */}
-      <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-900 shadow-2xs">
+      {/* Info Banner Superadmin */}
+      <div className="bg-blue-50/90 border border-blue-200/90 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-blue-900 shadow-2xs">
         <div className="flex items-start gap-3">
-          <div className="p-2.5 bg-amber-500/15 text-amber-700 rounded-xl shrink-0 mt-0.5">
-            <Shield className="w-5 h-5" />
+          <div className="p-2.5 bg-blue-600/10 text-primary rounded-xl shrink-0 mt-0.5">
+            <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h4 className="font-bold text-amber-950 text-sm">Alur Kewenangan Baru: Pembuatan UPT Dikelola oleh Kanwil</h4>
-            <p className="text-amber-800 mt-1 leading-relaxed">
-              Sesuai hierarki tata kelola PasCall, Super Admin berwenang mengelola entitas <strong>Kantor Wilayah (Kanwil)</strong>. Pendaftaran UPT baru secara resmi dilakukan oleh <strong>Admin Kanwil</strong> masing-masing wilayah (Jawa Barat, DI Yogyakarta, Jawa Tengah, Jawa Timur, dll).
+            <h4 className="font-bold text-blue-950 text-sm">Registrasi Unit Pelaksana Teknis (UPT)</h4>
+            <p className="text-blue-800 mt-1 leading-relaxed">
+              Super Admin berwenang mendaftarkan UPT Lapas / Rutan baru, menetapkan Kanwil induk pengawas, dan membuat akun login Kepala UPT secara terpusat.
             </p>
           </div>
         </div>
         <Link
-          to="/kanwil-management"
-          className="shrink-0 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs transition-colors shadow-xs"
+          to="/branches"
+          className="shrink-0 px-4 py-2 bg-white hover:bg-slate-50 border border-blue-200 text-primary font-bold rounded-xl text-xs transition-colors shadow-2xs"
         >
-          Kelola Kanwil &rarr;
+          &larr; Daftar UPT
         </Link>
       </div>
 
@@ -322,6 +343,31 @@ const Create = () => {
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
+            </div>
+
+            {/* Kanwil Induk */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Kanwil Induk {kanwils.length > 0 && <span className="text-rose-500">*</span>}
+              </label>
+              <div className="relative">
+                <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+                <select 
+                  name="kanwilId"
+                  value={formData.kanwilId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, kanwilId: e.target.value }))}
+                  required={kanwils.length > 0}
+                  className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs cursor-pointer"
+                >
+                  <option value="">-- Pilih Kanwil Induk --</option>
+                  {kanwils.map((k) => (
+                    <option key={k.id} value={k.id}>
+                      {k.name} {k.wilayah ? `(${k.wilayah})` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <p className="text-[11px] text-slate-400">Pilih Kantor Wilayah Kementerian Hukum dan HAM pengawas UPT ini.</p>
             </div>
 
             {/* Status Operasional Toggle */}

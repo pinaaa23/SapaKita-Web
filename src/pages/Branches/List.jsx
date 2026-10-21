@@ -184,34 +184,28 @@ const List = () => {
             </button>
 
             <Link 
-              to="/kanwil-management" 
+              to="/branches/create" 
               className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all text-xs cursor-pointer"
             >
-              <Building2 className="w-4 h-4" /> Kelola Kanwil
+              <Plus className="w-4 h-4" /> Tambah UPT
             </Link>
           </div>
         </div>
       </div>
 
-      {/* Banner Hierarki Kewenangan Organisasi */}
+      {/* Banner Manajemen UPT */}
       <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-slate-50 border border-blue-200/70 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-900 shadow-2xs">
         <div className="flex items-start sm:items-center gap-3">
           <div className="p-2.5 bg-blue-600/10 text-primary rounded-xl shrink-0 mt-0.5 sm:mt-0">
             <Building2 className="w-4 h-4" />
           </div>
           <div>
-            <p className="font-bold text-slate-800">Hierarki Organisasi: Pengelolaan UPT Didelegasikan ke Kanwil</p>
+            <p className="font-bold text-slate-800">Manajemen Master UPT & Hubungan Kanwil</p>
             <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
-              Super Admin mengkoordinasikan dan membuat Kantor Wilayah (Kanwil). Selanjutnya, penambahan dan pengelolaan Unit Pelaksana Teknis (UPT) dilakukan langsung oleh Admin Kanwil wilayah bersangkutan.
+              Super Admin mengelola seluruh Unit Pelaksana Teknis (UPT) Lapas dan Rutan nasional serta menetapkan Kanwil induk pengawas masing-masing UPT.
             </p>
           </div>
         </div>
-        <Link
-          to="/kanwil-management"
-          className="shrink-0 px-3.5 py-1.5 bg-white hover:bg-primary hover:text-white border border-blue-200 text-primary font-bold rounded-xl text-xs transition-all shadow-2xs"
-        >
-          Kelola Kanwil &rarr;
-        </Link>
       </div>
 
       {/* Table Card */}

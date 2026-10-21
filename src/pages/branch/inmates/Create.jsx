@@ -87,12 +87,25 @@ const InmatesCreate = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.wbpRegNumber.trim()) {
-      setErrorMsg('Nama Lengkap dan NIP Narapidana wajib diisi.');
+      setErrorMsg('Nama Lengkap dan NIP WBP wajib diisi.');
+      return;
+    }
+
+    if (!formData.birthDate || !formData.birthDate.trim()) {
+      setErrorMsg('Tanggal lahir wajib diisi');
+      return;
+    }
+
+    const birthDateObj = new Date(formData.birthDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (isNaN(birthDateObj.getTime()) || birthDateObj > today) {
+      setErrorMsg('Tanggal lahir tidak valid atau tidak boleh di masa depan.');
       return;
     }
 
     if (!formData.initialPin || formData.initialPin.trim().length < 6) {
-      setErrorMsg('Password awal narapidana minimal 6 karakter (huruf/angka).');
+      setErrorMsg('Password awal WBP minimal 6 karakter (huruf/angka).');
       return;
     }
 
@@ -124,6 +137,8 @@ const InmatesCreate = () => {
       await createInmate({
         identifier: formData.wbpRegNumber,
         name: formData.name,
+        birthDate: formData.birthDate,
+        dateOfBirth: formData.birthDate,
         initialPin: formData.initialPin,
         // families: formData.families,
         families: [],
@@ -145,14 +160,14 @@ const InmatesCreate = () => {
         return;
       }
       if (err?.status === 403) {
-        setErrorMsg('Anda tidak memiliki akses untuk menambah narapidana.');
+        setErrorMsg('Anda tidak memiliki akses untuk menambah WBP.');
       } else if (err?.isNetworkError || err?.status === 0) {
         setErrorMsg('Server tidak dapat dihubungi. Silakan coba lagi nanti.');
       } else if (err?.status === 400 || err?.data?.message) {
         const msg = err?.data?.errors?.map(e => e.message).join(', ') || err?.data?.message || err?.message || 'Validasi gagal.';
         setErrorMsg(msg);
       } else {
-        setErrorMsg(err?.message || 'Gagal mendaftarkan narapidana.');
+        setErrorMsg(err?.message || 'Gagal mendaftarkan WBP.');
       }
     } finally {
       setIsSubmitting(false);
@@ -238,7 +253,7 @@ const InmatesCreate = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  NIP (Nomor Induk Narapidana) <span className="text-rose-500">*</span>
+                  NIP (Nomor Induk WBP) <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -260,7 +275,7 @@ const InmatesCreate = () => {
                     type={showInitialPassword ? "text" : "password"}
                     value={formData.initialPin}
                     onChange={(e) => setFormData({...formData, initialPin: e.target.value})}
-                    placeholder="Minimal 6 karakter (misal: napi123)"
+                    placeholder="Minimal 6 karakter (misal: wbp123)"
                     className="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-mono font-bold"
                     required
                   />
@@ -289,11 +304,14 @@ const InmatesCreate = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Lahir</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tanggal Lahir <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="date" 
                   value={formData.birthDate}
                   onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                  required
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
                 />
               </div>
@@ -349,7 +367,7 @@ const InmatesCreate = () => {
                       </select>
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <p className="text-[10px] text-slate-400">Pilih cabang Lapas/Rutan tempat narapidana ini didaftarkan.</p>
+                    <p className="text-[10px] text-slate-400">Pilih cabang Lapas/Rutan tempat WBP ini didaftarkan.</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">

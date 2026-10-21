@@ -289,17 +289,6 @@ export default function KanwilProfile() {
                 </div>
               </div>
               
-              <button 
-                onClick={() => {
-                  setIsEditingInfo(!isEditingInfo);
-                  setInfoError('');
-                }}
-                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  isEditingInfo ? 'text-slate-600 bg-slate-100 hover:bg-slate-200' : 'text-primary bg-blue-50 hover:bg-blue-100'
-                }`}
-              >
-                {isEditingInfo ? 'Batal' : 'Edit Profil'}
-              </button>
             </div>
 
             <form onSubmit={handleSaveInfo} className="p-6 space-y-4">
@@ -364,18 +353,7 @@ export default function KanwilProfile() {
                 </div>
               </div>
 
-              {isEditingInfo && (
-                <div className="flex justify-end pt-3">
-                  <button 
-                    type="submit"
-                    disabled={isSubmittingInfo}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md transition-all cursor-pointer disabled:opacity-50"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {isSubmittingInfo ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
-                </div>
-              )}
+
             </form>
           </div>
         </div>

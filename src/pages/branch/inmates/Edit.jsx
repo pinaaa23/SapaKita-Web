@@ -50,13 +50,23 @@ const InmatesEdit = () => {
     getInmates({ search: id }).then(res => {
       const found = res?.items?.find(i => i.id === id || i.wbpRegNumber === id || i.identifier === id);
       if (found) {
+        let formattedBirthDate = '';
+        const rawBirthDate = found.dateOfBirth || found.birthDate || '';
+        if (rawBirthDate) {
+          try {
+            formattedBirthDate = new Date(rawBirthDate).toISOString().split('T')[0];
+          } catch {
+            formattedBirthDate = rawBirthDate;
+          }
+        }
+
         setFormData({
           name: found.name || '',
           wbpRegNumber: found.wbpRegNumber || found.identifier || '',
           initialPin: '',
           nik: '',
           birthPlace: '',
-          birthDate: '',
+          birthDate: formattedBirthDate,
           gender: 'Laki-laki',
           photoUrl: '',
           branchName: (isSupervisor || !isSuperadmin || !found.branchName || found.branchName === 'Lapas Pusat' || found.branchName === 'Lapas Kelas I Cipinang' || found.branchName === '-') ? currentBranchName : found.branchName,
@@ -88,7 +98,20 @@ const InmatesEdit = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.wbpRegNumber.trim()) {
-      setErrorMsg('Nama Lengkap dan NIP Narapidana wajib diisi.');
+      setErrorMsg('Nama Lengkap dan NIP WBP wajib diisi.');
+      return;
+    }
+
+    if (!formData.birthDate || !formData.birthDate.trim()) {
+      setErrorMsg('Tanggal lahir wajib diisi');
+      return;
+    }
+
+    const birthDateObj = new Date(formData.birthDate);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (isNaN(birthDateObj.getTime()) || birthDateObj > today) {
+      setErrorMsg('Tanggal lahir tidak valid atau tidak boleh di masa depan.');
       return;
     }
 
@@ -114,6 +137,8 @@ const InmatesEdit = () => {
       await updateInmate(id, {
         name: formData.name,
         identifier: formData.wbpRegNumber,
+        birthDate: formData.birthDate,
+        dateOfBirth: formData.birthDate,
         initialPin: formData.initialPin,
         blockRoom: formData.blockRoom,
         branchName: formData.branchName,
@@ -128,13 +153,13 @@ const InmatesEdit = () => {
         return;
       }
       if (err?.status === 403) {
-        setErrorMsg('Anda tidak memiliki akses untuk mengubah data narapidana.');
+        setErrorMsg('Anda tidak memiliki akses untuk mengubah data WBP.');
       } else if (err?.status === 404) {
-        setErrorMsg('Data narapidana tidak ditemukan di server.');
+        setErrorMsg('Data WBP tidak ditemukan di server.');
       } else if (err?.status === 400) {
         setErrorMsg(err?.message || 'Data yang dimasukkan tidak valid.');
       } else {
-        setErrorMsg(err?.message || 'Gagal menyimpan perubahan data narapidana.');
+        setErrorMsg(err?.message || 'Gagal menyimpan perubahan data WBP.');
       }
     } finally {
       setIsSubmitting(false);
@@ -149,7 +174,7 @@ const InmatesEdit = () => {
           to="/branch/inmates"
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Kembali ke Data Narapidana
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Data WBP
         </Link>
       </div>
 
@@ -219,7 +244,7 @@ const InmatesEdit = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  NIP (Nomor Induk Narapidana) <span className="text-rose-500">*</span>
+                  NIP (Nomor Induk WBP) <span className="text-rose-500">*</span>
                 </label>
                 <input 
                   type="text" 
@@ -241,11 +266,14 @@ const InmatesEdit = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Lahir</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Tanggal Lahir <span className="text-rose-500">*</span>
+                </label>
                 <input 
                   type="date" 
                   value={formData.birthDate}
                   onChange={(e) => setFormData({...formData, birthDate: e.target.value})}
+                  required
                   className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
                 />
               </div>
@@ -373,7 +401,7 @@ const InmatesEdit = () => {
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-800">Section 4 — Keluarga Terdaftar</h2>
-              <p className="text-[11px] text-slate-500">Daftar kontak keluarga yang berhak menerima panggilan narapidana</p>
+              <p className="text-[11px] text-slate-500">Daftar kontak keluarga yang berhak menerima panggilan WBP</p>
             </div>
           </div>
 

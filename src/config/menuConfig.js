@@ -96,6 +96,12 @@ export const permissions = {
     const norm = normalizeRole(role);
     return norm === ROLES.SUPERVISOR;
   },
+
+  // Role Kanwil bersifat statis (read-only): tidak dapat menambah, mengedit, atau menghapus data
+  isReadOnlyRole: (role) => {
+    const norm = normalizeRole(role);
+    return norm === ROLES.ADMIN_KANWIL;
+  },
 };
 
 /**
@@ -113,30 +119,32 @@ export const getMenuItemsByRole = (role) => {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { name: 'Kanwil', icon: Landmark, path: '/kanwil-management' },
+      { name: 'UPT', icon: Building2, path: '/branches' },
       { name: 'Data Narapidana', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
-      { name: 'Tagihan', icon: Receipt, path: '/canteen-topup' },
+      { name: 'Tagihan Kantin', icon: Receipt, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];
   }
 
-  // Menu untuk Admin Kanwil (HANYA 4 MENU: Dashboard, UPT, Data WBP, Laporan)
+  // Menu untuk Admin Kanwil (Dashboard, UPT, Data WBP, Panggilan, Laporan - Read Only)
   if (normRole === ROLES.ADMIN_KANWIL) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/kanwil/dashboard' },
       { name: 'UPT', icon: Building2, path: '/kanwil/branches' },
       { name: 'Data WBP', icon: Users, path: '/kanwil/inmates' },
+      { name: 'Panggilan', icon: PhoneCall, path: '/kanwil/calls' },
       { name: 'Laporan', icon: BarChart3, path: '/kanwil/reports' },
     ];
   }
 
-  // Menu untuk Kepala UPT (Dashboard, Data Napi, Rekaman Panggilan, Kelola Pengguna, Transaksi, Laporan)
+  // Menu untuk Kepala UPT (Dashboard, Data WBP, Rekaman Panggilan, Kelola Pengguna, Transaksi, Laporan)
   if (normRole === ROLES.KEPALA_UPT) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
-      { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
+      { name: 'Data WBP', icon: Users, path: '/branch/inmates' },
       { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Kelola Pengguna', icon: UserCog, path: '/branch/users' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
@@ -144,11 +152,11 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data Narapidana, Kelola Paket, Transaksi, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data WBP, Kelola Paket, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
-      { name: 'Data Narapidana', icon: Users, path: '/branch/inmates' },
+      { name: 'Data WBP', icon: Users, path: '/branch/inmates' },
       { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },

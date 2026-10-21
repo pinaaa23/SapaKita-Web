@@ -31,10 +31,43 @@ export async function getMonthlyBilling(month, year) {
 export async function getPaymentHistory() {
   try {
     const res = await apiFetch('/api/canteen/topups?limit=50');
-    const items = res?.items || res?.data || (Array.isArray(res) ? res : []);
+    let items = res?.items || res?.data || (Array.isArray(res) ? res : []);
+
+    // Sinkronisasi dengan status terbaru dari Superadmin (jika disetujui/ditolak di storage)
+    try {
+      if (typeof window !== 'undefined') {
+        const rawNat = localStorage.getItem('pascall_superadmin_canteen_history_v1');
+        if (rawNat) {
+          const natList = JSON.parse(rawNat);
+          if (Array.isArray(natList)) {
+            items = items.map((item) => {
+              const matched = natList.find((n) => String(n.id) === String(item.id));
+              if (matched && matched.status) {
+                return {
+                  ...item,
+                  status: matched.status,
+                  rejectReason: matched.rejectReason || item.rejectReason,
+                };
+              }
+              return item;
+            });
+          }
+        }
+      }
+    } catch (_) {}
+
     return items;
   } catch (err) {
     console.warn('[TagihanService] Gagal memuat riwayat pembayaran:', err);
+    try {
+      if (typeof window !== 'undefined') {
+        const rawNat = localStorage.getItem('pascall_superadmin_canteen_history_v1');
+        if (rawNat) {
+          const parsed = JSON.parse(rawNat);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      }
+    } catch (_) {}
     return [];
   }
 }

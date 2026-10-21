@@ -28,16 +28,17 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/kanwil/branches/create')) return { title: 'Tambah UPT Baru', subtitle: `Daftarkan UPT baru di bawah naungan ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/branches')) return { title: 'Daftar UPT', subtitle: `UPT di bawah naungan ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/inmates')) return { title: 'Data WBP', subtitle: `Daftar warga binaan pemasyarakatan di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/calls')) return { title: 'Panggilan', subtitle: `Log aktivitas panggilan dan rekaman audio seluruh UPT di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/reports')) return { title: 'Laporan', subtitle: `Laporan & analitik performa seluruh UPT di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/profile')) return { title: 'Profil Kanwil', subtitle: 'Informasi akun & pengaturan profil kantor wilayah' };
     if (pathname === '/kanwil' || pathname === '/kanwil/' || pathname.startsWith('/kanwil/dashboard')) {
       return { title: 'Dashboard', subtitle: `Selamat Datang, ${activeKanwilName}!` };
     }
 
-    if (pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah Narapidana Baru', subtitle: 'Form pendaftaran warga binaan baru' };
-    if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data Narapidana', subtitle: 'Perbarui informasi & data warga binaan' };
-    if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
-    if (pathname.startsWith('/branch/inmates')) return { title: 'Data Narapidana', subtitle: uptName ? `Kelola data warga binaan di ${uptName}` : 'Kelola data warga binaan di UPT Anda' };
+    if (pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah WBP Baru', subtitle: 'Form pendaftaran warga binaan baru' };
+    if (pathname.includes('/edit') && pathname.startsWith('/branch/inmates')) return { title: 'Edit Data WBP', subtitle: 'Perbarui informasi & data warga binaan' };
+    if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail WBP', subtitle: 'Informasi lengkap data warga binaan' };
+    if (pathname.startsWith('/branch/inmates')) return { title: 'Data WBP', subtitle: uptName ? `Kelola data warga binaan di ${uptName}` : 'Kelola data warga binaan di UPT Anda' };
 
     if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan suara dan video warga binaan (WBP)' };
     if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Keluarga', subtitle: 'Verifikasi permohonan nomor kontak keluarga WBP' };

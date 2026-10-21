@@ -190,7 +190,7 @@ const InmatesDetail = () => {
     return (
       <div className="text-center py-20 bg-white rounded-2xl border border-slate-200/80">
         <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <p className="text-xs text-slate-500 mt-2 font-semibold">Memuat data narapidana...</p>
+        <p className="text-xs text-slate-500 mt-2 font-semibold">Memuat data WBP...</p>
       </div>
     );
   }
@@ -203,7 +203,7 @@ const InmatesDetail = () => {
         </div>
         <h2 className="text-base font-bold text-slate-800">Anda tidak memiliki akses ke data ini</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Role akun Anda tidak memiliki izin untuk melihat rincian data narapidana pada server backend.
+          Role akun Anda tidak memiliki izin untuk melihat rincian data WBP pada server backend.
         </p>
         <Link 
           to={backRoute} 
@@ -221,9 +221,9 @@ const InmatesDetail = () => {
         <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center mx-auto mb-3">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-base font-bold text-slate-800">Data narapidana tidak ditemukan</h2>
+        <h2 className="text-base font-bold text-slate-800">Data WBP tidak ditemukan</h2>
         <p className="text-xs text-slate-500 mt-1">
-          Narapidana dengan NIP/identifier <span className="font-mono font-bold text-slate-700">"{decodeURIComponent(id || '')}"</span> tidak ditemukan pada database server.
+          WBP dengan NIP/identifier <span className="font-mono font-bold text-slate-700">"{decodeURIComponent(id || '')}"</span> tidak ditemukan pada database server.
         </p>
         <Link 
           to={backRoute} 
@@ -274,7 +274,7 @@ const InmatesDetail = () => {
                 setIsTogglingStatus(true);
                 try {
                   await updateInmateStatus(inmate.id, newStatus);
-                  showToast(newStatus ? 'Akun narapidana berhasil diaktifkan.' : 'Akun narapidana berhasil dinonaktifkan.', 'success');
+                  showToast(newStatus ? 'Akun WBP berhasil diaktifkan.' : 'Akun WBP berhasil dinonaktifkan.', 'success');
                   await loadInmate();
                 } catch (err) {
                   if (err?.status === 401) {
@@ -289,7 +289,7 @@ const InmatesDetail = () => {
                   } else if (err?.status === 400) {
                     showToast(err?.message || 'Permintaan gagal.', 'error');
                   } else {
-                    showToast(err?.message || 'Gagal mengubah status narapidana.', 'error');
+                    showToast(err?.message || 'Gagal mengubah status WBP.', 'error');
                   }
                 } finally {
                   setIsTogglingStatus(false);
@@ -392,7 +392,7 @@ const InmatesDetail = () => {
             <span className="font-bold text-slate-800 text-sm">{inmate.name}</span>
           </div>
           <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-100">
-            <span className="text-slate-400 block font-medium mb-1">NIP (Nomor Induk Narapidana)</span>
+            <span className="text-slate-400 block font-medium mb-1">NIP (Nomor Induk WBP)</span>
             <span className="font-bold font-mono text-slate-800 text-sm">{inmate.wbpRegNumber}</span>
           </div>
           <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-100">
@@ -480,7 +480,7 @@ const InmatesDetail = () => {
             </div>
             <p className="text-xs font-bold text-slate-700">Belum ada keluarga terdaftar</p>
             <p className="text-[11px] text-slate-400">
-              Belum ada kontak keluarga yang didaftarkan oleh Operator Kantin untuk narapidana ini.
+              Belum ada kontak keluarga yang didaftarkan oleh Operator Kantin untuk WBP ini.
             </p>
           </div>
         )}
@@ -496,7 +496,7 @@ const InmatesDetail = () => {
                   <KeyRound className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Reset Password Narapidana</h3>
+                  <h3 className="text-sm font-bold text-slate-800">Reset Password WBP</h3>
                   <p className="text-[11px] text-slate-400">Atur ulang password login untuk {inmate.name}</p>
                 </div>
               </div>
@@ -520,7 +520,7 @@ const InmatesDetail = () => {
                 setResetPinError('');
                 try {
                   await resetInmatePin(inmate.id, newPin);
-                  showToast('Password narapidana berhasil direset.', 'success');
+                  showToast('Password WBP berhasil direset.', 'success');
                   setIsResetPinModalOpen(false);
                   setNewPin('');
                 } catch (err) {
@@ -541,7 +541,7 @@ const InmatesDetail = () => {
                     type={showResetPassword ? "text" : "password"}
                     maxLength={20}
                     required
-                    placeholder="Masukkan minimal 6 karakter password baru (misal: napi123)"
+                    placeholder="Masukkan minimal 6 karakter password baru (misal: wbp123)"
                     value={newPin}
                     onChange={(e) => {
                       setNewPin(e.target.value);
@@ -565,7 +565,7 @@ const InmatesDetail = () => {
                   </p>
                 )}
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Password ini digunakan oleh narapidana untuk login ke aplikasi PasCall (bisa huruf/angka).
+                  Password ini digunakan oleh WBP untuk login ke aplikasi PasCall (bisa huruf/angka).
                 </p>
               </div>
 

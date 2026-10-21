@@ -12,16 +12,10 @@ import {
   Users,
   ShieldCheck,
   CheckCircle2,
-  Plus,
-  FileText,
-  Edit3,
-  Power,
-  AlertTriangle,
-  Save
+  FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getKanwilBranches } from '../../services/kanwilService';
-import { updateBranch, updateBranchStatus } from '../../services/branchService';
 import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
 export default function KanwilBranches() {
@@ -153,93 +147,7 @@ export default function KanwilBranches() {
     setIsDetailModalOpen(true);
   };
 
-  // Edit Modal State & Handlers
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({
-    id: '',
-    name: '',
-    location: '',
-    address: '',
-    phone: '',
-    capacity: 500,
-    status: 'Aktif',
-  });
-  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
-  const openEditModal = (branch) => {
-    setEditFormData({
-      id: branch.id,
-      name: branch.name || '',
-      location: branch.location || branch.city || '',
-      address: branch.address === '-' ? '' : (branch.address || ''),
-      phone: branch.phone === '-' ? '' : (branch.phone || ''),
-      capacity: branch.capacity || 500,
-      status: (branch.status === 'Active' || branch.status === 'Aktif') ? 'Aktif' : 'Nonaktif',
-    });
-    setIsEditModalOpen(true);
-  };
-
-  const handleSaveEdit = async (e) => {
-    e.preventDefault();
-    if (!editFormData.name.trim()) {
-      showToast('Nama UPT tidak boleh kosong.', 'error');
-      return;
-    }
-    if (!editFormData.location.trim()) {
-      showToast('Lokasi / Kota tidak boleh kosong.', 'error');
-      return;
-    }
-
-    setIsSubmittingEdit(true);
-    try {
-      await updateBranch(editFormData.id, {
-        name: editFormData.name.trim(),
-        location: editFormData.location.trim(),
-        address: editFormData.address.trim(),
-        phone: editFormData.phone.trim(),
-        capacity: Number(editFormData.capacity) || 500,
-        status: editFormData.status,
-      });
-      showToast(`Data UPT "${editFormData.name.trim()}" berhasil diperbarui!`, 'success');
-      setIsEditModalOpen(false);
-      await loadBranches();
-    } catch (err) {
-      console.error('Error updating branch:', err);
-      showToast(err?.message || 'Gagal memperbarui data UPT.', 'error');
-    } finally {
-      setIsSubmittingEdit(false);
-    }
-  };
-
-  // Status Toggle Modal State & Handlers
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
-  const [branchToToggle, setBranchToToggle] = useState(null);
-  const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-
-  const openToggleStatusModal = (branch) => {
-    setBranchToToggle(branch);
-    setIsStatusModalOpen(true);
-  };
-
-  const handleConfirmToggleStatus = async () => {
-    if (!branchToToggle) return;
-    const isAktif = branchToToggle.status === 'Active' || branchToToggle.status === 'Aktif';
-    const targetStatus = isAktif ? 'Nonaktif' : 'Aktif';
-
-    setIsTogglingStatus(true);
-    try {
-      await updateBranchStatus(branchToToggle.id, targetStatus);
-      showToast(`Status UPT "${branchToToggle.name}" berhasil diubah menjadi ${targetStatus}.`, 'success');
-      setIsStatusModalOpen(false);
-      setBranchToToggle(null);
-      await loadBranches();
-    } catch (err) {
-      console.error('Error updating branch status:', err);
-      showToast(err?.message || 'Gagal mengubah status operasional UPT.', 'error');
-    } finally {
-      setIsTogglingStatus(false);
-    }
-  };
 
   return (
     <div className="space-y-5">
@@ -296,21 +204,10 @@ export default function KanwilBranches() {
               ))}
             </div>
 
-            <button 
-              type="button"
-              onClick={handleExportPDF}
-              disabled={filteredBranches.length === 0}
-              className="px-3.5 py-1.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer disabled:opacity-50"
-            >
-              <Download className="w-3.5 h-3.5" /> Export PDF
-            </button>
-
-            <Link 
-              to="/kanwil/branches/create"
-              className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all text-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" /> Tambah UPT
-            </Link>
+            <div className="px-3.5 py-1.5 bg-slate-100 border border-slate-200/80 rounded-xl text-slate-500 font-semibold text-xs flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-slate-400" />
+              <span>Akses Hanya Lihat</span>
+            </div>
           </div>
         </div>
       </div>
@@ -393,8 +290,8 @@ export default function KanwilBranches() {
                         </span>
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-2">
-                          {/* 1. Ikon View: Melihat Detail Lengkap UPT */}
+                        <div className="flex items-center justify-center">
+                          {/* Ikon View: Melihat Detail Lengkap UPT (Read-Only) */}
                           <button 
                             type="button"
                             onClick={() => openDetailModal(branch)}
@@ -402,30 +299,6 @@ export default function KanwilBranches() {
                             title="Lihat Detail UPT"
                           >
                             <Eye className="w-4 h-4" />
-                          </button>
-
-                          {/* 2. Ikon Pensil: Mengedit Data UPT */}
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(branch)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
-                            title="Edit Data UPT"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-
-                          {/* 3. Ikon Power: Toggle Status Aktif/Nonaktif UPT */}
-                          <button
-                            type="button"
-                            onClick={() => openToggleStatusModal(branch)}
-                            className={`p-2 rounded-xl border border-transparent transition-all cursor-pointer shadow-2xs hover:shadow-xs ${
-                              isAktif 
-                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200' 
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
-                            }`}
-                            title={isAktif ? 'Nonaktifkan Akun / UPT' : 'Aktifkan Akun / UPT'}
-                          >
-                            <Power className="w-4 h-4" />
                           </button>
                         </div>
                       </td>
@@ -536,212 +409,6 @@ export default function KanwilBranches() {
           </div>
         </div>
       )}
-
-      {/* Modal Edit UPT */}
-      {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                  <Edit3 className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Edit Data UPT</h3>
-                  <p className="text-[11px] text-slate-400">Perbarui profil dan kapasitas operasional UPT</p>
-                </div>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveEdit} className="p-6 space-y-4 text-xs">
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Nama Unit Pelaksana Teknis (UPT) *</label>
-                <input
-                  type="text"
-                  required
-                  value={editFormData.name}
-                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  placeholder="Contoh: Lapas Kelas I Cipinang"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Kota / Lokasi *</label>
-                  <input
-                    type="text"
-                    required
-                    value={editFormData.location}
-                    onChange={(e) => setEditFormData({ ...editFormData, location: e.target.value })}
-                    placeholder="Contoh: Jakarta Timur"
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Kapasitas Maksimal (WBP)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editFormData.capacity}
-                    onChange={(e) => setEditFormData({ ...editFormData, capacity: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3.5">
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Nomor Telepon UPT</label>
-                  <input
-                    type="text"
-                    value={editFormData.phone}
-                    onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
-                    placeholder="021-..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Status Operasional</label>
-                  <select
-                    value={editFormData.status}
-                    onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer"
-                  >
-                    <option value="Aktif">Aktif</option>
-                    <option value="Nonaktif">Nonaktif</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-1">Alamat Lengkap</label>
-                <textarea
-                  rows={2}
-                  value={editFormData.address}
-                  onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
-                  placeholder="Jl. Raya..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none"
-                />
-              </div>
-
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsEditModalOpen(false)}
-                  disabled={isSubmittingEdit}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingEdit}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50"
-                >
-                  {isSubmittingEdit ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Menyimpan...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-3.5 h-3.5" />
-                      <span>Simpan Perubahan</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Konfirmasi Toggle Status UPT */}
-      {isStatusModalOpen && branchToToggle && (() => {
-        const isAktif = branchToToggle.status === 'Active' || branchToToggle.status === 'Aktif';
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in">
-            <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden">
-              <div className={`p-5 border-b border-slate-100 flex items-center gap-3 ${isAktif ? 'bg-amber-50/70 text-amber-900' : 'bg-emerald-50/70 text-emerald-900'}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAktif ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                  <Power className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold">
-                    {isAktif ? 'Nonaktifkan Akun / UPT' : 'Aktifkan Akun / UPT'}
-                  </h3>
-                  <p className="text-[11px] opacity-80">
-                    Konfirmasi perubahan status operasional UPT
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-3 text-xs">
-                <p className="text-slate-600 leading-relaxed">
-                  Apakah Anda yakin ingin {isAktif ? <strong className="text-amber-700">menonaktifkan</strong> : <strong className="text-emerald-700">mengaktifkan kembali</strong>} operasional akun UPT:
-                </p>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                  <p className="font-bold text-slate-800 text-sm">{branchToToggle.name}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{branchToToggle.city || branchToToggle.location || 'Indonesia'}</p>
-                </div>
-                {isAktif ? (
-                  <p className="text-[11px] text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200/60 leading-relaxed">
-                    Perhatian: UPT yang dinonaktifkan sementara tidak dapat melakukan aktivasi panggilan baru bagi warga binaan sampai statusnya diaktifkan kembali.
-                  </p>
-                ) : (
-                  <p className="text-[11px] text-emerald-700 bg-emerald-50 p-3 rounded-xl border border-emerald-200/60 leading-relaxed">
-                    UPT akan segera kembali aktif dan seluruh layanan panggilan serta administrasi warga binaan dapat beroperasi normal.
-                  </p>
-                )}
-              </div>
-
-              <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsStatusModalOpen(false);
-                    setBranchToToggle(null);
-                  }}
-                  disabled={isTogglingStatus}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmToggleStatus}
-                  disabled={isTogglingStatus}
-                  className={`px-4 py-2 text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm disabled:opacity-50 ${
-                    isAktif 
-                      ? 'bg-amber-600 hover:bg-amber-700' 
-                      : 'bg-emerald-600 hover:bg-emerald-700'
-                  }`}
-                >
-                  {isTogglingStatus ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      <span>Memproses...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Power className="w-3.5 h-3.5" />
-                      <span>{isAktif ? 'Ya, Nonaktifkan UPT' : 'Ya, Aktifkan UPT'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
 
     </div>
   );

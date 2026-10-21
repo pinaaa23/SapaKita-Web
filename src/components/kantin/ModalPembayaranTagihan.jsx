@@ -24,7 +24,7 @@ export default function ModalPembayaranTagihan({
   totalApproved = 0,
   onSuccess,
 }) {
-  const [metodePembayaran, setMetodePembayaran] = useState('');
+  const [metodePembayaran, setMetodePembayaran] = useState('QRIS');
   const [proofFile, setProofFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [fileError, setFileError] = useState('');
@@ -137,72 +137,30 @@ export default function ModalPembayaranTagihan({
   };
 
   // Petunjuk bayar sesuai metode
+  // Petunjuk bayar QRIS
   const renderPetunjukBayar = () => {
-    if (!metodePembayaran) return null;
-
-    if (metodePembayaran === 'QRIS') {
-      return (
-        <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 text-xs text-slate-700 animate-in fade-in duration-150">
+    return (
+      <div className="p-4 bg-gradient-to-br from-blue-50/80 to-indigo-50/60 border border-blue-200/90 rounded-2xl space-y-2 text-xs text-slate-700 animate-in fade-in duration-150">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 font-bold text-blue-900">
-            <QrCode className="w-4 h-4 text-blue-600" />
-            <span>Petunjuk Pembayaran QRIS</span>
+            <QrCode className="w-4.5 h-4.5 text-blue-600" />
+            <span className="text-sm">Petunjuk Pembayaran QRIS</span>
           </div>
-          <p className="leading-relaxed">
-            1. Pindai kode QRIS resmi kasir/bendahara PasCall Lapas menggunakan aplikasi Mobile Banking atau E-Wallet Anda.
-          </p>
-          <p className="leading-relaxed">
-            2. Pastikan nominal pembayaran sesuai persis dengan total tagihan: <span className="font-bold font-mono text-blue-800">{formatRupiah(payableAmount)}</span>.
-          </p>
-          <p className="text-[11px] text-slate-500 italic mt-1">
-            * Data stiker QRIS resmi perusahaan dikonfirmasi langsung oleh pihak manajemen / Superadmin.
-          </p>
+          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-600 text-white shadow-2xs">
+            QRIS Only
+          </span>
         </div>
-      );
-    }
-
-    if (metodePembayaran.startsWith('Transfer Bank')) {
-      const bankName = metodePembayaran.replace('Transfer Bank - ', '');
-      return (
-        <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 text-xs text-slate-700 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 font-bold text-blue-900">
-            <Building2 className="w-4 h-4 text-blue-600" />
-            <span>Petunjuk Transfer {bankName}</span>
-          </div>
-          <p className="leading-relaxed">
-            1. Lakukan transfer sebesar <span className="font-bold font-mono text-blue-800">{formatRupiah(totalAmount)}</span> ke rekening resmi perusahaan PasCall ({bankName}).
-          </p>
-          <p className="leading-relaxed">
-            2. Simpan resi atau tangkapan layar bukti transfer untuk diunggah pada formulir di bawah.
-          </p>
-          <p className="text-[11px] text-slate-500 italic mt-1">
-            * Nomor rekening resmi perusahaan dikonfirmasi langsung oleh pihak manajemen / Superadmin.
-          </p>
-        </div>
-      );
-    }
-
-    if (metodePembayaran.startsWith('E-Wallet')) {
-      const ewalletName = metodePembayaran.replace('E-Wallet - ', '');
-      return (
-        <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-xl space-y-1.5 text-xs text-slate-700 animate-in fade-in duration-150">
-          <div className="flex items-center gap-2 font-bold text-blue-900">
-            <Smartphone className="w-4 h-4 text-blue-600" />
-            <span>Petunjuk Pembayaran E-Wallet ({ewalletName})</span>
-          </div>
-          <p className="leading-relaxed">
-            1. Buka aplikasi {ewalletName} Anda dan lakukan transfer sebesar <span className="font-bold font-mono text-blue-800">{formatRupiah(totalAmount)}</span> ke akun resmi PasCall.
-          </p>
-          <p className="leading-relaxed">
-            2. Simpan struk/bukti transaksi sukses untuk diunggah pada formulir di bawah.
-          </p>
-          <p className="text-[11px] text-slate-500 italic mt-1">
-            * Nomor akun e-wallet resmi perusahaan dikonfirmasi langsung oleh pihak manajemen / Superadmin.
-          </p>
-        </div>
-      );
-    }
-
-    return null;
+        <p className="leading-relaxed text-slate-600 text-[11px]">
+          1. Buka aplikasi <strong>Mobile Banking</strong> (BCA, Mandiri, BRI, BNI, dll.) atau <strong>E-Wallet</strong> (GoPay, OVO, DANA, ShopeePay).
+        </p>
+        <p className="leading-relaxed text-slate-600 text-[11px]">
+          2. Pindai stiker / barcode QRIS resmi PasCall Kantin dan pastikan nominal tepat: <span className="font-bold font-mono text-blue-700">{formatRupiah(payableAmount)}</span>.
+        </p>
+        <p className="leading-relaxed text-slate-600 text-[11px]">
+          3. Simpan tangkapan layar / bukti struk pembayaran berhasil untuk diunggah di formulir bawah.
+        </p>
+      </div>
+    );
   };
 
   return (
@@ -239,26 +197,41 @@ export default function ModalPembayaranTagihan({
             </div>
           )}
 
-          {/* 1. Ringkasan Tagihan (Data Riil Server) */}
+
+          {/* 1. Ringkasan Tagihan (Data Riil Detik) */}
           <div className="p-4 bg-slate-50 rounded-xl space-y-2 text-xs border border-slate-200/80">
             <div className="flex items-center justify-between border-b border-slate-200/60 pb-2 text-slate-700 font-bold">
-              <span>Nomor Invoice</span>
+              <span>Nomor Faktur</span>
               <span className="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
                 {billingData.invoiceNumber || '-'}
               </span>
             </div>
             <div className="flex justify-between text-slate-600">
-              <span>Periode Penggunaan</span>
+              <span>Periode Tagihan</span>
               <span className="font-bold text-slate-800">{billingData.period || '-'}</span>
             </div>
-            <div className="flex justify-between text-slate-600">
-              <span>Dasar Pengenaan Pajak (DPP)</span>
-              <span className="font-semibold text-slate-800">{formatRupiah(totalDpp)}</span>
-            </div>
-            <div className="flex justify-between text-slate-600">
-              <span>PPN (11%)</span>
-              <span className="font-semibold text-slate-800">{formatRupiah(totalPpn)}</span>
-            </div>
+            {billingData.totalSeconds !== undefined && (
+              <div className="flex justify-between text-slate-600">
+                <span>Total Detik Panggilan</span>
+                <span className="font-semibold text-slate-800">
+                  {Number(billingData.totalSeconds || 0).toLocaleString('id-ID')} Detik
+                </span>
+              </div>
+            )}
+            {billingData.ratePerSecond !== undefined && (
+              <div className="flex justify-between text-slate-600">
+                <span>Tarif Kontrak</span>
+                <span className="font-semibold text-slate-800">
+                  {formatRupiah(Number(billingData.ratePerSecond || 0))} / detik
+                </span>
+              </div>
+            )}
+            {billingData.superadminPercent !== undefined && (
+              <div className="flex justify-between text-slate-600">
+                <span>Porsi Superadmin (SA)</span>
+                <span className="font-semibold text-blue-700">{billingData.superadminPercent}%</span>
+              </div>
+            )}
             {totalApproved > 0 && (
               <div className="flex justify-between text-emerald-700 font-semibold pt-1 border-t border-slate-200/50">
                 <span>Telah Di-ACC Sebelumnya</span>
@@ -275,31 +248,25 @@ export default function ModalPembayaranTagihan({
             </div>
           </div>
 
-          {/* 2. Dropdown Metode Pembayaran Dikelompokkan */}
+          {/* 2. Metode Pembayaran QRIS Only */}
           <div className="space-y-1.5">
             <label className="block text-xs font-bold text-slate-700">
-              Metode Pembayaran <span className="text-rose-500">*</span>
+              Metode Pembayaran
             </label>
-            <select
-              value={metodePembayaran}
-              onChange={(e) => setMetodePembayaran(e.target.value)}
-              disabled={isSubmitting}
-              className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-2xs"
-            >
-              <option value="">-- Pilih Metode Pembayaran --</option>
-              <optgroup label="QRIS">
-                <option value="QRIS">QRIS Standar / Dinamis</option>
-              </optgroup>
-              <optgroup label="Transfer Bank">
-                <option value="Transfer Bank - BCA">Bank BCA</option>
-                <option value="Transfer Bank - BRI">Bank BRI</option>
-              </optgroup>
-              <optgroup label="E-Wallet">
-                <option value="E-Wallet - GoPay">GoPay</option>
-                <option value="E-Wallet - ShopeePay">ShopeePay</option>
-                <option value="E-Wallet - DANA">DANA</option>
-              </optgroup>
-            </select>
+            <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-200/80 flex items-center justify-center font-bold">
+                  <QrCode className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-slate-900">QRIS Resmi PasCall</div>
+                  <div className="text-[10px] text-slate-500 font-medium">BCA, Mandiri, BRI, GoPay, DANA, OVO, ShopeePay</div>
+                </div>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                QRIS
+              </span>
+            </div>
           </div>
 
           {/* 3. Petunjuk Bayar */}
@@ -396,7 +363,7 @@ export default function ModalPembayaranTagihan({
               ) : (
                 <>
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Kirim Bukti Pembayaran</span>
+                  <span>Kirim Bukti Pembayaran QRIS</span>
                 </>
               )}
             </button>
