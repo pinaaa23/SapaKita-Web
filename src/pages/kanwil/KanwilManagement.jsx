@@ -27,7 +27,8 @@ import {
   Phone,
   Search,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  Download
 } from 'lucide-react';
 import { 
   getAllKanwilsForSuperadmin, 
@@ -40,9 +41,12 @@ import {
   assignBranchKanwil
 } from '../../services/kanwilService';
 import { generateRandomPassword } from '../../services/userService';
+import { exportToExcel } from '../../utils/exportUtils';
+import { useAuth } from '../../context/AuthContext';
 
 export default function KanwilManagement() {
   const location = useLocation();
+  const { user } = useAuth();
   const [kanwils, setKanwils] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [auditReport, setAuditReport] = useState([]);
@@ -225,6 +229,51 @@ export default function KanwilManagement() {
     setPage(1);
   };
 
+  const handleExport = () => {
+    if (!filteredKanwils || filteredKanwils.length === 0) {
+      alert('Tidak ada data Kantor Wilayah untuk diekspor.');
+      return;
+    }
+
+    const exportData = filteredKanwils.map((k, idx) => ({
+      'No': idx + 1,
+      'Kode Kanwil': k.code || '-',
+      'Nama Kantor Wilayah': k.kanwilName || k.name || '-',
+      'Wilayah / Regional': k.wilayah || k.region || '-',
+      'Provinsi Cakupan': Array.isArray(k.provinces) ? k.provinces.join(', ') : (k.provinces || '-'),
+      'Nama Admin Kanwil': k.adminName || k.adminUser?.name || '-',
+      'Email Admin Kanwil': k.adminEmail || k.adminUser?.email || '-',
+      'Nomor Telepon': k.adminPhone || k.adminUser?.phone || '-',
+      'Jumlah UPT Binaan': k.uptCount ?? (k.assignedUpts?.length || 0),
+      'Status Operasional': k.status === 'Aktif' || k.status === 'Active' ? 'Aktif' : 'Nonaktif',
+    }));
+
+    const activeCount = filteredKanwils.filter(k => k.status === 'Aktif' || k.status === 'Active').length;
+    const totalUpt = filteredKanwils.reduce((sum, k) => sum + (k.uptCount ?? (k.assignedUpts?.length || 0)), 0);
+
+    const filename = `Daftar_Kantor_Wilayah_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const success = exportToExcel(exportData, filename, 'Kantor Wilayah', {
+      title: 'LAPORAN DATA MASTER KANTOR WILAYAH (KANWIL)',
+      subtitle: 'Daftar Seluruh Kantor Wilayah Pemasyarakatan Nasional',
+      metadata: {
+        'Tingkat': 'Pusat / Nasional',
+        'Dicetak Oleh': `${user?.name || 'Super Administrator'} (Super Administrator)`,
+        'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Aktif' ? 'Aktif' : 'Nonaktif',
+        'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics: [
+        { label: 'Total Kanwil', value: `${filteredKanwils.length} Kanwil` },
+        { label: 'Kanwil Aktif', value: `${activeCount} Kanwil` },
+        { label: 'Total UPT Terhubung', value: `${totalUpt} UPT` },
+      ]
+    });
+
+    if (success !== false) {
+      setToastMessage({ text: 'Berhasil mengekspor data Kantor Wilayah ke format Excel!', type: 'success' });
+      setTimeout(() => setToastMessage({ text: '', type: '' }), 3500);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Toast Notification */}
@@ -279,9 +328,19 @@ export default function KanwilManagement() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0 self-end md:self-auto">
+            <button 
+              type="button"
+              onClick={handleExport}
+              className="px-3.5 py-2.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+              title="Ekspor Data Kantor Wilayah ke Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export</span>
+            </button>
+
             <Link
               to="/kanwil-management/create"
-              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-2xs cursor-pointer transition-all inline-flex items-center gap-2"
+              className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold shadow-md shadow-primary/20 cursor-pointer transition-all inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               <span>Tambah Kanwil Baru</span>

@@ -41,6 +41,51 @@ export function getStoredContracts() {
 }
 
 /**
+ * Mencari kontrak tersimpan berdasarkan ID cabang, nama cabang, atau nama kantin
+ * Sangat fleksibel agar sinkronisasi antar-halaman tetap akurat meskipun dipanggil dari sisi Kantin atau Superadmin.
+ *
+ * @param {string} identifier - branchId
+ * @param {{ branchName?: string, canteenName?: string }} options
+ * @returns {Object|null}
+ */
+export function findStoredContract(identifier, { branchName, canteenName } = {}) {
+  const contracts = getStoredContracts();
+  if (!contracts || typeof contracts !== 'object') return null;
+
+  // 1. Pencocokan langsung dengan key branchId
+  if (identifier && contracts[identifier]) {
+    return contracts[identifier];
+  }
+
+  const list = Object.values(contracts);
+  if (!list.length) return null;
+
+  const targetId = identifier ? String(identifier).toLowerCase().trim() : null;
+  const targetBranch = branchName ? String(branchName).toLowerCase().replace(/^(lapas|rutan|kantin|upt)\s+/gi, '').trim() : null;
+  const targetCanteen = canteenName ? String(canteenName).toLowerCase().replace(/^(lapas|rutan|kantin|upt)\s+/gi, '').trim() : null;
+
+  // 2. Pencocokan objek kontrak di dalam list
+  const found = list.find((c) => {
+    if (!c) return false;
+    const cId = c.branchId ? String(c.branchId).toLowerCase().trim() : null;
+    if (targetId && cId && (cId === targetId || targetId.includes(cId) || cId.includes(targetId))) {
+      return true;
+    }
+    const cBranch = c.branchName ? String(c.branchName).toLowerCase().replace(/^(lapas|rutan|kantin|upt)\s+/gi, '').trim() : null;
+    if (targetBranch && cBranch) {
+      if (cBranch === targetBranch || cBranch.includes(targetBranch) || targetBranch.includes(cBranch)) return true;
+    }
+    const cCanteen = c.canteenName ? String(c.canteenName).toLowerCase().replace(/^(lapas|rutan|kantin|upt)\s+/gi, '').trim() : null;
+    if (targetCanteen && cCanteen) {
+      if (cCanteen === targetCanteen || cCanteen.includes(targetCanteen) || targetCanteen.includes(cCanteen)) return true;
+    }
+    return false;
+  });
+
+  return found || null;
+}
+
+/**
  * Menyimpan kontrak tarif & persen negosiasi untuk sebuah kantin/cabang UPT
  * Hanya dapat dilakukan oleh Superadmin.
  * // MOCK - menunggu endpoint BE
@@ -140,6 +185,60 @@ export function calculateCallSecondsFromRealData(transactions = [], calls = []) 
  * TotalTagihan (Disetor ke Superadmin) = Subtotal * (persenSuperadmin / 100)
  * Pendapatan Kantin = Subtotal * (persenKantin / 100)
  */
+/**
+ * Helper tunggal penentu status kontrak tarif kantin:
+ * Kontrak dianggap "belum diatur" jika tarif per detik atau persen negosiasi kantin itu belum diisi (kosong/null/undefined).
+ * Nilai 0 yang sengaja diisi Superadmin (misal tarif Rp 0 atau bagi hasil 0%) adalah valid ("sudah diatur"), bukan "belum diatur".
+ *
+ * @param {Object} contract - objek kontrak atau billing kantin
+ * @returns {boolean}
+ */
+export function isCanteenContractConfigured(contract) {
+  if (!contract || typeof contract !== 'object') return false;
+
+  // Jika input adalah objek billing dengan flag isContractSet eksplisit false
+  if (contract.isContractSet === false) return false;
+
+  const rate = contract.ratePerSecond;
+  const saPercent =
+    contract.superadminPercent !== undefined &&
+    contract.superadminPercent !== null &&
+    contract.superadminPercent !== ''
+      ? contract.superadminPercent
+      : (contract.negotiationPercent !== undefined &&
+         contract.negotiationPercent !== null &&
+         contract.negotiationPercent !== ''
+          ? contract.negotiationPercent
+          : null);
+
+  // Nilai kosong/null/undefined/bukan angka = belum diatur
+  if (rate === null || rate === undefined || rate === '' || isNaN(Number(rate))) {
+    return false;
+  }
+  if (saPercent === null || saPercent === undefined || saPercent === '' || isNaN(Number(saPercent))) {
+    return false;
+  }
+
+  const numRate = Number(rate);
+  const numSa = Number(saPercent);
+
+  // Nilai 0 yang sengaja diisi adalah valid, tetapi negatif atau persen > 100 tidak valid
+  if (numRate < 0 || numSa < 0 || numSa > 100) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Menghitung tagihan berdasarkan detik, tarif, dan pembagian persen Superadmin & Kantin
+ * // MOCK - menunggu endpoint BE
+ *
+ * Rumus:
+ * Subtotal = totalDetik * tarifPerDetik
+ * TotalTagihan (Disetor ke Superadmin) = Subtotal * (persenSuperadmin / 100)
+ * Pendapatan Kantin = Subtotal * (persenKantin / 100)
+ */
 export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadminPercent, canteenPercent, negotiationPercent }) {
   const saPercent = superadminPercent !== undefined && superadminPercent !== null && superadminPercent !== ''
     ? Number(superadminPercent)
@@ -149,27 +248,24 @@ export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadmi
     ? Number(canteenPercent)
     : (saPercent !== null && saPercent !== undefined ? Math.max(0, 100 - saPercent) : null);
 
-  const isContractSet =
-    ratePerSecond !== null &&
-    ratePerSecond !== undefined &&
-    ratePerSecond !== '' &&
-    Number(ratePerSecond) >= 0 &&
-    saPercent !== null &&
-    saPercent !== undefined &&
-    saPercent >= 0;
+  const isContractSet = isCanteenContractConfigured({
+    ratePerSecond,
+    superadminPercent: saPercent,
+    negotiationPercent: saPercent,
+  });
 
   if (!isContractSet) {
     return {
-      totalSeconds: totalSeconds || 0,
+      totalSeconds: Number(totalSeconds) || 0,
       ratePerSecond: null,
       superadminPercent: null,
       canteenPercent: null,
       negotiationPercent: null,
-      subtotal: 0,
-      totalAmount: 0,
-      canteenShare: 0,
+      subtotal: null,
+      totalAmount: null,
+      canteenShare: null,
       isContractSet: false,
-      contractNote: 'Kontrak tarif belum diatur oleh Superadmin',
+      contractNote: 'Tarif belum diatur oleh Superadmin',
     };
   }
 

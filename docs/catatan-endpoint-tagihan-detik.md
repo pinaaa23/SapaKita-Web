@@ -68,10 +68,12 @@ Ketika Superadmin memperbarui tarif per detik atau persentase negosiasi di tab "
 model CanteenContract {
   id                 String   @id @default(uuid())
   branchId           String   @unique
-  ratePerSecond      Decimal  @db.Decimal(10, 2) // contoh: 10.00
-  superadminPercent  Decimal  @default(50.00) @db.Decimal(5, 2) // porsi Superadmin (50%)
-  canteenPercent     Decimal  @default(50.00) @db.Decimal(5, 2) // porsi Kantin (50%)
-  negotiationPercent Decimal  @db.Decimal(5, 2)  // alias porsi SA
+  // PENTING: Jangan berikan nilai bawaan/default (seperti 60% atau 40%).
+  // Kolom harus nullable agar dapat membedakan kontrak yang "belum diatur" dengan nilai 0 yang sengaja diisi.
+  ratePerSecond      Decimal? @db.Decimal(10, 2) // null jika belum diatur oleh Superadmin
+  superadminPercent  Decimal? @db.Decimal(5, 2)  // null jika belum diatur (bukan default 60%)
+  canteenPercent     Decimal? @db.Decimal(5, 2)  // null jika belum diatur (bukan default 40%)
+  negotiationPercent Decimal? @db.Decimal(5, 2)  // alias porsi SA
   updatedById        String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -84,7 +86,22 @@ model CanteenContract {
 
 ---
 
-## 5. Ringkasan Status Frontend vs Backend
+## 5. Catatan Khusus untuk Tim Backend: Kasus Kontrak Belum Diatur
+
+Berdasarkan revisi alur penagihan:
+1. **Penanda Status Kontrak (`isContractSet` / `contractStatus`):**
+   - Respons BE pada endpoint `/api/canteen/billing/monthly` dan `/api/canteen/billing/national-summary` **wajib** menyertakan penanda boolean eksplisit `isContractSet: true | false`.
+   - Kontrak dianggap `"belum diatur"` jika `ratePerSecond` atau `superadminPercent` masih `null` / belum pernah disimpan oleh Superadmin.
+   - **Perhatian:** Nilai `0` yang sengaja disimpan oleh Superadmin (misal tarif Rp 0 atau bagi hasil 0%) adalah valid (**sudah diatur**), bukan `"belum diatur"`.
+2. **Jangan Buat Tagihan / Blokir Otomatis:**
+   - Untuk kantin yang kontraknya belum diatur, BE **tidak boleh** menerbitkan tagihan aktif dan **tidak boleh** memicu status Telat / Blokir transaksi penjualan voucher.
+   - Total tagihan harus bernilai `null` (bukan Rp 0).
+3. **Tanpa Nilai Bawaan (No Template Defaults):**
+   - Di database dan API BE, **jangan pernah** menyimpan nilai template bawaan seperti `60%` bagi hasil SA atau `40%` bagi hasil Kantin sebelum Superadmin benar-benar menyimpannya. Kolom harus diawali dalam kondisi kosong (`null`).
+
+---
+
+## 6. Ringkasan Status Frontend vs Backend
 
 - **Tersambung ke Backend Riil (Endpoint Siap):**
   - Kirim bukti pembayaran (`POST /api/canteen/topups`)
@@ -93,6 +110,7 @@ model CanteenContract {
   - Streaming file bukti transfer (`GET /api/canteen/topups/:id/proof`)
   - Riwayat pengajuan pembayaran (`GET /api/canteen/topups`)
 - **Menggunakan Fallback Mock Terpadu (`// MOCK - menunggu endpoint BE`):**
+  - Helper tunggal penentu status kontrak: `isCanteenContractConfigured` di `src/dummy/canteenContractMock.js`
   - Penyimpanan & perubahan kontrak tarif (`src/dummy/canteenContractMock.js`)
   - Perhitungan tagihan detik panggilan (`calculateCanteenBilling`)
   - Agregasi nasional per UPT di Superadmin (`getCanteenBillingNational`)

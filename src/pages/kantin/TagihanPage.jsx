@@ -36,7 +36,9 @@ import {
 } from '../../services/kantin/tagihanService';
 import {
   getCanteenBillingMonthly,
+  getCanteenBillingCalls,
   formatDetikKeMenit,
+  isCanteenContractConfigured,
 } from '../../services/canteenBillingService';
 import ModalPembayaranTagihan from '../../components/kantin/ModalPembayaranTagihan';
 import { API_BASE_URL } from '../../services/api';
@@ -59,6 +61,16 @@ export default function TagihanPage() {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState('calls'); // 'calls' (Rincian Panggilan) | 'payments' (Riwayat Pembayaran)
   const [previewProofItem, setPreviewProofItem] = useState(null);
+
+  // Data Log Rincian Panggilan dari GET /api/canteen/billing/calls
+  const [callsData, setCallsData] = useState({
+    items: [],
+    totalItems: 0,
+    totalSeconds: 0,
+    totalTagihan: 0,
+    pagination: { page: 1, limit: 10, totalPages: 1 },
+  });
+  const [isLoadingCalls, setIsLoadingCalls] = useState(false);
 
   // Pagination untuk Tab Rincian Panggilan
   const [currentPage, setCurrentPage] = useState(1);
@@ -106,27 +118,51 @@ export default function TagihanPage() {
     }
   }, []);
 
+  // Fetch log panggilan dari endpoint GET /api/canteen/billing/calls
+  const fetchCalls = useCallback(async (month, year, page, search) => {
+    setIsLoadingCalls(true);
+    try {
+      const res = await getCanteenBillingCalls({
+        month,
+        year,
+        page,
+        limit: PAGE_SIZE,
+        search,
+      });
+      setCallsData(res);
+    } catch (err) {
+      console.error('Gagal memuat rincian panggilan:', err);
+    } finally {
+      setIsLoadingCalls(false);
+    }
+  }, [PAGE_SIZE]);
+
   // Polling berkala (tiap 20 detik) & Refetch saat Tab / Jendela kembali aktif (on focus)
   useEffect(() => {
     fetchBillingAndPayments(selectedMonth, selectedYear);
+    fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
 
     const handleUpdate = () => {
       fetchBillingAndPayments(selectedMonth, selectedYear, true);
+      fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
     };
 
     const handleFocus = () => {
       fetchBillingAndPayments(selectedMonth, selectedYear, true);
+      fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
     };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         fetchBillingAndPayments(selectedMonth, selectedYear, true);
+        fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
       }
     };
 
     // 1. Polling setiap 20 detik
     const pollingInterval = setInterval(() => {
       fetchBillingAndPayments(selectedMonth, selectedYear, true);
+      fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
     }, 20000);
 
     // 2. Refetch on focus & visibilitychange
@@ -148,7 +184,15 @@ export default function TagihanPage() {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
-  }, [fetchBillingAndPayments, selectedMonth, selectedYear]);
+  }, [fetchBillingAndPayments, fetchCalls, selectedMonth, selectedYear, currentPage, searchQuery]);
+
+  // Debounce refetch calls saat search/page/month/year berubah
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchCalls(selectedMonth, selectedYear, currentPage, searchQuery);
+    }, searchQuery ? 300 : 0);
+    return () => clearTimeout(timer);
+  }, [fetchCalls, selectedMonth, selectedYear, currentPage, searchQuery]);
 
   // Reset pagination saat bulan/pencarian berubah
   useEffect(() => {
@@ -172,8 +216,6 @@ export default function TagihanPage() {
 
   // Hitung Tanggal Jatuh Tempo (Tanggal 2 Bulan Berikutnya)
   const dueDate = useMemo(() => {
-    // new Date(year, month, 2) menghasilkan tanggal 2 bulan berikutnya
-    // karena parameter month di JS adalah 0-indexed (selectedMonth 1-12)
     return new Date(selectedYear, selectedMonth, 2, 23, 59, 59, 999);
   }, [selectedMonth, selectedYear]);
 
@@ -187,12 +229,35 @@ export default function TagihanPage() {
   const isPastDue = remainingDays < 0;
 
   // Nilai Tagihan Baru Berbasis Detik
-  const ratePerSec = Number(canteenBilling?.ratePerSecond || 10);
-  const saPercent = Number(canteenBilling?.superadminPercent ?? canteenBilling?.negotiationPercent ?? 40);
-  const totalSecondsAll = Number(canteenBilling?.totalSeconds || 0);
-  const subtotalTagihan = Number(canteenBilling?.subtotal || Math.round(totalSecondsAll * ratePerSec));
-  const newTotalTagihan = Number(canteenBilling?.totalAmount || Math.round(subtotalTagihan * (saPercent / 100)));
-  const isContractConfigured = true;
+  // Ikuti aturan: Kontrak belum diatur (ratePerSecond atau persen null/kosong) => Jangan jadikan 0/default 15/40
+  const isContractConfigured = isCanteenContractConfigured(canteenBilling);
+  const ratePerSec = isContractConfigured && canteenBilling?.ratePerSecond !== null && canteenBilling?.ratePerSecond !== undefined
+    ? Number(canteenBilling.ratePerSecond)
+    : null;
+  const saPercent = isContractConfigured && (canteenBilling?.superadminPercent ?? canteenBilling?.negotiationPercent) !== null && (canteenBilling?.superadminPercent ?? canteenBilling?.negotiationPercent) !== undefined
+    ? Number(canteenBilling.superadminPercent ?? canteenBilling.negotiationPercent)
+    : null;
+
+  // Gunakan totalSeconds dan totalTagihan dari respons API
+  const totalSecondsAll = Number(
+    callsData?.totalSeconds !== undefined && callsData?.totalSeconds !== null && !searchQuery
+      ? callsData.totalSeconds
+      : (canteenBilling?.totalSeconds || billingData?.summary?.totalSeconds || 0)
+  );
+
+  const subtotalTagihan = isContractConfigured && ratePerSec !== null
+    ? (canteenBilling?.subtotal !== null && canteenBilling?.subtotal !== undefined
+        ? Number(canteenBilling.subtotal)
+        : Math.round(totalSecondsAll * ratePerSec))
+    : null;
+
+  const newTotalTagihan = isContractConfigured && saPercent !== null && subtotalTagihan !== null
+    ? (callsData?.totalTagihan !== undefined && callsData?.totalTagihan !== null && !searchQuery
+        ? Number(callsData.totalTagihan)
+        : (canteenBilling?.totalAmount !== null && canteenBilling?.totalAmount !== undefined
+            ? Number(canteenBilling.totalAmount)
+            : Math.round(subtotalTagihan * (saPercent / 100))))
+    : null;
 
   // Filter pembayaran khusus untuk bulan & tahun yang dipilih
   const currentMonthPayments = useMemo(() => {
@@ -238,20 +303,30 @@ export default function TagihanPage() {
   const isMonthClosed = !isCurrentPeriod || now >= closingDate;
 
   // Status Pembayaran & Sisa Tagihan (Selisih)
-  const isPaid = totalApproved >= newTotalTagihan && newTotalTagihan > 0;
-  const isPendingAcc = !isPaid && !!pendingPayment;
-  const isRejected = !isPaid && !isPendingAcc && !!rejectedPayment;
-  const sisaTagihan = Math.max(0, newTotalTagihan - totalApproved);
-  const hasRemainingAfterPayment = totalApproved > 0 && sisaTagihan > 0;
-  const payableAmount = hasRemainingAfterPayment ? sisaTagihan : newTotalTagihan;
+  const isPaid = isContractConfigured && newTotalTagihan !== null && totalApproved >= newTotalTagihan && newTotalTagihan > 0;
+  const isPendingAcc = isContractConfigured && !isPaid && !!pendingPayment;
+  const isRejected = isContractConfigured && !isPaid && !isPendingAcc && !!rejectedPayment;
+  const sisaTagihan = isContractConfigured && newTotalTagihan !== null ? Math.max(0, newTotalTagihan - totalApproved) : 0;
+  const hasRemainingAfterPayment = isContractConfigured && totalApproved > 0 && sisaTagihan > 0;
+  const payableAmount = isContractConfigured ? (hasRemainingAfterPayment ? sisaTagihan : (newTotalTagihan || 0)) : null;
 
-  // Tombol bayar aktif jika ada tagihan (> 0), belum lunas, dan tidak sedang menunggu ACC:
-  const canPay = !isPaid && !isPendingAcc && payableAmount > 0;
+  // Tombol bayar aktif HANYA jika kontrak sudah diatur, ada tagihan (> 0), belum lunas, dan tidak sedang menunggu ACC:
+  const canPay = isContractConfigured && !isPaid && !isPendingAcc && payableAmount > 0;
 
   // =========================================================================
   // SATU STATUS TUNGGAL (Tidak ada label status yang bertabrakan)
   // =========================================================================
   const singleStatus = useMemo(() => {
+    if (!isContractConfigured) {
+      return {
+        key: 'CONTRACT_NOT_SET',
+        label: 'Tarif Belum Diatur',
+        badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
+        textColor: 'text-amber-300',
+        icon: AlertTriangle,
+      };
+    }
+
     if (newTotalTagihan === 0) {
       return {
         key: 'NO_BILL',
@@ -606,197 +681,209 @@ export default function TagihanPage() {
       )}
 
       {/* =========================================================================
-          KARTU ATAS: TOTAL TAGIHAN BULAN INI & SATU STATUS TUNGGAL
+          KARTU ATAS: TOTAL TAGIHAN BULAN INI
           ========================================================================= */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-blue-950/20 relative overflow-hidden border border-slate-800">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-          {/* Sisi Kiri (Kolom 7/12): Informasi Tagihan & Single Status */}
-          <div className="lg:col-span-7 flex flex-col justify-between space-y-4 min-w-0">
-            <div className="space-y-3">
-              {/* Badges Berdampingan */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30 shrink-0">
-                  <Coins className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  <span>Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear}</span>
-                </span>
+          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Sisi Kiri (Kolom 7/12): Informasi Tagihan & Single Status */}
+            <div className="lg:col-span-7 flex flex-col justify-between space-y-4 min-w-0">
+              <div className="space-y-3">
+                {/* Badges Berdampingan */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30 shrink-0">
+                    <Coins className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <span>Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear}</span>
+                  </span>
 
-                {/* SATU STATUS TUNGGAL SAJA (Tanpa label bertabrakan) */}
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${singleStatus.badgeBg}`}>
-                  <singleStatus.icon className="w-3.5 h-3.5 shrink-0" />
-                  <span>{singleStatus.label}</span>
-                </span>
-              </div>
+                  {/* SATU STATUS TUNGGAL SAJA (Tanpa label bertabrakan) */}
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shrink-0 ${singleStatus.badgeBg}`}>
+                    <singleStatus.icon className="w-3.5 h-3.5 shrink-0" />
+                    <span>{singleStatus.label}</span>
+                  </span>
+                </div>
 
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block mb-1">
-                  {hasRemainingAfterPayment ? 'Sisa Tagihan yang Harus Dibayar' : 'Total Tagihan Bulan Ini'}
-                </span>
-                <div className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-baseline gap-3 flex-wrap">
-                  <span>{isLoading ? '...' : formatRupiah(payableAmount)}</span>
-                  {hasRemainingAfterPayment && (
-                    <span className="text-xs font-semibold text-slate-300 line-through">
-                      Total: {formatRupiah(newTotalTagihan)}
+                <div>
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-300 block mb-1">
+                    {hasRemainingAfterPayment ? 'Sisa Tagihan yang Harus Dibayar' : 'Total Tagihan Bulan Ini'}
+                  </span>
+                  <div className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-baseline gap-3 flex-wrap">
+                    <span>{isLoading ? '...' : isContractConfigured && payableAmount !== null ? formatRupiah(payableAmount) : '-'}</span>
+                    {isContractConfigured && hasRemainingAfterPayment && (
+                      <span className="text-xs font-semibold text-slate-300 line-through">
+                        Total: {formatRupiah(newTotalTagihan)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Keterangan Tagihan Baru Berbasis Detik */}
+                {isContractConfigured ? (
+                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Dihitung otomatis dari{' '}
+                    <strong className="text-white font-bold">
+                      {totalSecondsAll.toLocaleString('id-ID')} detik
+                    </strong>{' '}
+                    panggilan WBP dengan tarif{' '}
+                    <strong className="text-white font-bold">
+                      {ratePerSec !== null ? `${formatRupiah(ratePerSec)}/detik` : '-'}
+                    </strong>{' '}
+                    dan{' '}
+                    <strong className="text-white font-bold">
+                      {saPercent !== null ? `${saPercent}% bagian SA` : '-'}
+                    </strong>.
+                  </p>
+                ) : (
+                  <p className="text-amber-200 text-xs sm:text-sm leading-relaxed flex items-center gap-1.5 font-medium">
+                    <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
+                    <span>Tarif kontrak belum diatur oleh Superadmin. Total tagihan belum dapat dihitung.</span>
+                  </p>
+                )}
+
+                {/* Jatuh Tempo & Sisa Hari */}
+                <div className="flex items-center gap-2 text-xs text-slate-300 pt-1">
+                  <Clock className="w-4 h-4 text-blue-400 shrink-0" />
+                  <span>
+                    Jatuh Tempo: <strong>{formatTanggal(dueDate)}</strong>{' '}
+                    <span className={isPastDue ? 'text-rose-400 font-bold' : remainingDays <= 3 ? 'text-amber-300 font-bold' : 'text-slate-400'}>
+                      ({isPastDue ? 'Telah Terlewati' : remainingDays === 0 ? 'Hari ini' : `${remainingDays} hari lagi`})
                     </span>
-                  )}
+                  </span>
                 </div>
               </div>
 
-              {/* Keterangan Tagihan Baru Berbasis Detik */}
-              <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                Dihitung otomatis dari{' '}
-                <strong className="text-white font-bold">
-                  {totalSecondsAll.toLocaleString('id-ID')} detik
-                </strong>{' '}
-                panggilan WBP dengan tarif{' '}
-                <strong className="text-white font-bold">
-                  {formatRupiah(ratePerSec)}/detik
-                </strong>{' '}
-                dan{' '}
-                <strong className="text-white font-bold">
-                  {saPercent}% bagian SA
-                </strong>.
-              </p>
-
-              {/* Jatuh Tempo & Sisa Hari */}
-              <div className="flex items-center gap-2 text-xs text-slate-300 pt-1">
-                <Clock className="w-4 h-4 text-blue-400 shrink-0" />
-                <span>
-                  Jatuh Tempo: <strong>{formatTanggal(dueDate)}</strong>{' '}
-                  <span className={isPastDue ? 'text-rose-400 font-bold' : remainingDays <= 3 ? 'text-amber-300 font-bold' : 'text-slate-400'}>
-                    ({isPastDue ? 'Telah Terlewati' : remainingDays === 0 ? 'Hari ini' : `${remainingDays} hari lagi`})
-                  </span>
-                </span>
-              </div>
-            </div>
-
-            {/* Tombol Lihat Detail Perhitungan Tagihan */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => setShowDetailModal(true)}
-                className="w-fit inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition cursor-pointer active:scale-95 shadow-xs whitespace-nowrap shrink-0 group"
-              >
-                <Calculator className="w-4 h-4 text-blue-300 group-hover:scale-110 transition-transform shrink-0" />
-                <span>Lihat Detail Perhitungan Tagihan</span>
-                <ArrowRight className="w-3.5 h-3.5 text-blue-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
-              </button>
-            </div>
-          </div>
-
-          {/* Sisi Kanan (Kolom 5/12): Kartu Faktur & Aksi Pembayaran */}
-          <div className="lg:col-span-5 flex flex-col justify-between bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 min-w-0 space-y-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-slate-300 font-bold mb-1.5 flex items-center justify-between">
-                <span>Faktur Pembayaran</span>
-                <span className="text-[10px] text-blue-300 font-normal">Sistem Pascabayar</span>
-              </div>
-              <div className="flex items-center justify-between bg-black/25 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono mb-3">
-                <span className="text-slate-200 truncate">{invoiceNumber}</span>
+              {/* Tombol Lihat Detail Perhitungan Tagihan */}
+              <div className="pt-1">
                 <button
                   type="button"
-                  onClick={handleCopyInvoice}
-                  className="text-slate-400 hover:text-white transition p-1 cursor-pointer shrink-0 ml-2"
-                  title="Salin nomor faktur"
+                  onClick={() => setShowDetailModal(true)}
+                  className="w-fit inline-flex items-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl border border-white/20 transition cursor-pointer active:scale-95 shadow-xs whitespace-nowrap shrink-0 group"
                 >
-                  {copiedInvoice ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  ) : (
-                    <Copy className="w-3.5 h-3.5" />
-                  )}
+                  <Calculator className="w-4 h-4 text-blue-300 group-hover:scale-110 transition-transform shrink-0" />
+                  <span>Lihat Detail Perhitungan Tagihan</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </button>
               </div>
-
-              {/* Rincian Sisa Tagihan Jika Ada Pembayaran Sebagian */}
-              {hasRemainingAfterPayment && (
-                <div className="mb-3 p-3 bg-blue-500/20 border border-blue-400/30 rounded-xl text-blue-200 text-xs space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-slate-300">Total Akumulasi:</span>
-                    <span className="font-bold text-white">{formatRupiah(newTotalTagihan)}</span>
-                  </div>
-                  <div className="flex justify-between text-emerald-300">
-                    <span>Telah Di-ACC:</span>
-                    <span className="font-bold">{formatRupiah(totalApproved)}</span>
-                  </div>
-                  <div className="flex justify-between pt-1 border-t border-blue-400/20 text-white font-bold">
-                    <span>Sisa Tagihan:</span>
-                    <span className="text-amber-300">{formatRupiah(sisaTagihan)}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Info Status Menunggu ACC (Hanya jika belum lunas) */}
-              {!isPaid && isPendingAcc && (
-                <div className="mb-3 p-3 bg-amber-500/20 border border-amber-400/30 rounded-xl text-amber-200 text-xs">
-                  <div className="font-bold flex items-center gap-1.5 mb-0.5">
-                    <Clock className="w-3.5 h-3.5 text-amber-300" />
-                    <span>Menunggu ACC Superadmin</span>
-                  </div>
-                  <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                    Bukti pembayaran tagihan telah dikirim dan sedang menunggu konfirmasi verifikasi dari Superadmin.
-                  </p>
-                </div>
-              )}
             </div>
 
-            {/* Aksi Pembayaran */}
-            <div className="space-y-2.5">
-              {!isMonthClosed && !isPaid && !isPendingAcc && (
-                <div className="p-3 bg-blue-500/15 border border-blue-400/30 rounded-2xl text-blue-200 text-xs space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-white text-[11px]">
-                    <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                    <span>Periode Masih Berjalan (Akumulasi Detik)</span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed break-words">
-                    Panggilan WBP terakumulasi otomatis hingga akhir bulan ({lastDayOfSelectedMonth} {monthOptions[selectedMonth - 1]?.label} {selectedYear}).
-                  </p>
+            {/* Sisi Kanan (Kolom 5/12): Kartu Faktur & Aksi Pembayaran */}
+            <div className="lg:col-span-5 flex flex-col justify-between bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 min-w-0 space-y-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-300 font-bold mb-1.5 flex items-center justify-between">
+                  <span>Faktur Pembayaran</span>
+                  <span className="text-[10px] text-blue-300 font-normal">Sistem Pascabayar</span>
                 </div>
-              )}
-
-              {/* Tombol Bayar Tagihan (Hijau Aktif jika canPay) atau Tidak Ada Tagihan */}
-              {!isPaid && !isPendingAcc && (
-                canPay ? (
+                <div className="flex items-center justify-between bg-black/25 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono mb-3">
+                  <span className="text-slate-200 truncate">{invoiceNumber}</span>
                   <button
                     type="button"
-                    onClick={() => setIsModalBayarOpen(true)}
-                    className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-950/30 active:scale-95 cursor-pointer"
+                    onClick={handleCopyInvoice}
+                    className="text-slate-400 hover:text-white transition p-1 cursor-pointer shrink-0 ml-2"
+                    title="Salin nomor faktur"
                   >
-                    <CreditCard className="w-4 h-4" />
-                    <span>
-                      {isRejected
-                        ? 'Upload Ulang Bukti Bayar'
-                        : hasRemainingAfterPayment
-                        ? `Bayar Sisa Tagihan (${formatRupiah(payableAmount)})`
-                        : `Bayar Tagihan (${formatRupiah(payableAmount)})`}
-                    </span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    {copiedInvoice ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                   </button>
-                ) : (
-                  <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/80 rounded-xl border border-slate-700/80 flex items-center justify-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-slate-400" />
-                    <span>Tidak Ada Tagihan (Rp 0)</span>
+                </div>
+
+                {/* Rincian Sisa Tagihan Jika Ada Pembayaran Sebagian */}
+                {hasRemainingAfterPayment && (
+                  <div className="mb-3 p-3 bg-blue-500/20 border border-blue-400/30 rounded-xl text-blue-200 text-xs space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-slate-300">Total Akumulasi:</span>
+                      <span className="font-bold text-white">{formatRupiah(newTotalTagihan)}</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-300">
+                      <span>Telah Di-ACC:</span>
+                      <span className="font-bold">{formatRupiah(totalApproved)}</span>
+                    </div>
+                    <div className="flex justify-between pt-1 border-t border-blue-400/20 text-white font-bold">
+                      <span>Sisa Tagihan:</span>
+                      <span className="text-amber-300">{formatRupiah(sisaTagihan)}</span>
+                    </div>
                   </div>
-                )
-              )}
+                )}
 
-              {isPendingAcc && (
-                <div className="text-center py-2.5 text-xs font-bold text-amber-300 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center justify-center gap-1.5">
-                  <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-                  <span>Menunggu ACC Superadmin</span>
-                </div>
-              )}
+                {/* Info Status Menunggu ACC (Hanya jika belum lunas) */}
+                {!isPaid && isPendingAcc && (
+                  <div className="mb-3 p-3 bg-amber-500/20 border border-amber-400/30 rounded-xl text-amber-200 text-xs">
+                    <div className="font-bold flex items-center gap-1.5 mb-0.5">
+                      <Clock className="w-3.5 h-3.5 text-amber-300" />
+                      <span>Menunggu ACC Superadmin</span>
+                    </div>
+                    <p className="text-[11px] text-amber-200/90 leading-relaxed">
+                      Bukti pembayaran tagihan telah dikirim dan sedang menunggu konfirmasi verifikasi dari Superadmin.
+                    </p>
+                  </div>
+                )}
+              </div>
 
-              {isPaid && (
-                <div className="text-center py-2.5 text-xs font-bold text-emerald-300 bg-emerald-500/20 rounded-xl border border-emerald-400/30 flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  <span>Tagihan Telah Lunas</span>
-                </div>
-              )}
+              {/* Aksi Pembayaran */}
+              <div className="space-y-2.5">
+                {!isMonthClosed && !isPaid && !isPendingAcc && (
+                  <div className="p-3 bg-blue-500/15 border border-blue-400/30 rounded-2xl text-blue-200 text-xs space-y-1.5">
+                    <div className="flex items-center gap-1.5 font-bold text-white text-[11px]">
+                      <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                      <span>Periode Masih Berjalan (Akumulasi Detik)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-300 leading-relaxed break-words">
+                      Panggilan WBP terakumulasi otomatis hingga akhir bulan ({lastDayOfSelectedMonth} {monthOptions[selectedMonth - 1]?.label} {selectedYear}).
+                    </p>
+                  </div>
+                )}
+
+                {/* Tombol Bayar Tagihan (Hijau Aktif jika canPay) atau Tidak Ada Tagihan */}
+                {!isContractConfigured ? (
+                  <div className="text-center py-2.5 text-xs font-semibold text-amber-200 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center justify-center gap-1.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-300" />
+                    <span>Menunggu Penetapan Tarif</span>
+                  </div>
+                ) : !isPaid && !isPendingAcc && (
+                  canPay ? (
+                    <button
+                      type="button"
+                      onClick={() => setIsModalBayarOpen(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition shadow-lg shadow-emerald-950/30 active:scale-95 cursor-pointer"
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      <span>
+                        {isRejected
+                          ? 'Upload Ulang Bukti Bayar'
+                          : hasRemainingAfterPayment
+                          ? `Bayar Sisa Tagihan (${formatRupiah(payableAmount)})`
+                          : `Bayar Tagihan (${formatRupiah(payableAmount)})`}
+                      </span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/80 rounded-xl border border-slate-700/80 flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                      <span>Tidak Ada Tagihan (Rp 0)</span>
+                    </div>
+                  )
+                )}
+
+                {isPendingAcc && (
+                  <div className="text-center py-2.5 text-xs font-bold text-amber-300 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center justify-center gap-1.5">
+                    <Clock className="w-4 h-4 text-amber-400 animate-spin" />
+                    <span>Menunggu ACC Superadmin</span>
+                  </div>
+                )}
+
+                {isPaid && (
+                  <div className="text-center py-2.5 text-xs font-bold text-emerald-300 bg-emerald-500/20 rounded-xl border border-emerald-400/30 flex items-center justify-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Tagihan Telah Lunas</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Info Accordion Alur Pembayaran Pascabayar */}
       <div className="no-print bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 transition-all">
@@ -853,7 +940,7 @@ export default function TagihanPage() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Rincian Panggilan ({transactions.length})
+              Rincian Panggilan ({callsData.totalItems})
             </button>
             <button
               type="button"
@@ -875,7 +962,7 @@ export default function TagihanPage() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cari kode, WBP, atau kasir..."
+                placeholder="Cari ID, nama WBP, atau identitas..."
                 className="w-full pl-9 pr-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
               />
             </div>
@@ -884,10 +971,10 @@ export default function TagihanPage() {
 
         {/* =======================================================================
             TAB 1: RINCIAN PANGGILAN
-            HANYA riwayat, HAPUS kolom Status per transaksi.
+            HANYA riwayat panggilan WBP, terhubung ke GET /api/canteen/billing/calls
             Kolom: No Transaksi, Waktu, Kode Voucher, WBP (Penerima), Paket/Layanan,
-            Petugas Kasir, Durasi (detik), Nominal.
-            Baris Total di bawah tabel.
+            Petugas Kasir, Durasi (detik), Nominal Tagihan.
+            Baris Total di bawah tabel menggunakan totalSeconds dan totalTagihan respons.
             ======================================================================= */}
         {activeTab === 'calls' && (
           <div>
@@ -906,14 +993,14 @@ export default function TagihanPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {isLoading ? (
+                  {isLoadingCalls ? (
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <RefreshCw className="w-5 h-5 text-blue-500 animate-spin mx-auto mb-2" />
                         <span>Memuat rincian panggilan...</span>
                       </td>
                     </tr>
-                  ) : filteredTransactions.length === 0 ? (
+                  ) : callsData.items.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <Ticket className="w-6 h-6 mx-auto text-slate-300 mb-1" />
@@ -924,23 +1011,14 @@ export default function TagihanPage() {
                       </td>
                     </tr>
                   ) : (
-                    paginatedTransactions.map((t) => {
-                      const isVideo = String(t.package?.name || '').toLowerCase().includes('video');
-                      const durSec = Number(
-                        t.durationSeconds ??
-                        t.usedDurationSec ??
-                        ((t.package?.duration || t.durationMinutes || 0) * 60)
-                      );
-                      // Nominal baris = durasi detik x tarif x persen SA
-                      const rowNominal = isContractConfigured
-                        ? Math.round(durSec * ratePerSec * (saPercent / 100))
-                        : 0;
+                    callsData.items.map((call) => {
+                      const durSec = Number(call.durationSeconds || 0);
 
                       return (
-                        <tr key={t.id} className="hover:bg-blue-50/40 transition-colors">
-                          <td className="py-3 px-4 font-mono font-bold text-slate-800">{t.id}</td>
+                        <tr key={call.id} className="hover:bg-blue-50/40 transition-colors">
+                          <td className="py-3 px-4 font-mono font-bold text-slate-800">{call.id}</td>
                           <td className="py-3 px-4 text-slate-500 whitespace-nowrap">
-                            {new Date(t.createdAt).toLocaleString('id-ID', {
+                            {new Date(call.createdAt).toLocaleString('id-ID', {
                               day: 'numeric',
                               month: 'short',
                               hour: '2-digit',
@@ -950,52 +1028,53 @@ export default function TagihanPage() {
                           <td className="py-3 px-4 whitespace-nowrap">
                             <span className="font-mono font-bold text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-200/80 inline-flex items-center gap-1">
                               <Ticket className="w-3 h-3 text-blue-500" />
-                              {t.kodeVoucher}
+                              {call.id.slice(-8).toUpperCase()}
                             </span>
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center font-bold text-[10px] shrink-0">
-                                {(t.inmate?.name || 'W').charAt(0).toUpperCase()}
+                                {(call.inmateName || 'W').charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <div className="font-bold text-slate-900 leading-tight">
-                                  {t.inmate?.name || 'WBP Tanpa Nama'}
+                                  {call.inmateName || 'WBP'}
                                 </div>
                                 <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                                  NIP: {t.inmate?.identifier || '-'}
+                                  NIP: {call.inmateIdentifier || '-'}
                                 </div>
                               </div>
                             </div>
                           </td>
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-1.5">
-                              {isVideo ? (
-                                <span className="w-5 h-5 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
-                                  <Video className="w-3 h-3" />
-                                </span>
-                              ) : (
-                                <span className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                  <Phone className="w-3 h-3" />
-                                </span>
-                              )}
+                              <span className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                <Phone className="w-3 h-3" />
+                              </span>
                               <div>
-                                <div className="font-semibold text-slate-800">{t.package?.name}</div>
-                                <div className="text-[10px] text-slate-500">{t.package?.duration || Math.round(durSec / 60)} Menit</div>
+                                <div className="font-semibold text-slate-800">Panggilan Wartelsus</div>
+                                <div className="text-[10px] text-slate-500">{Math.round(durSec / 60) || 1} Menit</div>
                               </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="font-medium">{t.cashier?.name || t.cashier?.identifier || 'Petugas'}</span>
+                              <span className="font-medium">Operator Sistem</span>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
                             {durSec.toLocaleString('id-ID')} Detik
                           </td>
                           <td className="py-3 px-4 text-right font-black text-slate-900 font-mono whitespace-nowrap">
-                            {formatRupiah(rowNominal)}
+                            {isContractConfigured && call.nominal !== undefined && call.nominal !== null ? (
+                              formatRupiah(call.nominal)
+                            ) : (
+                              <div className="flex flex-col items-end">
+                                <span className="text-slate-400 font-bold text-sm leading-tight">-</span>
+                                <span className="text-[10px] text-amber-600 font-medium">Menunggu tarif</span>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1004,17 +1083,19 @@ export default function TagihanPage() {
                 </tbody>
 
                 {/* Baris Total di Bawah Tabel */}
-                {filteredTransactions.length > 0 && (
+                {callsData.items.length > 0 && (
                   <tfoot>
                     <tr className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-slate-900 text-xs">
                       <td colSpan="6" className="py-3.5 px-4 text-slate-700">
                         Total Akumulasi Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear}
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-blue-900 font-black whitespace-nowrap">
-                        {totalSecondsAll.toLocaleString('id-ID')} Detik
+                        {Number(callsData.totalSeconds || 0).toLocaleString('id-ID')} Detik
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-[#1565C0] font-black text-sm whitespace-nowrap">
-                        {formatRupiah(newTotalTagihan)}
+                        {isContractConfigured && callsData.totalTagihan !== undefined && callsData.totalTagihan !== null
+                          ? formatRupiah(callsData.totalTagihan)
+                          : '-'}
                       </td>
                     </tr>
                   </tfoot>
@@ -1023,12 +1104,12 @@ export default function TagihanPage() {
             </div>
 
             {/* Kontrol Paginasi */}
-            {totalPages > 1 && (
+            {(callsData.pagination?.totalPages || 1) > 1 && (
               <div className="p-4 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
                 <span>
                   Menampilkan {(currentPage - 1) * PAGE_SIZE + 1} -{' '}
-                  {Math.min(currentPage * PAGE_SIZE, filteredTransactions.length)} dari{' '}
-                  {filteredTransactions.length} transaksi
+                  {Math.min(currentPage * PAGE_SIZE, callsData.totalItems)} dari{' '}
+                  {callsData.totalItems} panggilan
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -1040,12 +1121,12 @@ export default function TagihanPage() {
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <span className="font-bold text-slate-800 px-2">
-                    {currentPage} / {totalPages}
+                    {currentPage} / {callsData.pagination?.totalPages || 1}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage((p) => Math.min(callsData.pagination?.totalPages || 1, p + 1))}
+                    disabled={currentPage >= (callsData.pagination?.totalPages || 1)}
                     className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -1076,7 +1157,19 @@ export default function TagihanPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {paymentHistory.length === 0 ? (
+                {!isContractConfigured ? (
+                  <tr>
+                    <td colSpan="7" className="py-12 text-center text-slate-400">
+                      <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center mx-auto mb-2">
+                        <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <p className="font-bold text-slate-700 text-xs sm:text-sm">Belum Ada Tagihan untuk Dibayarkan</p>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
+                        Kontrak tarif belum diatur oleh Superadmin. Riwayat pembayaran akan tercatat di sini setelah kontrak tarif aktif dan pembayaran dilakukan.
+                      </p>
+                    </td>
+                  </tr>
+                ) : paymentHistory.length === 0 ? (
                   <tr>
                     <td colSpan="7" className="py-12 text-center text-slate-400">
                       <Receipt className="w-6 h-6 mx-auto text-slate-300 mb-1" />
@@ -1229,14 +1322,14 @@ export default function TagihanPage() {
                 <div className="py-2.5 flex justify-between">
                   <span className="text-slate-500">2. Tarif per Detik (Kontrak Superadmin):</span>
                   <span className="font-bold text-slate-900">
-                    {formatRupiah(ratePerSec)} / detik
+                    {isContractConfigured && ratePerSec !== null ? `${formatRupiah(ratePerSec)} / detik` : 'Belum diatur'}
                   </span>
                 </div>
 
                 <div className="py-2.5 flex justify-between">
                   <span className="text-slate-500">3. Subtotal (1 × 2):</span>
                   <span className="font-bold text-slate-900">
-                    {formatRupiah(subtotalTagihan)}
+                    {isContractConfigured && subtotalTagihan !== null ? formatRupiah(subtotalTagihan) : '-'}
                   </span>
                 </div>
 
@@ -1244,11 +1337,13 @@ export default function TagihanPage() {
                   <span className="text-slate-500">4. Bagian Superadmin (SA):</span>
                   <div className="text-right">
                     <span className="font-bold text-blue-700 block">
-                      {saPercent}%
+                      {isContractConfigured && saPercent !== null ? `${saPercent}%` : 'Belum diatur'}
                     </span>
-                    <span className="text-[11px] text-slate-500 font-normal block">
-                      Hak Kantin: {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round(subtotalTagihan * ((100 - saPercent) / 100)))})
-                    </span>
+                    {isContractConfigured && saPercent !== null && (
+                      <span className="text-[11px] text-slate-500 font-normal block">
+                        Hak Kantin: {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))})
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1258,7 +1353,7 @@ export default function TagihanPage() {
                     <span className="text-[11px] text-slate-400 font-normal">Disetor ke Superadmin (Subtotal × % SA)</span>
                   </div>
                   <span className="font-black text-[#1565C0] text-base">
-                    {formatRupiah(newTotalTagihan)}
+                    {isContractConfigured && newTotalTagihan !== null ? formatRupiah(newTotalTagihan) : '-'}
                   </span>
                 </div>
               </div>

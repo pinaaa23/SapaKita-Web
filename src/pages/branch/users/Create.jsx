@@ -52,10 +52,20 @@ export const extractBranchSlug = (branchName, user) => {
 
   const stopwords = [
     'kepala', 'admin', 'supervisor', 'spv', 'kasir', 'operator', 'staf', 'staff', 'petugas', 'pejabat',
-    'lapas', 'rutan', 'kelas', 'kls', 'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii',
+    'lapas', 'rutan', 'bapas', 'rupbasan', 'kelas', 'kls', 'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii',
     'upt', 'kota', 'kabupaten', 'wilayah', 'kantin', 'wartel', 'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara',
-    'cabang', 'terdaftar'
+    'cabang', 'terdaftar', 'indonesia'
   ];
+
+  const isStopwordOrClassNumber = (w) => {
+    if (!w) return true;
+    if (stopwords.includes(w)) return true;
+    // Angka numerik murni (misal: '1', '2', '3')
+    if (/^\d+$/.test(w)) return true;
+    // Format kelas angka atau romawi (misal: '1a', '1b', '2a', '2b', 'i', 'ii', 'iii', 'iv', 'v')
+    if (/^(\d+|i|ii|iii|iv|v)[a-z]?$/i.test(w)) return true;
+    return false;
+  };
 
   for (const candidate of candidates) {
     const rawWords = candidate
@@ -64,12 +74,9 @@ export const extractBranchSlug = (branchName, user) => {
       .split(/\s+/)
       .filter(Boolean);
 
-    const meaningfulWords = rawWords.filter(w => !stopwords.includes(w));
+    const meaningfulWords = rawWords.filter(w => !isStopwordOrClassNumber(w));
     if (meaningfulWords.length > 0) {
       return meaningfulWords.slice(0, 2).join('-');
-    }
-    if (rawWords.length > 0 && !rawWords.every(w => stopwords.includes(w))) {
-      return rawWords.slice(0, 2).join('-');
     }
   }
 
@@ -79,8 +86,12 @@ export const extractBranchSlug = (branchName, user) => {
     const parts = localPart.split('.');
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i];
-      const cleanSlug = part.replace(/^(lapas|rutan|kls|kelas)-+/i, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      if (cleanSlug && !stopwords.includes(cleanSlug)) {
+      const cleanSlug = part
+        .replace(/^(lapas|rutan|bapas|kls|kelas)-*/i, '')
+        .replace(/^(\d+|i|ii|iii|iv|v)[a-z]?-*/i, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      if (cleanSlug && !isStopwordOrClassNumber(cleanSlug)) {
         return cleanSlug;
       }
     }

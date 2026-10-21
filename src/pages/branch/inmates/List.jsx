@@ -267,8 +267,11 @@ const InmatesList = () => {
         showToast('Anda tidak memiliki akses.', 'error');
       } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
         showToast('Fitur ini belum tersedia di sistem backend.', 'error');
-      } else if (err?.status === 400) {
-        setEditError(err?.message || 'Data yang dimasukkan tidak valid.');
+      } else if (err?.status === 400 || err?.data?.errors || err?.data?.message) {
+        const msg = (Array.isArray(err?.data?.errors) && err.data.errors.length > 0)
+          ? err.data.errors.map(e => e.message || e).join(', ')
+          : (err?.message || err?.data?.message || 'Data yang dimasukkan tidak valid.');
+        setEditError(msg);
       } else {
         showToast('Fitur ini belum tersedia di sistem backend.', 'error');
       }

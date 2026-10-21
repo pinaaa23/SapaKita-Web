@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../services/api';
+import { isCanteenContractConfigured, getStoredContracts } from '../dummy/canteenContractMock';
 
 /**
  * ATURAN TUNGGAL PENENTU BLOKIR TRANSAKSI:
  * Diblokir jika ada tagihan dari bulan yang SUDAH BERLALU yang belum lunas
  * (termasuk status: belum dibayar, menunggu konfirmasi, dan ditolak).
  * Tagihan bulan berjalan TIDAK memblokir.
+ * JANGAN terapkan status Telat/blokir otomatis untuk kantin yang kontraknya belum diatur.
  *
  * @param {Object} prevMonthBilling - Data tagihan dari BE untuk bulan sebelumnya
  * @param {Array} paymentHistory - Riwayat pembayaran dari BE (/api/canteen/topups)
@@ -16,7 +18,12 @@ export function cekStatusBlokirTagihan(prevMonthBilling, paymentHistory = [], ch
     return { isBlocked: false, isDueSoon: false, daysLeft: 0, blockedPeriod: '', reason: '' };
   }
 
-  const totalAmount = Number(prevMonthBilling?.summary?.totalAmount || 0);
+  // Kantin dengan kontrak belum diatur tidak boleh diblokir
+  if (prevMonthBilling.isContractSet === false || !isCanteenContractConfigured(prevMonthBilling)) {
+    return { isBlocked: false, isDueSoon: false, daysLeft: 0, blockedPeriod: '', reason: '' };
+  }
+
+  const totalAmount = Number(prevMonthBilling?.summary?.totalAmount ?? prevMonthBilling?.totalAmount ?? 0);
   // Jika tagihan bulan lalu 0 (tidak ada penjualan / sudah beres), maka tidak diblokir
   if (totalAmount <= 0) {
     return { isBlocked: false, isDueSoon: false, daysLeft: 0, blockedPeriod: '', reason: '' };
@@ -81,39 +88,67 @@ export function useBlokirTagihan() {
   const [daysLeft, setDaysLeft] = useState(0);
   const [blockedPeriod, setBlockedPeriod] = useState('');
   const [blockReason, setBlockReason] = useState('');
+  const [overdueInvoiceCount, setOverdueInvoiceCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   const checkBlokir = useCallback(async () => {
     setIsLoading(true);
     try {
+      // 1. Panggil endpoint resmi Backend: GET /api/canteen/billing/status-block
+      const res = await apiFetch('/api/canteen/billing/status-block');
+      const data = res?.data || res || {};
+
+      const blocked = Boolean(data.isBlocked);
+      const reason = data.reason || '';
+      const count = Number(data.overdueInvoiceCount || 0);
+
+      setIsBlocked(blocked);
+      setBlockReason(reason);
+      setOverdueInvoiceCount(count);
+
+      // Hitung peringatan tanggal 1-10 jika belum diblokir
       const now = new Date();
-      let prevMonth = now.getMonth(); // 0-11, jadi nilai getMonth() langsung sama dengan bulan lalu 1-12
-      let prevYear = now.getFullYear();
-      if (prevMonth === 0) {
-        prevMonth = 12;
-        prevYear -= 1;
+      const currentDay = now.getDate();
+      if (!blocked && currentDay < 10) {
+        const remaining = 10 - currentDay;
+        setDaysLeft(remaining);
+        setIsDueSoon(currentDay >= 8);
+      } else {
+        setIsDueSoon(false);
+        setDaysLeft(0);
       }
-
-      const [billingRes, topupsRes] = await Promise.allSettled([
-        apiFetch(`/api/canteen/billing/monthly?month=${prevMonth}&year=${prevYear}`),
-        apiFetch('/api/canteen/topups?limit=50'),
-      ]);
-
-      const billingData = billingRes.status === 'fulfilled' ? billingRes.value?.data || billingRes.value : null;
-      const paymentHistory = topupsRes.status === 'fulfilled' 
-        ? (topupsRes.value?.items || topupsRes.value?.data || (Array.isArray(topupsRes.value) ? topupsRes.value : [])) 
-        : [];
-
-      const result = cekStatusBlokirTagihan(billingData, paymentHistory, now);
-      setIsBlocked(result.isBlocked);
-      setIsDueSoon(result.isDueSoon);
-      setDaysLeft(result.daysLeft);
-      setBlockedPeriod(result.blockedPeriod);
-      setBlockReason(result.reason);
     } catch (err) {
-      console.warn('[useBlokirTagihan] Gagal memeriksa status tagihan:', err);
-      setIsBlocked(false);
-      setIsDueSoon(false);
+      console.warn('[useBlokirTagihan] Gagal memeriksa /api/canteen/billing/status-block:', err?.message || err);
+      // Fallback lokal jika backend offline
+      try {
+        const now = new Date();
+        let prevMonth = now.getMonth();
+        let prevYear = now.getFullYear();
+        if (prevMonth === 0) {
+          prevMonth = 12;
+          prevYear -= 1;
+        }
+
+        const [billingRes, topupsRes] = await Promise.allSettled([
+          apiFetch(`/api/canteen/billing/monthly?month=${prevMonth}&year=${prevYear}`),
+          apiFetch('/api/canteen/topups?limit=50'),
+        ]);
+
+        const billingData = billingRes.status === 'fulfilled' ? billingRes.value?.data || billingRes.value : null;
+        const paymentHistory = topupsRes.status === 'fulfilled' 
+          ? (topupsRes.value?.items || topupsRes.value?.data || (Array.isArray(topupsRes.value) ? topupsRes.value : [])) 
+          : [];
+
+        const result = cekStatusBlokirTagihan(billingData, paymentHistory, now);
+        setIsBlocked(result.isBlocked);
+        setIsDueSoon(result.isDueSoon);
+        setDaysLeft(result.daysLeft);
+        setBlockedPeriod(result.blockedPeriod);
+        setBlockReason(result.reason);
+      } catch (_fallbackErr) {
+        setIsBlocked(false);
+        setIsDueSoon(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -138,6 +173,7 @@ export function useBlokirTagihan() {
     daysLeft,
     blockedPeriod,
     blockReason,
+    overdueInvoiceCount,
     isLoading,
     refreshBlokir: checkBlokir,
   };

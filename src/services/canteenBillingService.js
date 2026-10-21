@@ -17,11 +17,13 @@ import { getBranches } from './branchService';
 import {
   getStoredContracts,
   saveStoredContract,
+  findStoredContract,
   calculateCanteenBilling,
   formatDetikKeMenit,
+  isCanteenContractConfigured,
 } from '../dummy/canteenContractMock';
 
-export { formatDetikKeMenit };
+export { formatDetikKeMenit, isCanteenContractConfigured, findStoredContract };
 
 /**
  * Mengambil daftar rekapitulasi tagihan semua kantin per UPT (Superadmin)
@@ -86,15 +88,25 @@ export async function getCanteenBillingNational(month, year) {
   const isPastDue = now > dueDate;
 
   const result = branches.map((b) => {
-    // Kontrak dari Superadmin (null jika belum dibuat)
-    const contract = contracts[b.id] || null;
-    const isContractSet = !!(
-      contract &&
-      contract.ratePerSecond !== null &&
-      contract.ratePerSecond !== undefined &&
-      (contract.superadminPercent !== null && contract.superadminPercent !== undefined ||
-       contract.negotiationPercent !== null && contract.negotiationPercent !== undefined)
-    );
+    // Kontrak dari Superadmin (cari di storage atau backend)
+    let contract = findStoredContract(b.id, { branchName: b.name });
+    if (!contract && b.contractRatePerSecond !== undefined && b.contractRatePerSecond !== null && b.contractSharePercentage !== undefined && b.contractSharePercentage !== null) {
+      const numRate = Number(b.contractRatePerSecond);
+      const numSa = Number(b.contractSharePercentage);
+      if (!isNaN(numRate) && !isNaN(numSa)) {
+        contract = {
+          branchId: b.id,
+          branchName: b.name,
+          canteenName: `Kantin ${b.name}`,
+          ratePerSecond: numRate,
+          superadminPercent: numSa,
+          canteenPercent: Math.max(0, 100 - numSa),
+          negotiationPercent: numSa,
+          isContractSet: true,
+        };
+      }
+    }
+    const isContractSet = isCanteenContractConfigured(contract);
 
     const canteenName = contract?.canteenName || `Kantin ${b.name}`;
     const uptName = b.name;
@@ -143,7 +155,11 @@ export async function getCanteenBillingNational(month, year) {
     let rawStatus = 'BELUM_BAYAR';
     let isBlocked = false;
 
-    if (totalApproved >= billingCalc.totalAmount && billingCalc.totalAmount > 0) {
+    if (!billingCalc.isContractSet) {
+      statusPembayaran = 'Belum diatur';
+      rawStatus = 'BELUM_DIATUR';
+      isBlocked = false;
+    } else if (totalApproved >= billingCalc.totalAmount && billingCalc.totalAmount > 0) {
       statusPembayaran = 'Lunas';
       rawStatus = 'LUNAS';
     } else if (pendingPayment) {
@@ -235,18 +251,49 @@ export async function getCanteenBillingMonthly(month, year) {
     return acc + (durationMin * 60);
   }, 0);
 
-  // 3. Cek kontrak tarif di storage (Hanya muncul jika sudah diset oleh Superadmin)
-  const branchId = rawBranchId || beBillingData?.branchId || 'b1';
-  const contracts = getStoredContracts();
-  const contract = contracts[branchId] || null;
+  // 3. Resolusi kontrak tarif (Read-only dari GET /api/canteen/contracts/:branchId)
+  const rawBranchName = user?.branchName || user?.branch?.name || beBillingData?.branchName || null;
+  const rawCanteenName = user?.canteenName || user?.name || (rawBranchName ? `Kantin ${rawBranchName}` : null);
+  const branchId = rawBranchId || user?.branch?.id || beBillingData?.branchId || null;
 
-  const isContractSet = !!(
-    contract &&
-    contract.ratePerSecond !== null &&
-    contract.ratePerSecond !== undefined &&
-    (contract.superadminPercent !== null && contract.superadminPercent !== undefined ||
-     contract.negotiationPercent !== null && contract.negotiationPercent !== undefined)
-  );
+  let contract = null;
+  if (branchId) {
+    try {
+      const cRes = await apiFetch(`/api/canteen/contracts/${branchId}`);
+      contract = cRes?.data || cRes || null;
+    } catch (_cErr) {
+      contract = findStoredContract(branchId, {
+        branchName: rawBranchName,
+        canteenName: rawCanteenName,
+      });
+    }
+  }
+
+  // Jika belum ada, sinkronkan dari ringkasan tagihan Backend bila tersedia
+  if (!contract && beBillingData?.summary) {
+    const beRate = beBillingData.summary.ratePerSecond;
+    const beSa = beBillingData.summary.contractSharePercentage !== undefined && beBillingData.summary.contractSharePercentage !== null
+      ? beBillingData.summary.contractSharePercentage
+      : beBillingData.summary.passcallSharePercentage;
+
+    if (beRate !== null && beRate !== undefined && beSa !== null && beSa !== undefined && !isNaN(Number(beRate)) && !isNaN(Number(beSa))) {
+      contract = {
+        branchId,
+        branchName: rawBranchName,
+        canteenName: rawCanteenName,
+        ratePerSecond: Number(beRate),
+        superadminPercent: Number(beSa),
+        canteenPercent: Math.max(0, 100 - Number(beSa)),
+        negotiationPercent: Number(beSa),
+        isContractSet: true,
+      };
+      if (branchId) {
+        saveStoredContract(branchId, contract);
+      }
+    }
+  }
+
+  const isContractSet = isCanteenContractConfigured(contract);
 
   const ratePerSecond = isContractSet ? Number(contract.ratePerSecond) : null;
   const superadminPercent = isContractSet
@@ -284,14 +331,14 @@ export async function getCanteenBillingMonthly(month, year) {
       calculatedCanteenPercent: canteenPercent,
       calculatedNegotiationPercent: negotiationPercent,
       // Nominal item otomatis mengikuti aturan baru:
-      totalAmount: isContractSet ? itemCalc.totalAmount : 0,
-      subtotalAmount: isContractSet ? itemCalc.subtotal : 0,
-      canteenShare: isContractSet ? itemCalc.canteenShare : 0,
+      totalAmount: isContractSet ? itemCalc.totalAmount : null,
+      subtotalAmount: isContractSet ? itemCalc.subtotal : null,
+      canteenShare: isContractSet ? itemCalc.canteenShare : null,
     };
   });
 
   return {
-    branchId,
+    branchId: branchId || 'b1',
     canteenName: user?.canteenName || user?.name || (beBillingData?.branchName ? `Kantin ${beBillingData.branchName}` : 'Kantin Lapas'),
     uptName: beBillingData?.branchName || user?.branchName || 'Lapas UPT',
     kanwilName: user?.kanwilName || 'Kanwil Ditjenpas',
@@ -311,17 +358,86 @@ export async function getCanteenBillingMonthly(month, year) {
     isContractSet: billingCalc.isContractSet,
     contractNote: billingCalc.contractNote,
     transactions: recalculatedTransactions,
-    rawStatus: beBillingData?.billingStatus || 'BERJALAN',
-    statusPembayaran: beBillingData?.billingStatus === 'PAID' ? 'Lunas' : (beBillingData?.billingStatus === 'PENDING' ? 'Menunggu ACC' : 'Belum Dibayar'),
-    isBlocked: beBillingData?.billingStatus === 'DIBLOKIR',
+    rawStatus: isContractSet ? (beBillingData?.billingStatus || 'BERJALAN') : 'BELUM_DIATUR',
+    statusPembayaran: isContractSet
+      ? (beBillingData?.billingStatus === 'PAID' ? 'Lunas' : (beBillingData?.billingStatus === 'PENDING' ? 'Menunggu ACC' : 'Belum Dibayar'))
+      : 'Belum diatur',
+    isBlocked: isContractSet ? (beBillingData?.billingStatus === 'DIBLOKIR') : false,
     paymentProof: beBillingData?.paymentProof || null,
   };
 }
 
 /**
- * Menyimpan kontrak tarif per detik dan persen bagi hasil oleh Superadmin
+ * Mengambil tarif kontrak 1 UPT tertentu (Read-Only)
+ * Endpoint: GET /api/canteen/contracts/:branchId (Role: CANTEEN_STAFF, SUPERADMIN)
  *
  * @param {string} branchId
+ * @returns {Promise<Object|null>}
+ */
+export async function getCanteenContractByBranchId(branchId) {
+  if (!branchId) return null;
+  try {
+    const res = await apiFetch(`/api/canteen/contracts/${branchId}`);
+    return res?.data || res || null;
+  } catch (err) {
+    console.warn(`[canteenBillingService] Gagal memuat kontrak UPT (${branchId}):`, err?.message || err);
+    return null;
+  }
+}
+
+/**
+ * Mengambil rincian log panggilan faktur tagihan bulanan untuk Tab "Rincian Panggilan"
+ * Endpoint: GET /api/canteen/billing/calls?month=X&year=Y&page=P&limit=L&search=S&branchId=B
+ *
+ * @param {Object} params
+ * @param {number} params.month
+ * @param {number} params.year
+ * @param {number} params.page
+ * @param {number} params.limit
+ * @param {string} params.search
+ * @param {string} params.branchId (opsional, untuk Superadmin)
+ * @returns {Promise<{ items: Array, totalItems: number, totalSeconds: number, totalTagihan: number, pagination: Object }>}
+ */
+export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20, search = '', branchId } = {}) {
+  const q = new URLSearchParams();
+  if (month) q.append('month', String(month));
+  if (year) q.append('year', String(year));
+  if (page) q.append('page', String(page));
+  if (limit) q.append('limit', String(limit));
+  if (search && search.trim()) q.append('search', search.trim());
+  if (branchId) q.append('branchId', branchId);
+
+  try {
+    const res = await apiFetch(`/api/canteen/billing/calls?${q.toString()}`);
+    const data = res?.data || res || {};
+    return {
+      items: Array.isArray(data.items) ? data.items : [],
+      totalItems: Number(data.totalItems || 0),
+      totalSeconds: Number(data.totalSeconds || 0),
+      totalTagihan: Number(data.totalTagihan || 0),
+      pagination: data.pagination || {
+        page: Number(page) || 1,
+        limit: Number(limit) || 20,
+        totalPages: Math.max(1, Math.ceil((Number(data.totalItems) || 0) / (Number(limit) || 20))),
+      },
+    };
+  } catch (err) {
+    console.warn('[canteenBillingService] Gagal mengambil log panggilan faktur:', err?.message || err);
+    return {
+      items: [],
+      totalItems: 0,
+      totalSeconds: 0,
+      totalTagihan: 0,
+      pagination: { page: Number(page) || 1, limit: Number(limit) || 20, totalPages: 1 },
+    };
+  }
+}
+
+/**
+ * Menyimpan kontrak tarif per detik dan persen bagi hasil oleh Superadmin
+ * Endpoint resmi: PUT /api/canteen/contracts/:branchId (kontrak per UPT / branchId)
+ *
+ * @param {string} branchId - ID Cabang / UPT
  * @param {{ ratePerSecond: number, superadminPercent?: number, canteenPercent?: number, negotiationPercent?: number, branchName?: string, canteenName?: string }} payload
  * @returns {Promise<Object>}
  */
@@ -344,8 +460,12 @@ export async function updateCanteenContract(branchId, payload) {
   if (isNaN(ktPercent) || ktPercent < 0 || ktPercent > 100) {
     throw new Error('Persen Kantin harus berada di antara 0% hingga 100%.');
   }
+  if (Math.round((saPercent + ktPercent) * 100) / 100 !== 100) {
+    throw new Error('Total persentase Superadmin dan Kantin harus berjumlah 100%.');
+  }
 
-  // 1. Coba simpan ke Backend bila endpoint sudah tersedia
+  // 1. Simpan langsung ke endpoint resmi BE: PUT /api/canteen/contracts/:branchId
+  let beResult = null;
   try {
     const res = await apiFetch(`/api/canteen/contracts/${branchId}`, {
       method: 'PUT',
@@ -353,38 +473,67 @@ export async function updateCanteenContract(branchId, payload) {
         ratePerSecond: rate,
         superadminPercent: saPercent,
         canteenPercent: ktPercent,
-        negotiationPercent: saPercent,
       }),
     });
-    if (res && res.data) {
-      saveStoredContract(branchId, payload);
-      return res.data;
-    }
-  } catch (_err) {
-    // BE endpoint belum ada, simpan ke mock store (MOCK - menunggu endpoint BE)
+    beResult = res?.data || res;
+  } catch (err) {
+    console.warn('[canteenBillingService] Gagal update /api/canteen/contracts/:branchId:', err?.message || err);
+    throw err;
   }
 
-  // 2. Simpan ke local mock storage
-  const updated = saveStoredContract(branchId, payload);
+  // Juga sinkronkan ke PUT /api/branches/:id agar data entity branch selalu konsisten
+  try {
+    await apiFetch(`/api/branches/${branchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        contractRatePerSecond: rate,
+        contractSharePercentage: saPercent,
+      }),
+    });
+  } catch (_branchErr) {
+    // Abaikan jika endpoint /api/branches sudah sinkron
+  }
 
-  // Trigger event pembaruan agar semua tampilan sinkron
+  // 2. Simpan ke local mock storage agar sinkronisasi instan antar-tab
+  const updated = saveStoredContract(branchId, {
+    ...payload,
+    ratePerSecond: rate,
+    superadminPercent: saPercent,
+    canteenPercent: ktPercent,
+    negotiationPercent: saPercent,
+  });
+
+  // Trigger event pembaruan agar semua tampilan sinkron seketika
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pascall_billing_updated'));
-    window.dispatchEvent(new CustomEvent('pascall_contract_changed'));
+    window.dispatchEvent(new CustomEvent('pascall_contract_changed', { detail: updated }));
     window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+    window.dispatchEvent(new Event('storage'));
   }
 
-  return updated;
+  return beResult || updated;
 }
 
 /**
  * Mengambil daftar konfigurasi kontrak seluruh kantin UPT (Tab Pengaturan Kontrak)
- * // MOCK - menunggu endpoint BE
+ * Endpoint resmi: GET /api/canteen/contracts (Role: SUPERADMIN)
  *
  * @returns {Promise<Array>}
  */
 export async function getAllCanteenContracts() {
-  // 1. Ambil data cabang UPT dari backend
+  // 1. Panggil endpoint resmi Backend: GET /api/canteen/contracts
+  let beContracts = [];
+  try {
+    const res = await apiFetch('/api/canteen/contracts');
+    const items = res?.data?.items || res?.items || (Array.isArray(res) ? res : []);
+    if (Array.isArray(items) && items.length > 0) {
+      beContracts = items;
+    }
+  } catch (err) {
+    console.warn('[canteenBillingService] Gagal memuat GET /api/canteen/contracts:', err?.message || err);
+  }
+
+  // 2. Ambil data cabang UPT untuk melengkapi informasi wilayah/kanwil jika diperlukan
   let branches = [];
   try {
     const branchesRes = await getBranches({ limit: 100 });
@@ -395,6 +544,33 @@ export async function getAllCanteenContracts() {
       : [];
   } catch (err) {
     console.warn('[canteenBillingService] Gagal memuat branches dari API:', err);
+  }
+
+  const branchMap = {};
+  branches.forEach((b) => {
+    branchMap[b.id] = b;
+  });
+
+  // Jika endpoint /api/canteen/contracts mengembalikan daftar kontrak langsung
+  if (beContracts.length > 0) {
+    return beContracts.map((item) => {
+      const b = branchMap[item.branchId] || {};
+      const isContractSet = isCanteenContractConfigured(item);
+
+      return {
+        branchId: item.branchId,
+        canteenName: item.canteenName || `Kantin ${item.branchName || b.name || item.branchId}`,
+        uptName: item.branchName || b.name || `UPT ${item.branchId}`,
+        kanwilName: b.kanwil?.name || b.kanwilName || 'Kanwil Ditjenpas',
+        ratePerSecond: isContractSet ? Number(item.ratePerSecond) : null,
+        superadminPercent: isContractSet ? Number(item.superadminPercent) : null,
+        canteenPercent: isContractSet ? Number(item.canteenPercent) : null,
+        negotiationPercent: isContractSet ? Number(item.superadminPercent) : null,
+        isContractSet,
+        updatedAt: item.updatedAt || null,
+        updatedBy: item.updatedBy || 'Superadmin',
+      };
+    });
   }
 
   if (branches.length === 0) {
@@ -408,32 +584,26 @@ export async function getAllCanteenContracts() {
     ];
   }
 
-  // 2. Coba ambil dari BE bila endpoint sudah tersedia
-  let beContractsMap = {};
-  try {
-    const res = await apiFetch('/api/canteen/contracts?limit=100');
-    const items = res?.data?.items || res?.items || (Array.isArray(res) ? res : []);
-    items.forEach((item) => {
-      if (item.branchId) beContractsMap[item.branchId] = item;
-    });
-  } catch (_e) {
-    // BE belum tersedia, gunakan fallback local storage
-  }
-
-  // 3. Ambil kontrak dari mock storage
-  const storedContracts = getStoredContracts();
-
+  // 3. Fallback jika /api/canteen/contracts belum termuat
   return branches.map((b) => {
-    const contract = beContractsMap[b.id] || storedContracts[b.id] || null;
-    const isContractSet = !!(
-      contract &&
-      contract.ratePerSecond !== null &&
-      contract.ratePerSecond !== undefined &&
-      contract.ratePerSecond !== '' &&
-      Number(contract.ratePerSecond) >= 0 &&
-      (contract.superadminPercent !== null && contract.superadminPercent !== undefined ||
-       contract.negotiationPercent !== null && contract.negotiationPercent !== undefined)
-    );
+    let contract = findStoredContract(b.id, { branchName: b.name });
+    if (!contract && b.contractRatePerSecond !== undefined && b.contractRatePerSecond !== null && b.contractSharePercentage !== undefined && b.contractSharePercentage !== null) {
+      const numRate = Number(b.contractRatePerSecond);
+      const numSa = Number(b.contractSharePercentage);
+      if (!isNaN(numRate) && !isNaN(numSa)) {
+        contract = {
+          branchId: b.id,
+          branchName: b.name,
+          canteenName: `Kantin ${b.name}`,
+          ratePerSecond: numRate,
+          superadminPercent: numSa,
+          canteenPercent: Math.max(0, 100 - numSa),
+          negotiationPercent: numSa,
+          isContractSet: true,
+        };
+      }
+    }
+    const isContractSet = isCanteenContractConfigured(contract);
 
     const saPercent = isContractSet
       ? (contract.superadminPercent !== null && contract.superadminPercent !== undefined

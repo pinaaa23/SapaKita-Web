@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wallet,
   Receipt,
@@ -15,7 +15,6 @@ import {
   ShieldAlert,
   Filter,
   RefreshCw,
-  Edit3,
   Calculator,
   Percent,
   Coins,
@@ -23,8 +22,8 @@ import {
   ExternalLink,
   Download,
   Sliders,
-  Settings,
-  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../utils/formatKantin';
 import {
@@ -38,7 +37,8 @@ import {
   getCanteenBillingNational,
   getAllCanteenContracts,
   updateCanteenContract,
-  formatDetikKeMenit,
+  getCanteenBillingCalls,
+  isCanteenContractConfigured,
 } from '../services/canteenBillingService';
 import { getBranches } from '../services/branchService';
 import { API_BASE_URL, getAuthToken, getAuthUser } from '../services/api';
@@ -126,6 +126,32 @@ export default function CanteenTopup() {
   const [editError, setEditError] = useState('');
   const [isSavingContract, setIsSavingContract] = useState(false);
 
+  // Tab 3: State Rincian Panggilan Seluruh UPT / Kantin (GET /api/canteen/billing/calls)
+  const [saCallsData, setSaCallsData] = useState({
+    items: [],
+    totalItems: 0,
+    totalSeconds: 0,
+    totalTagihan: 0,
+    pagination: { page: 1, limit: 20, totalPages: 1 },
+  });
+  const [isLoadingSaCalls, setIsLoadingSaCalls] = useState(false);
+  const [saCallsSearch, setSaCallsSearch] = useState('');
+  const [saCallsBranchId, setSaCallsBranchId] = useState('semua');
+  const [saCallsPage, setSaCallsPage] = useState(1);
+
+  // Modal Detail Rincian Panggilan Tab State
+  const [detailModalTab, setDetailModalTab] = useState('summary'); // 'summary' | 'calls'
+  const [modalCallsData, setModalCallsData] = useState({
+    items: [],
+    totalItems: 0,
+    totalSeconds: 0,
+    totalTagihan: 0,
+    pagination: { page: 1, limit: 20, totalPages: 1 },
+  });
+  const [isLoadingModalCalls, setIsLoadingModalCalls] = useState(false);
+  const [modalCallsPage, setModalCallsPage] = useState(1);
+  const [modalCallsSearch, setModalCallsSearch] = useState('');
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3500);
@@ -193,6 +219,66 @@ export default function CanteenTopup() {
       window.removeEventListener('storage', handleRealtimeUpdate);
     };
   }, [selectedMonth, selectedYear]);
+
+  // Load Log Rincian Panggilan (Tab 3 Superadmin)
+  const fetchSaCalls = useCallback(async (month, year, page, search, branchId) => {
+    setIsLoadingSaCalls(true);
+    try {
+      const res = await getCanteenBillingCalls({
+        month,
+        year,
+        page,
+        limit: 20,
+        search,
+        branchId: branchId && branchId !== 'semua' ? branchId : undefined,
+      });
+      setSaCallsData(res);
+    } catch (err) {
+      console.error('Gagal memuat rincian panggilan SA:', err);
+    } finally {
+      setIsLoadingSaCalls(false);
+    }
+  }, []);
+
+  // Effect untuk Tab 3 Rincian Panggilan
+  useEffect(() => {
+    if (activeMainTab === 'calls') {
+      const timer = setTimeout(() => {
+        fetchSaCalls(selectedMonth, selectedYear, saCallsPage, saCallsSearch, saCallsBranchId);
+      }, saCallsSearch ? 300 : 0);
+      return () => clearTimeout(timer);
+    }
+  }, [fetchSaCalls, activeMainTab, selectedMonth, selectedYear, saCallsPage, saCallsSearch, saCallsBranchId]);
+
+  // Load Calls khusus UPT di dalam detail modal
+  const fetchModalCalls = useCallback(async (month, year, page, search, branchId) => {
+    if (!branchId) return;
+    setIsLoadingModalCalls(true);
+    try {
+      const res = await getCanteenBillingCalls({
+        month,
+        year,
+        page,
+        limit: 20,
+        search,
+        branchId,
+      });
+      setModalCallsData(res);
+    } catch (err) {
+      console.error('Gagal memuat rincian panggilan UPT modal:', err);
+    } finally {
+      setIsLoadingModalCalls(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (detailModalItem && detailModalTab === 'calls') {
+      const timer = setTimeout(() => {
+        fetchModalCalls(selectedMonth, selectedYear, modalCallsPage, modalCallsSearch, detailModalItem.branchId);
+      }, modalCallsSearch ? 300 : 0);
+      return () => clearTimeout(timer);
+    }
+  }, [fetchModalCalls, detailModalItem, detailModalTab, selectedMonth, selectedYear, modalCallsPage, modalCallsSearch]);
 
   // Permintaan Pembayaran yang butuh persetujuan (Status: PENDING)
   // Hanya menghitung pengajuan untuk periode yang SUDAH TUTUP BUKU
@@ -267,22 +353,38 @@ export default function CanteenTopup() {
   const unconfiguredContractsCount = contractsList.length - configuredContractsCount;
 
   // Kalkulasi Statistik Real-Time
-  const totalTagihanBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalAmount) || 0), 0);
+  const totalTagihanBulanIni = billingReports.reduce((acc, r) => acc + (r.isContractSet ? (Number(r.totalAmount) || 0) : 0), 0);
   const totalDetikBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalSeconds) || 0), 0);
   const kantinTerkonfigurasiCount = billingReports.filter((r) => r.isContractSet).length;
 
   // Handlers Edit Kontrak Tarif (Khusus Superadmin)
   const handleOpenEditContract = (target) => {
+    // 6. Reset state form setiap modal dibuka
     setEditError('');
     setEditContractModal(target);
-    setEditRate(target.ratePerSecond !== null && target.ratePerSecond !== undefined ? String(target.ratePerSecond) : '');
 
-    const saP = target.superadminPercent !== null && target.superadminPercent !== undefined
-      ? target.superadminPercent
-      : (target.negotiationPercent !== null && target.negotiationPercent !== undefined ? target.negotiationPercent : '');
+    const isSet = isCanteenContractConfigured(target);
+    if (isSet) {
+      setEditRate(target.ratePerSecond !== null && target.ratePerSecond !== undefined ? String(target.ratePerSecond) : '');
+      const saP = target.superadminPercent !== null && target.superadminPercent !== undefined
+        ? target.superadminPercent
+        : (target.negotiationPercent !== null && target.negotiationPercent !== undefined ? target.negotiationPercent : '');
+      setEditSuperadminPercent(saP !== '' ? String(saP) : '');
+      setEditCanteenPercent(saP !== '' ? String(100 - Number(saP)) : '');
+    } else {
+      // 1. Kolom Tarif dan SA (%) KOSONG untuk kantin yang belum punya kontrak
+      setEditRate('');
+      setEditSuperadminPercent('');
+      setEditCanteenPercent('');
+    }
+  };
 
-    setEditSuperadminPercent(saP !== '' ? String(saP) : '60');
-    setEditCanteenPercent(saP !== '' ? String(100 - Number(saP)) : '40');
+  const handleCloseEditContract = () => {
+    setEditContractModal(null);
+    setEditRate('');
+    setEditSuperadminPercent('');
+    setEditCanteenPercent('');
+    setEditError('');
   };
 
   const handleSuperadminPercentChange = (val) => {
@@ -294,8 +396,14 @@ export default function CanteenTopup() {
     const num = Number(val);
     if (!isNaN(num) && num >= 0 && num <= 100) {
       setEditCanteenPercent(String(100 - num));
+    } else {
+      setEditCanteenPercent('');
     }
   };
+
+  const isRateValid = editRate !== '' && !isNaN(Number(editRate)) && Number(editRate) > 0;
+  const isSaPercentValid = editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent)) && Number(editSuperadminPercent) >= 0 && Number(editSuperadminPercent) <= 100;
+  const isContractFormValid = isRateValid && isSaPercentValid;
 
   const handleSaveContract = async (e) => {
     e.preventDefault();
@@ -305,11 +413,11 @@ export default function CanteenTopup() {
     const saPercentNum = Number(editSuperadminPercent);
     const canteenPercentNum = 100 - saPercentNum;
 
-    if (editRate === '' || isNaN(rateNum) || rateNum < 0) {
-      setEditError('Tarif per detik wajib diisi dan tidak boleh bernilai negatif.');
+    if (!isRateValid) {
+      setEditError('Tarif per detik wajib diisi dengan angka lebih dari 0.');
       return;
     }
-    if (editSuperadminPercent === '' || isNaN(saPercentNum) || saPercentNum < 0 || saPercentNum > 100) {
+    if (!isSaPercentValid) {
       setEditError('Persentase Superadmin wajib diisi antara 0% hingga 100%.');
       return;
     }
@@ -327,7 +435,7 @@ export default function CanteenTopup() {
       });
 
       showToast(`Kontrak tarif untuk ${editContractModal.canteenName} berhasil disimpan. Perhitungan tagihan otomatis diperbarui.`);
-      setEditContractModal(null);
+      handleCloseEditContract();
       await Promise.all([loadData(), loadContractsData()]);
     } catch (err) {
       setEditError(err.message || 'Gagal menyimpan kontrak tarif.');
@@ -479,6 +587,9 @@ export default function CanteenTopup() {
     setDetailModalNotes('');
     setDetailModalReason('');
     setDetailModalRejectMode(false);
+    setDetailModalTab('summary');
+    setModalCallsPage(1);
+    setModalCallsSearch('');
   };
 
   // Handler Terpadu: Setujui (ACC) Langsung dari Dalam Modal Detail
@@ -606,47 +717,31 @@ export default function CanteenTopup() {
               </span>
             )}
           </button>
+
+          {/* TAB 3: RINCIAN PANGGILAN */}
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('calls')}
+            className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
+              activeMainTab === 'calls'
+                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
+            }`}
+          >
+            <FileText className={`w-4 h-4 ${activeMainTab === 'calls' ? 'text-white' : 'text-slate-500'}`} />
+            <span>Rincian Panggilan</span>
+          </button>
         </div>
 
         {/* Status / Aksi Cepat Sisi Kanan */}
         <div className="flex items-center gap-2 self-start md:self-center">
-          {activeMainTab === 'tagihan' ? (
-            <div className="flex items-center gap-2">
-              <span className="hidden lg:inline text-xs font-semibold text-slate-400">Periode:</span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
-                <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
-                {monthNames[selectedMonth - 1]} {selectedYear}
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveMainTab('kontrak')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
-                title="Buka Tab Pengaturan Kontrak"
-              >
-                <Sliders className="w-3.5 h-3.5 text-slate-500" />
-                <span>Buka Pengaturan Kontrak</span>
-                <ArrowRight className="w-3 h-3 text-slate-400" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <span className="hidden lg:inline text-xs font-semibold text-slate-400">Status:</span>
-              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
-                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
-                Master Tarif ({contractsList.length} Kantin)
-              </span>
-              <button
-                type="button"
-                onClick={() => setActiveMainTab('tagihan')}
-                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
-                title="Kembali ke Tab Tagihan Bulanan"
-              >
-                <Receipt className="w-3.5 h-3.5 text-slate-500" />
-                <span>Lihat Tagihan Bulanan</span>
-                <ArrowRight className="w-3 h-3 text-slate-400" />
-              </button>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="hidden lg:inline text-xs font-semibold text-slate-400">Periode:</span>
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
+              <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
+              {monthNames[selectedMonth - 1]} {selectedYear}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -878,15 +973,15 @@ export default function CanteenTopup() {
           {/* TABEL DAFTAR SEMUA KANTIN DIKELOMPOKKAN PER UPT */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto w-full">
-              <table className="w-full text-left border-collapse">
+              <table className="w-full text-left border-collapse table-auto">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-5">Nama Kantin</th>
-                    <th className="py-3.5 px-4">UPT</th>
-                    <th className="py-3.5 px-4 text-center">Total Detik</th>
-                    <th className="py-3.5 px-4 text-right">Total Tagihan</th>
-                    <th className="py-3.5 px-4 text-center">Status Pembayaran</th>
-                    <th className="py-3.5 px-5 text-center">Aksi</th>
+                  <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                    <th className="py-3.5 px-4 text-left min-w-[200px]">Nama Kantin</th>
+                    <th className="py-3.5 px-4 text-left min-w-[180px]">UPT &amp; Kanwil</th>
+                    <th className="py-3.5 px-4 text-center min-w-[130px]">Total Detik</th>
+                    <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
+                    <th className="py-3.5 px-4 text-center min-w-[140px]">Status Pembayaran</th>
+                    <th className="py-3.5 px-4 text-center min-w-[130px]">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-xs">
@@ -911,16 +1006,16 @@ export default function CanteenTopup() {
                       return (
                         <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
                           {/* 1. Nama Kantin */}
-                          <td className="py-4 px-5">
-                            <div className="flex items-start gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0">
                                 <Store className="w-4 h-4" />
                               </div>
                               <div className="min-w-0">
                                 <span className="font-bold text-slate-900 block leading-snug">
                                   {report.canteenName}
                                 </span>
-                                <span className="text-[11px] text-slate-400 font-medium">
+                                <span className="text-[11px] text-slate-400 font-medium block">
                                   Operator Kantin Lapas
                                 </span>
                               </div>
@@ -928,7 +1023,7 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* 2. UPT & Kanwil */}
-                          <td className="py-4 px-4">
+                          <td className="py-3.5 px-4">
                             <span className="font-semibold text-slate-800 block leading-snug">
                               {report.uptName}
                             </span>
@@ -938,8 +1033,8 @@ export default function CanteenTopup() {
                           </td>
 
                           {/* 3. Total Detik (dan dalam menit) */}
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            <div className="font-bold text-slate-900 text-sm">
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <div className="font-bold text-slate-900 text-xs sm:text-sm">
                               {report.totalSeconds.toLocaleString('id-ID')} detik
                             </div>
                             <div className="text-[11px] font-semibold text-emerald-600 mt-0.5">
@@ -947,11 +1042,11 @@ export default function CanteenTopup() {
                             </div>
                           </td>
 
-                          {/* 4. Total Tagihan (Rincian tarif & bagi hasil tersedia di tombol Detail) */}
-                          <td className="py-4 px-4 text-right whitespace-nowrap">
+                          {/* 4. Total Tagihan */}
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             {report.isContractSet ? (
                               <div>
-                                <div className="font-black text-[#1565C0] text-sm">
+                                <div className="font-black text-[#1565C0] text-xs sm:text-sm">
                                   {formatRupiah(report.totalAmount)}
                                 </div>
                                 <div className="text-[11px] text-slate-400 mt-0.5">
@@ -959,20 +1054,25 @@ export default function CanteenTopup() {
                                 </div>
                               </div>
                             ) : (
-                              <div>
-                                <div className="font-black text-slate-400 text-sm">
-                                  Rp 0
+                              <div className="flex flex-col items-end">
+                                <div className="font-black text-slate-400 text-xs sm:text-sm">
+                                  -
                                 </div>
-                                <span className="inline-block text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-0.5">
-                                  Belum diatur
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-md border border-amber-300 mt-0.5">
+                                  Perlu diatur
                                 </span>
                               </div>
                             )}
                           </td>
 
                           {/* 5. Status Pembayaran */}
-                          <td className="py-4 px-4 text-center whitespace-nowrap">
-                            {report.statusPembayaran === 'Lunas' ? (
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            {!report.isContractSet ? (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                                <span>Belum diatur</span>
+                              </span>
+                            ) : report.statusPembayaran === 'Lunas' ? (
                               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
                                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>Lunas</span>
@@ -1000,11 +1100,23 @@ export default function CanteenTopup() {
                             )}
                           </td>
 
-                          {/* 6. Aksi Terpadu (Periksa & ACC / Review & Lihat / Detail Tagihan) */}
-                          <td className="py-4 px-5 text-center whitespace-nowrap">
-                            <div className="inline-flex items-center justify-center gap-2">
-                              {isPending ? (
-                                /* Aksi Utama saat Butuh Verifikasi: Periksa & ACC */
+                          {/* 6. Aksi Terpadu */}
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <div className="inline-flex items-center justify-center gap-1.5">
+                              {!report.isContractSet ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveMainTab('kontrak');
+                                    handleOpenEditContract(report);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 transition shadow-2xs cursor-pointer"
+                                  title="Atur Kontrak Tarif Kantin Ini"
+                                >
+                                  <Sliders className="w-3.5 h-3.5 text-amber-950" />
+                                  <span>Atur Kontrak</span>
+                                </button>
+                              ) : isPending ? (
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetailModal(report)}
@@ -1012,10 +1124,9 @@ export default function CanteenTopup() {
                                   title="Periksa bukti transfer dan lakukan persetujuan (ACC)"
                                 >
                                   <CheckCircle2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                                  <span>Periksa & ACC</span>
+                                  <span>Periksa &amp; ACC</span>
                                 </button>
                               ) : report.statusPembayaran === 'Lunas' ? (
-                                /* Aksi saat Lunas: Mode Review / Lihat Saja */
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetailModal(report)}
@@ -1023,10 +1134,9 @@ export default function CanteenTopup() {
                                   title="Review rincian tagihan dan arsip bukti pembayaran lunas (Hanya Lihat)"
                                 >
                                   <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>Review / Lihat</span>
+                                  <span>Review</span>
                                 </button>
                               ) : (
-                                /* Aksi saat Belum Bayar / Telat: Detail Tagihan */
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetailModal(report)}
@@ -1035,22 +1145,6 @@ export default function CanteenTopup() {
                                 >
                                   <FileText className="w-3.5 h-3.5 text-[#1565C0]" />
                                   <span>Detail</span>
-                                </button>
-                              )}
-
-                              {/* Tombol Shortcut Atur Kontrak jika belum diatur */}
-                              {!report.isContractSet && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveMainTab('kontrak');
-                                    handleOpenEditContract(report);
-                                  }}
-                                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
-                                  title="Atur kontrak tarif tetap di Tab 2"
-                                >
-                                  <Sliders className="w-3.5 h-3.5 text-amber-600" />
-                                  <span>Atur</span>
                                 </button>
                               )}
                             </div>
@@ -1296,6 +1390,301 @@ export default function CanteenTopup() {
       {/* END TAB 2: PENGATURAN KONTRAK */}
 
       {/* =========================================================================
+          TAB 3: RINCIAN PANGGILAN
+          Endpoint: GET /api/canteen/billing/calls (?month&year&page&limit&search&branchId)
+          Menggunakan totalSeconds dan totalTagihan dari respons API.
+          ========================================================================= */}
+      <div className={activeMainTab === 'calls' ? 'space-y-4' : 'hidden'}>
+        {/* STATISTIK RINGKAS RINCIAN PANGGILAN */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Panggilan WBP
+              </span>
+              <div className="text-2xl font-black text-slate-900 tracking-tight">
+                {saCallsData.totalItems.toLocaleString('id-ID')}
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Periode {monthNames[selectedMonth - 1]} {selectedYear}
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100">
+              <FileText className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Durasi Bicara
+              </span>
+              <div className="text-2xl font-black text-slate-900 tracking-tight">
+                {Number(saCallsData.totalSeconds || 0).toLocaleString('id-ID')} <span className="text-xs font-semibold text-slate-400">Detik</span>
+              </div>
+              <span className="text-[11px] font-semibold text-emerald-600">
+                ≈ {Math.floor((saCallsData.totalSeconds || 0) / 60).toLocaleString('id-ID')} Menit Panggilan
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
+              <Clock className="w-6 h-6" />
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div>
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Total Tagihan Bagian SA
+              </span>
+              <div className="text-2xl font-black text-[#1565C0] tracking-tight">
+                {formatRupiah(saCallsData.totalTagihan)}
+              </div>
+              <span className="text-[11px] font-semibold text-slate-500">
+                Hasil perhitungan kontrak tarif
+              </span>
+            </div>
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100">
+              <Receipt className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+
+        {/* FILTER & PENCARIAN TAB 3 */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Filter Periode Bulan & Tahun */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
+              <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+              <span className="text-slate-500">Periode:</span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(Number(e.target.value));
+                  setSaCallsPage(1);
+                }}
+                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                {monthNames.map((name, idx) => (
+                  <option key={name} value={idx + 1}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              <span className="text-slate-300">|</span>
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(Number(e.target.value));
+                  setSaCallsPage(1);
+                }}
+                className="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer"
+              >
+                {[currentYear - 1, currentYear, currentYear + 1].map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filter UPT / Cabang */}
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
+              <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <select
+                value={saCallsBranchId}
+                onChange={(e) => {
+                  setSaCallsBranchId(e.target.value);
+                  setSaCallsPage(1);
+                }}
+                className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer max-w-[200px] truncate"
+              >
+                <option value="semua">Semua UPT Lapas</option>
+                {contractsList.map((c) => (
+                  <option key={c.branchId} value={c.branchId}>
+                    {c.uptName || c.canteenName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
+              Menampilkan <strong>{saCallsData.items.length}</strong> dari <strong>{saCallsData.totalItems}</strong> panggilan
+            </span>
+          </div>
+
+          {/* Pencarian Panggilan */}
+          <div className="flex items-center gap-2 w-full lg:w-auto">
+            <div className="relative flex-1 lg:w-72">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Cari ID, nama WBP, atau NIP..."
+                value={saCallsSearch}
+                onChange={(e) => {
+                  setSaCallsSearch(e.target.value);
+                  setSaCallsPage(1);
+                }}
+                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+              />
+              {saCallsSearch && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSaCallsSearch('');
+                    setSaCallsPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fetchSaCalls(selectedMonth, selectedYear, saCallsPage, saCallsSearch, saCallsBranchId)}
+              disabled={isLoadingSaCalls}
+              className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+              title="Perbarui data rincian panggilan"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSaCalls ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Perbarui</span>
+            </button>
+          </div>
+        </div>
+
+        {/* TABEL RINCIAN PANGGILAN */}
+        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse table-auto text-xs min-w-[760px]">
+              <thead>
+                <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
+                  <th className="py-3.5 px-4 text-left">No Transaksi</th>
+                  <th className="py-3.5 px-4 text-left">Waktu</th>
+                  <th className="py-3.5 px-4 text-left">ID / Kode</th>
+                  <th className="py-3.5 px-4 text-left">WBP (Penerima)</th>
+                  <th className="py-3.5 px-4 text-right">Durasi</th>
+                  <th className="py-3.5 px-4 text-center">Tarif / Detik</th>
+                  <th className="py-3.5 px-4 text-center">Bagian SA</th>
+                  <th className="py-3.5 px-4 text-right">Nominal Tagihan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {isLoadingSaCalls ? (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center text-slate-400 font-semibold">
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                      <span>Memuat log rincian panggilan...</span>
+                    </td>
+                  </tr>
+                ) : saCallsData.items.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="py-12 text-center text-slate-400">
+                      <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
+                      <p className="text-xs font-bold text-slate-700">Tidak ada riwayat panggilan</p>
+                      <p className="text-[11px] text-slate-400">
+                        {saCallsSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Belum ada panggilan WBP yang tercatat pada periode ini.'}
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  saCallsData.items.map((call) => (
+                    <tr key={call.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-800">{call.id}</td>
+                      <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                        {new Date(call.createdAt).toLocaleString('id-ID', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          {call.id.slice(-8).toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="font-bold text-slate-900 leading-tight">
+                          {call.inmateName || 'WBP'}
+                        </div>
+                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
+                          NIP: {call.inmateIdentifier || '-'}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
+                        {Number(call.durationSeconds || 0).toLocaleString('id-ID')} Detik
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-mono text-slate-700 whitespace-nowrap">
+                        {formatRupiah(call.ratePerSecond)}/dtk
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-bold text-blue-700 whitespace-nowrap">
+                        {call.superadminPercent}%
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-black text-slate-900 font-mono whitespace-nowrap">
+                        {formatRupiah(call.nominal)}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+
+              {saCallsData.items.length > 0 && (
+                <tfoot>
+                  <tr className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-slate-900 text-xs">
+                    <td colSpan="4" className="py-3.5 px-4 text-slate-700">
+                      Total Akumulasi Periode {monthNames[selectedMonth - 1]} {selectedYear}
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono text-blue-900 font-black whitespace-nowrap">
+                      {Number(saCallsData.totalSeconds || 0).toLocaleString('id-ID')} Detik
+                    </td>
+                    <td colSpan="2" className="py-3.5 px-4 text-center text-slate-500 font-normal">
+                      ≈ {Math.floor((saCallsData.totalSeconds || 0) / 60).toLocaleString('id-ID')} menit
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono text-[#1565C0] font-black text-sm whitespace-nowrap">
+                      {formatRupiah(saCallsData.totalTagihan)}
+                    </td>
+                  </tr>
+                </tfoot>
+              )}
+            </table>
+          </div>
+
+          {/* Kontrol Paginasi Tab 3 */}
+          {(saCallsData.pagination?.totalPages || 1) > 1 && (
+            <div className="p-4 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
+              <span>
+                Menampilkan {(saCallsPage - 1) * 20 + 1} -{' '}
+                {Math.min(saCallsPage * 20, saCallsData.totalItems)} dari{' '}
+                {saCallsData.totalItems} panggilan
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setSaCallsPage((p) => Math.max(1, p - 1))}
+                  disabled={saCallsPage === 1}
+                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="font-bold text-slate-800 px-2">
+                  {saCallsPage} / {saCallsData.pagination?.totalPages || 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSaCallsPage((p) => Math.min(saCallsData.pagination?.totalPages || 1, p + 1))}
+                  disabled={saCallsPage >= (saCallsData.pagination?.totalPages || 1)}
+                  className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* =========================================================================
           MODAL 1: EDIT KONTRAK TARIF KANTIN (HANYA SUPERADMIN)
           ========================================================================= */}
       {editContractModal && (
@@ -1313,7 +1702,7 @@ export default function CanteenTopup() {
               </div>
               <button
                 type="button"
-                onClick={() => setEditContractModal(null)}
+                onClick={handleCloseEditContract}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-5 h-5" />
@@ -1339,18 +1728,28 @@ export default function CanteenTopup() {
                   </span>
                   <input
                     type="number"
-                    min="0"
+                    min="1"
                     step="1"
                     required
                     placeholder="Contoh: 10"
                     value={editRate}
                     onChange={(e) => setEditRate(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                    className={`w-full pl-9 pr-4 py-2 bg-slate-50 border rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 ${
+                      editRate !== '' && !isRateValid
+                        ? 'border-rose-400 focus:ring-rose-500/20'
+                        : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                    }`}
                   />
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.
-                </p>
+                {editRate !== '' && !isRateValid ? (
+                  <p className="text-[11px] text-rose-500 font-semibold mt-1">
+                    Tarif per detik harus berupa angka lebih besar dari 0.
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.
+                  </p>
+                )}
               </div>
 
               {/* Input Bagi Hasil: Persen SA (Input) dan Persen Kantin (Tampil, tidak diinput) */}
@@ -1370,15 +1769,25 @@ export default function CanteenTopup() {
                       placeholder="Contoh: 60"
                       value={editSuperadminPercent}
                       onChange={(e) => handleSuperadminPercentChange(e.target.value)}
-                      className="w-full pl-3.5 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      className={`w-full pl-3.5 pr-8 py-2 bg-slate-50 border rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 ${
+                        editSuperadminPercent !== '' && !isSaPercentValid
+                          ? 'border-rose-400 focus:ring-rose-500/20'
+                          : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-400">
                       %
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Porsi yang disetor ke Superadmin (Total Tagihan).
-                  </p>
+                  {editSuperadminPercent !== '' && !isSaPercentValid ? (
+                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
+                      Bagi hasil Superadmin harus berupa angka antara 0% hingga 100%.
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Porsi yang disetor ke Superadmin (Total Tagihan).
+                    </p>
+                  )}
                 </div>
 
                 {/* Form Kanan: Tampilan Persen Kantin (Read-only, otomatis = 100 - SA) */}
@@ -1388,9 +1797,7 @@ export default function CanteenTopup() {
                   </label>
                   <div className="w-full pl-3.5 pr-4 py-2 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-between">
                     <span className="text-slate-800 text-sm font-black">
-                      {editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent))
-                        ? Math.max(0, Math.min(100, 100 - Number(editSuperadminPercent)))
-                        : 40}%
+                      {isSaPercentValid ? `${100 - Number(editSuperadminPercent)}%` : '-'}
                     </span>
                     <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
                       100% - SA
@@ -1404,10 +1811,20 @@ export default function CanteenTopup() {
 
               {/* Live Preview Perhitungan Rumus Tagihan */}
               {(() => {
-                const rateNum = Number(editRate) || 0;
-                const saPercentNum = editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent))
-                  ? Math.max(0, Math.min(100, Number(editSuperadminPercent)))
-                  : 60;
+                if (!isContractFormValid) {
+                  return (
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 text-center py-6">
+                      <Calculator className="w-6 h-6 mx-auto text-slate-300 mb-1.5" />
+                      <span className="text-xs font-bold text-slate-700 block">Simulasi Rumus Tagihan</span>
+                      <span className="text-[11px] text-slate-500 block mt-0.5">
+                        Isi tarif dan persen untuk melihat simulasi
+                      </span>
+                    </div>
+                  );
+                }
+
+                const rateNum = Number(editRate);
+                const saPercentNum = Number(editSuperadminPercent);
                 const canteenPercentNum = Math.max(0, 100 - saPercentNum);
                 const displaySeconds = (editContractModal.totalSeconds && editContractModal.totalSeconds > 0)
                   ? editContractModal.totalSeconds
@@ -1470,15 +1887,15 @@ export default function CanteenTopup() {
               <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditContractModal(null)}
+                  onClick={handleCloseEditContract}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  disabled={isSavingContract}
-                  className="px-5 py-2 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
+                  disabled={isSavingContract || !isContractFormValid}
+                  className="px-5 py-2 bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
                 >
                   {isSavingContract ? 'Menyimpan...' : 'Simpan Kontrak Tarif'}
                 </button>
@@ -1568,9 +1985,38 @@ export default function CanteenTopup() {
                 </div>
               </div>
 
+              {/* Tab Selector di Dalam Modal */}
+              <div className="px-6 pt-2 pb-0 bg-white border-b border-slate-200/80 flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setDetailModalTab('summary')}
+                  className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
+                    detailModalTab === 'summary'
+                      ? 'border-[#1565C0] text-[#1565C0]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Calculator className="w-3.5 h-3.5" />
+                  <span>Ringkasan & Verifikasi</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailModalTab('calls')}
+                  className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
+                    detailModalTab === 'calls'
+                      ? 'border-[#1565C0] text-[#1565C0]'
+                      : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Rincian Panggilan ({modalCallsData.totalItems})</span>
+                </button>
+              </div>
+
               {/* Body Modal (Scrollable) */}
               <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
-
+                {detailModalTab === 'summary' ? (
+                  <>
                 {/* -------------------------------------------------------------
                     BAGIAN 1: RINCIAN TAGIHAN KANTIN BERBASIS DETIK
                     ------------------------------------------------------------- */}
@@ -1588,7 +2034,7 @@ export default function CanteenTopup() {
                   {!detailModalItem.isContractSet && (
                     <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-2 font-medium">
                       <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                      <span>Kontrak tarif belum diatur oleh Superadmin. Total tagihan saat ini Rp 0.</span>
+                      <span>Kontrak tarif belum diatur oleh Superadmin. Total tagihan belum dapat dihitung.</span>
                     </div>
                   )}
 
@@ -1621,7 +2067,7 @@ export default function CanteenTopup() {
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
                       <span className="text-slate-500 block mb-0.5 font-medium">Subtotal (Detik × Tarif):</span>
                       <span className="text-sm font-black text-slate-900 block">
-                        {formatRupiah(detailModalItem.subtotal)}
+                        {detailModalItem.isContractSet ? formatRupiah(detailModalItem.subtotal) : '-'}
                       </span>
                       <span className="text-[11px] text-slate-400 block mt-0.5">
                         Sebelum pembagian bagi hasil
@@ -1633,12 +2079,12 @@ export default function CanteenTopup() {
                       <span className="text-slate-500 block mb-0.5 font-medium">Bagi Hasil SA / Kantin:</span>
                       <span className="text-sm font-black text-blue-700 block">
                         {detailModalItem.isContractSet
-                          ? `${detailModalItem.superadminPercent ?? 60}% SA • ${detailModalItem.canteenPercent ?? 40}% Kantin`
+                          ? `${detailModalItem.superadminPercent}% SA • ${detailModalItem.canteenPercent}% Kantin`
                           : 'Belum diatur'}
                       </span>
                       {detailModalItem.isContractSet && (
                         <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">
-                          Hak Kantin ({detailModalItem.canteenPercent ?? 40}%): {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.canteenPercent || 40) / 100)))}
+                          Hak Kantin ({detailModalItem.canteenPercent}%): {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.canteenPercent) / 100)))}
                         </span>
                       )}
                     </div>
@@ -1651,12 +2097,14 @@ export default function CanteenTopup() {
                         Total Tagihan Bersih (Disetor ke Superadmin):
                       </span>
                       <span className="text-[11px] text-blue-700 font-medium">
-                        Subtotal × {detailModalItem.superadminPercent ?? 60}% Porsi SA
+                        {detailModalItem.isContractSet
+                          ? `Subtotal × ${detailModalItem.superadminPercent}% Porsi SA`
+                          : 'Menunggu pengaturan kontrak tarif'}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="text-xl sm:text-2xl font-black text-[#1565C0] tracking-tight">
-                        {formatRupiah(detailModalItem.totalAmount)}
+                        {detailModalItem.isContractSet ? formatRupiah(detailModalItem.totalAmount) : '-'}
                       </span>
                     </div>
                   </div>
@@ -1957,7 +2405,168 @@ export default function CanteenTopup() {
                     </div>
                   )}
                 </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Pencarian Panggilan UPT */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="relative flex-1">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="Cari ID atau nama WBP..."
+                          value={modalCallsSearch}
+                          onChange={(e) => {
+                            setModalCallsSearch(e.target.value);
+                            setModalCallsPage(1);
+                          }}
+                          className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        />
+                        {modalCallsSearch && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalCallsSearch('');
+                              setModalCallsPage(1);
+                            }}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fetchModalCalls(selectedMonth, selectedYear, modalCallsPage, modalCallsSearch, detailModalItem.branchId)}
+                        disabled={isLoadingModalCalls}
+                        className="px-3.5 py-2 bg-blue-50 text-[#1565C0] border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <RefreshCw className={`w-3.5 h-3.5 ${isLoadingModalCalls ? 'animate-spin' : ''}`} />
+                        <span>Refresh</span>
+                      </button>
+                    </div>
 
+                    {/* Tabel Panggilan UPT */}
+                    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                              <th className="py-3 px-3.5">Waktu</th>
+                              <th className="py-3 px-3.5">ID / Kode</th>
+                              <th className="py-3 px-3.5">WBP</th>
+                              <th className="py-3 px-3.5 text-right">Durasi</th>
+                              <th className="py-3 px-3.5 text-center">Tarif</th>
+                              <th className="py-3 px-3.5 text-center">% SA</th>
+                              <th className="py-3 px-3.5 text-right">Nominal</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {isLoadingModalCalls ? (
+                              <tr>
+                                <td colSpan="7" className="py-8 text-center text-slate-400 font-semibold">
+                                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-blue-500 mb-1.5" />
+                                  <span>Memuat panggilan UPT...</span>
+                                </td>
+                              </tr>
+                            ) : modalCallsData.items.length === 0 ? (
+                              <tr>
+                                <td colSpan="7" className="py-8 text-center text-slate-400">
+                                  <Inbox className="w-6 h-6 mx-auto text-slate-300 mb-1" />
+                                  <p className="font-bold text-slate-700">Tidak ada riwayat panggilan</p>
+                                </td>
+                              </tr>
+                            ) : (
+                              modalCallsData.items.map((call) => (
+                                <tr key={call.id} className="hover:bg-slate-50/80">
+                                  <td className="py-3 px-3.5 text-slate-500 whitespace-nowrap">
+                                    {new Date(call.createdAt).toLocaleString('id-ID', {
+                                      day: 'numeric',
+                                      month: 'short',
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                    })}
+                                  </td>
+                                  <td className="py-3 px-3.5 whitespace-nowrap font-mono text-blue-700 font-bold">
+                                    {call.id.slice(-8).toUpperCase()}
+                                  </td>
+                                  <td className="py-3 px-3.5">
+                                    <div className="font-bold text-slate-900 leading-tight">
+                                      {call.inmateName || 'WBP'}
+                                    </div>
+                                    <div className="text-[10px] font-mono text-slate-400">
+                                      NIP: {call.inmateIdentifier || '-'}
+                                    </div>
+                                  </td>
+                                  <td className="py-3 px-3.5 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
+                                    {Number(call.durationSeconds || 0).toLocaleString('id-ID')} dtk
+                                  </td>
+                                  <td className="py-3 px-3.5 text-center font-mono text-slate-700 whitespace-nowrap">
+                                    {formatRupiah(call.ratePerSecond)}/dtk
+                                  </td>
+                                  <td className="py-3 px-3.5 text-center font-bold text-blue-700 whitespace-nowrap">
+                                    {call.superadminPercent}%
+                                  </td>
+                                  <td className="py-3 px-3.5 text-right font-black text-slate-900 font-mono whitespace-nowrap">
+                                    {formatRupiah(call.nominal)}
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                          {modalCallsData.items.length > 0 && (
+                            <tfoot>
+                              <tr className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-slate-900 text-xs">
+                                <td colSpan="3" className="py-3 px-3.5 text-slate-700">
+                                  Total Akumulasi Periode Ini
+                                </td>
+                                <td className="py-3 px-3.5 text-right font-mono text-blue-900 font-black whitespace-nowrap">
+                                  {Number(modalCallsData.totalSeconds || 0).toLocaleString('id-ID')} dtk
+                                </td>
+                                <td colSpan="2" className="py-3 px-3.5 text-center text-slate-500 font-normal">
+                                  ≈ {Math.floor((modalCallsData.totalSeconds || 0) / 60)} mnt
+                                </td>
+                                <td className="py-3 px-3.5 text-right font-mono text-[#1565C0] font-black whitespace-nowrap">
+                                  {formatRupiah(modalCallsData.totalTagihan)}
+                                </td>
+                              </tr>
+                            </tfoot>
+                          )}
+                        </table>
+                      </div>
+
+                      {/* Pagination Modal Calls */}
+                      {(modalCallsData.pagination?.totalPages || 1) > 1 && (
+                        <div className="p-3 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
+                          <span>
+                            {(modalCallsPage - 1) * 20 + 1} - {Math.min(modalCallsPage * 20, modalCallsData.totalItems)} dari {modalCallsData.totalItems}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setModalCallsPage((p) => Math.max(1, p - 1))}
+                              disabled={modalCallsPage === 1}
+                              className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+                            >
+                              <ChevronLeft className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="font-bold text-slate-800 px-1.5">
+                              {modalCallsPage} / {modalCallsData.pagination?.totalPages || 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setModalCallsPage((p) => Math.min(modalCallsData.pagination?.totalPages || 1, p + 1))}
+                              disabled={modalCallsPage >= (modalCallsData.pagination?.totalPages || 1)}
+                              className="p-1 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 cursor-pointer"
+                            >
+                              <ChevronRight className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Footer Modal */}

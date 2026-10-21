@@ -25,7 +25,8 @@ import {
   AlertTriangle,
   Clock,
   Trash2,
-  Phone
+  Phone,
+  Download
 } from 'lucide-react';
 import { 
   getUsers, 
@@ -37,6 +38,7 @@ import {
 } from '../../services/userService';
 import { ROLES, ROLE_LABELS } from '../../config/menuConfig';
 import { useAuth } from '../../context/AuthContext';
+import { exportToExcel } from '../../utils/exportUtils';
 
 export default function BranchUsers() {
   const { canManageUsers, user, uptName } = useAuth();
@@ -105,6 +107,53 @@ export default function BranchUsers() {
     setTimeout(() => {
       setToastMessage(null);
     }, 3500);
+  };
+
+  const handleExport = () => {
+    if (!users || users.length === 0) {
+      showToast('Tidak ada data pengguna untuk diekspor.', 'error');
+      return;
+    }
+
+    const exportData = users.map((u, idx) => ({
+      'No': idx + 1,
+      'Nama Petugas': u.name || '-',
+      'Email Login': u.email || '-',
+      'Nomor Telepon': u.phone && u.phone !== '-' ? u.phone : '-',
+      'Peran / Role': u.role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : 'Supervisor UPT',
+      'Status Akun': u.status === 'Active' || u.status === 'Aktif' ? 'Aktif' : 'Nonaktif',
+      'Terakhir Login': u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB' : 'Belum Pernah Login',
+      'Dibuat Pada': u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-',
+    }));
+
+    const activeCount = users.filter(u => u.status === 'Active' || u.status === 'Aktif').length;
+    const spvCount = users.filter(u => u.role === ROLES.SUPERVISOR).length;
+    const canteenCount = users.filter(u => u.role === ROLES.OPERATOR_KANTIN).length;
+
+    const currentBranchName = uptName || user?.branch?.name || user?.branchName || 'UPT';
+    const filename = `Daftar_Pengguna_${currentBranchName.replace(/[^a-zA-Z0-9]+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    const success = exportToExcel(exportData, filename, 'Pengguna UPT', {
+      title: 'LAPORAN DATA PENGGUNA & STAF OPERASIONAL UPT',
+      subtitle: `Daftar Akun Supervisor dan Petugas Kantin - ${currentBranchName}`,
+      metadata: {
+        'Unit Pelaksana Teknis': currentBranchName,
+        'Dicetak Oleh': `${user?.name || 'Kepala UPT'} (Kepala UPT)`,
+        'Filter Peran': roleFilter === 'All' ? 'Semua Role' : roleFilter === ROLES.SUPERVISOR ? 'Supervisor' : 'Operator Kantin',
+        'Filter Status': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Active' ? 'Aktif' : 'Nonaktif',
+        'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
+      },
+      summaryMetrics: [
+        { label: 'Total Pengguna', value: `${users.length} Akun` },
+        { label: 'Pengguna Aktif', value: `${activeCount} Akun` },
+        { label: 'Supervisor', value: `${spvCount} Orang` },
+        { label: 'Operator Kantin', value: `${canteenCount} Orang` },
+      ]
+    });
+
+    if (success !== false) {
+      showToast('Berhasil mengekspor data pengguna ke format Excel!', 'success');
+    }
   };
 
   const handleCopy = (text, fieldName) => {
@@ -318,6 +367,16 @@ export default function BranchUsers() {
                 <option value="Suspended">Nonaktif</option>
               </select>
             </div>
+
+            <button 
+              type="button"
+              onClick={handleExport}
+              className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer shrink-0"
+              title="Ekspor Data Pengguna ke Excel"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export</span>
+            </button>
 
             {canManageUsers && (
               <Link

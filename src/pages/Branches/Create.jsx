@@ -281,26 +281,6 @@ const Create = () => {
         </div>
       </div>
 
-      {/* Info Banner Superadmin */}
-      <div className="bg-blue-50/90 border border-blue-200/90 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-blue-900 shadow-2xs">
-        <div className="flex items-start gap-3">
-          <div className="p-2.5 bg-blue-600/10 text-primary rounded-xl shrink-0 mt-0.5">
-            <Building2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-blue-950 text-sm">Registrasi Unit Pelaksana Teknis (UPT)</h4>
-            <p className="text-blue-800 mt-1 leading-relaxed">
-              Super Admin berwenang mendaftarkan UPT Lapas / Rutan baru, menetapkan Kanwil induk pengawas, dan membuat akun login Kepala UPT secara terpusat.
-            </p>
-          </div>
-        </div>
-        <Link
-          to="/branches"
-          className="shrink-0 px-4 py-2 bg-white hover:bg-slate-50 border border-blue-200 text-primary font-bold rounded-xl text-xs transition-colors shadow-2xs"
-        >
-          &larr; Daftar UPT
-        </Link>
-      </div>
 
       {/* Validation Error Alert */}
       {errorMsg && (

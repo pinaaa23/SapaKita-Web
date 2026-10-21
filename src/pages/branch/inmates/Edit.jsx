@@ -156,8 +156,11 @@ const InmatesEdit = () => {
         setErrorMsg('Anda tidak memiliki akses untuk mengubah data WBP.');
       } else if (err?.status === 404) {
         setErrorMsg('Data WBP tidak ditemukan di server.');
-      } else if (err?.status === 400) {
-        setErrorMsg(err?.message || 'Data yang dimasukkan tidak valid.');
+      } else if (err?.status === 400 || err?.data?.errors || err?.data?.message) {
+        const msg = (Array.isArray(err?.data?.errors) && err.data.errors.length > 0)
+          ? err.data.errors.map(e => e.message || e).join(', ')
+          : (err?.message || err?.data?.message || 'Data yang dimasukkan tidak valid.');
+        setErrorMsg(msg);
       } else {
         setErrorMsg(err?.message || 'Gagal menyimpan perubahan data WBP.');
       }

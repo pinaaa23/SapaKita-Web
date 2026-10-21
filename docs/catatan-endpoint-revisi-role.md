@@ -133,3 +133,18 @@ Dokumen ini mencatat integrasi frontend ke backend, usulan endpoint baru/penyesu
         .refine(val => new Date(val) <= new Date(), "Tanggal lahir tidak boleh di masa depan")
       ```
     - Ini memastikan konsistensi integritas data antara FE dan BE.
+
+---
+
+### C. Penanganan Kontrak Tarif Kantin Belum Diatur Superadmin
+- **Kondisi Frontend**:
+  - Di Frontend, status kontrak ditentukan lewat SATU helper tunggal `isCanteenContractConfigured(contract)`:
+    - Kontrak dianggap `"belum diatur"` jika `ratePerSecond` atau `superadminPercent` bernilai kosong (`null`, `undefined`, atau string kosong).
+    - Nilai `0` yang sengaja disimpan oleh Superadmin (misal tarif Rp 0 atau bagi hasil 0%) adalah valid (**sudah diatur**), bukan `"belum diatur"`.
+  - Jika kontrak belum diatur:
+    - Di sisi Kantin: kartu tagihan diganti banner peringatan kuning/oranye (*"Tarif belum diatur"*, *"Silakan hubungi Admin Pusat/Superadmin untuk mengatur harga per detik dan pembagian negosiasi. Total tagihan akan muncul setelah pengaturan selesai."*). Angka total tagihan (termasuk Rp 0), tombol bayar tagihan, upload bukti, dan jatuh tempo disembunyikan.
+    - Di sisi Superadmin: total tagihan kantin tampil `-` (bukan Rp 0), status tagihan `Belum diatur`, badge `Perlu diatur`, dan form modal tanpa nilai bawaan template (kolom tarif dan SA % diawali kosong).
+- **Rekomendasi Backend**:
+  - **Penanda Status Kontrak:** Respons BE pada endpoint tagihan bulanan (`/api/canteen/billing/monthly` dan `/api/canteen/billing/national-summary`) sebaiknya menyertakan field penanda boolean status kontrak (misal `isContractSet: true | false`).
+  - **Pencegahan Tagihan & Blokir:** Backend **tidak boleh** membuat tagihan aktif dan **tidak boleh** menerapkan status Telat / blokir transaksi otomatis untuk kantin yang kontraknya belum diatur (tidak ada tagihan, jadi tidak ada yang telat). Total tagihan dikembalikan `null`.
+  - **Tanpa Nilai Bawaan (No Default Values):** Backend **tidak boleh** menyimpan nilai default template (seperti 60% bagi hasil SA atau 40% bagi hasil Kantin) di database saat kantin baru dibuat. Kolom tarif dan persentase harus diawali dalam kondisi kosong (`null`).

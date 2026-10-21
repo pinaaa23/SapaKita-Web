@@ -110,10 +110,20 @@ export const apiFetch = async (endpoint, options = {}) => {
     }
 
     if (!response.ok) {
-      const error = new Error(
-        (data && typeof data === 'object' && (data.message || data.error)) || 
-        `Request failed with status ${response.status}`
-      );
+      let errorMessage = (data && typeof data === 'object' && (data.message || data.error)) || 
+        `Request failed with status ${response.status}`;
+
+      // Ekstrak pesan validasi terperinci jika ada (misal ZodError: errors: [{ field, message }])
+      if (data && typeof data === 'object' && Array.isArray(data.errors) && data.errors.length > 0) {
+        const errorList = data.errors
+          .map((e) => (typeof e === 'object' && e ? (e.message || e.field) : String(e)))
+          .filter(Boolean);
+        if (errorList.length > 0) {
+          errorMessage = errorList.join(', ');
+        }
+      }
+
+      const error = new Error(errorMessage);
       error.status = response.status;
       error.data = data;
       throw error;

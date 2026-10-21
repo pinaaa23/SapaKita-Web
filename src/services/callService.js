@@ -93,12 +93,17 @@ export const mapCallItem = (item) => {
     channel = charCode % 2 === 0 ? 'web' : 'gsm';
   }
 
+  const branchObj = item.branch || call.branch || call.inmate?.branch || null;
+  const resolvedBranchId = branchObj?.id || call.inmate?.branchId || item.branchId || call.branchId || '';
+  const resolvedBranchName = branchObj?.name || call.inmate?.branch?.name || item.branchName || call.branchName || '-';
+
   return {
     id: recordingId,
     callId: item.callId || call.id || recordingId,
     recordingId,
-    branchId: call.inmate?.branchId || item.branchId || call.branchId || '',
-    branchName: call.inmate?.branch?.name || item.branchName || call.branchName || '-',
+    branch: branchObj,
+    branchId: resolvedBranchId,
+    branchName: resolvedBranchName,
     inmateId: call.inmate?.identifier || item.inmateId || call.inmateId || item.inmateIdentifier || item.wbpRegNumber || '-',
     inmateName: call.inmate?.name || item.inmateName || call.inmateName || 'Narapidana',
     familyId: call.family?.id || item.familyId || call.familyId || '',
@@ -124,6 +129,57 @@ export const mapCallItem = (item) => {
     transcript,
     transcriptStatus,
   };
+};
+
+/**
+ * Mengambil daftar rekaman panggilan khusus Kanwil
+ * Endpoint: GET /api/kanwil/calls (Role: KANWIL_ADMIN, SUPERADMIN)
+ */
+export const getKanwilCalls = async ({
+  search = '',
+  page = 1,
+  limit = 20,
+  status = '',
+  branchId = '',
+  callType = '',
+  startDate = '',
+  endDate = '',
+} = {}) => {
+  const query = new URLSearchParams();
+  if (search && search.trim()) query.append('search', search.trim());
+  if (page) query.append('page', String(page));
+  if (limit) query.append('limit', String(limit));
+  if (branchId && branchId !== 'All' && branchId !== 'semua') query.append('branchId', branchId);
+  if (status && status !== 'All' && status !== 'semua') query.append('status', status);
+  if (startDate) query.append('startDate', startDate);
+  if (endDate) query.append('endDate', endDate);
+
+  try {
+    const res = await apiFetch(`/api/kanwil/calls?${query.toString()}`);
+    let rawList = res?.data || res?.items || (Array.isArray(res) ? res : []);
+    if (!Array.isArray(rawList)) rawList = [];
+
+    const items = rawList.map(mapCallItem);
+    return {
+      items,
+      total: res?.pagination?.total ?? res?.total ?? items.length,
+      page: res?.pagination?.page ?? Number(page) ?? 1,
+      limit: res?.pagination?.limit ?? Number(limit) ?? 20,
+      totalPages: res?.pagination?.totalPages ?? Math.max(1, Math.ceil(items.length / (Number(limit) || 20))),
+    };
+  } catch (err) {
+    console.warn('[callService] Gagal memuat /api/kanwil/calls, fallback ke /api/recordings:', err?.message || err);
+    return getCallHistory({
+      search,
+      page,
+      limit,
+      status,
+      branchId,
+      callType,
+      startDate,
+      endDate,
+    });
+  }
 };
 
 /**

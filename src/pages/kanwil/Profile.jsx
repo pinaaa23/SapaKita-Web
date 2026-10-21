@@ -87,7 +87,7 @@ export default function KanwilProfile() {
       if (beError) {
         setInfoError(beError);
       } else if (err?.status === 403) {
-        setInfoError('Anda tidak memiliki akses.');
+        setInfoError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
       } else if (err?.isNetworkError) {
         setInfoError('Server backend tidak dapat dihubungi');
       } else {
@@ -133,7 +133,7 @@ export default function KanwilProfile() {
       } else if (err?.status === 401) {
         setPasswordError('Password lama salah atau sesi Anda telah berakhir.');
       } else if (err?.status === 403) {
-        setPasswordError('Anda tidak memiliki akses.');
+        setPasswordError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
       } else if (err?.isNetworkError) {
         setPasswordError('Server backend tidak dapat dihubungi');
       } else {

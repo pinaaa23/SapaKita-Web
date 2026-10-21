@@ -21,7 +21,7 @@ import {
   ChevronRight,
   Download
 } from 'lucide-react';
-import { getCallHistory } from '../../services/callService';
+import { getKanwilCalls, getCallHistory } from '../../services/callService';
 import { getKanwilBranches } from '../../services/kanwilService';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
@@ -98,12 +98,12 @@ export default function KanwilCalls() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // 2. Fetch call history dari endpoint /api/recordings (sama dengan Kepala UPT)
+  // 2. Fetch call history dari endpoint resmi Kanwil /api/kanwil/calls
   const fetchCalls = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getCallHistory({
+      const res = await getKanwilCalls({
         search: debouncedSearch,
         status: statusFilter,
         callType: activeTab,
@@ -111,7 +111,7 @@ export default function KanwilCalls() {
         startDate,
         endDate,
         page,
-        limit: 50, // ambil lebih banyak untuk filter kanwil client-side jika BE belum filter kanwil
+        limit: 50,
       });
 
       // Batasi hanya UPT yang berada di bawah Kanwil ini jika daftar UPT sudah tersedia
@@ -120,8 +120,10 @@ export default function KanwilCalls() {
 
       if (kanwilBranchIds.size > 0) {
         items = items.filter(item => {
-          if (!item.branchId) return true; // pertahankan jika belum ada branchId agar tidak kosong pada mock
-          return kanwilBranchIds.has(item.branchId) || branches.some(b => b.name === item.branchName);
+          const itemBranchId = item.branch?.id || item.branchId;
+          const itemBranchName = item.branch?.name || item.branchName;
+          if (!itemBranchId) return true;
+          return kanwilBranchIds.has(itemBranchId) || branches.some(b => b.name === itemBranchName);
         });
       }
 
@@ -134,6 +136,11 @@ export default function KanwilCalls() {
       if (err?.status === 401 && !USE_MOCK_SUPERADMIN) {
         logout();
         navigate('/login', { replace: true });
+        return;
+      }
+      if (err?.status === 403) {
+        setError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
+        setCallsData({ items: [], total: 0, totalPages: 1 });
         return;
       }
       console.error('[KanwilCalls] Gagal memuat daftar rekaman:', err);
@@ -176,7 +183,11 @@ export default function KanwilCalls() {
 
     // Filter UPT
     if (branchFilter !== 'All') {
-      list = list.filter(c => c.branchId === branchFilter || (branchMap[branchFilter] && c.branchName === branchMap[branchFilter]));
+      list = list.filter(c => {
+        const cBranchId = c.branch?.id || c.branchId;
+        const cBranchName = c.branch?.name || c.branchName;
+        return cBranchId === branchFilter || (branchMap[branchFilter] && cBranchName === branchMap[branchFilter]);
+      });
     }
 
     // Filter status
@@ -198,7 +209,7 @@ export default function KanwilCalls() {
       list = list.filter(c => {
         const inmateMatch = c.inmateName?.toLowerCase().includes(q) || c.inmateId?.toLowerCase().includes(q);
         const familyMatch = c.familyName?.toLowerCase().includes(q) || c.familyPhone?.toLowerCase().includes(q);
-        const uptMatch = (c.branchName || branchMap[c.branchId] || '').toLowerCase().includes(q);
+        const uptMatch = (c.branch?.name || c.branchName || branchMap[c.branch?.id || c.branchId] || '').toLowerCase().includes(q);
         return inmateMatch || familyMatch || uptMatch;
       });
     }
@@ -472,7 +483,7 @@ export default function KanwilCalls() {
                       const isSelected = selectedRecording?.id === call.id;
                       const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                       const { date, time } = formatDate(call.date);
-                      const uptDisplayName = call.branchName || branchMap[call.branchId] || 'UPT Pemasyarakatan';
+                      const uptDisplayName = call.branch?.name || call.branchName || branchMap[call.branch?.id || call.branchId] || 'UPT Pemasyarakatan';
 
                       return (
                         <tr

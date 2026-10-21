@@ -67,7 +67,7 @@ export const buildCreateBranchPayload = (branchData, adminData) => {
       email: emailVal,
       password: passwordVal,
     },
-    ...(branchData.kanwilId ? { kanwilId: branchData.kanwilId } : {}),
+    ...(branchData.kanwilId && String(branchData.kanwilId).trim() ? { kanwilId: String(branchData.kanwilId).trim() } : {}),
   };
 
   return payload;

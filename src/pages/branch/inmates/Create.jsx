@@ -163,8 +163,10 @@ const InmatesCreate = () => {
         setErrorMsg('Anda tidak memiliki akses untuk menambah WBP.');
       } else if (err?.isNetworkError || err?.status === 0) {
         setErrorMsg('Server tidak dapat dihubungi. Silakan coba lagi nanti.');
-      } else if (err?.status === 400 || err?.data?.message) {
-        const msg = err?.data?.errors?.map(e => e.message).join(', ') || err?.data?.message || err?.message || 'Validasi gagal.';
+      } else if (err?.status === 400 || err?.data?.message || err?.data?.errors) {
+        const msg = (Array.isArray(err?.data?.errors) && err.data.errors.length > 0)
+          ? err.data.errors.map(e => e.message || e).join(', ')
+          : (err?.message || err?.data?.message || 'Validasi gagal.');
         setErrorMsg(msg);
       } else {
         setErrorMsg(err?.message || 'Gagal mendaftarkan WBP.');
