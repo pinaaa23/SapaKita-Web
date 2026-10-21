@@ -77,6 +77,8 @@ export const mapInmateItem = (item) => {
     isActive: effectiveIsActive,
     branchId: item.branchId || item.branch?.id || item.branch?._id || '',
     branchName,
+    birthDate: item.birthDate || item.dateOfBirth || null,
+    dateOfBirth: item.dateOfBirth || item.birthDate || null,
     families,
     isMock: Boolean(item.isMock),
     raw: item
@@ -274,26 +276,47 @@ export const getInmateById = async (idOrIdentifier) => {
 /**
  * Mendaftarkan narapidana baru
  */
-export const createInmate = async ({ identifier, name, initialPin, blockRoom, branchId, branchName, families = [] }) => {
-  if (!identifier || !name) {
+export const createInmate = async ({
+  identifier,
+  nip,
+  name,
+  initialPin,
+  blockRoom,
+  branchId,
+  branchName,
+  birthDate,
+  dateOfBirth,
+  entryDate,
+  families = [],
+  ...otherData
+}) => {
+  const effectiveIdentifier = (identifier || nip || '').trim();
+  const rawName = (name || '').trim();
+  if (!effectiveIdentifier || !rawName) {
     throw new Error('NIP dan Nama Narapidana wajib diisi');
   }
+
+  const rawDob = birthDate || dateOfBirth;
 
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
     const newNapi = dummyStore.addInmate({
-      identifier: identifier.trim(),
-      wbpRegNumber: identifier.trim(),
-      name: name.trim(),
+      identifier: effectiveIdentifier,
+      wbpRegNumber: effectiveIdentifier,
+      name: rawName,
       initialPin: (initialPin || '123456').trim(),
       blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || 'b1',
       branchName: branchName || 'Lapas Kelas II Yogyakarta',
+      birthDate: rawDob || null,
+      dateOfBirth: rawDob || null,
+      entryDate: entryDate || null,
       callBalance: 0,
       status: 'Aktif',
       commStatus: 'Aktif',
       isActive: true,
       families: Array.isArray(families) ? families : [],
+      ...otherData,
     });
     return { success: true, data: mapInmateItem(newNapi) };
   }
@@ -302,27 +325,34 @@ export const createInmate = async ({ identifier, name, initialPin, blockRoom, br
   let mockResult = null;
   if (USE_MOCK_SUPERADMIN) {
     mockResult = addMockNapi({
-      identifier: identifier.trim(),
-      wbpRegNumber: identifier.trim(),
-      name: name.trim(),
+      identifier: effectiveIdentifier,
+      wbpRegNumber: effectiveIdentifier,
+      name: rawName,
       initialPin: (initialPin || '123456').trim(),
       blockRoom: (blockRoom || 'Blok A / Kamar 1A').trim(),
       branchId: branchId || '',
       branchName: branchName || 'Lapas Kelas II Yogyakarta',
+      birthDate: rawDob || null,
+      dateOfBirth: rawDob || null,
+      entryDate: entryDate || null,
       callBalance: 0,
       status: 'Aktif',
       commStatus: 'Aktif',
       isActive: true,
       families: Array.isArray(families) ? families : [],
+      ...otherData,
     });
   }
 
   const payload = {
-    identifier: identifier.trim(),
-    name: name.trim(),
+    identifier: effectiveIdentifier,
+    nip: effectiveIdentifier,
+    name: rawName,
     initialPin: (initialPin || '123456').trim(),
     families: Array.isArray(families) ? families : [],
     ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
+    ...(rawDob ? { birthDate: rawDob, dateOfBirth: rawDob } : {}),
+    ...(entryDate ? { entryDate } : {}),
   };
 
   if (branchId) {
@@ -382,16 +412,30 @@ export const resetInmatePin = async (id, newPin) => {
 /**
  * Memperbarui data narapidana
  */
-export const updateInmate = async (id, { name, identifier, initialPin, blockRoom, families, ...otherData }) => {
+export const updateInmate = async (id, {
+  name,
+  identifier,
+  nip,
+  initialPin,
+  blockRoom,
+  birthDate,
+  dateOfBirth,
+  families,
+  ...otherData
+}) => {
   if (!id) throw new Error('ID Narapidana diperlukan');
+
+  const effectiveIdentifier = (identifier || nip)?.trim();
+  const rawDob = birthDate || dateOfBirth;
 
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
     const updated = dummyStore.updateInmate(id, {
       ...(name ? { name: name.trim() } : {}),
-      ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
+      ...(effectiveIdentifier ? { identifier: effectiveIdentifier, wbpRegNumber: effectiveIdentifier } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
       ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
+      ...(rawDob ? { birthDate: rawDob, dateOfBirth: rawDob } : {}),
       ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
@@ -402,9 +446,10 @@ export const updateInmate = async (id, { name, identifier, initialPin, blockRoom
   if (USE_MOCK_SUPERADMIN) {
     const updated = updateMockNapi(id, {
       ...(name ? { name: name.trim() } : {}),
-      ...(identifier ? { identifier: identifier.trim(), wbpRegNumber: identifier.trim() } : {}),
+      ...(effectiveIdentifier ? { identifier: effectiveIdentifier, wbpRegNumber: effectiveIdentifier } : {}),
       ...(initialPin ? { initialPin: initialPin.trim() } : {}),
       ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
+      ...(rawDob ? { birthDate: rawDob, dateOfBirth: rawDob } : {}),
       ...(families !== undefined ? { families: Array.isArray(families) ? families : [] } : {}),
       ...otherData,
     });
@@ -412,9 +457,10 @@ export const updateInmate = async (id, { name, identifier, initialPin, blockRoom
   }
 
   const payload = {
-    name: name?.trim(),
-    identifier: identifier?.trim(),
+    ...(name ? { name: name.trim() } : {}),
+    ...(effectiveIdentifier ? { identifier: effectiveIdentifier } : {}),
     ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
+    ...(rawDob ? { birthDate: rawDob, dateOfBirth: rawDob } : {}),
     ...(families !== undefined ? { families } : {}),
   };
 

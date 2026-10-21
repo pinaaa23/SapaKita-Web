@@ -143,6 +143,7 @@ const InmatesCreate = () => {
         // families: formData.families,
         families: [],
         blockRoom: formData.blockRoom || 'Blok A / Kamar 1A',
+        entryDate: formData.entryDate || undefined,
         branchId: isSuperadmin 
           ? (isUuid(branchIdToSend) ? branchIdToSend : undefined)
           : (isUuid(authUser?.branchId) ? authUser.branchId : (isUuid(authUser?.branch?.id) ? authUser.branch.id : undefined)),

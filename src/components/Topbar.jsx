@@ -59,8 +59,8 @@ const Topbar = ({ toggleMobileMenu }) => {
 
     if (pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Kantor Wilayah (Kanwil)', subtitle: 'Kelola Kantor Wilayah sebagai koordinator UPT dan pastikan pembagian wilayah UPT sesuai standar' };
 
-    if (pathname.startsWith('/inmates/')) return { title: 'Detail Narapidana', subtitle: 'Informasi lengkap data warga binaan' };
-    if (pathname.startsWith('/inmates')) return { title: 'Data Narapidana', subtitle: 'Seluruh warga binaan di semua UPT' };
+    if (pathname.startsWith('/inmates/')) return { title: 'Detail WBP', subtitle: 'Informasi lengkap data warga binaan' };
+    if (pathname.startsWith('/inmates')) return { title: 'Data WBP', subtitle: 'Seluruh warga binaan di semua UPT' };
 
     if (pathname.startsWith('/calls/')) return { title: 'Detail Rekaman Panggilan', subtitle: 'Informasi panggilan & pemutaran rekaman audio' };
     if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh UPT' };
@@ -138,7 +138,7 @@ const Topbar = ({ toggleMobileMenu }) => {
   ] : [
     { title: 'Kantor Wilayah (Kanwil)', category: 'Halaman', link: '/kanwil-management', desc: 'Kelola koordinator UPT dan audit wilayah' },
     { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT PasCall nasional' },
-    { title: 'Data Narapidana', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
+    { title: 'Data WBP', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
     { title: 'Katalog Paket UPT', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh cabang UPT' },

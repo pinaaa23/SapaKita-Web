@@ -120,7 +120,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { name: 'Kanwil', icon: Landmark, path: '/kanwil-management' },
       { name: 'UPT', icon: Building2, path: '/branches' },
-      { name: 'Data Narapidana', icon: Users, path: '/inmates' },
+      { name: 'Data WBP', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },

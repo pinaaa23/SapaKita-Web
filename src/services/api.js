@@ -257,13 +257,19 @@ export const getInmatesApi = async (params = {}) => {
   return await apiFetch(endpoint);
 };
 
-export const createInmateApi = async ({ identifier, name, initialPin, branchId }) => {
+export const createInmateApi = async ({ identifier, nip, name, initialPin, branchId, birthDate, dateOfBirth, blockRoom, entryDate }) => {
+  const effectiveIdentifier = (identifier || nip)?.trim();
+  const dob = birthDate || dateOfBirth;
   return await apiFetch('/api/inmates', {
     method: 'POST',
     body: JSON.stringify({
-      identifier: identifier?.trim(),
+      identifier: effectiveIdentifier,
+      nip: effectiveIdentifier,
       name: name?.trim(),
       initialPin: initialPin || '123456',
+      ...(dob ? { birthDate: dob, dateOfBirth: dob } : {}),
+      ...(blockRoom ? { blockRoom: blockRoom.trim() } : {}),
+      ...(entryDate ? { entryDate } : {}),
       ...(branchId ? { branchId } : {})
     })
   });
