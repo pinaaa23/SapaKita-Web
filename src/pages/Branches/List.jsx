@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle, Trash2, AlertTriangle, Landmark } from 'lucide-react';
 import { getBranches, deleteBranch } from '../../services/branchService';
-import { logout } from '../../services/api';
+import { apiFetch, logout } from '../../services/api';
 // TODO: ganti ke API BE saat endpoint tersedia
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import { exportToExcel } from '../../utils/exportUtils';
@@ -29,6 +29,7 @@ const List = () => {
     total: 0,
     totalPages: 1,
   });
+  const [kanwilList, setKanwilList] = useState([]);
 
   const showToast = (text, type = 'success') => {
     setToastMessage({ text, type });
@@ -43,6 +44,46 @@ const List = () => {
     }, 400);
     return () => clearTimeout(handler);
   }, [searchInput]);
+
+  // Fetch data Kanwil untuk pemetaan wilayah UPT
+  useEffect(() => {
+    let isMounted = true;
+    const fetchKanwils = async () => {
+      try {
+        const res = await apiFetch('/api/kanwil');
+        if (isMounted && res?.data && Array.isArray(res.data)) {
+          setKanwilList(res.data);
+        }
+      } catch (err) {
+        console.warn('[BranchesList] Gagal memuat data kanwil:', err);
+      }
+    };
+    fetchKanwils();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Helper untuk menentukan nama Kanwil cabang
+  const getResolvedKanwilName = (branch) => {
+    if (!branch) return null;
+    if (branch.kanwil?.name) return branch.kanwil.name;
+    if (branch.kanwilName) return branch.kanwilName;
+    if (branch.assignedToKanwilName) return branch.assignedToKanwilName;
+
+    if (branch.kanwilId && kanwilList.length > 0) {
+      const found = kanwilList.find((k) => k.id === branch.kanwilId);
+      if (found?.name) return found.name;
+    }
+
+    if (kanwilList.length > 0) {
+      for (const k of kanwilList) {
+        if (Array.isArray(k.branches) && k.branches.some((b) => (b.id || b) === branch.id || (b.name && b.name === branch.name))) {
+          return k.name;
+        }
+      }
+    }
+
+    return null;
+  };
 
   const loadBranches = useCallback(async () => {
     setIsLoading(true);
@@ -87,6 +128,7 @@ const List = () => {
       'ID Cabang': b.id,
       'Nama UPT / Cabang': b.name,
       'Lokasi': b.location,
+      'Wilayah Kanwil': getResolvedKanwilName(b) || 'Belum Terhubung',
       'Alamat Lengkap': b.address,
       'Nomor Telepon': b.phone,
       'Kapasitas Maksimal': b.capacity,
@@ -197,25 +239,27 @@ const List = () => {
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[680px]">
+          <table className="w-full text-left border-collapse min-w-[760px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-left w-[30%]">Nama Cabang</th>
-                <th className="py-3.5 px-4 text-left w-[22%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[24%]">Kapasitas & WBP</th>
-                <th className="py-3.5 px-4 text-center w-[12%]">Status</th>
-                <th className="py-3.5 px-4 text-center w-[12%]">Aksi</th>
+                <th className="py-3.5 px-4 text-left w-[26%]">Nama Cabang</th>
+                <th className="py-3.5 px-4 text-left w-[18%]">Lokasi</th>
+                <th className="py-3.5 px-4 text-left w-[20%]">Wilayah Kanwil</th>
+                <th className="py-3.5 px-4 text-left w-[18%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-center w-[9%]">Status</th>
+                <th className="py-3.5 px-4 text-center w-[9%]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
               {isLoading ? (
                 Array.from({ length: 4 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-28" /></td>
-                    <td className="py-4 px-6"><div className="h-4 bg-slate-200 rounded w-24 mb-1.5" /><div className="h-1.5 bg-slate-100 rounded w-36" /></td>
-                    <td className="py-4 px-6 text-center"><div className="h-6 bg-slate-200 rounded-full w-16 mx-auto" /></td>
-                    <td className="py-4 px-6 text-right"><div className="h-7 bg-slate-200 rounded-lg w-14 ml-auto" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-28" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24 mb-1.5" /><div className="h-1.5 bg-slate-100 rounded w-36" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-6 bg-slate-200 rounded-full w-16 mx-auto" /></td>
+                    <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded-lg w-14 ml-auto" /></td>
                   </tr>
                 ))
               ) : filteredBranches.length > 0 ? (
@@ -237,6 +281,24 @@ const List = () => {
                         <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                         <span>{branch.location}</span>
                       </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">
+                      {(() => {
+                        const kanwilName = getResolvedKanwilName(branch);
+                        if (kanwilName) {
+                          return (
+                            <div className="flex items-center gap-1.5">
+                              <Landmark className="w-3.5 h-3.5 text-primary shrink-0" />
+                              <span className="font-semibold text-slate-800 text-xs">{kanwilName}</span>
+                            </div>
+                          );
+                        }
+                        return (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-400 border border-slate-200">
+                            Belum Terhubung
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
                       <div className="flex items-center gap-2">
@@ -299,7 +361,7 @@ const List = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="py-16 text-center">
+                  <td colSpan="6" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-10 h-10 mb-2 text-slate-300" />
                       <p className="font-semibold text-slate-700 text-sm">Belum ada data cabang</p>

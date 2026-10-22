@@ -17,13 +17,14 @@ import {
   Key,
   Copy,
   Check,
-  X
+  X,
+  Landmark
 } from 'lucide-react';
 import { getBranchById, updateBranchStatus } from '../../services/branchService';
 import { getUsers, resetUserPassword } from '../../services/userService';
 import { getCallHistory } from '../../services/callService';
 import { getBalanceTransactions } from '../../services/balanceService';
-import { logout } from '../../services/api';
+import { apiFetch, logout } from '../../services/api';
 import StatCard from '../../components/StatCard';
 
 const Detail = () => {
@@ -51,6 +52,19 @@ const Detail = () => {
     setIsLoading(true);
     try {
       const b = await getBranchById(id);
+      if (b && !b.kanwil && !b.kanwilName) {
+        try {
+          const kRes = await apiFetch('/api/kanwil');
+          const kanwils = kRes?.data || [];
+          for (const k of kanwils) {
+            if (Array.isArray(k.branches) && k.branches.some((br) => (br.id || br) === b.id || (br.name && br.name === b.name))) {
+              b.kanwil = k;
+              b.kanwilName = k.name;
+              break;
+            }
+          }
+        } catch (_) {}
+      }
       setBranch(b);
     } catch (err) {
       if (err?.status === 401) {
@@ -219,9 +233,16 @@ const Detail = () => {
                 {branch.status === 'Active' ? 'Aktif' : 'Nonaktif'}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-              <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-              <span>{branch.location}</span>
+            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span>{branch.location}</span>
+              </span>
+              <span className="text-slate-300">•</span>
+              <span className="flex items-center gap-1.5 font-medium text-slate-700">
+                <Landmark className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span>{branch.kanwil?.name || branch.kanwilName || 'Belum Terhubung ke Kanwil'}</span>
+              </span>
               <span className="text-slate-300">•</span>
               <span>ID: {String(branch.id).toUpperCase()}</span>
             </div>
@@ -323,6 +344,27 @@ const Detail = () => {
                   <MapPin className="w-3.5 h-3.5 text-slate-400" /> Wilayah / Kota
                 </p>
                 <p className="text-slate-800 font-bold text-sm">{branch.location}</p>
+              </div>
+
+              <div className="space-y-1">
+                <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <Landmark className="w-3.5 h-3.5 text-slate-400" /> Kantor Wilayah (Kanwil)
+                </p>
+                {branch.kanwil?.name || branch.kanwilName ? (
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                      <Landmark className="w-3.5 h-3.5 text-blue-600" />
+                      {branch.kanwil?.name || branch.kanwilName}
+                    </span>
+                    {branch.kanwil?.region && (
+                      <span className="text-[11px] text-slate-500 font-medium">({branch.kanwil.region})</span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                    Belum Ditetapkan ke Kanwil
+                  </span>
+                )}
               </div>
 
               <div className="md:col-span-2 space-y-1 bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">

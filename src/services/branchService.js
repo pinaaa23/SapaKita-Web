@@ -16,10 +16,15 @@ export const mapBranchItem = (item) => {
     ? Boolean(item.isActive) 
     : (rawStatus === 'ACTIVE' || rawStatus === 'AKTIF');
 
+  const kanwilObj = item.kanwil || null;
+  const kanwilName = kanwilObj?.name || item.kanwilName || item.assignedToKanwilName || null;
+  const kanwilId = item.kanwilId || kanwilObj?.id || null;
+
   return {
     id: item.id || item._id || item.branchId,
     name: item.name || item.branchName || 'Cabang Baru',
     location: item.location || item.city || item.address || 'Indonesia',
+    province: item.province || null,
     address: item.address || item.location || '-',
     phone: item.phone || item.telephone || item.contact || '-',
     capacity: typeof item.capacity === 'number' ? item.capacity : (Number(item.capacity) || 500),
@@ -29,6 +34,11 @@ export const mapBranchItem = (item) => {
     headName: item.headName || item.headAdmin?.name || null,
     status: isActive ? 'Active' : 'Inactive',
     isActive,
+    kanwilId,
+    kanwil: kanwilObj,
+    kanwilName,
+    matchStatus: item.matchStatus || null,
+    mismatchReason: item.mismatchReason || null,
     createdAt: item.createdAt || new Date().toISOString(),
     isMock: Boolean(item.isMock),
   };
