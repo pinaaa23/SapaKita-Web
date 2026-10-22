@@ -207,18 +207,18 @@ export default function TabelTransaksi({
           />
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left border-collapse text-xs">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full min-w-[980px] text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="py-3.5 px-4">ID Transaksi</th>
-                <th className="py-3.5 px-4">Waktu</th>
-                <th className="py-3.5 px-4">Nama Pelanggan</th>
-                <th className="py-3.5 px-4">NIP WBP</th>
-                <th className="py-3.5 px-4">Keterangan Paket</th>
-                <th className="py-3.5 px-4">Metode</th>
-                <th className="py-3.5 px-4 text-right">Nominal</th>
-                <th className="py-3.5 px-3 text-center">Aksi</th>
+                <th className="py-3.5 px-4 min-w-[140px]">ID Transaksi</th>
+                <th className="py-3.5 px-4 min-w-[130px]">Waktu</th>
+                <th className="py-3.5 px-4 min-w-[140px]">Nama Pelanggan</th>
+                <th className="py-3.5 px-4 min-w-[110px]">NIP WBP</th>
+                <th className="py-3.5 px-4 min-w-[150px]">Keterangan Paket</th>
+                <th className="py-3.5 px-4 min-w-[90px]">Metode</th>
+                <th className="py-3.5 px-4 text-right min-w-[110px]">Nominal</th>
+                <th className="py-3.5 px-4 text-center min-w-[150px]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -228,27 +228,27 @@ export default function TabelTransaksi({
                   onClick={() => item?.id && handleRowClick(item.id)}
                   className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
                 >
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
+                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap min-w-[140px]">
                     <div>{item?.id || '-'}</div>
                     <span className="text-[10px] text-slate-400 font-mono block">
                       {maskVoucher(item?.kodeVoucher)}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap">
+                  <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap min-w-[130px]">
                     {formatTanggal(item?.waktu, true)}
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap">
+                  <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap min-w-[140px]">
                     {item?.napi?.nama || '-'}
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap">
+                  <td className="py-3.5 px-4 whitespace-nowrap min-w-[110px]">
                     <span className="font-mono text-slate-700 font-semibold block">
                       {item?.napi?.id || '-'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap">
+                  <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap min-w-[150px]">
                     {item?.paket?.nama || '-'}
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap">
+                  <td className="py-3.5 px-4 whitespace-nowrap min-w-[90px]">
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-md font-bold text-[11px] border ${getMetodeBadge(
                         item?.metode
@@ -257,16 +257,16 @@ export default function TabelTransaksi({
                       {item?.metode || 'Tunai'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-sm">
+                  <td className="py-3.5 px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-sm min-w-[110px]">
                     {formatRupiah(item?.paket?.harga || item?.paket?.total || 0)}
                   </td>
-                  <td className="py-3.5 px-3 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-1.5">
+                  <td className="py-3.5 px-4 text-center whitespace-nowrap min-w-[150px]" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap">
                       <button
                         type="button"
                         onClick={() => navigate(`/kantin/struk/${item.id}`)}
                         title="Lihat Struk Pembayaran"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#1565C0] hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition cursor-pointer shadow-2xs"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-[#1565C0] hover:bg-blue-50 border border-slate-200 hover:border-blue-200 transition cursor-pointer shadow-2xs shrink-0"
                       >
                         <Receipt className="w-3.5 h-3.5 text-slate-500" />
                         <span>Struk</span>
@@ -276,7 +276,7 @@ export default function TabelTransaksi({
                           type="button"
                           onClick={() => navigate(`/kantin/voucher/${item.id}`)}
                           title="Lihat Kode Voucher KBU"
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-[#1565C0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer shadow-2xs"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-[#1565C0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer shadow-2xs shrink-0"
                         >
                           <Ticket className="w-3.5 h-3.5 text-[#1565C0]" />
                           <span>Voucher</span>
@@ -296,10 +296,10 @@ export default function TabelTransaksi({
                 >
                   Total Nominal ({transaksiList.length} Transaksi)
                 </td>
-                <td className="py-3.5 px-4 text-right text-[#1565C0] font-black text-sm whitespace-nowrap">
+                <td className="py-3.5 px-4 text-right text-[#1565C0] font-black text-sm whitespace-nowrap min-w-[110px]">
                   {formatRupiah(totalNominal)}
                 </td>
-                <td className="py-3.5 px-3"></td>
+                <td className="py-3.5 px-4 min-w-[150px]"></td>
               </tr>
             </tfoot>
           </table>

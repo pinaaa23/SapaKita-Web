@@ -27,6 +27,7 @@ import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
+import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
 
 const CallsList = () => {
   const navigate = useNavigate();
@@ -186,14 +187,20 @@ const CallsList = () => {
 
   const isSplitView = Boolean(selectedRecording);
 
-  // Client-side filtering terhadap jalur panggilan (Web / GSM)
+  // Client-side filtering terhadap jalur panggilan (Web / GSM) dan status
   const filteredCalls = React.useMemo(() => {
     let list = callsData.items || [];
     if (activeTab === 'voice' && channelFilter !== 'All') {
       list = list.filter((c) => (c.channel || 'web').toLowerCase() === channelFilter.toLowerCase());
     }
+    if (statusFilter !== 'All') {
+      list = list.filter((c) => {
+        const norm = normalizeCallStatus(c.status, c.rawStatus);
+        return norm.toLowerCase() === statusFilter.toLowerCase();
+      });
+    }
     return list;
-  }, [callsData.items, activeTab, channelFilter]);
+  }, [callsData.items, activeTab, channelFilter, statusFilter]);
 
   const handleExport = () => {
     if (filteredCalls.length === 0) {
@@ -206,17 +213,17 @@ const CallsList = () => {
       'UPT': (c.branchName && c.branchName !== '-' && !c.branchName.startsWith('b')) ? c.branchName : (branchesMap[c.branchId] || nipBranchMap[c.inmateId] || 'Lapas Kelas I'),
       'Nama WBP': c.inmateName,
       'NIP': c.inmateId,
-      // 'Keluarga Tujuan': c.familyName,
       'No. Telepon Tujuan': c.familyPhone || '-',
       'Durasi': `${Math.floor((c.durationSeconds || 0) / 60)}m ${(c.durationSeconds || 0) % 60}s`,
       'Biaya': `Rp ${new Intl.NumberFormat('id-ID').format(c.cost || 0)}`,
       'Jalur': c.callType === 'Video' ? 'Web' : (c.channel === 'gsm' ? 'GSM' : 'Web'),
-      'Status': c.status,
+      'Status': c.statusText || (normalizeCallStatus(c.status, c.rawStatus) === 'Answered' ? 'Terjawab' : (normalizeCallStatus(c.status, c.rawStatus) === 'Rejected' ? 'Ditolak' : 'Tidak Terjawab')),
       'Waktu Panggilan': new Date(c.date).toLocaleString('id-ID'),
       'Ketersediaan Rekaman': c.hasRecording ? 'Tersedia' : 'Tidak Ada'
     }));
 
-    const answeredCount = filteredCalls.filter(c => c.status === 'Answered' || c.status === 'Terjawab').length;
+    const answeredCount = filteredCalls.filter(c => normalizeCallStatus(c.status, c.rawStatus) === 'Answered').length;
+    const rejectedCount = filteredCalls.filter(c => normalizeCallStatus(c.status, c.rawStatus) === 'Rejected').length;
     const totalCost = filteredCalls.reduce((sum, c) => sum + (c.cost || 0), 0);
 
     const filename = `Riwayat_Panggilan_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -233,6 +240,7 @@ const CallsList = () => {
       summaryMetrics: [
         { label: 'Total Panggilan', value: `${filteredCalls.length} Data` },
         { label: 'Panggilan Terjawab', value: `${answeredCount} Panggilan` },
+        { label: 'Panggilan Ditolak', value: `${rejectedCount} Panggilan` },
         { label: 'Total Biaya Pemakaian', value: `Rp ${new Intl.NumberFormat('id-ID').format(totalCost)}` },
       ]
     });
@@ -360,6 +368,7 @@ const CallsList = () => {
               >
                 <option value="All">Semua Status</option>
                 <option value="Answered">Terjawab</option>
+                <option value="Rejected">Ditolak</option>
                 <option value="Missed">Tidak Terjawab</option>
                 <option value="Busy">Sibuk / Gagal</option>
               </select>
@@ -553,18 +562,7 @@ const CallsList = () => {
                           {/* Status Badge */}
                           <td className="py-3.5 px-3 text-center whitespace-nowrap">
                             <div className="flex items-center justify-center">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                                isAnswered 
-                                  ? 'bg-emerald-100/70 text-emerald-700 border border-emerald-200/50' 
-                                  : 'bg-rose-100/70 text-rose-700 border border-rose-200/50'
-                              }`}>
-                                {isAnswered ? (
-                                  <CheckCircle2 className="w-3 h-3" />
-                                ) : (
-                                  <XCircle className="w-3 h-3" />
-                                )}
-                                <span>{statusText}</span>
-                              </span>
+                              <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
                             </div>
                           </td>
 

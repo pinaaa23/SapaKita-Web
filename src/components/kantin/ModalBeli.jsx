@@ -4,6 +4,7 @@ import { X, Search, ArrowRight, ArrowLeft, CheckCircle, AlertTriangle, Loader2 }
 import { formatRupiah } from '../../utils/formatKantin';
 import { cariWbpByIdAtauTelp, buatTransaksi } from '../../services/kantin/kantinService';
 import { getSaldo } from '../../services/kantin/saldoService';
+import { getAuthUser } from '../../services/api';
 import KartuKonfirmasiNapi from './KartuKonfirmasiNapi';
 import PilihMetodeBayar from './PilihMetodeBayar';
 
@@ -64,6 +65,13 @@ export default function ModalBeli({ paket, isOpen, onClose, isBlocked = false, b
 
   const handleKonfirmasiPembayaran = async () => {
     if (!wbpTerpilih || !paket || isSubmitting || isBlocked) return;
+
+    const user = getAuthUser();
+    const userBranchId = user?.branchId || user?.branch?.id;
+    if (!paket.branchId || (userBranchId && String(paket.branchId).toLowerCase() !== String(userBranchId).toLowerCase())) {
+      setErrorSubmit('Paket komunikasi ini tidak valid atau tidak tersedia untuk cabang UPT Anda.');
+      return;
+    }
 
     setIsSubmitting(true);
     setErrorSubmit('');

@@ -28,6 +28,7 @@ import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
 import { downloadTextFile, downloadTranscriptPDF, exportToExcel } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
+import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
 
 export default function KanwilCalls() {
   const location = useLocation();
@@ -193,8 +194,8 @@ export default function KanwilCalls() {
     // Filter status
     if (statusFilter !== 'All') {
       list = list.filter(c => {
-        const isAns = c.status === 'Answered' || c.status === 'Terjawab';
-        return statusFilter === 'Answered' ? isAns : !isAns;
+        const norm = normalizeCallStatus(c.status, c.rawStatus);
+        return norm.toLowerCase() === statusFilter.toLowerCase();
       });
     }
 
@@ -329,6 +330,7 @@ export default function KanwilCalls() {
                     >
                       <option value="All">Semua Status</option>
                       <option value="Answered">Terjawab</option>
+                      <option value="Rejected">Ditolak</option>
                       <option value="Missed">Tidak Terjawab</option>
                     </select>
                     <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -530,12 +532,7 @@ export default function KanwilCalls() {
                           {/* Status */}
                           <td className="py-3.5 px-3 text-center">
                             <div className="flex flex-col items-center gap-1">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                isAnswered ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
-                              }`}>
-                                {isAnswered ? <CheckCircle2 className="w-3 h-3 text-emerald-600" /> : <XCircle className="w-3 h-3 text-rose-600" />}
-                                <span>{isAnswered ? 'Terjawab' : 'Tidak Terjawab'}</span>
-                              </span>
+                              <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
                               {activeTab === 'voice' && call.channel && (
                                 <CallChannelBadge channel={call.channel} />
                               )}

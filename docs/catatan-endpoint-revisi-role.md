@@ -1,4 +1,4 @@
-# Catatan Endpoint & Rekomendasi Backend — Revisi Per Role (PasCall)
+﻿# Catatan Endpoint & Rekomendasi Backend — Revisi Per Role (PasCall)
 
 Dokumen ini mencatat integrasi frontend ke backend, usulan endpoint baru/penyesuaian, status di BE saat ini, serta rekomendasi penegakan aturan bisnis di sisi Backend (API).
 
@@ -18,49 +18,13 @@ Dokumen ini mencatat integrasi frontend ke backend, usulan endpoint baru/penyesu
     "search": "budi",
     "status": "Answered",
     "callType": "voice",
-    "branchId": "uuid-upt-tertentu", // opsional jika ingin memfilter 1 UPT spesifik
+    "branchId": "uuid-upt-tertentu",
     "startDate": "2026-10-01",
     "endDate": "2026-10-31",
     "page": 1,
     "limit": 20
   }
   ```
-- **Response Usulan**:
-  ```json
-  {
-    "status": "success",
-    "data": {
-      "items": [
-        {
-          "id": "rec-uuid-1",
-          "callId": "call-101",
-          "branchId": "branch-uuid-1",
-          "branchName": "Lapas Kelas I Cipinang",
-          "inmateName": "Ahmad Supriyadi",
-          "inmateId": "NIP-1001",
-          "familyName": "Siti Aminah",
-          "familyPhone": "08123456789",
-          "duration": "05:12",
-          "durationSeconds": 312,
-          "status": "Answered",
-          "channel": "Web",
-          "cost": 15000,
-          "audioUrl": "https://...",
-          "transcript": "...",
-          "createdAt": "2026-10-21T10:00:00Z"
-        }
-      ],
-      "total": 1,
-      "page": 1,
-      "limit": 20,
-      "totalPages": 1
-    }
-  }
-  ```
-- **Status di BE Saat Ini**:
-  - Saat ini FE menggunakan endpoint `GET /api/recordings` (sumber yang sama dengan Kepala UPT).
-  - FE membatasi data secara client-side berdasarkan daftar ID UPT binaan Kanwil yang didapatkan dari `GET /api/kanwil/branches` / `GET /api/branches`.
-  - **Rekomendasi BE**: Backend sebaiknya menerapkan filter otomatis `where: { branch: { kanwilId } }` saat token akun `ADMIN_KANWIL` melakukan request, untuk efisiensi transfer data dan keamanan data isolasi per wilayah.
 
 ---
 
@@ -69,82 +33,71 @@ Dokumen ini mencatat integrasi frontend ke backend, usulan endpoint baru/penyesu
 - **Path**: `/api/branches`
 - **Dipakai di Halaman**: Halaman Buat UPT Superadmin (`/branches/create`)
 - **Role**: `SUPERADMIN`
-- **Request Body**:
-  ```json
-  {
-    "name": "Lapas Kelas IIA Yogyakarta",
-    "kanwilId": "kanwil-uuid-yogyakarta",
-    "location": "Yogyakarta",
-    "address": "Jl. Tamansiswa No. 1",
-    "phone": "0274-123456",
-    "capacity": 500,
-    "status": "Aktif",
-    "headName": "Kepala Lapas Yogyakarta",
-    "headEmail": "kepala.lapas-yogyakarta@pascall.id",
-    "headPassword": "Password123",
-    "headPhone": "0274-123456",
-    "admin": {
-      "name": "Kepala Lapas Yogyakarta",
-      "email": "kepala.lapas-yogyakarta@pascall.id",
-      "password": "Password123"
-    }
-  }
-  ```
-- **Response**:
-  ```json
-  {
-    "status": "success",
-    "data": {
-      "id": "branch-uuid",
-      "name": "Lapas Kelas IIA Yogyakarta",
-      "kanwilId": "kanwil-uuid-yogyakarta",
-      "location": "Yogyakarta",
-      "status": "Aktif",
-      "createdAt": "2026-10-21T23:30:00Z"
-    }
-  }
-  ```
-- **Status di BE Saat Ini**:
-  - BE (`src/modules/branch/branch.schema.ts` / Prisma) sudah mendukung relasi `kanwilId` pada entitas `Branch`!
-  - Payload frontend telah disesuaikan di `buildCreateBranchPayload` untuk menyertakan `kanwilId` dari form Superadmin.
 
 ---
 
-## 2. Catatan Penegakan Aturan Bisnis di Sisi Backend
-
-### A. Penguncian Read-Only Role Kanwil di Backend (Security & Authorization)
-- **Kondisi Frontend**:
-  - Di Frontend, seluruh tombol create, edit, update, delete, switch status, toggle power, dan modal aksi pada seluruh halaman Kanwil (`/kanwil/*`) telah dinonaktifkan/dihilangkan.
-  - Route `/kanwil/branches/create` telah diproteksi dan diarahkan kembali (`Navigate replace`) ke `/kanwil/branches`.
-- **Rekomendasi Backend**:
-  - Backend perlu menegakkan pembatasan otorisasi di middleware:
-    - Akun dengan role `ADMIN_KANWIL` / `KANWIL` dilarang melakukan method mutasi: `POST`, `PUT`, `PATCH`, `DELETE` pada modul UPT (`/api/branches/*`), data WBP (`/api/inmates/*`), paket (`/api/packages/*`), dan pengguna (`/api/users/*`).
-    - Jika dicoba melalui Postman/API client, BE mengembalikan HTTP `403 Forbidden` dengan pesan `"Akses hanya lihat. Kanwil tidak memiliki izin memodifikasi data."`.
-
-### B. Validasi Wajib Tanggal Lahir (`dateOfBirth` / `birthDate`) untuk WBP
-- **Kondisi Frontend**:
-  - Di Form input WBP (`/branch/inmates/create`), form edit WBP (`/branch/inmates/:id/edit`), dan modal quick-edit WBP (`/branch/inmates`), field **Tanggal Lahir** telah diberi tanda bintang `*`, validasi wajib isi dengan pesan error `"Tanggal lahir wajib diisi"`, dan tombol simpan memblokir pengiriman jika kosong atau tidak valid (tidak boleh di masa depan).
-- **Rekomendasi Backend**:
-  - Pada schema validasi registrasi & update narapidana (`inmate.schema.ts` atau validator Zod/Joi BE):
-    - Tambahkan aturan wajib (mandatory) pada field `dateOfBirth`:
-      ```typescript
-      dateOfBirth: z.string({ required_error: "Tanggal lahir wajib diisi" })
-        .refine(val => !isNaN(Date.parse(val)), "Format tanggal lahir tidak valid")
-        .refine(val => new Date(val) <= new Date(), "Tanggal lahir tidak boleh di masa depan")
-      ```
-    - Ini memastikan konsistensi integritas data antara FE dan BE.
+### C. Daftar UPT di Bawah Naungan Kanwil Tertentu
+- **Method**: `GET`
+- **Path**: `/api/kanwil/branches` ATAU `/api/branches?kanwilId={kanwilId}`
+- **Dipakai di Halaman**: Halaman UPT Binaan Kanwil (`/kanwil/branches`)
+- **Role**: `admin_kanwil` / `KANWIL`
 
 ---
 
-### C. Penanganan Kontrak Tarif Kantin Belum Diatur Superadmin
-- **Kondisi Frontend**:
-  - Di Frontend, status kontrak ditentukan lewat SATU helper tunggal `isCanteenContractConfigured(contract)`:
-    - Kontrak dianggap `"belum diatur"` jika `ratePerSecond` atau `superadminPercent` bernilai kosong (`null`, `undefined`, atau string kosong).
-    - Nilai `0` yang sengaja disimpan oleh Superadmin (misal tarif Rp 0 atau bagi hasil 0%) adalah valid (**sudah diatur**), bukan `"belum diatur"`.
-  - Jika kontrak belum diatur:
-    - Di sisi Kantin: kartu tagihan diganti banner peringatan kuning/oranye (*"Tarif belum diatur"*, *"Silakan hubungi Admin Pusat/Superadmin untuk mengatur harga per detik dan pembagian negosiasi. Total tagihan akan muncul setelah pengaturan selesai."*). Angka total tagihan (termasuk Rp 0), tombol bayar tagihan, upload bukti, dan jatuh tempo disembunyikan.
-    - Di sisi Superadmin: total tagihan kantin tampil `-` (bukan Rp 0), status tagihan `Belum diatur`, badge `Perlu diatur`, dan form modal tanpa nilai bawaan template (kolom tarif dan SA % diawali kosong).
-- **Rekomendasi Backend**:
-  - **Penanda Status Kontrak:** Respons BE pada endpoint tagihan bulanan (`/api/canteen/billing/monthly` dan `/api/canteen/billing/national-summary`) sebaiknya menyertakan field penanda boolean status kontrak (misal `isContractSet: true | false`).
-  - **Pencegahan Tagihan & Blokir:** Backend **tidak boleh** membuat tagihan aktif dan **tidak boleh** menerapkan status Telat / blokir transaksi otomatis untuk kantin yang kontraknya belum diatur (tidak ada tagihan, jadi tidak ada yang telat). Total tagihan dikembalikan `null`.
-  - **Tanpa Nilai Bawaan (No Default Values):** Backend **tidak boleh** menyimpan nilai default template (seperti 60% bagi hasil SA atau 40% bagi hasil Kantin) di database saat kantin baru dibuat. Kolom tarif dan persentase harus diawali dalam kondisi kosong (`null`).
+### D. Isolasi Paket Komunikasi Akun Kantin (Hanya Paket UPT Sendiri, Tanpa Paket Global / Fallback)
+- **Kondisi Frontend Saat Ini**:
+  - Di Frontend (`src/pages/kantin/PaketPage.jsx`, `src/services/packageService.js`, dan `src/components/kantin/ModalBeli.jsx`):
+    - Paket yang ditampilkan kepada Kasir Kantin **secara ketat disaring hanya yang memiliki `branchId` sama persis dengan `branchId` milik akun Kantin yang login**.
+    - Paket global nasional (`branchId` bernilai `null` atau kosong) dan paket milik UPT lain **tidak ditampilkan**.
+    - Jika SPV UPT belum membuat/menerapkan paket untuk cabang tersebut, daftar paket Kantin berstatus **KOSONG** (list `[]`) dengan pesan keadaan kosong: *"Belum ada paket. Paket dibuat oleh SPV UPT ini."* dan transaksi pembelian voucher dinonaktifkan.
+- **Rekomendasi Penyesuaian di Backend**:
+  1. Khusus Role `CANTEEN_STAFF` pada `PackageService.getPackages`: Query harus membatasi secara mutlak ke cabang UPT staf tersebut tanpa fallback ke paket global (`whereClause.branchId = currentUser.branchId`).
+  2. Pada `CanteenService.create`: Wajibkan paket memiliki `branchId` yang cocok dengan UPT kantin.
+
+---
+
+## 2. Penyelarasan Aturan Bisnis Tagihan Pascabayar Kantin & Kontrak Superadmin
+
+### A. Latar Belakang & Aturan Bisnis Baru
+1. **Dasar Perhitungan Detik Tagihan**:
+   - Total detik tagihan pascabayar kantin dihitung dari **jumlah durasi paket/voucher yang DIBELI WBP di kantin** (`CanteenTransaction`) pada bulan tersebut, **BUKAN menunggu panggilan telepon WBP** (`Call`).
+   - Alasan bisnis: Voucher komunikasi yang dibeli WBP memiliki masa berlaku/kedaluwarsa (`expiresAt`, default 7 hari setelah tebus). Jika voucher hangus/tidak terpakai, uang pembelian tidak dikembalikan ke WBP. Oleh karena itu hak bagi hasil Superadmin langsung melekat sejak voucher dibeli di kantin.
+   - Rumus tetap seragam di seluruh tampilan:
+     $$\text{Total Tagihan} = \text{Total Detik} \times \text{Tarif per Detik} \times \left(\frac{\text{Persen SA}}{100}\right)$$
+
+### B. Hasil Audit Kondisi Backend Saat Ini (Read-Only)
+1. **Kolom Kontrak di Schema & Nilai Default**:
+   - Di `prisma/schema.prisma` (baris 123-124), kolom kontrak pada model `Branch` memiliki nilai bawaan (default):
+     ```prisma
+     contractSharePercentage Decimal  @default(50.00) @db.Decimal(5, 2)
+     contractRatePerSecond   Decimal? @default(15.00) @db.Decimal(10, 2)
+     ```
+   - Saat UPT baru dibuat (`branch.service.ts` baris 114-115), nilai tersebut otomatis terisi Rp 15,00/detik dan SA 50,00% jika payload kosong.
+   - Di `canteen.service.ts` (baris 1350-1352, 1461-1463, 1507-1509, 1592-1593), terdapat hardcode fallback jika field kosong: `ratePerSecond = 15` dan `superadminPercent = 50`.
+   - Dampak: Di sisi database, seluruh UPT seolah-olah sudah memiliki kontrak default 15/detik dan 50% meskipun Superadmin belum pernah melakukan negosiasi/penetapan kontrak dengan kantin UPT tersebut.
+2. **Endpoint Rincian Faktur (`GET /api/canteen/billing/calls`)**:
+   - Endpoint ini saat ini melakukan query ke tabel `prisma.call` (`where: { status: 'ENDED', durationSeconds: { gt: 0 } }`), sehingga hanya menampilkan detik bicara riil panggilan wartel.
+   - Jika WBP sudah membeli voucher di kasir kantin tetapi belum melakukan panggilan, endpoint ini menghasilkan 0 detik (tidak sinkron dengan penjualan kantin dan `national-summary`).
+3. **Masa Berlaku Voucher**:
+   - Di `voucher.service.ts` fungsi `computeVoucherExpiry()`, masa kedaluwarsa voucher dihitung sampai akhir hari (23:59:59.999 WIB) pada tanggal tebus ditambah `VOUCHER_EXTRA_DAYS` (default 7 hari). Setelah lewat masa ini, status voucher menjadi `EXPIRED`.
+4. **Zona Waktu (WIB / Asia/Jakarta)**:
+   - Pada `canteen.helper.ts` fungsi `buildDateFilter`, rentang bulanan menggunakan `Date.UTC(year, month, 1, 0, 0, 0, 0)` s/d `Date.UTC(year, month + 1, 0, 23, 59, 59, 999)`. Rentang ini mengacu pada jam UTC, sehingga transaksi antara jam 00:00 - 06:59 WIB pada awal bulan atau jam 17:00 - 23:59 WIB pada akhir bulan berpotensi salah pengelompokan bulan periode.
+
+### C. Daftar Rekomendasi Perubahan yang Diminta ke Tim Backend
+1. **Kolom Kontrak Nullable Tanpa Default & Flag Konfigurasi**:
+   - Ubah `contractRatePerSecond` dan `contractSharePercentage` di `prisma/schema.prisma` menjadi nullable murni tanpa `@default`:
+     ```prisma
+     contractSharePercentage Decimal? @db.Decimal(5, 2)
+     contractRatePerSecond   Decimal? @db.Decimal(10, 2)
+     ```
+   - Tambahkan kolom penanda atau status konfigurasi kontrak:
+     ```prisma
+     isContractConfigured    Boolean  @default(false)
+     ```
+   - Hapus fallback hardcode `15` dan `50` pada `canteen.service.ts` dan `branch.service.ts`. Jika kontrak belum diatur oleh Superadmin, kembalikan nilai `null` dan `isContractConfigured: false` agar FE dapat menampilkan status "Belum diatur" dan memblokir tagihan secara akurat.
+2. **Ubah Endpoint Rincian Tagihan Menjadi Berbasis Transaksi Penjualan Kantin**:
+   - Ubah logika query `GET /api/canteen/billing/calls` (atau buat endpoint alternatif `GET /api/canteen/billing/transactions`) agar bersumber dari `prisma.canteenTransaction`:
+     - Menjumlahkan `(t.package?.duration || t.packageDuration) * 60` detik.
+     - Menampilkan riwayat transaksi penjualan paket kantin per WBP dengan kolom: Nomor Transaksi, Waktu, Kode Voucher, WBP (Nama & NIP), Paket/Layanan, Kasir, Durasi Detik, Tarif/dtk, Porsi SA %, dan Nominal Tagihan.
+3. **Penegakan Zona Waktu Indonesia Barat (WIB, UTC+7)**:
+   - Gunakan perhitungan tanggal berbasis WIB (`Asia/Jakarta`) pada filter batas awal bulan (`YYYY-MM-01 00:00:00 WIB` = `UTC-7h`) dan batas akhir bulan (`YYYY-MM-last 23:59:59.999 WIB` = `UTC-7h`) saat memfilter transaksi billing bulanan.

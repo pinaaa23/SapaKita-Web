@@ -40,23 +40,53 @@ export const mapCallItem = (item) => {
     (isDemo && durationSec > 0)
   );
 
-  const rawStatus = (call.status || (call.connectedAt ? 'COMPLETED' : 'NO_ANSWER')).toUpperCase();
-  const isConnectedOrAnswered = 
-    rawStatus === 'ANSWERED' || 
-    rawStatus === 'COMPLETED' || 
-    rawStatus === 'CONNECTED' || 
-    rawStatus === 'ENDED' || 
-    rawStatus === 'TERJAWAB' ||
-    Boolean(call.connectedAt) ||
-    (durationSec > 0 && rawStatus !== 'REJECTED' && rawStatus !== 'MISSED');
+  const rawStatus = String(
+    call.rawStatus ||
+    call.status ||
+    item.rawStatus ||
+    item.status ||
+    (call.connectedAt ? 'COMPLETED' : 'NO_ANSWER')
+  ).toUpperCase();
+  const endReason = String(call.endReason || item.endReason || '').toLowerCase();
 
   let normalizedStatus = 'Missed';
-  if (isConnectedOrAnswered) {
+  let statusText = 'Tidak Terjawab';
+
+  // 1. Panggilan DITOLAK (REJECTED / DITOLAK)
+  if (
+    rawStatus === 'REJECTED' ||
+    rawStatus === 'DITOLAK' ||
+    rawStatus.includes('REJECT') ||
+    rawStatus.includes('TOLAK') ||
+    endReason.includes('reject')
+  ) {
+    normalizedStatus = 'Rejected';
+    statusText = 'Ditolak';
+  }
+  // 2. Panggilan TERJAWAB (ANSWERED / CONNECTED / ENDED / COMPLETED)
+  else if (
+    (rawStatus === 'ANSWERED' ||
+      rawStatus === 'COMPLETED' ||
+      rawStatus === 'CONNECTED' ||
+      rawStatus === 'ENDED' ||
+      rawStatus === 'TERJAWAB' ||
+      Boolean(call.connectedAt) ||
+      durationSec > 0) &&
+    rawStatus !== 'MISSED' &&
+    rawStatus !== 'FAILED'
+  ) {
     normalizedStatus = 'Answered';
-  } else if (rawStatus === 'BUSY') {
+    statusText = 'Terjawab';
+  }
+  // 3. Panggilan SIBUK
+  else if (rawStatus === 'BUSY' || rawStatus === 'SIBUK') {
     normalizedStatus = 'Busy';
-  } else {
+    statusText = 'Sibuk';
+  }
+  // 4. Default: TIDAK TERJAWAB
+  else {
     normalizedStatus = 'Missed';
+    statusText = 'Tidak Terjawab';
   }
 
   // Jika memang ada objek rekaman atau storageUrl, hasRecording tetap TRUE agar bisa diputar
@@ -79,12 +109,36 @@ export const mapCallItem = (item) => {
     : '';
 
   // Jalur panggilan (Web / GSM)
-  // TODO: ganti dengan field dari backend saat endpoint backend menyediakan field channel
-  const rawChannel = (call.channel || call.via || call.source || item.channel || item.via || item.source || '').toString().toLowerCase();
+  const rawChannel = String(
+    call.channel ||
+    call.via ||
+    call.source ||
+    item.channel ||
+    item.via ||
+    item.source ||
+    call.routeType ||
+    call.route ||
+    item.routeType ||
+    item.route ||
+    ''
+  ).toLowerCase();
+
   let channel = 'web';
-  if (rawChannel.includes('gsm') || rawChannel.includes('cellular') || rawChannel.includes('phone') || rawChannel.includes('pstn') || rawChannel.includes('seluler')) {
+  if (
+    rawChannel.includes('gsm') ||
+    rawChannel.includes('sip_trunk') ||
+    rawChannel.includes('cellular') ||
+    rawChannel.includes('phone') ||
+    rawChannel.includes('pstn') ||
+    rawChannel.includes('seluler')
+  ) {
     channel = 'gsm';
-  } else if (rawChannel.includes('web') || rawChannel.includes('webrtc') || rawChannel.includes('sip') || rawChannel.includes('voip')) {
+  } else if (
+    rawChannel.includes('web') ||
+    rawChannel.includes('livekit') ||
+    rawChannel.includes('webrtc') ||
+    rawChannel.includes('voip')
+  ) {
     channel = 'web';
   } else {
     // Penentuan deterministik untuk data dummy/mock agar stabil
@@ -120,6 +174,7 @@ export const mapCallItem = (item) => {
       ? item.cost 
       : (typeof call.cost === 'number' ? call.cost : (Number(item.amount ?? item.cost) || Math.round((call.durationSeconds || item.durationSeconds || 0) * 25))),
     status: normalizedStatus,
+    statusText,
     rawStatus,
     callType,
     backendType,
@@ -228,7 +283,13 @@ export const getCallHistory = async ({
     if (limit) query.append('limit', String(limit));
     if (search) query.append('search', search);
     if (branchId && branchId !== 'All' && branchId !== 'all') query.append('branchId', branchId);
-    if (status && status !== 'All' && status !== 'all') query.append('status', status);
+    if (status && status !== 'All' && status !== 'all') {
+      const s = String(status).toUpperCase();
+      if (s === 'REJECTED' || s === 'DITOLAK') query.append('status', 'REJECTED');
+      else if (s === 'MISSED' || s === 'TIDAK TERJAWAB') query.append('status', 'MISSED');
+      else if (s === 'ANSWERED' || s === 'TERJAWAB') query.append('status', 'ENDED');
+      else query.append('status', status);
+    }
     if (startDate) query.append('startDate', startDate);
     if (endDate) query.append('endDate', endDate);
     if (callType && callType !== 'All' && callType !== 'all') query.append('callType', callType);

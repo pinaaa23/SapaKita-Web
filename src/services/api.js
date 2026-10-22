@@ -43,6 +43,10 @@ export const clearAuthSession = () => {
   localStorage.removeItem('user');
   localStorage.removeItem('pascall_user');
   localStorage.removeItem('role');
+  localStorage.removeItem('pascall_active_branch_id');
+  localStorage.removeItem('pascall_active_branch_name');
+  localStorage.removeItem('pascall_latest_branch_packages');
+  localStorage.removeItem('pascall_upt_packages_v7');
   try {
     sessionStorage.clear();
   } catch (e) {

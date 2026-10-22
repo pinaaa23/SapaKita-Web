@@ -231,32 +231,53 @@ export function isCanteenContractConfigured(contract) {
 }
 
 /**
- * Menghitung tagihan berdasarkan detik, tarif, dan pembagian persen Superadmin & Kantin
- * // MOCK - menunggu endpoint BE
+ * Memeriksa apakah suatu tanggal transaksi berada pada target bulan dan tahun
+ * dalam zona waktu Indonesia Barat (WIB / Asia/Jakarta, UTC+7).
  *
- * Rumus:
- * Subtotal = totalDetik * tarifPerDetik
- * TotalTagihan (Disetor ke Superadmin) = Subtotal * (persenSuperadmin / 100)
- * Pendapatan Kantin = Subtotal * (persenKantin / 100)
+ * @param {string|Date} dateVal
+ * @param {number} targetMonth (1 - 12)
+ * @param {number} targetYear (e.g. 2026)
+ * @returns {boolean}
  */
-export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadminPercent, canteenPercent, negotiationPercent }) {
-  const saPercent = superadminPercent !== undefined && superadminPercent !== null && superadminPercent !== ''
-    ? Number(superadminPercent)
-    : (negotiationPercent !== undefined && negotiationPercent !== null && negotiationPercent !== '' ? Number(negotiationPercent) : null);
+export function isDateInMonthWIB(dateVal, targetMonth, targetYear) {
+  if (!dateVal) return false;
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return false;
 
-  const ktPercent = canteenPercent !== undefined && canteenPercent !== null && canteenPercent !== ''
-    ? Number(canteenPercent)
-    : (saPercent !== null && saPercent !== undefined ? Math.max(0, 100 - saPercent) : null);
+  try {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Jakarta',
+      year: 'numeric',
+      month: 'numeric',
+    });
+    const parts = formatter.formatToParts(d);
+    const y = parseInt(parts.find((p) => p.type === 'year')?.value, 10);
+    const m = parseInt(parts.find((p) => p.type === 'month')?.value, 10);
+    return m === Number(targetMonth) && y === Number(targetYear);
+  } catch {
+    const wibDate = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+    return wibDate.getUTCMonth() + 1 === Number(targetMonth) && wibDate.getUTCFullYear() === Number(targetYear);
+  }
+}
 
+/**
+ * Fungsi perhitungan tunggal bersama untuk seluruh tampilan (Kantin, Superadmin, dan Tab Rincian):
+ * Rumus:
+ * - Subtotal = totalDetik * tarifPerDetik
+ * - Total Tagihan (Disetor ke Superadmin) = Subtotal * (persenSuperadmin / 100)
+ * - Hak Operasional Kantin = Subtotal - Total Tagihan
+ */
+export function calculateUnifiedBilling({ totalSeconds, ratePerSecond, superadminPercent }) {
   const isContractSet = isCanteenContractConfigured({
     ratePerSecond,
-    superadminPercent: saPercent,
-    negotiationPercent: saPercent,
+    superadminPercent,
   });
+
+  const sec = Number(totalSeconds) || 0;
 
   if (!isContractSet) {
     return {
-      totalSeconds: Number(totalSeconds) || 0,
+      totalSeconds: sec,
       ratePerSecond: null,
       superadminPercent: null,
       canteenPercent: null,
@@ -269,18 +290,19 @@ export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadmi
     };
   }
 
-  const sec = Number(totalSeconds) || 0;
-  const rate = Number(ratePerSecond) || 0;
+  const rate = Number(ratePerSecond);
+  const saPercent = Number(superadminPercent);
+  const ktPercent = Math.max(0, 100 - saPercent);
 
   const subtotal = Math.round(sec * rate);
-  const totalAmount = Math.round(subtotal * (saPercent / 100)); // Tagihan yang disetorkan ke Superadmin
-  const canteenShare = Math.round(subtotal * ((ktPercent ?? (100 - saPercent)) / 100)); // Hak operasional Kantin
+  const totalAmount = Math.round(subtotal * (saPercent / 100)); // Porsi disetor ke Superadmin
+  const canteenShare = subtotal - totalAmount; // Hak operasional Kantin
 
   return {
     totalSeconds: sec,
     ratePerSecond: rate,
     superadminPercent: saPercent,
-    canteenPercent: ktPercent ?? (100 - saPercent),
+    canteenPercent: ktPercent,
     negotiationPercent: saPercent,
     subtotal,
     totalAmount,
@@ -288,6 +310,26 @@ export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadmi
     isContractSet: true,
     contractNote: null,
   };
+}
+
+/**
+ * Menghitung tagihan berdasarkan detik, tarif, dan pembagian persen Superadmin & Kantin
+ *
+ * Rumus:
+ * Subtotal = totalDetik * tarifPerDetik
+ * TotalTagihan (Disetor ke Superadmin) = Subtotal * (persenSuperadmin / 100)
+ * Pendapatan Kantin = Subtotal * (persenKantin / 100)
+ */
+export function calculateCanteenBilling({ totalSeconds, ratePerSecond, superadminPercent, canteenPercent, negotiationPercent }) {
+  const saPercent = superadminPercent !== undefined && superadminPercent !== null && superadminPercent !== ''
+    ? Number(superadminPercent)
+    : (negotiationPercent !== undefined && negotiationPercent !== null && negotiationPercent !== '' ? Number(negotiationPercent) : null);
+
+  return calculateUnifiedBilling({
+    totalSeconds,
+    ratePerSecond,
+    superadminPercent: saPercent,
+  });
 }
 
 /**

@@ -5,6 +5,10 @@ import KartuRingkasan from '../../components/kantin/KartuRingkasan';
 import BarChartSederhana from '../../components/kantin/BarChartSederhana';
 import TabelTransaksi from '../../components/kantin/TabelTransaksi';
 import { getRekap, getRiwayat } from '../../services/kantin/kantinService';
+import {
+  getCanteenBillingCalls,
+  getCanteenBillingMonthly,
+} from '../../services/canteenBillingService';
 
 export default function RiwayatPage() {
   const [periode, setPeriode] = useState('bulanan');
@@ -17,6 +21,7 @@ export default function RiwayatPage() {
   const [rekapData, setRekapData] = useState({
     totalPemasukan: 0,
     jumlahTransaksi: 0,
+    totalDetikBulanIni: 0,
     chartData: [],
   });
   const [transaksiList, setTransaksiList] = useState([]);
@@ -39,8 +44,12 @@ export default function RiwayatPage() {
       const currentRequestId = ++requestIdRef.current;
       setIsLoading(true);
 
+      const targetDate = currentTanggal instanceof Date ? currentTanggal : new Date(currentTanggal || Date.now());
+      const currentMonth = targetDate.getMonth() + 1;
+      const currentYear = targetDate.getFullYear();
+
       try {
-        const [rekapRes, riwayatRes] = await Promise.allSettled([
+        const [rekapRes, riwayatRes, billingCallsRes, canteenBillingRes] = await Promise.allSettled([
           getRekap({ periode: currentPeriode, tanggal: currentTanggal }),
           getRiwayat({
             cari: currentPencarian,
@@ -48,6 +57,13 @@ export default function RiwayatPage() {
             periode: currentPeriode,
             tanggal: currentTanggal,
           }),
+          getCanteenBillingCalls({
+            month: currentMonth,
+            year: currentYear,
+            page: 1,
+            limit: 10,
+          }),
+          getCanteenBillingMonthly(currentMonth, currentYear),
         ]);
 
         // Cek apakah ada request yang lebih baru yang sudah berjalan
@@ -55,19 +71,46 @@ export default function RiwayatPage() {
           return;
         }
 
+        // Resolusi total detik bulan ini dari sumber yang sama persis dengan halaman Tagihan Bulanan:
+        let totalSecondsMonth = 0;
+        if (billingCallsRes.status === 'fulfilled' && billingCallsRes.value?.totalSeconds !== undefined && billingCallsRes.value?.totalSeconds !== null) {
+          totalSecondsMonth = Number(billingCallsRes.value.totalSeconds);
+        } else if (canteenBillingRes.status === 'fulfilled' && canteenBillingRes.value?.totalSeconds !== undefined && canteenBillingRes.value?.totalSeconds !== null) {
+          totalSecondsMonth = Number(canteenBillingRes.value.totalSeconds);
+        }
+
         if (rekapRes.status === 'fulfilled' && rekapRes.value) {
-          setRekapData(rekapRes.value);
+          setRekapData({
+            ...rekapRes.value,
+            totalDetikBulanIni: totalSecondsMonth,
+          });
         } else {
           setRekapData((prev) => ({
             ...prev,
             totalPemasukan: 0,
             jumlahTransaksi: 0,
+            totalDetikBulanIni: totalSecondsMonth,
             chartData: [],
           }));
         }
 
         if (riwayatRes.status === 'fulfilled' && Array.isArray(riwayatRes.value)) {
           setTransaksiList(riwayatRes.value);
+          // Fallback jika API billing 0 namun ada riwayat transaksi riil di bulan ini:
+          if (totalSecondsMonth === 0) {
+            const calculatedSec = riwayatRes.value.reduce((acc, t) => {
+              const d = t.waktu ? new Date(t.waktu) : null;
+              if (d && (d.getMonth() + 1 !== currentMonth || d.getFullYear() !== currentYear)) return acc;
+              const min = Number(t.paket?.durasi || t.paket?.duration || t.durasiMenit || 0);
+              return acc + (min * 60);
+            }, 0);
+            if (calculatedSec > 0) {
+              setRekapData((prev) => ({
+                ...prev,
+                totalDetikBulanIni: calculatedSec,
+              }));
+            }
+          }
         } else {
           setTransaksiList([]);
         }
@@ -103,18 +146,22 @@ export default function RiwayatPage() {
       if (
         e &&
         e.key &&
-        (e.key.includes('canteen') || e.key.includes('pascall_canteen'))
+        (e.key.includes('canteen') || e.key.includes('pascall_canteen') || e.key.includes('billing'))
       ) {
         handleCanteenEvent();
       }
     };
 
     window.addEventListener('canteen_transaction_saved', handleCanteenEvent);
+    window.addEventListener('pascall_billing_updated', handleCanteenEvent);
+    window.addEventListener('canteen_topup_changed', handleCanteenEvent);
     window.addEventListener('storage', handleStorageEvent);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       window.removeEventListener('canteen_transaction_saved', handleCanteenEvent);
+      window.removeEventListener('pascall_billing_updated', handleCanteenEvent);
+      window.removeEventListener('canteen_topup_changed', handleCanteenEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, [fetchData, periode, tanggal, metodeFilter, debouncedPencarian]);

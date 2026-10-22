@@ -19,15 +19,17 @@ import {
   saveStoredContract,
   findStoredContract,
   calculateCanteenBilling,
+  calculateUnifiedBilling,
+  isDateInMonthWIB,
   formatDetikKeMenit,
   isCanteenContractConfigured,
 } from '../dummy/canteenContractMock';
 
-export { formatDetikKeMenit, isCanteenContractConfigured, findStoredContract };
+export { formatDetikKeMenit, isCanteenContractConfigured, findStoredContract, calculateUnifiedBilling, isDateInMonthWIB };
 
 /**
  * Mengambil daftar rekapitulasi tagihan semua kantin per UPT (Superadmin)
- * Berbasis detik panggilan, tarif per detik, dan persen negosiasi.
+ * Berbasis detik durasi paket yang dibeli WBP di kantin, tarif per detik, dan persen negosiasi.
  *
  * @param {number} month (1 - 12)
  * @param {number} year (contoh 2026)
@@ -62,7 +64,7 @@ export async function getCanteenBillingNational(month, year) {
     ];
   }
 
-  // 2. Ambil data real transaksi / billing dari Backend
+  // 2. Ambil data real transaksi / billing dari Backend (GET /api/canteen/billing/national-summary)
   let beNationalData = null;
   try {
     const natRes = await apiFetch(`/api/canteen/billing/national-summary?month=${targetMonth}&year=${targetYear}`);
@@ -80,32 +82,34 @@ export async function getCanteenBillingNational(month, year) {
     allTopups = [];
   }
 
-  // 4. Ambil kontrak tarif dari storage (Awalnya kosong jika belum dibuat oleh Superadmin)
-  const contracts = getStoredContracts();
+  // 4. SATU SUMBER KONTRAK: Ambil seluruh kontrak resmi dari GET /api/canteen/contracts (sama dengan Tab Pengaturan Kontrak)
+  let contractsList = [];
+  try {
+    contractsList = await getAllCanteenContracts();
+  } catch (err) {
+    console.warn('[canteenBillingService] Gagal memuat kontrak dari API:', err);
+  }
+
+  const contractMap = {};
+  if (Array.isArray(contractsList)) {
+    contractsList.forEach((c) => {
+      if (c.branchId) contractMap[String(c.branchId).toLowerCase()] = c;
+      if (c.uptName) contractMap[String(c.uptName).toLowerCase()] = c;
+      if (c.branchName) contractMap[String(c.branchName).toLowerCase()] = c;
+    });
+  }
 
   const isCurrentMonth = targetYear === now.getFullYear() && targetMonth === now.getMonth() + 1;
   const dueDate = new Date(targetYear, targetMonth, 2, 23, 59, 59, 999);
   const isPastDue = now > dueDate;
 
   const result = branches.map((b) => {
-    // Kontrak dari Superadmin (cari di storage atau backend)
-    let contract = findStoredContract(b.id, { branchName: b.name });
-    if (!contract && b.contractRatePerSecond !== undefined && b.contractRatePerSecond !== null && b.contractSharePercentage !== undefined && b.contractSharePercentage !== null) {
-      const numRate = Number(b.contractRatePerSecond);
-      const numSa = Number(b.contractSharePercentage);
-      if (!isNaN(numRate) && !isNaN(numSa)) {
-        contract = {
-          branchId: b.id,
-          branchName: b.name,
-          canteenName: `Kantin ${b.name}`,
-          ratePerSecond: numRate,
-          superadminPercent: numSa,
-          canteenPercent: Math.max(0, 100 - numSa),
-          negotiationPercent: numSa,
-          isContractSet: true,
-        };
-      }
-    }
+    // Kontrak diambil dari sumber resmi GET /api/canteen/contracts
+    const bId = String(b.id || '').toLowerCase();
+    const bName = String(b.name || '').toLowerCase();
+    let contract = contractMap[bId] || contractMap[bName] || findStoredContract(b.id, { branchName: b.name });
+
+    // Helper status kontrak TUNGGAL:
     const isContractSet = isCanteenContractConfigured(contract);
 
     const canteenName = contract?.canteenName || `Kantin ${b.name}`;
@@ -115,18 +119,15 @@ export async function getCanteenBillingNational(month, year) {
     // Cari data real UPT ini dari respon backend
     const beBranchInfo = beNationalData?.branches?.find((bb) => bb.branchId === b.id || bb.branchName?.toLowerCase() === b.name?.toLowerCase());
 
-    // Hitung total detik real dari menit transaksi yang terjadi
-    // Jika belum ada pembelian/transaksi di bulan ini, otomatis 0 detik!
+    // Hitung total detik real dari menit durasi paket voucher yang dibeli di kantin pada bulan itu
     const realMinutes = Number(beBranchInfo?.totalMinutes || 0);
     const totalSeconds = realMinutes * 60;
 
     // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin)
-    const billingCalc = calculateCanteenBilling({
+    const billingCalc = calculateUnifiedBilling({
       totalSeconds,
       ratePerSecond: isContractSet ? contract.ratePerSecond : null,
       superadminPercent: isContractSet ? (contract.superadminPercent ?? contract.negotiationPercent) : null,
-      canteenPercent: isContractSet ? (contract.canteenPercent ?? (100 - Number(contract.negotiationPercent || 0))) : null,
-      negotiationPercent: isContractSet ? contract.negotiationPercent : null,
     });
 
     // Cari riwayat pembayaran cabang ini untuk periode ini
@@ -242,14 +243,17 @@ export async function getCanteenBillingMonthly(month, year) {
   // 2. Ambil transaksi real
   const transactions = Array.isArray(beBillingData?.transactions) ? beBillingData.transactions : [];
 
-  // Hitung total detik real dari transaksi yang benar-benar terjadi
-  // JIKA BELUM MELAKUKAN PEMBELIAN, OTOMATIS KOSONG (0 DETIK)!
-  const totalSeconds = transactions.reduce((acc, t) => {
-    const usedSec = Number(t.usedDurationSec || 0);
-    if (usedSec > 0) return acc + usedSec;
-    const durationMin = Number(t.package?.duration || t.durationMinutes || 0);
-    return acc + (durationMin * 60);
-  }, 0);
+  // Hitung total detik real dari transaksi penjualan paket/voucher di kantin
+  // Sesuai Aturan Baru: total detik = akumulasi durasi paket yang dibeli WBP
+  let totalSeconds = 0;
+  if (beBillingData?.summary?.totalSeconds !== undefined && beBillingData?.summary?.totalSeconds !== null && Number(beBillingData.summary.totalSeconds) > 0) {
+    totalSeconds = Number(beBillingData.summary.totalSeconds);
+  } else {
+    totalSeconds = transactions.reduce((acc, t) => {
+      const durationMin = Number(t.package?.durationMinutes || t.package?.duration || t.packageDuration || t.durationMinutes || (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) || 0);
+      return acc + (durationMin * 60);
+    }, 0);
+  }
 
   // 3. Resolusi kontrak tarif (Read-only dari GET /api/canteen/contracts/:branchId)
   const rawBranchName = user?.branchName || user?.branch?.name || beBillingData?.branchName || null;
@@ -305,23 +309,20 @@ export async function getCanteenBillingMonthly(month, year) {
   const negotiationPercent = superadminPercent;
 
   // 4. Hitung tagihan berdasarkan rumus baru (Porsi Superadmin)
-  const billingCalc = calculateCanteenBilling({
+  const billingCalc = calculateUnifiedBilling({
     totalSeconds,
     ratePerSecond,
     superadminPercent,
-    canteenPercent,
-    negotiationPercent,
   });
 
   // 5. Perbarui nilai setiap transaksi di riwayat agar otomatis mengikuti aturan baru
   const recalculatedTransactions = transactions.map((t) => {
-    const durSec = Number(t.usedDurationSec || (t.package?.duration || t.durationMinutes || 0) * 60);
-    const itemCalc = calculateCanteenBilling({
+    const durationMin = Number(t.package?.durationMinutes || t.package?.duration || t.packageDuration || t.durationMinutes || (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) || 0);
+    const durSec = durationMin * 60;
+    const itemCalc = calculateUnifiedBilling({
       totalSeconds: durSec,
       ratePerSecond,
       superadminPercent,
-      canteenPercent,
-      negotiationPercent,
     });
     return {
       ...t,
@@ -386,8 +387,9 @@ export async function getCanteenContractByBranchId(branchId) {
 }
 
 /**
- * Mengambil rincian log panggilan faktur tagihan bulanan untuk Tab "Rincian Panggilan"
- * Endpoint: GET /api/canteen/billing/calls?month=X&year=Y&page=P&limit=L&search=S&branchId=B
+ * Mengambil rincian transaksi penjualan voucher kantin untuk Tab Rincian (Kantin & Superadmin)
+ * Sesuai aturan baru: total detik tagihan = jumlah durasi paket yang dibeli WBP di kantin pada bulan itu.
+ * Satu sumber yang sama dengan data transaksi penjualan (Riwayat Penjualan).
  *
  * @param {Object} params
  * @param {number} params.month
@@ -396,41 +398,162 @@ export async function getCanteenContractByBranchId(branchId) {
  * @param {number} params.limit
  * @param {string} params.search
  * @param {string} params.branchId (opsional, untuk Superadmin)
- * @returns {Promise<{ items: Array, totalItems: number, totalSeconds: number, totalTagihan: number, pagination: Object }>}
+ * @returns {Promise<{ items: Array, totalItems: number, totalSeconds: number, subtotal: number|null, totalTagihan: number|null, ratePerSecond: number|null, superadminPercent: number|null, isContractSet: boolean, pagination: Object }>}
  */
 export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20, search = '', branchId } = {}) {
-  const q = new URLSearchParams();
-  if (month) q.append('month', String(month));
-  if (year) q.append('year', String(year));
-  if (page) q.append('page', String(page));
-  if (limit) q.append('limit', String(limit));
-  if (search && search.trim()) q.append('search', search.trim());
-  if (branchId) q.append('branchId', branchId);
+  const now = new Date();
+  const targetMonth = month || now.getMonth() + 1;
+  const targetYear = year || now.getFullYear();
+  const user = getAuthUser();
+  const effectiveBranchId = branchId && branchId !== 'semua' ? branchId : (user?.branchId || user?.branch?.id || null);
 
-  try {
-    const res = await apiFetch(`/api/canteen/billing/calls?${q.toString()}`);
-    const data = res?.data || res || {};
-    return {
-      items: Array.isArray(data.items) ? data.items : [],
-      totalItems: Number(data.totalItems || 0),
-      totalSeconds: Number(data.totalSeconds || 0),
-      totalTagihan: Number(data.totalTagihan || 0),
-      pagination: data.pagination || {
-        page: Number(page) || 1,
-        limit: Number(limit) || 20,
-        totalPages: Math.max(1, Math.ceil((Number(data.totalItems) || 0) / (Number(limit) || 20))),
-      },
-    };
-  } catch (err) {
-    console.warn('[canteenBillingService] Gagal mengambil log panggilan faktur:', err?.message || err);
-    return {
-      items: [],
-      totalItems: 0,
-      totalSeconds: 0,
-      totalTagihan: 0,
-      pagination: { page: Number(page) || 1, limit: Number(limit) || 20, totalPages: 1 },
-    };
+  // 1. Ambil kontrak yang berlaku untuk cabang ini dari GET /api/canteen/contracts (satu sumber)
+  let contract = null;
+  if (effectiveBranchId) {
+    try {
+      const cRes = await apiFetch(`/api/canteen/contracts/${effectiveBranchId}`);
+      contract = cRes?.data || cRes || null;
+    } catch {
+      try {
+        const allC = await getAllCanteenContracts();
+        contract = allC.find((c) => String(c.branchId).toLowerCase() === String(effectiveBranchId).toLowerCase()) || null;
+      } catch {}
+    }
+    if (!contract) {
+      contract = findStoredContract(effectiveBranchId);
+    }
   }
+
+  const isContractSet = isCanteenContractConfigured(contract);
+  const ratePerSecond = isContractSet ? Number(contract.ratePerSecond) : null;
+  const superadminPercent = isContractSet ? Number(contract.superadminPercent ?? contract.negotiationPercent) : null;
+
+  // 2. Ambil transaksi penjualan voucher kantin (sumber yang sama dengan Riwayat Penjualan)
+  let transactions = [];
+  try {
+    const q = new URLSearchParams();
+    q.append('page', '1');
+    q.append('limit', '500');
+    q.append('periode', 'bulanan');
+    const mStr = String(targetMonth).padStart(2, '0');
+    q.append('bulan', `${targetYear}-${mStr}`);
+    if (effectiveBranchId) q.append('branchId', effectiveBranchId);
+    if (search && search.trim()) q.append('search', search.trim());
+
+    const res = await apiFetch(`/api/canteen/transactions?${q.toString()}`);
+    const items = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+    if (items.length > 0) {
+      transactions = items;
+    }
+  } catch (err) {
+    console.warn('[canteenBillingService] Gagal memuat transaksi penjualan dari API:', err?.message || err);
+  }
+
+  // Fallback gabungkan dengan riwayat kantin jika kosong
+  if (transactions.length === 0) {
+    try {
+      const { getRiwayat } = await import('./kantin/kantinService');
+      const riwayatList = await getRiwayat({
+        cari: search,
+        periode: 'bulanan',
+        tanggal: new Date(targetYear, targetMonth - 1, 15),
+        page: 1,
+        limit: 500,
+      });
+      if (Array.isArray(riwayatList) && riwayatList.length > 0) {
+        transactions = riwayatList;
+      }
+    } catch {}
+  }
+
+  // Filter ketat berdasarkan batas bulan & tahun dalam zona waktu WIB (Asia/Jakarta)
+  const filteredTxs = transactions.filter((t) => {
+    const txDate = t.createdAt || t.waktu || t.date;
+    if (!isDateInMonthWIB(txDate, targetMonth, targetYear)) return false;
+
+    if (effectiveBranchId) {
+      const bId = t.branchId || t.branch?.id;
+      if (bId && String(bId).toLowerCase() !== String(effectiveBranchId).toLowerCase()) return false;
+    }
+
+    if (search && search.trim()) {
+      const s = search.toLowerCase().trim();
+      const idMatch = String(t.id || '').toLowerCase().includes(s);
+      const codeMatch = String(t.kodeVoucher || '').toLowerCase().includes(s);
+      const inmateMatch = String(t.inmate?.name || t.inmateName || t.napi?.nama || '').toLowerCase().includes(s);
+      const nipMatch = String(t.inmate?.identifier || t.napi?.id || '').toLowerCase().includes(s);
+      const pkgMatch = String(t.package?.name || t.packageName || t.paket?.nama || '').toLowerCase().includes(s);
+      if (!idMatch && !codeMatch && !inmateMatch && !nipMatch && !pkgMatch) return false;
+    }
+
+    return true;
+  });
+
+  // Hitung total detik dan total tagihan dari durasi paket/voucher yang dibeli WBP
+  let accumulatedSeconds = 0;
+  const mappedItems = filteredTxs.map((t) => {
+    const durationMinutes = Number(
+      t.package?.durationMinutes ||
+      t.package?.duration ||
+      t.packageDuration ||
+      t.durationMinutes ||
+      (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) ||
+      0
+    );
+    const durationSeconds = durationMinutes * 60;
+    accumulatedSeconds += durationSeconds;
+
+    const nominal = isContractSet && ratePerSecond !== null && superadminPercent !== null
+      ? Math.round(durationSeconds * ratePerSecond * (superadminPercent / 100))
+      : null;
+
+    return {
+      id: t.id,
+      createdAt: t.createdAt || t.waktu || t.date || new Date().toISOString(),
+      kodeVoucher: t.kodeVoucher || (t.id ? String(t.id).slice(-8).toUpperCase() : '-'),
+      inmateName: t.inmate?.name || t.inmateName || t.napi?.nama || 'WBP',
+      inmateIdentifier: t.inmate?.identifier || t.napi?.id || '-',
+      packageName: t.package?.name || t.packageName || t.paket?.nama || 'Paket Komunikasi',
+      packageDuration: durationMinutes,
+      cashierName: t.cashier?.name || t.petugas || 'Petugas Kantin',
+      durationSeconds,
+      ratePerSecond: isContractSet ? ratePerSecond : null,
+      superadminPercent: isContractSet ? superadminPercent : null,
+      nominal,
+      totalAmount: Number(t.totalAmount || t.paket?.harga || t.package?.price || 0),
+    };
+  });
+
+  // Pagination slice
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 20;
+  const totalItems = mappedItems.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / limitNum));
+  const startIndex = (pageNum - 1) * limitNum;
+  const paginatedItems = mappedItems.slice(startIndex, startIndex + limitNum);
+
+  // Perhitungan tagihan agregat satu rumus untuk periode ini
+  const billingCalc = calculateUnifiedBilling({
+    totalSeconds: accumulatedSeconds,
+    ratePerSecond,
+    superadminPercent,
+  });
+
+  return {
+    items: paginatedItems,
+    totalItems,
+    totalSeconds: accumulatedSeconds,
+    subtotal: billingCalc.subtotal,
+    totalTagihan: billingCalc.totalAmount,
+    ratePerSecond: billingCalc.ratePerSecond,
+    superadminPercent: billingCalc.superadminPercent,
+    isContractSet,
+    pagination: {
+      page: pageNum,
+      limit: limitNum,
+      totalPages,
+    },
+  };
 }
 
 /**

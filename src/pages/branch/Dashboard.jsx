@@ -30,8 +30,8 @@ import { getPackages } from '../../services/packageService';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { useAuth } from '../../context/AuthContext';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
-import { downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
+import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -264,14 +264,20 @@ const Dashboard = () => {
     }
   }, [effectiveCanViewRecordings, debouncedSearch, statusFilter, activeTab, limit, navigate, logout]);
 
-  // Client-side filtering terhadap jalur panggilan (Web / GSM)
+  // Client-side filtering terhadap jalur panggilan (Web / GSM) dan status
   const filteredCalls = React.useMemo(() => {
     let list = callsData.items || [];
     if (activeTab === 'voice' && channelFilter !== 'All') {
       list = list.filter((c) => (c.channel || 'web').toLowerCase() === channelFilter.toLowerCase());
     }
+    if (statusFilter !== 'All') {
+      list = list.filter((c) => {
+        const norm = normalizeCallStatus(c.status, c.rawStatus);
+        return norm.toLowerCase() === statusFilter.toLowerCase();
+      });
+    }
     return list;
-  }, [callsData.items, activeTab, channelFilter]);
+  }, [callsData.items, activeTab, channelFilter, statusFilter]);
 
   useEffect(() => {
     if (effectiveCanViewRecordings) {
@@ -524,6 +530,7 @@ const Dashboard = () => {
                       >
                         <option value="All">Semua Status</option>
                         <option value="Answered">Terjawab</option>
+                        <option value="Rejected">Ditolak</option>
                         <option value="Missed">Tidak Terjawab</option>
                       </select>
                     </div>
@@ -667,14 +674,7 @@ const Dashboard = () => {
                             </td>
                             <td className="py-3.5 px-3 text-center whitespace-nowrap">
                               <div className="flex items-center justify-center">
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                                  isAnswered 
-                                    ? 'bg-emerald-100/70 text-emerald-700 border border-emerald-200/50' 
-                                    : 'bg-rose-100/70 text-rose-700 border border-rose-200/50'
-                                }`}>
-                                  {isAnswered ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-                                  <span>{statusText}</span>
-                                </span>
+                                <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
                               </div>
                             </td>
                             <td className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>

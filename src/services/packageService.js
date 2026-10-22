@@ -260,20 +260,18 @@ export const getPackages = async ({
  */
 export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
   const user = getAuthUser();
-  const activeBranchIdFromStorage = typeof window !== 'undefined' ? localStorage.getItem('pascall_active_branch_id') : null;
-  const activeBranchNameFromStorage = typeof window !== 'undefined' ? localStorage.getItem('pascall_active_branch_name') : null;
 
-  // Tentukan target branch (prioritas: user branch -> branch tersimpan di session/SPV)
-  let userBranchId = user?.branchId || user?.branch?.id;
-  if (!userBranchId || userBranchId === 'b1') {
-    if (activeBranchIdFromStorage && activeBranchIdFromStorage !== 'b1') {
-      userBranchId = activeBranchIdFromStorage;
-    }
+  // UPT ID HARUS diambil murni dari user profile akun Kantin yang sedang login.
+  // Jangan pernah fallback ke session storage cabang lain atau SPV cabang lain.
+  const userBranchId = user?.branchId || user?.branch?.id;
+
+  // Jika akun belum terasosiasi dengan cabang atau branchId belum tersedia,
+  // kantin TIDAK BOLEH menampilkan paket apapun (wajib list kosong).
+  if (!userBranchId) {
+    return [];
   }
 
-  const userBranchName = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || activeBranchNameFromStorage || '';
-
-  // 1. Ambil paket dari BE
+  // 1. Ambil paket dari BE dengan filter branchId UPT ini & allowEmpty: true (tidak boleh fallback ke defaultPackages)
   let rawList = [];
   let fetchSucceeded = false;
   try {
@@ -293,19 +291,14 @@ export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
   if (fetchSucceeded) {
     const bePackages = Array.isArray(rawList) ? rawList : [];
 
-    // Filter paket: HANYA yang secara spesifik memiliki branchId cabang ini (ditetapkan oleh SPV)
-    // Paket global (branchId kosong/null) adalah template dan BELUM diterapkan oleh SPV ke cabang ini
+    // Filter paket: HANYA yang secara spesifik memiliki branchId cabang ini (dibuat/diterapkan oleh SPV UPT ini).
+    // Paket global (branchId null/kosong) atau paket milik UPT lain DILARANG KERAS ditampilkan di Kantin.
     const branchSpecific = bePackages.filter((p) => {
       if (!p.branchId || String(p.branchId).trim() === '') return false;
       if (p.isActive === false || p.status === 'Nonaktif') return false;
 
-      if (userBranchId && (p.branchId === userBranchId || String(p.branchId).toLowerCase() === String(userBranchId).toLowerCase())) {
-        return true;
-      }
-      if (userBranchName && p.branch && typeof p.branch === 'string' && p.branch.toLowerCase().includes(userBranchName.toLowerCase())) {
-        return true;
-      }
-      return false;
+      // branchId paket HARUS sama persis dengan userBranchId milik akun Kantin ini
+      return String(p.branchId).toLowerCase() === String(userBranchId).toLowerCase();
     });
 
     list = branchSpecific;
@@ -313,37 +306,28 @@ export const getPaketKantin = async ({ kategori = 'telepon' } = {}) => {
     // Sinkronkan cache lokal khusus cabang ini
     if (typeof window !== 'undefined') {
       try {
-        if (userBranchId) {
-          localStorage.setItem(`pascall_branch_packages_${userBranchId}`, JSON.stringify(list));
-        }
+        localStorage.setItem(`pascall_branch_packages_${userBranchId}`, JSON.stringify(list));
         if (list.length > 0) {
           localStorage.setItem('pascall_latest_branch_packages', JSON.stringify(list));
           localStorage.setItem('pascall_upt_packages_v7', JSON.stringify(list));
-          if (userBranchId) {
-            localStorage.setItem('pascall_active_branch_id', userBranchId);
-          }
+          localStorage.setItem('pascall_active_branch_id', userBranchId);
         } else {
-          // Jika SPV belum menetapkan paket di cabang ini, bersihkan shared cache agar tidak memakai data cabang lain
-          const activeStoredBranch = localStorage.getItem('pascall_active_branch_id');
-          if (!activeStoredBranch || (userBranchId && activeStoredBranch === userBranchId)) {
-            localStorage.removeItem('pascall_latest_branch_packages');
-            localStorage.removeItem('pascall_upt_packages_v7');
-          }
+          // Jika belum ada paket dari SPV di cabang ini, bersihkan shared cache agar tidak memakai data lama/cabang lain
+          localStorage.removeItem('pascall_latest_branch_packages');
+          localStorage.removeItem('pascall_upt_packages_v7');
         }
       } catch {}
     }
   } else {
-    // 2. Hanya jika request ke BE error/offline: gunakan cache yang terverifikasi milik cabang ini
+    // 2. Hanya jika request ke BE error/offline: gunakan cache yang terverifikasi khusus milik cabang ini
     try {
-      const cached = userBranchId
-        ? localStorage.getItem(`pascall_branch_packages_${userBranchId}`)
-        : null;
+      const cached = localStorage.getItem(`pascall_branch_packages_${userBranchId}`);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
           list = parsed.filter((p) => {
-            if (!p.branchId) return false;
-            if (userBranchId && String(p.branchId).toLowerCase() !== String(userBranchId).toLowerCase()) return false;
+            if (!p.branchId || String(p.branchId).trim() === '') return false;
+            if (String(p.branchId).toLowerCase() !== String(userBranchId).toLowerCase()) return false;
             return p.isActive !== false && p.status !== 'Nonaktif';
           });
         }

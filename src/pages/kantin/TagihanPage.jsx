@@ -107,8 +107,23 @@ export default function TagihanPage() {
       if (paymentsRes.status === 'fulfilled') {
         setPaymentHistory(Array.isArray(paymentsRes.value) ? paymentsRes.value : []);
       }
-      if (newBillingRes.status === 'fulfilled') {
+      if (newBillingRes.status === 'fulfilled' && newBillingRes.value) {
         setCanteenBilling(newBillingRes.value);
+      } else if (billingRes.status === 'fulfilled' && billingRes.value) {
+        const beSummary = billingRes.value.summary;
+        if (beSummary && beSummary.ratePerSecond !== null && beSummary.ratePerSecond !== undefined) {
+          const beRate = Number(beSummary.ratePerSecond);
+          const beSa = Number(beSummary.contractSharePercentage ?? beSummary.passcallSharePercentage ?? 50);
+          setCanteenBilling({
+            ratePerSecond: beRate,
+            superadminPercent: beSa,
+            canteenPercent: Math.max(0, 100 - beSa),
+            negotiationPercent: beSa,
+            isContractSet: true,
+            totalSeconds: Number(beSummary.totalSeconds || 0),
+            totalAmount: Number(beSummary.totalAmount || 0),
+          });
+        }
       }
     } catch (err) {
       console.error('Gagal memuat rekapitulasi tagihan bulanan kantin:', err);
@@ -228,17 +243,24 @@ export default function TagihanPage() {
 
   const isPastDue = remainingDays < 0;
 
-  // Nilai Tagihan Baru Berbasis Detik
+  // Nilai Tagihan Baru Berbasis Detik Penjualan Voucher Kantin
   // Ikuti aturan: Kontrak belum diatur (ratePerSecond atau persen null/kosong) => Jangan jadikan 0/default 15/40
-  const isContractConfigured = isCanteenContractConfigured(canteenBilling);
-  const ratePerSec = isContractConfigured && canteenBilling?.ratePerSecond !== null && canteenBilling?.ratePerSecond !== undefined
-    ? Number(canteenBilling.ratePerSecond)
+  const effectiveContract = canteenBilling || (billingData?.summary && billingData.summary.ratePerSecond !== null && billingData.summary.ratePerSecond !== undefined ? {
+    ratePerSecond: billingData.summary.ratePerSecond,
+    superadminPercent: billingData.summary.contractSharePercentage ?? billingData.summary.passcallSharePercentage,
+    negotiationPercent: billingData.summary.contractSharePercentage ?? billingData.summary.passcallSharePercentage,
+    isContractSet: true,
+  } : null);
+
+  const isContractConfigured = isCanteenContractConfigured(effectiveContract);
+  const ratePerSec = isContractConfigured && effectiveContract?.ratePerSecond !== null && effectiveContract?.ratePerSecond !== undefined
+    ? Number(effectiveContract.ratePerSecond)
     : null;
-  const saPercent = isContractConfigured && (canteenBilling?.superadminPercent ?? canteenBilling?.negotiationPercent) !== null && (canteenBilling?.superadminPercent ?? canteenBilling?.negotiationPercent) !== undefined
-    ? Number(canteenBilling.superadminPercent ?? canteenBilling.negotiationPercent)
+  const saPercent = isContractConfigured && (effectiveContract?.superadminPercent ?? effectiveContract?.negotiationPercent) !== null && (effectiveContract?.superadminPercent ?? effectiveContract?.negotiationPercent) !== undefined
+    ? Number(effectiveContract.superadminPercent ?? effectiveContract.negotiationPercent)
     : null;
 
-  // Gunakan totalSeconds dan totalTagihan dari respons API
+  // Sumber detik tunggal dari durasi paket/voucher yang dibeli WBP
   const totalSecondsAll = Number(
     callsData?.totalSeconds !== undefined && callsData?.totalSeconds !== null && !searchQuery
       ? callsData.totalSeconds
@@ -246,17 +268,11 @@ export default function TagihanPage() {
   );
 
   const subtotalTagihan = isContractConfigured && ratePerSec !== null
-    ? (canteenBilling?.subtotal !== null && canteenBilling?.subtotal !== undefined
-        ? Number(canteenBilling.subtotal)
-        : Math.round(totalSecondsAll * ratePerSec))
+    ? Math.round(totalSecondsAll * ratePerSec)
     : null;
 
   const newTotalTagihan = isContractConfigured && saPercent !== null && subtotalTagihan !== null
-    ? (callsData?.totalTagihan !== undefined && callsData?.totalTagihan !== null && !searchQuery
-        ? Number(callsData.totalTagihan)
-        : (canteenBilling?.totalAmount !== null && canteenBilling?.totalAmount !== undefined
-            ? Number(canteenBilling.totalAmount)
-            : Math.round(subtotalTagihan * (saPercent / 100))))
+    ? Math.round(subtotalTagihan * (saPercent / 100))
     : null;
 
   // Filter pembayaran khusus untuk bulan & tahun yang dipilih
@@ -317,6 +333,16 @@ export default function TagihanPage() {
   // SATU STATUS TUNGGAL (Tidak ada label status yang bertabrakan)
   // =========================================================================
   const singleStatus = useMemo(() => {
+    if (isLoading) {
+      return {
+        key: 'LOADING',
+        label: 'Memuat...',
+        badgeBg: 'bg-slate-500/20 text-slate-300 border-slate-400/30',
+        textColor: 'text-slate-300',
+        icon: Clock,
+      };
+    }
+
     if (!isContractConfigured) {
       return {
         key: 'CONTRACT_NOT_SET',
@@ -550,7 +576,7 @@ export default function TagihanPage() {
             Tagihan Bulanan Kantin
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Tagihan bulanan dihitung dari akumulasi detik panggilan WBP dikalikan tarif per detik dan persen bagian Superadmin.
+            Tagihan bulanan dihitung dari akumulasi durasi paket/voucher yang dibeli WBP di kantin dikalikan tarif per detik dan persen bagian Superadmin.
           </p>
         </div>
 
@@ -596,12 +622,27 @@ export default function TagihanPage() {
       {/* =========================================================================
           BANNER PERINGATAN KONTRAK & JATUH TEMPO
           Sesuai aturan:
+          - Kontrak belum diatur: Banner peringatan hubungi Superadmin
           - Sisa 7 hari atau kurang: Kuning
           - Sisa 3 hari atau kurang: Oranye
           - Sisa 1 hari atau kurang: Merah ("Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan")
           - Setelah lewat: Status Telat/Diblokir
           ========================================================================= */}
-      
+
+      {/* 1. Banner Kontrak Belum Diatur (Superadmin Belum Membuat Kontrak) */}
+      {!isLoading && !isContractConfigured && (
+        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start sm:items-center gap-3 text-xs text-amber-900 animate-in fade-in">
+          <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+          <div className="flex-1">
+            <strong className="block font-bold text-amber-800">
+              Tarif Belum Diatur
+            </strong>
+            <span>
+              Tarif belum diatur: tagihan belum muncul karena kontrak dengan Superadmin belum dibuat. Hubungi Admin Pusat/Superadmin.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* 2. Peringatan Telat / Diblokir (Lewat Jatuh Tempo) */}
       {isPastDue && !isPaid && !isPendingAcc && isContractConfigured && newTotalTagihan > 0 && (
@@ -718,26 +759,36 @@ export default function TagihanPage() {
                   </div>
                 </div>
 
-                {/* Keterangan Tagihan Baru Berbasis Detik */}
-                {isContractConfigured ? (
-                  <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-                    Dihitung otomatis dari{' '}
-                    <strong className="text-white font-bold">
-                      {totalSecondsAll.toLocaleString('id-ID')} detik
-                    </strong>{' '}
-                    panggilan WBP dengan tarif{' '}
-                    <strong className="text-white font-bold">
-                      {ratePerSec !== null ? `${formatRupiah(ratePerSec)}/detik` : '-'}
-                    </strong>{' '}
-                    dan{' '}
-                    <strong className="text-white font-bold">
-                      {saPercent !== null ? `${saPercent}% bagian SA` : '-'}
-                    </strong>.
+                {/* Keterangan Tagihan Baru Berbasis Detik Penjualan Voucher Kantin */}
+                {isLoading ? (
+                  <p className="text-slate-400 text-xs sm:text-sm leading-relaxed font-medium">
+                    Memuat rincian tarif dan tagihan...
                   </p>
+                ) : isContractConfigured ? (
+                  totalSecondsAll === 0 ? (
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed font-medium">
+                      Belum ada penjualan voucher bulan ini.
+                    </p>
+                  ) : (
+                    <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                      Dihitung otomatis dari{' '}
+                      <strong className="text-white font-bold">
+                        {totalSecondsAll.toLocaleString('id-ID')} detik
+                      </strong>{' '}
+                      durasi voucher yang dibeli WBP di kantin dengan tarif{' '}
+                      <strong className="text-white font-bold">
+                        {ratePerSec !== null ? `${formatRupiah(ratePerSec)}/detik` : '-'}
+                      </strong>{' '}
+                      dan{' '}
+                      <strong className="text-white font-bold">
+                        {saPercent !== null ? `${saPercent}% bagian SA` : '-'}
+                      </strong>.
+                    </p>
+                  )
                 ) : (
                   <p className="text-amber-200 text-xs sm:text-sm leading-relaxed flex items-center gap-1.5 font-medium">
                     <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-                    <span>Tarif kontrak belum diatur oleh Superadmin. Total tagihan belum dapat dihitung.</span>
+                    <span>Tarif belum diatur: tagihan belum muncul karena kontrak dengan Superadmin belum dibuat. Hubungi Admin Pusat/Superadmin.</span>
                   </p>
                 )}
 
@@ -837,7 +888,12 @@ export default function TagihanPage() {
                 )}
 
                 {/* Tombol Bayar Tagihan (Hijau Aktif jika canPay) atau Tidak Ada Tagihan */}
-                {!isContractConfigured ? (
+                {isLoading ? (
+                  <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center justify-center gap-1.5">
+                    <Clock className="w-4 h-4 text-blue-400" />
+                    <span>Memuat Status Pembayaran...</span>
+                  </div>
+                ) : !isContractConfigured ? (
                   <div className="text-center py-2.5 text-xs font-semibold text-amber-200 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center justify-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-300" />
                     <span>Menunggu Penetapan Tarif</span>
@@ -940,7 +996,7 @@ export default function TagihanPage() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Rincian Panggilan ({callsData.totalItems})
+              Rincian Penjualan Voucher ({callsData.totalItems})
             </button>
             <button
               type="button"
@@ -970,8 +1026,8 @@ export default function TagihanPage() {
         </div>
 
         {/* =======================================================================
-            TAB 1: RINCIAN PANGGILAN
-            HANYA riwayat panggilan WBP, terhubung ke GET /api/canteen/billing/calls
+            TAB 1: RINCIAN PENJUALAN VOUCHER
+            Data transaksi penjualan paket/voucher kantin yang dibeli WBP
             Kolom: No Transaksi, Waktu, Kode Voucher, WBP (Penerima), Paket/Layanan,
             Petugas Kasir, Durasi (detik), Nominal Tagihan.
             Baris Total di bawah tabel menggunakan totalSeconds dan totalTagihan respons.
@@ -997,16 +1053,24 @@ export default function TagihanPage() {
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <RefreshCw className="w-5 h-5 text-blue-500 animate-spin mx-auto mb-2" />
-                        <span>Memuat rincian panggilan...</span>
+                        <span>Memuat rincian transaksi penjualan voucher...</span>
                       </td>
                     </tr>
                   ) : callsData.items.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <Ticket className="w-6 h-6 mx-auto text-slate-300 mb-1" />
-                        <p className="font-bold text-slate-700">Tidak ada riwayat panggilan pada periode ini</p>
+                        <p className="font-bold text-slate-700">
+                          {isLoading ? 'Memuat data...' : isContractConfigured ? 'Belum ada penjualan voucher bulan ini' : 'Tarif kontrak belum diatur oleh Superadmin'}
+                        </p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
-                          {searchQuery ? 'Coba ubah kata kunci pencarian Anda' : 'Belum ada panggilan WBP yang tercatat di sistem'}
+                          {searchQuery
+                            ? 'Coba ubah kata kunci pencarian Anda'
+                            : isLoading
+                            ? 'Silakan tunggu...'
+                            : isContractConfigured
+                            ? 'Belum ada transaksi pembelian voucher WBP yang tercatat di sistem pada periode ini'
+                            : 'Hubungi Superadmin untuk menetapkan kontrak tarif'}
                         </p>
                       </td>
                     </tr>
@@ -1028,7 +1092,7 @@ export default function TagihanPage() {
                           <td className="py-3 px-4 whitespace-nowrap">
                             <span className="font-mono font-bold text-blue-700 bg-blue-50/80 px-2.5 py-1 rounded-lg border border-blue-200/80 inline-flex items-center gap-1">
                               <Ticket className="w-3 h-3 text-blue-500" />
-                              {call.id.slice(-8).toUpperCase()}
+                              {call.kodeVoucher || String(call.id).slice(-8).toUpperCase()}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -1049,18 +1113,20 @@ export default function TagihanPage() {
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-1.5">
                               <span className="w-5 h-5 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
-                                <Phone className="w-3 h-3" />
+                                <Ticket className="w-3 h-3" />
                               </span>
                               <div>
-                                <div className="font-semibold text-slate-800">Panggilan Wartelsus</div>
-                                <div className="text-[10px] text-slate-500">{Math.round(durSec / 60) || 1} Menit</div>
+                                <div className="font-semibold text-slate-800">{call.packageName || 'Paket Komunikasi'}</div>
+                                <div className="text-[10px] text-slate-500">
+                                  {call.packageDuration ? `${call.packageDuration} Menit` : `${Math.round(durSec / 60) || 1} Menit`}
+                                </div>
                               </div>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-slate-600 whitespace-nowrap">
                             <div className="flex items-center gap-1.5">
                               <User className="w-3.5 h-3.5 text-slate-400" />
-                              <span className="font-medium">Operator Sistem</span>
+                              <span className="font-medium">{call.cashierName || 'Petugas Kantin'}</span>
                             </div>
                           </td>
                           <td className="py-3 px-4 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
@@ -1157,7 +1223,14 @@ export default function TagihanPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {!isContractConfigured ? (
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="7" className="py-12 text-center text-slate-400">
+                      <RefreshCw className="w-5 h-5 text-blue-500 animate-spin mx-auto mb-2" />
+                      <span>Memuat riwayat pembayaran...</span>
+                    </td>
+                  </tr>
+                ) : !isContractConfigured ? (
                   <tr>
                     <td colSpan="7" className="py-12 text-center text-slate-400">
                       <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-500 border border-amber-200 flex items-center justify-center mx-auto mb-2">

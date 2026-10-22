@@ -17,6 +17,7 @@ import {
 import { downloadTextFile, downloadAudioFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
 import { getAudioStreamUrl } from '../../services/callService';
+import { CallStatusBadge } from '../../utils/callStatus';
 
 const AudioPlayerPanel = ({ call, onClose }) => {
   const { isSupervisor, uptName, userName, roleLabel } = useAuth();
@@ -285,14 +286,7 @@ const AudioPlayerPanel = ({ call, onClose }) => {
                 {isVideo ? <Video className="w-2.5 h-2.5" /> : <PhoneCall className="w-2.5 h-2.5" />}
                 {isVideo ? 'Video Call' : 'Voice Call'}
               </span>
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                isAnswered 
-                  ? 'bg-emerald-100 text-emerald-700' 
-                  : 'bg-rose-100 text-rose-700'
-              }`}>
-                {isAnswered ? <CheckCircle2 className="w-2.5 h-2.5" /> : <XCircle className="w-2.5 h-2.5" />}
-                {statusLabel}
-              </span>
+              <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
             </div>
             
             <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName}>

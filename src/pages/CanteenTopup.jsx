@@ -1400,7 +1400,7 @@ export default function CanteenTopup() {
           <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Panggilan WBP
+                Total Transaksi Voucher
               </span>
               <div className="text-2xl font-black text-slate-900 tracking-tight">
                 {saCallsData.totalItems.toLocaleString('id-ID')}
@@ -1417,13 +1417,13 @@ export default function CanteenTopup() {
           <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Durasi Bicara
+                Total Durasi Voucher
               </span>
               <div className="text-2xl font-black text-slate-900 tracking-tight">
                 {Number(saCallsData.totalSeconds || 0).toLocaleString('id-ID')} <span className="text-xs font-semibold text-slate-400">Detik</span>
               </div>
               <span className="text-[11px] font-semibold text-emerald-600">
-                ≈ {Math.floor((saCallsData.totalSeconds || 0) / 60).toLocaleString('id-ID')} Menit Panggilan
+                ≈ {Math.floor((saCallsData.totalSeconds || 0) / 60).toLocaleString('id-ID')} Menit Voucher
               </span>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
@@ -2041,12 +2041,12 @@ export default function CanteenTopup() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     {/* Total Detik */}
                     <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                      <span className="text-slate-500 block mb-0.5 font-medium">Total Detik Bicara WBP:</span>
+                      <span className="text-slate-500 block mb-0.5 font-medium">Total Detik Durasi Voucher:</span>
                       <span className="text-sm font-black text-slate-900 block">
                         {detailModalItem.totalSeconds.toLocaleString('id-ID')} Detik
                       </span>
                       <span className="text-[11px] text-emerald-600 font-semibold block mt-0.5">
-                        ≈ {Math.floor(detailModalItem.totalSeconds / 60).toLocaleString('id-ID')} menit bicara
+                        ≈ {Math.floor(detailModalItem.totalSeconds / 60).toLocaleString('id-ID')} menit voucher
                       </span>
                     </div>
 

@@ -137,21 +137,12 @@ export default function PaketPage() {
           </p>
         </div>
 
-        {/* Toolbar Kategori & Refresh */}
-        <div className="flex flex-wrap items-center gap-2 self-start lg:self-center">
+        {/* Toolbar Kategori */}
+        <div className="self-start lg:self-center shrink-0">
           <KategoriTabs
             kategoriAktif={kategori}
             onPilihKategori={(kat) => setKategori(kat)}
           />
-          <button
-            type="button"
-            onClick={handleManualRefresh}
-            disabled={isLoading || isRefreshing}
-            className="p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 hover:text-blue-600 shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-60"
-            title="Segarkan daftar paket"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading || isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
-          </button>
         </div>
       </div>
 
@@ -216,16 +207,28 @@ export default function PaketPage() {
       <PromoBanner />
 
       {/* 3. Section Heading Paket */}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-600" />
           <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">
             Daftar Paket {kategori === 'video' ? 'Video Call' : (kategori === 'combo' ? 'Combo' : 'Suara / Telepon')} ({paketList.length})
           </h2>
         </div>
-        <span className="text-xs text-slate-400 font-medium">
-          Pilih paket untuk diterbitkan langsung kepada WBP
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+            Pilih paket untuk diterbitkan langsung kepada WBP
+          </span>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isLoading || isRefreshing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-blue-600 text-xs font-semibold shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-60"
+            title="Segarkan daftar paket"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
+            <span>Segarkan</span>
+          </button>
+        </div>
       </div>
 
       {/* 4. Grid Kartu Paket */}
@@ -246,24 +249,29 @@ export default function PaketPage() {
       ) : paketList.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-3">
           <EmptyState
-            title={allPaket.length === 0 ? "Belum Ada Paket Komunikasi" : "Paket Tidak Ditemukan"}
+            title={allPaket.length === 0 ? "Belum Ada Paket" : "Paket Tidak Ditemukan"}
             description={
               allPaket.length === 0
-                ? "Paket komunikasi belum dibuat atau diterapkan oleh Supervisor UPT untuk cabang ini. Jika Supervisor baru saja menetapkan paket, klik tombol di bawah untuk menyegarkan."
+                ? "Belum ada paket. Paket dibuat oleh SPV UPT ini."
                 : "Saat ini belum ada daftar paket untuk kategori yang dipilih."
             }
             icon={Package}
           />
           {allPaket.length === 0 && (
-            <button
-              type="button"
-              onClick={handleManualRefresh}
-              disabled={isRefreshing}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-70"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span>Segarkan Daftar Paket</span>
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200">
+                Transaksi pembelian voucher nonaktif sampai ada paket dari SPV.
+              </span>
+              <button
+                type="button"
+                onClick={handleManualRefresh}
+                disabled={isRefreshing}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 cursor-pointer disabled:opacity-70"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                <span>Segarkan Daftar Paket</span>
+              </button>
+            </div>
           )}
         </div>
       ) : (
