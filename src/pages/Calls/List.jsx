@@ -261,17 +261,15 @@ const CallsList = () => {
         </div>
       )}
 
-      {/* 3 Card Ringkasan Jalur Panggilan */}
+      {/* 3 Card Ringkasan Jalur Panggilan (Web vs GSM) - Menghitung total Voice & Video bersamaan */}
       <CallChannelSummaryCards
         filters={{
           branchId: branchFilter !== 'All' ? branchFilter : undefined,
           status: statusFilter !== 'All' ? statusFilter : undefined,
-          type: activeTab,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           search: debouncedSearch || undefined,
         }}
-        activeTab={activeTab}
       />
 
       {/* Control Bar (Pencarian, Tipe Panggilan, Filter & Export) */}

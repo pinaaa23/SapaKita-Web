@@ -169,17 +169,15 @@ const Recordings = () => {
 
   return (
     <div className="space-y-6">
-      {/* 3 Card Ringkasan Jalur Panggilan */}
+      {/* 3 Card Ringkasan Jalur Panggilan (Web vs GSM) - Menghitung total Voice & Video bersamaan */}
       <CallChannelSummaryCards
         filters={{
           branchId: user?.branchId || user?.branch?.id || undefined,
           status: statusFilter !== 'All' ? statusFilter : undefined,
-          type: activeTab,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           search: debouncedSearch || undefined,
         }}
-        activeTab={activeTab}
       />
       
       {/* Main Table & Split View Container */}

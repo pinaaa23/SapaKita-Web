@@ -265,17 +265,15 @@ export default function KanwilCalls() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
-      {/* 3 Card Ringkasan Jalur Panggilan */}
+      {/* 3 Card Ringkasan Jalur Panggilan (Web vs GSM) - Menghitung total Voice & Video bersamaan */}
       <CallChannelSummaryCards
         filters={{
           branchId: branchFilter !== 'All' ? branchFilter : undefined,
           status: statusFilter !== 'All' ? statusFilter : undefined,
-          type: activeTab,
           startDate: startDate || undefined,
           endDate: endDate || undefined,
           search: debouncedSearch || undefined,
         }}
-        activeTab={activeTab}
       />
 
       {/* Main Content: Table & Split Audio Player */}

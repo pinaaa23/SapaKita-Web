@@ -30,6 +30,7 @@ export default function CallChannelSummaryCards({
   const [retryTrigger, setRetryTrigger] = useState(0);
 
   // Fetch summary dari endpoint GET /api/calls/channel-summary saat filter berubah
+  // Catatan: Ringkasan jalur Web vs GSM TIDAK membedakan Voice vs Video Call agar selalu menghitung total keduanya
   const fetchSummary = useCallback(async () => {
     if (!filters) return;
     setInternalLoading(true);
@@ -38,7 +39,6 @@ export default function CallChannelSummaryCards({
       const data = await getCallChannelSummary({
         branchId: filters.branchId,
         status: filters.status,
-        type: filters.type || filters.callType || activeTab,
         startDate: filters.startDate,
         endDate: filters.endDate,
         search: filters.search,
@@ -53,12 +53,9 @@ export default function CallChannelSummaryCards({
   }, [
     filters?.branchId,
     filters?.status,
-    filters?.type,
-    filters?.callType,
     filters?.startDate,
     filters?.endDate,
     filters?.search,
-    activeTab,
   ]);
 
   useEffect(() => {
@@ -84,7 +81,7 @@ export default function CallChannelSummaryCards({
     let gsmCount = 0;
 
     (calls || []).forEach((c) => {
-      const isVideo = (c.callType || '').toLowerCase() === 'video' || activeTab === 'video';
+      const isVideo = (c.callType || '').toLowerCase() === 'video';
       const channel = isVideo ? 'web' : normalizeChannel(c.channel);
       const sec = typeof c.durationSeconds === 'number'
         ? c.durationSeconds
@@ -118,7 +115,7 @@ export default function CallChannelSummaryCards({
       webPercent,
       gsmPercent,
     };
-  }, [calls, activeTab]);
+  }, [calls]);
 
   // Resolusi metrik: Utamakan respons resmi dari endpoint GET /api/calls/channel-summary
   const metrics = useMemo(() => {
