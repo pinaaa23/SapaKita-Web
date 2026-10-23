@@ -29,6 +29,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/kanwil/branches')) return { title: 'Daftar UPT', subtitle: `UPT di bawah naungan ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/inmates')) return { title: 'Data WBP', subtitle: `Daftar warga binaan pemasyarakatan di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/calls')) return { title: 'Panggilan', subtitle: `Log aktivitas panggilan dan rekaman audio seluruh UPT di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/canteen-topup')) return { title: 'Tagihan Kantin', subtitle: `Laporan tagihan bulanan kantin seluruh UPT di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/reports')) return { title: 'Laporan', subtitle: `Laporan & analitik performa seluruh UPT di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/profile')) return { title: 'Profil Kanwil', subtitle: 'Informasi akun & pengaturan profil kantor wilayah' };
     if (pathname === '/kanwil' || pathname === '/kanwil/' || pathname.startsWith('/kanwil/dashboard')) {

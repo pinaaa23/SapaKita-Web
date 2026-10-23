@@ -578,6 +578,31 @@ export const deletePackage = async (id) => {
   }
 };
 
+/**
+ * Mengambil daftar template paket rekomendasi sistem
+ * Endpoint: GET /api/packages/templates (Role: BRANCH_ADMIN, SUPERADMIN, SUPERVISOR, CANTEEN_STAFF, KANWIL_ADMIN)
+ */
+export const getPackageTemplates = async () => {
+  if (isDummyMode()) {
+    const { DEFAULT_PACKAGES } = await import('../config/defaultPackages');
+    return DEFAULT_PACKAGES;
+  }
+
+  try {
+    const res = await apiFetch('/api/packages/templates');
+    const list = res?.data || (Array.isArray(res) ? res : []);
+    return list;
+  } catch (err) {
+    console.error('[PackageService] Gagal memuat template paket:', err?.message || err);
+    try {
+      const { DEFAULT_PACKAGES } = await import('../config/defaultPackages');
+      return DEFAULT_PACKAGES;
+    } catch {
+      return [];
+    }
+  }
+};
+
 export default {
   PACKAGES_ENDPOINT,
   PACKAGE_DETAIL_ENDPOINT,
@@ -588,6 +613,7 @@ export default {
   getStoredPackages,
   saveStoredPackages,
   getPackages,
+  getPackageTemplates,
   getPaketKantin,
   createPackage,
   updatePackage,
@@ -595,3 +621,4 @@ export default {
   togglePackageStatus,
   deletePackage,
 };
+

@@ -214,7 +214,7 @@ const CallsList = () => {
       'UPT': (c.branchName && c.branchName !== '-' && !c.branchName.startsWith('b')) ? c.branchName : (branchesMap[c.branchId] || nipBranchMap[c.inmateId] || 'Lapas Kelas I'),
       'Nama WBP': c.inmateName,
       'NIP': c.inmateId,
-      'No. Telepon Tujuan': c.familyPhone || '-',
+      'No. Telepon Tujuan': c.targetPhone || c.familyPhone || '-',
       'Durasi': `${Math.floor((c.durationSeconds || 0) / 60)}m ${(c.durationSeconds || 0) % 60}s`,
       'Biaya': `Rp ${new Intl.NumberFormat('id-ID').format(c.cost || 0)}`,
       'Jalur': c.callType === 'Video' ? 'Web' : (c.channel === 'gsm' ? 'GSM' : 'Web'),
@@ -262,7 +262,17 @@ const CallsList = () => {
       )}
 
       {/* 3 Card Ringkasan Jalur Panggilan */}
-      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
+      <CallChannelSummaryCards
+        filters={{
+          branchId: branchFilter !== 'All' ? branchFilter : undefined,
+          status: statusFilter !== 'All' ? statusFilter : undefined,
+          type: activeTab,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          search: debouncedSearch || undefined,
+        }}
+        activeTab={activeTab}
+      />
 
       {/* Control Bar (Pencarian, Tipe Panggilan, Filter & Export) */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
@@ -535,9 +545,9 @@ const CallsList = () => {
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.targetPhone || call.familyPhone || '-'}>
                               <span>→</span>
-                              <span className="truncate">{call.familyPhone || '-'}</span>
+                              <span className="truncate">{call.targetPhone || call.familyPhone || '-'}</span>
                             </div>
                           </td>
 

@@ -129,13 +129,14 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Admin Kanwil (Dashboard, UPT, Data WBP, Panggilan, Laporan - Read Only)
+  // Menu untuk Admin Kanwil (Dashboard, UPT, Data WBP, Panggilan, Tagihan Kantin, Laporan - Read Only)
   if (normRole === ROLES.ADMIN_KANWIL) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/kanwil/dashboard' },
       { name: 'UPT', icon: Building2, path: '/kanwil/branches' },
       { name: 'Data WBP', icon: Users, path: '/kanwil/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/kanwil/calls' },
+      { name: 'Tagihan Kantin', icon: Receipt, path: '/kanwil/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/kanwil/reports' },
     ];
   }

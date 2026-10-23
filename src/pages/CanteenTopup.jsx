@@ -1104,28 +1104,52 @@ export default function CanteenTopup() {
                           <td className="py-3.5 px-4 text-center whitespace-nowrap">
                             <div className="inline-flex items-center justify-center gap-1.5">
                               {!report.isContractSet ? (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setActiveMainTab('kontrak');
-                                    handleOpenEditContract(report);
-                                  }}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 transition shadow-2xs cursor-pointer"
-                                  title="Atur Kontrak Tarif Kantin Ini"
-                                >
-                                  <Sliders className="w-3.5 h-3.5 text-amber-950" />
-                                  <span>Atur Kontrak</span>
-                                </button>
+                                isSuperadmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMainTab('kontrak');
+                                      handleOpenEditContract(report);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 transition shadow-2xs cursor-pointer"
+                                    title="Atur Kontrak Tarif Kantin Ini"
+                                  >
+                                    <Sliders className="w-3.5 h-3.5 text-amber-950" />
+                                    <span>Atur Kontrak</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDetailModal(report)}
+                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+                                    title="Lihat Rincian Tagihan (Hanya Lihat)"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-slate-500" />
+                                    <span>Detail</span>
+                                  </button>
+                                )
                               ) : isPending ? (
-                                <button
-                                  type="button"
-                                  onClick={() => handleOpenDetailModal(report)}
-                                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white bg-amber-500 hover:bg-amber-600 transition shadow-xs cursor-pointer group animate-pulse"
-                                  title="Periksa bukti transfer dan lakukan persetujuan (ACC)"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
-                                  <span>Periksa &amp; ACC</span>
-                                </button>
+                                isSuperadmin ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDetailModal(report)}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-black text-white bg-amber-500 hover:bg-amber-600 transition shadow-xs cursor-pointer group animate-pulse"
+                                    title="Periksa bukti transfer dan lakukan persetujuan (ACC)"
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5 group-hover:scale-110 transition-transform" />
+                                    <span>Periksa &amp; ACC</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenDetailModal(report)}
+                                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                                    title="Lihat rincian tagihan dan bukti transfer (Hanya Lihat)"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-amber-600" />
+                                    <span>Detail</span>
+                                  </button>
+                                )
                               ) : report.statusPembayaran === 'Lunas' ? (
                                 <button
                                   type="button"
@@ -1174,7 +1198,7 @@ export default function CanteenTopup() {
                     Master Pengaturan Kontrak
                   </span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-xs text-blue-200 font-medium">Khusus Superadmin</span>
+                  <span className="text-xs text-blue-200 font-medium">{isSuperadmin ? 'Khusus Superadmin' : 'Mode Akses: Hanya Lihat (Admin Kanwil)'}</span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
                   <Sliders className="w-6 h-6 text-blue-400" />
@@ -2306,7 +2330,7 @@ export default function CanteenTopup() {
                       </div>
 
                       {/* Form Penolakan (Toggle jika ditolak) */}
-                      {detailModalRejectMode && (
+                      {isSuperadmin && detailModalRejectMode && (
                         <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl space-y-3 animate-in fade-in duration-200">
                           <label className="block text-xs font-bold text-rose-800">
                             Alasan Penolakan Pembayaran <span className="text-rose-600">*</span>:
@@ -2343,7 +2367,7 @@ export default function CanteenTopup() {
                       )}
 
                       {/* Tombol Utama Verifikasi */}
-                      {!detailModalRejectMode && (
+                      {isSuperadmin && !detailModalRejectMode && (
                         <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                           <button
                             type="button"

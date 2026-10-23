@@ -266,7 +266,17 @@ export default function KanwilCalls() {
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
       {/* 3 Card Ringkasan Jalur Panggilan */}
-      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
+      <CallChannelSummaryCards
+        filters={{
+          branchId: branchFilter !== 'All' ? branchFilter : undefined,
+          status: statusFilter !== 'All' ? statusFilter : undefined,
+          type: activeTab,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          search: debouncedSearch || undefined,
+        }}
+        activeTab={activeTab}
+      />
 
       {/* Main Content: Table & Split Audio Player */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">

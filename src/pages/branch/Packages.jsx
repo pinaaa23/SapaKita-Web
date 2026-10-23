@@ -17,19 +17,21 @@ import {
 } from 'lucide-react';
 import { 
   getPackages, 
+  getPackageTemplates,
   createPackage, 
   updatePackage, 
   togglePackageStatus,
   deletePackage,
   notifyPackagesUpdated
 } from '../../services/packageService';
-import { DEFAULT_PACKAGES } from '../../config/defaultPackages';
 import { useAuth } from '../../context/AuthContext';
 
 export default function BranchPackages() {
   const { uptName, user } = useAuth();
   const [packages, setPackages] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [templates, setTemplates] = useState([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('semua');
   const [statusFilter, setStatusFilter] = useState('semua');
@@ -128,15 +130,8 @@ export default function BranchPackages() {
         status: statusFilter === 'template' ? 'semua' : statusFilter,
         allowEmpty: true,
       });
-      // Sembunyikan paket yang branchId-nya kosong / null (paket global),
-      // dan pastikan paket hanya milik cabang SPV itu sendiri dari BE (tanpa paket global dan tanpa fallback)
-      const uptPackages = (data || []).filter((p) => {
-        if (!p.branchId || String(p.branchId).trim() === '') return false;
-        if (currentBId) {
-          return String(p.branchId).toLowerCase() === String(currentBId).toLowerCase();
-        }
-        return true;
-      });
+      // BE sudah murni per cabang, gunakan daftar paket langsung
+      const uptPackages = data || [];
       setPackages(uptPackages);
 
       // Sinkronisasikan paket cabang yang aktif ke shared storage agar Kantin langsung sinkron
@@ -166,9 +161,25 @@ export default function BranchPackages() {
     }
   }, [search, selectedCategory, statusFilter, uptName, user]);
 
+  const fetchTemplates = useCallback(async () => {
+    setIsLoadingTemplates(true);
+    try {
+      const data = await getPackageTemplates();
+      setTemplates(data || []);
+    } catch (err) {
+      console.error('Gagal memuat template rekomendasi paket:', err);
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPackagesData();
   }, [fetchPackagesData]);
+
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -373,7 +384,7 @@ export default function BranchPackages() {
     });
   };
 
-  const unappliedTemplates = DEFAULT_PACKAGES.filter((tpl) => !isTemplateApplied(tpl));
+  const unappliedTemplates = (templates || []).filter((tpl) => !isTemplateApplied(tpl));
 
   // Filter paket template berdasarkan kategori, search, dan status
   const displayedTemplates = unappliedTemplates.filter((tpl) => {

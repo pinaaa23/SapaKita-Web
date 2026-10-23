@@ -407,7 +407,36 @@ export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20
   const user = getAuthUser();
   const effectiveBranchId = branchId && branchId !== 'semua' ? branchId : (user?.branchId || user?.branch?.id || null);
 
-  // 1. Ambil kontrak yang berlaku untuk cabang ini dari GET /api/canteen/contracts (satu sumber)
+  // 1. Panggil endpoint resmi Backend: GET /api/canteen/billing/calls (Role: CANTEEN_STAFF, SUPERADMIN, KANWIL_ADMIN)
+  if (!isDummyMode()) {
+    try {
+      const q = new URLSearchParams();
+      q.append('page', String(page));
+      q.append('limit', String(limit));
+      q.append('month', String(targetMonth));
+      q.append('year', String(targetYear));
+      if (effectiveBranchId) q.append('branchId', effectiveBranchId);
+      if (search && search.trim()) q.append('search', search.trim());
+
+      const res = await apiFetch(`/api/canteen/billing/calls?${q.toString()}`);
+      if (res?.data) {
+        return {
+          items: res.data.items || [],
+          totalItems: res.data.totalItems || 0,
+          totalSeconds: res.data.totalSeconds || 0,
+          totalTagihan: res.data.totalTagihan || 0,
+          ratePerSecond: res.data.items?.[0]?.ratePerSecond ?? 15,
+          superadminPercent: res.data.items?.[0]?.superadminPercent ?? 50,
+          isContractSet: true,
+          pagination: res.data.pagination || { page: Number(page), limit: Number(limit), totalPages: 1 },
+        };
+      }
+    } catch (err) {
+      console.warn('[canteenBillingService] Gagal memuat /api/canteen/billing/calls, fallback ke kalkulasi lokal:', err?.message || err);
+    }
+  }
+
+  // 2. Fallback resolusi kontrak lokal jika offline
   let contract = null;
   if (effectiveBranchId) {
     try {

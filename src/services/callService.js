@@ -151,6 +151,8 @@ export const mapCallItem = (item) => {
   const resolvedBranchId = branchObj?.id || call.inmate?.branchId || item.branchId || call.branchId || '';
   const resolvedBranchName = branchObj?.name || call.inmate?.branch?.name || item.branchName || call.branchName || '-';
 
+  const resolvedPhone = item.targetPhone || item.destinationPhone || item.familyPhone || item.call?.family?.phone || '-';
+
   return {
     id: recordingId,
     callId: item.callId || call.id || recordingId,
@@ -162,10 +164,10 @@ export const mapCallItem = (item) => {
     inmateName: call.inmate?.name || item.inmateName || call.inmateName || 'Narapidana',
     familyId: call.family?.id || item.familyId || call.familyId || '',
     familyName: call.family?.name || item.familyName || call.familyName || 'Keluarga',
-    familyPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
-    destinationPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || call.familyPhone || item.family?.email || '-',
-    targetPhone: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || '-',
-    targetNumber: call.targetPhone || item.targetPhone || call.family?.phone || item.familyPhone || '-',
+    familyPhone: resolvedPhone,
+    destinationPhone: resolvedPhone,
+    targetPhone: resolvedPhone,
+    targetNumber: resolvedPhone,
     date: item.createdAt || call.connectedAt || call.date || item.date || new Date().toISOString(),
     durationSeconds: typeof call.durationSeconds === 'number' 
       ? call.durationSeconds 
@@ -437,6 +439,58 @@ export const getAudioStreamUrl = async (recordingId) => {
   }
 };
 
+/**
+ * Mengambil ringkasan kanal panggilan (Web vs GSM)
+ * Endpoint: GET /api/calls/channel-summary (Superadmin, Kanwil, Branch Admin, Supervisor)
+ */
+export const getCallChannelSummary = async ({
+  search = '',
+  branchId = '',
+  status = '',
+  type = '',
+  callType = '',
+  startDate = '',
+  endDate = '',
+} = {}) => {
+  if (isDummyMode()) {
+    return {
+      totalWebSeconds: 0,
+      totalGsmSeconds: 0,
+      totalWebCalls: 0,
+      totalGsmCalls: 0,
+      percentageWeb: 0,
+      percentageGsm: 0,
+      totalCalls: 0,
+      totalSeconds: 0,
+    };
+  }
+
+  const query = new URLSearchParams();
+  if (search && search.trim()) query.append('search', search.trim());
+  if (branchId && branchId !== 'All' && branchId !== 'all') query.append('branchId', branchId);
+
+  if (status && status !== 'All' && status !== 'all') {
+    const s = String(status).toUpperCase();
+    if (s === 'REJECTED' || s === 'DITOLAK') query.append('status', 'REJECTED');
+    else if (s === 'MISSED' || s === 'TIDAK TERJAWAB') query.append('status', 'MISSED');
+    else if (s === 'ANSWERED' || s === 'TERJAWAB') query.append('status', 'ENDED');
+    else query.append('status', status);
+  }
+
+  const resolvedType = callType || type;
+  if (resolvedType && resolvedType !== 'All' && resolvedType !== 'all') {
+    query.append('type', resolvedType);
+  }
+
+  if (startDate) query.append('startDate', startDate);
+  if (endDate) query.append('endDate', endDate);
+
+  const qs = query.toString();
+  const url = qs ? `/api/calls/channel-summary?${qs}` : '/api/calls/channel-summary';
+  const res = await apiFetch(url);
+  return res?.data || res;
+};
+
 export default {
   RECORDINGS_ENDPOINT,
   RECORDING_DETAIL_ENDPOINT,
@@ -446,5 +500,7 @@ export default {
   getCallHistory,
   getCallById,
   getAudioStreamUrl,
+  getCallChannelSummary,
 };
+
 

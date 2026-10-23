@@ -208,6 +208,7 @@ function App() {
                 <Route path="branches/create" element={<Navigate to="/kanwil/branches" replace />} />
                 <Route path="inmates" element={<KanwilInmates />} />
                 <Route path="calls" element={<KanwilCalls />} />
+                <Route path="canteen-topup" element={<CanteenTopup />} />
                 <Route path="reports" element={<KanwilReports />} />
                 <Route path="profile" element={<KanwilProfile />} />
               </Route>

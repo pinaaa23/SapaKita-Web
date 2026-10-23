@@ -28,7 +28,7 @@ import CallChannelSummaryCards from '../../components/CallChannelSummaryCards';
 const Recordings = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout, uptName, isSupervisor, userName, roleLabel } = useAuth();
+  const { logout, uptName, isSupervisor, userName, roleLabel, user } = useAuth();
 
   const [activeTab, setActiveTab] = useState('voice'); // 'voice' | 'video'
   const [searchInput, setSearchInput] = useState('');
@@ -170,7 +170,17 @@ const Recordings = () => {
   return (
     <div className="space-y-6">
       {/* 3 Card Ringkasan Jalur Panggilan */}
-      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
+      <CallChannelSummaryCards
+        filters={{
+          branchId: user?.branchId || user?.branch?.id || undefined,
+          status: statusFilter !== 'All' ? statusFilter : undefined,
+          type: activeTab,
+          startDate: startDate || undefined,
+          endDate: endDate || undefined,
+          search: debouncedSearch || undefined,
+        }}
+        activeTab={activeTab}
+      />
       
       {/* Main Table & Split View Container */}
       <div className="flex flex-col lg:flex-row gap-5 items-start w-full">
@@ -406,9 +416,9 @@ const Recordings = () => {
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.targetPhone || call.familyPhone || '-'}>
                               <span>→</span>
-                              <span className="truncate">{call.familyPhone || '-'}</span>
+                              <span className="truncate">{call.targetPhone || call.familyPhone || '-'}</span>
                             </div>
                           </td>
 
