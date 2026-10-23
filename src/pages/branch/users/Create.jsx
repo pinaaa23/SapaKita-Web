@@ -279,7 +279,7 @@ const Create = () => {
         password,
         status,
         phone: phone.trim() || '-',
-        branchName: resolvedBranchName || uptName || 'UPT PasCall',
+        branchName: resolvedBranchName || uptName || 'UPT Sadewa',
       });
     } catch (err) {
       console.log('[UserCreate] Error submit user:', err);
@@ -695,7 +695,7 @@ const Create = () => {
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                 <span className="text-slate-500 font-medium">UPT / Cabang</span>
                 <span className="font-bold text-slate-800">
-                  {createdCredentials.branchName || resolvedBranchName || uptName || 'UPT PasCall'}
+                  {createdCredentials.branchName || resolvedBranchName || uptName || 'UPT Sadewa'}
                 </span>
               </div>
 
@@ -765,10 +765,10 @@ const Create = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'UPT PasCall';
+                  const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'UPT Sadewa';
                   const roleLabel = ROLE_LABELS[createdCredentials.role] || createdCredentials.role;
                   const statusLabel = createdCredentials.status === 'Active' ? 'Aktif' : 'Nonaktif';
-                  const fullText = `*Kredensial Akun Pengguna UPT PasCall*\nUPT / Cabang: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal PasCall.`;
+                  const fullText = `*Kredensial Akun Pengguna UPT Sadewa*\nUPT / Cabang: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal Sadewa.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

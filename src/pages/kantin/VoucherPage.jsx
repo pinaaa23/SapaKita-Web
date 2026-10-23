@@ -134,7 +134,7 @@ export default function VoucherPage() {
 
             <p className="text-[10px] sm:text-[11px] text-blue-100/80">
               {isVoucherAvailable
-                ? 'Gunakan kode ini pada bilik KBU PasCall. Kode berlaku selama 1 hari selama kuota paket masih tersedia.'
+                ? 'Gunakan kode ini pada bilik KBU Sadewa. Kode berlaku selama 1 hari selama kuota paket masih tersedia.'
                 : 'Transaksi berhasil tercatat, namun kode voucher belum diterbitkan'}
             </p>
           </div>
@@ -168,7 +168,7 @@ export default function VoucherPage() {
         <div className="voucher-print-view hidden print:block text-black">
           {/* 1. Header Kantin & Waktu Pembelian (Dibiarkan di Atas) */}
           <div className="text-center">
-            <div className="font-bold text-[14px] tracking-wide">PasCall</div>
+            <div className="font-bold text-[14px] tracking-wide">Sadewa</div>
             <div className="text-[11px] font-bold uppercase tracking-wider mt-0.5">VOUCHER KOMUNIKASI</div>
             <div className="text-[10px] font-mono mt-0.5">{formatTanggal(transaksi.waktu, true)}</div>
           </div>
@@ -183,7 +183,7 @@ export default function VoucherPage() {
               {kodeVoucher || '-'}
             </div>
             <div className="text-[10px] leading-tight font-medium mt-1">
-              Gunakan kode ini pada bilik KBU PasCall.
+              Gunakan kode ini pada bilik KBU Sadewa.
             </div>
           </div>
 

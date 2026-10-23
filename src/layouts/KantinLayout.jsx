@@ -18,6 +18,7 @@ import { formatTanggal } from '../utils/formatKantin';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
 import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
+import ikonSadewa from '../assets/ikon_sadewa.png';
 import { getUnreadApprovedTopupCountSync } from '../services/kantin/saldoService';
 import { 
   getNotifications, 
@@ -157,16 +158,19 @@ export default function KantinLayout() {
         {/* Logo Header */}
         <div className="px-5 py-4 border-b border-[#E2E8F0] shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#1565C0] to-[#0D47A1] text-white flex items-center justify-center shadow-md shadow-blue-500/20">
-              <Store className="w-5 h-5" />
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md overflow-hidden border border-slate-100">
+              <img 
+                src={ikonSadewa} 
+                alt="Sadewa" 
+                className="w-full h-full object-contain p-1" 
+              />
             </div>
             <div>
-              <div className="flex items-baseline font-black text-lg tracking-tight leading-none">
-                <span className="text-[#1E293B]">Pas</span>
-                <span className="text-[#1565C0]">Call</span>
+              <div className="flex items-baseline font-black text-lg tracking-tight leading-none text-[#1E293B]">
+                Sadewa
               </div>
               <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mt-0.5">
-                Kantin Lapas
+                Kantin
               </span>
             </div>
           </div>
@@ -274,11 +278,15 @@ export default function KantinLayout() {
           <div className="flex items-center gap-3">
             {/* Brand icon on mobile */}
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-[#1565C0] text-white flex items-center justify-center">
-                <Store className="w-4 h-4" />
+              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-slate-100">
+                <img 
+                  src={ikonSadewa} 
+                  alt="Sadewa" 
+                  className="w-full h-full object-contain p-0.5" 
+                />
               </div>
               <span className="font-bold text-base text-slate-800">
-                Pas<span className="text-[#1565C0]">Call</span>
+                Sadewa
               </span>
             </div>
             <h1 className="hidden sm:block text-base font-bold text-slate-800">

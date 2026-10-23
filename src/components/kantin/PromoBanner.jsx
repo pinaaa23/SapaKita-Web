@@ -20,7 +20,7 @@ export default function PromoBanner() {
             Penerbitan Voucher Panggilan Warga Binaan
           </h2>
           <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
-            Paket komunikasi resmi terverifikasi Lapas. Seluruh voucher langsung dicetak secara instan dan dapat digunakan pada bilik telepon atau video call yang tersedia.
+            Paket komunikasi resmi terverifikasi. Seluruh voucher langsung dicetak secara instan dan dapat digunakan pada bilik telepon atau video call yang tersedia.
           </p>
 
           <div className="flex flex-wrap items-center gap-2 pt-1">

@@ -907,7 +907,7 @@ const InmatesList = () => {
             )}
           </p>
           <p className="text-[11px] text-slate-400">
-            Tindakan ini hanya mengubah hak akses komunikasi WBP pada aplikasi PasCall, dan bukan penghapusan permanen data.
+            Tindakan ini hanya mengubah hak akses komunikasi WBP pada aplikasi Sadewa, dan bukan penghapusan permanen data.
           </p>
         </div>
       </Modal>

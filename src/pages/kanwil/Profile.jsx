@@ -475,7 +475,7 @@ export default function KanwilProfile() {
       >
         <div className="p-4 space-y-4">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Apakah Anda yakin ingin keluar dari sistem <span className="font-bold text-slate-800">PasCall</span> sebagai Administrator <span className="font-bold text-slate-800">{kanwilName}</span>?
+            Apakah Anda yakin ingin keluar dari sistem <span className="font-bold text-slate-800">Sadewa</span> sebagai Administrator <span className="font-bold text-slate-800">{kanwilName}</span>?
           </p>
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button 

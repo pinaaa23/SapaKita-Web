@@ -1,9 +1,7 @@
 import { apiFetch, logout, getAuthUser } from '../api';
 import { getPaketKantin } from '../packageService';
-import { getInmates, mapInmateItem } from '../inmateService';
+import { getInmates } from '../inmateService';
 import { isDummyMode } from '../../dummy';
-import { USE_MOCK_SUPERADMIN, getMockNapi } from '../mockStorage';
-import { isSameBranch } from '../../utils/branchHelper';
 import { kurangiSaldoKantin } from './saldoService';
 
 /**
@@ -15,7 +13,7 @@ export async function getPaket(kategori = 'telepon') {
 }
 
 /**
- * Mencari data narapidana berdasarkan NIP / Nomor Registrasi atau Nomor Telepon.
+ * Mencari data warga binaan berdasarkan NIP / Nomor Registrasi atau Nomor Telepon.
  */
 export async function cariWbpByIdAtauTelp(queryInput) {
   if (!queryInput) return null;
@@ -52,60 +50,16 @@ export async function cariWbpByIdAtauTelp(queryInput) {
       }
     }
 
-    // Fallback: jika masih belum ketemu, cari langsung di mock storage (pascall_mock_napi)
-    if (items.length === 0) {
-      try {
-        const allMocks = getMockNapi();
-        const qLower = rawQuery.toLowerCase();
-        const qDigits = rawQuery.replace(/[^0-9]/g, '');
-
-        const foundMocks = allMocks.filter((item) => {
-          const itemBranchName = item.branchName || item.cabang || item.branch?.name || '';
-          const itemBranchId = item.branchId || item.branch?.id || '';
-          const matchBranch = isSameBranch(userBranchName, itemBranchName) ||
-            isSameBranch(userBranchId, itemBranchId) ||
-            isSameBranch(userBranchName, itemBranchId) ||
-            isSameBranch(userBranchId, itemBranchName);
-
-          if (!matchBranch && (userBranchName || userBranchId)) return false;
-
-          const ident = (item.identifier || item.wbpRegNumber || item.nip || item.id || '').toLowerCase();
-          const identDigits = ident.replace(/[^0-9]/g, '');
-          const name = (item.name || '').toLowerCase();
-          const hasPhone = item.families && Array.isArray(item.families) && item.families.some(f => (f.phone || '').includes(rawQuery) || (qDigits && (f.phone || '').replace(/[^0-9]/g, '').includes(qDigits)));
-
-          return ident === qLower || ident.includes(qLower) || (qDigits.length >= 2 && identDigits.includes(qDigits)) || name.includes(qLower) || hasPhone;
-        });
-
-        if (foundMocks.length > 0) {
-          items = foundMocks.map(mapInmateItem).filter(Boolean);
-        }
-      } catch (e) {
-        console.warn('[kantinService] Fallback mock search warning:', e);
-      }
+    // Filter warga binaan: HANYA yang secara spesifik milik cabang UPT kasir ini
+    if (userBranchId) {
+      items = items.filter((item) => {
+        const itemBranchId = item.branchId || item.branch?.id;
+        return itemBranchId && String(itemBranchId).toLowerCase() === String(userBranchId).toLowerCase();
+      });
     }
 
     if (items.length === 0) {
       return null;
-    }
-
-    // Filter narapidana yang cocok dengan cabang kasir menggunakan isSameBranch yang fleksibel
-    if (userBranchId || (userBranchName && userBranchName !== 'cabang ini')) {
-      const branchInmates = items.filter((item) => {
-        const itemBranchId = item.branchId || item.branch?.id;
-        const itemBranchName = (item.branchName || item.branch?.name || item.cabang || '').toLowerCase();
-
-        const matchId = userBranchId && itemBranchId && String(itemBranchId).toLowerCase() === String(userBranchId).toLowerCase();
-        const matchName = isSameBranch(userBranchName, itemBranchName) ||
-          isSameBranch(userBranchId, itemBranchName) ||
-          isSameBranch(userBranchName, itemBranchId);
-
-        return matchId || matchName || (!itemBranchId && !itemBranchName);
-      });
-
-      if (branchInmates.length > 0) {
-        items = branchInmates;
-      }
     }
 
     // Cari yang paling cocok
@@ -118,9 +72,9 @@ export async function cariWbpByIdAtauTelp(queryInput) {
       return ident === qLower || ident.includes(qLower) || (qDigits && identDigits === qDigits) || name === qLower || name.includes(qLower);
     }) || items[0];
 
-    // Cek status aktif narapidana
+    // Cek status aktif warga binaan
     if (matched.isActive === false || matched.commStatus === 'Nonaktif' || matched.status === 'Nonaktif' || matched.status === 'Suspended') {
-      const error = new Error('Akun komunikasi narapidana sedang dinonaktifkan oleh petugas lapas');
+      const error = new Error('Akun komunikasi warga binaan sedang dinonaktifkan oleh petugas');
       error.isInactive = true;
       throw error;
     }
@@ -129,7 +83,7 @@ export async function cariWbpByIdAtauTelp(queryInput) {
       id: matched.id,
       identifier: matched.identifier || matched.id,
       nama: matched.name || matched.nama,
-      blok: matched.blockRoom || matched.blok || 'Blok Lapas',
+      blok: matched.blockRoom || matched.blok || 'Blok Hunian',
       noTelp: matched.phone || matched.noTelp || (matched.families?.[0]?.phone) || '',
       commStatus: matched.commStatus || 'Aktif',
       isActive: matched.isActive !== false,
@@ -142,7 +96,7 @@ export async function cariWbpByIdAtauTelp(queryInput) {
       logout();
       throw err;
     }
-    console.error('[KantinService] Gagal mencari data narapidana:', err?.message || err);
+    console.error('[KantinService] Gagal mencari data warga binaan:', err?.message || err);
     throw err;
   }
 }
@@ -681,7 +635,7 @@ export async function getRiwayat({ cari = '', metode = 'Semua', periode = 'bulan
       napi: {
         id: t.inmate?.identifier || t.inmateIdentifier || t.inmate?.id || '-',
         nama: t.inmate?.name || t.inmateName || '-',
-        blok: t.inmate?.blockRoom || t.inmateBlock || 'Blok Lapas',
+        blok: t.inmate?.blockRoom || t.inmateBlock || 'Blok Hunian',
         noTelp: t.inmate?.phone || '',
       },
       paket: {

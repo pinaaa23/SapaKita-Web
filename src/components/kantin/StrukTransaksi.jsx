@@ -67,7 +67,7 @@ export default function StrukTransaksi({ transaksi }) {
                   {String(transaksi.kodeVoucher)}
                 </div>
                 <p className="text-[11px] text-slate-600 font-medium leading-relaxed">
-                  Masukkan kode ini pada bilik KBU PasCall. Kode berlaku selama 1 hari selama kuota paket masih tersedia.
+                  Masukkan kode ini pada bilik KBU Sadewa. Kode berlaku selama 1 hari selama kuota paket masih tersedia.
                 </p>
               </div>
             )}
@@ -88,7 +88,7 @@ export default function StrukTransaksi({ transaksi }) {
           {/* Brand Kantin PasCall Info */}
           <div className="py-4 border-b border-dashed border-slate-200 text-xs flex justify-between items-center text-slate-500">
             <div>
-              <span className="font-bold text-slate-700">PasCall</span>
+              <span className="font-bold text-slate-700">Sadewa</span>
               <p className="text-[11px]">Layanan Komunikasi Terpadu</p>
             </div>
             <div className="text-right">
@@ -163,7 +163,7 @@ export default function StrukTransaksi({ transaksi }) {
           {/* Footer Catatan Struk */}
           <div className="mt-6 text-center text-[11px] text-slate-400 space-y-1">
             <p>Simpan struk ini sebagai bukti pembayaran yang sah.</p>
-            <p>Terima kasih telah menggunakan layanan PasCall.</p>
+            <p>Terima kasih telah menggunakan layanan Sadewa.</p>
           </div>
         </div>
 
@@ -171,7 +171,7 @@ export default function StrukTransaksi({ transaksi }) {
         <div className="struk-print-view hidden print:block text-black">
           {/* 1. Header Kantin & Tanggal */}
           <div className="text-center">
-            <div className="font-bold text-[14px] tracking-wide">PasCall</div>
+            <div className="font-bold text-[14px] tracking-wide">Sadewa</div>
             <div className="text-[11px] font-bold uppercase tracking-wider mt-0.5">STRUK PEMBELIAN</div>
             <div className="text-[10px] font-mono mt-0.5">{formatTanggal(transaksi.waktu, true)}</div>
           </div>
@@ -187,7 +187,7 @@ export default function StrukTransaksi({ transaksi }) {
                 {String(transaksi.kodeVoucher)}
               </div>
               <div className="text-[10px] leading-tight font-medium mt-1">
-                Gunakan kode ini pada bilik KBU PasCall.
+                Gunakan kode ini pada bilik KBU Sadewa.
               </div>
               <div className="text-[9px] leading-tight font-medium mt-0.5">
                 Kode berlaku 1 hari selama kuota paket masih tersedia.

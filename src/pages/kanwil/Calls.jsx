@@ -29,6 +29,7 @@ import { useAuth } from '../../context/AuthContext';
 import { downloadTextFile, downloadTranscriptPDF, exportToExcel } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
 import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
+import CallChannelSummaryCards from '../../components/CallChannelSummaryCards';
 
 export default function KanwilCalls() {
   const location = useLocation();
@@ -264,6 +265,9 @@ export default function KanwilCalls() {
 
   return (
     <div className="space-y-5 animate-in fade-in duration-200">
+      {/* 3 Card Ringkasan Jalur Panggilan */}
+      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
+
       {/* Main Content: Table & Split Audio Player */}
       <div className="flex flex-col lg:flex-row gap-5 items-start">
         {/* Table Panel */}

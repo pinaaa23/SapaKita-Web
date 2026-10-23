@@ -118,11 +118,11 @@ export const mapPackageItem = (item) => {
   };
 };
 
-export const getStoredPackages = () => {
+export const getStoredPackages = (allowEmpty = false) => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return defaultPackages;
+      return allowEmpty ? [] : defaultPackages;
     }
     const parsed = JSON.parse(raw);
     const mapped = Array.isArray(parsed) ? parsed.map(mapPackageItem).filter(Boolean) : [];
@@ -132,12 +132,12 @@ export const getStoredPackages = () => {
       return ![5994, 11988, 17982, 23976, 29970, 35964].includes(h);
     });
     if (cleaned.length === 0) {
-      return defaultPackages;
+      return allowEmpty ? [] : defaultPackages;
     }
     return cleaned;
   } catch (err) {
     console.error('Error membaca storage paket:', err);
-    return defaultPackages;
+    return allowEmpty ? [] : defaultPackages;
   }
 };
 
@@ -171,7 +171,11 @@ export const getPackages = async ({
   allowEmpty = false,
 } = {}) => {
   if (isDummyMode()) {
-    let list = getStoredPackages();
+    let list = getStoredPackages(allowEmpty);
+
+    if (branchId && branchId !== 'All') {
+      list = list.filter((p) => p.branchId && String(p.branchId).toLowerCase() === String(branchId).toLowerCase());
+    }
 
     if (kategori && kategori !== 'semua') {
       const katLower = kategori.toLowerCase();
@@ -394,7 +398,7 @@ export const createPackage = async (data) => {
       isActive: statusEnum === 'Aktif',
       createdAt: new Date().toISOString(),
     });
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     saveStoredPackages([newPackage, ...current]);
     notifyPackagesUpdated();
     return newPackage;
@@ -421,7 +425,7 @@ export const createPackage = async (data) => {
   const item = mapPackageItem(res?.data || res);
   // Simpan ke local storage backup & trigger event realtime
   try {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     saveStoredPackages([item, ...current.filter((p) => p.id !== item.id)]);
   } catch {}
   notifyPackagesUpdated();
@@ -461,7 +465,7 @@ export const updatePackage = async (id, data) => {
   const nameStr = (data.nama || data.name || '').trim();
 
   if (isDummyMode()) {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     const updated = current.map((item) =>
       item.id === id 
         ? mapPackageItem({ ...item, ...data, id, nama: nameStr || item.nama, name: nameStr || item.name }) 
@@ -488,7 +492,7 @@ export const updatePackage = async (id, data) => {
 
   const item = mapPackageItem(res?.data || res);
   try {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     saveStoredPackages(current.map((p) => (p.id === id ? item : p)));
   } catch {}
   notifyPackagesUpdated();
@@ -508,7 +512,7 @@ export const updatePackageStatus = async (id, statusOrIsActive) => {
   const statusEnum = isActive ? 'Aktif' : 'Nonaktif';
 
   if (isDummyMode()) {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     const target = current.find((i) => i.id === id);
     if (!target) throw new Error('Paket tidak ditemukan');
     target.status = statusEnum;
@@ -525,7 +529,7 @@ export const updatePackageStatus = async (id, statusOrIsActive) => {
 
   const item = mapPackageItem(res?.data || res);
   try {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     saveStoredPackages(current.map((p) => (p.id === id ? item : p)));
   } catch {}
   notifyPackagesUpdated();
@@ -547,7 +551,7 @@ export const deletePackage = async (id) => {
   if (!id) throw new Error('ID Paket diperlukan');
 
   if (isDummyMode()) {
-    const current = getStoredPackages();
+    const current = getStoredPackages(true);
     const filtered = current.filter((i) => i.id !== id);
     saveStoredPackages(filtered);
     notifyPackagesUpdated();
@@ -559,7 +563,7 @@ export const deletePackage = async (id) => {
       method: 'DELETE',
     });
     try {
-      const current = getStoredPackages();
+      const current = getStoredPackages(true);
       saveStoredPackages(current.filter((i) => i.id !== id));
     } catch {}
     notifyPackagesUpdated();

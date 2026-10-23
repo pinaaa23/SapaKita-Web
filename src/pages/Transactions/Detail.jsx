@@ -73,7 +73,7 @@ const Detail = () => {
     }
     const textContent = `
 ==================================================
-           PASCALL AUDIT CANTEEN RECEIPT
+           SADEWA AUDIT CANTEEN RECEIPT
 ==================================================
 ID Transaksi     : ${trx.id}
 Status           : ${trx.status}
@@ -105,7 +105,7 @@ TOTAL PEMBAYARAN : ${formatCurrency(trx.amount)}
 Metode Bayar     : ${trx.method || 'Tunai'}
 --------------------------------------------------
 Catatan: Dokumen transaksi terenkripsi & sah (Immutable Ledger)
-PasCall Management System
+Sadewa Management System
 ==================================================
 `;
     const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
@@ -183,7 +183,7 @@ PasCall Management System
         <div>
           <h4 className="text-sm font-bold text-amber-800">Immutable Ledger Record</h4>
           <p className="text-sm text-amber-700 mt-1 leading-relaxed">
-            Data ini merupakan catatan transaksi pembelian paket voucher kantin permanen yang sah. Data tidak dapat diubah maupun dimanipulasi untuk menjamin keaslian jejak audit sistem PasCall.
+            Data ini merupakan catatan transaksi pembelian paket voucher kantin permanen yang sah. Data tidak dapat diubah maupun dimanipulasi untuk menjamin keaslian jejak audit sistem Sadewa.
           </p>
         </div>
       </div>
@@ -339,7 +339,7 @@ PasCall Management System
         
         {/* Receipt Footer */}
         <div className="bg-slate-800 text-slate-400 p-4 text-center text-xs font-mono">
-          PASCALL SECURE CANTEEN AUDIT SYSTEM • VERIFIED RECORD
+          SADEWA SECURE CANTEEN AUDIT SYSTEM • VERIFIED RECORD
         </div>
       </div>
     </div>

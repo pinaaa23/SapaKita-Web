@@ -28,6 +28,7 @@ import { useAuth } from '../../context/AuthContext';
 import { exportToExcel, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
 import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
+import CallChannelSummaryCards from '../../components/CallChannelSummaryCards';
 
 const CallsList = () => {
   const navigate = useNavigate();
@@ -228,7 +229,7 @@ const CallsList = () => {
 
     const filename = `Riwayat_Panggilan_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
     const success = exportToExcel(exportData, filename, 'Riwayat Panggilan', {
-      title: 'LAPORAN RIWAYAT PANGGILAN NASIONAL PASCALL',
+      title: 'LAPORAN RIWAYAT PANGGILAN NASIONAL SADEWA',
       subtitle: 'Log Komunikasi Telepon & Video Call Warga Binaan Pemasyarakatan Nasional',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
@@ -259,6 +260,9 @@ const CallsList = () => {
           <span>{toastMessage}</span>
         </div>
       )}
+
+      {/* 3 Card Ringkasan Jalur Panggilan */}
+      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
 
       {/* Control Bar (Pencarian, Tipe Panggilan, Filter & Export) */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">

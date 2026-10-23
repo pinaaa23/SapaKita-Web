@@ -32,10 +32,10 @@ import {
 } from '../../services/kantin/saldoService';
 
 const BANK_OPTIONS = [
-  'BCA - 0123456789 (a.n PasCall Lapas Pusat)',
-  'BRI - 9876543210 (a.n PasCall Lapas Pusat)',
-  'Mandiri - 1370012345678 (a.n PasCall Lapas Pusat)',
-  'BNI - 0987654321 (a.n PasCall Lapas Pusat)',
+  'BCA - 0123456789 (a.n Sadewa Pusat)',
+  'BRI - 9876543210 (a.n Sadewa Pusat)',
+  'Mandiri - 1370012345678 (a.n Sadewa Pusat)',
+  'BNI - 0987654321 (a.n Sadewa Pusat)',
 ];
 
 export default function TopUpSaldoPage() {
@@ -257,7 +257,7 @@ export default function TopUpSaldoPage() {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-white/20 backdrop-blur-md border border-white/20">
                 <Wallet className="w-3.5 h-3.5" />
-                Kuota Saldo Kantin Lapas
+                Kuota Saldo Kantin
               </span>
               {saldoRendah && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-400 text-slate-900 shadow-xs">
@@ -472,7 +472,7 @@ export default function TopUpSaldoPage() {
               {/* Pilihan Bank Tujuan Transfer */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  Rekening Tujuan Transfer (Lapas Pusat)
+                  Rekening Tujuan Transfer (Pusat)
                 </label>
                 <select
                   value={bankTarget}

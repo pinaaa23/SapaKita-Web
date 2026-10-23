@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
 import { getPendingTopupCountSync } from '../services/canteenTopupService';
+import ikonSadewa from '../assets/ikon_sadewa.png';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, closeMobileMenu }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
@@ -79,6 +80,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;
+  const isSadewaRole = effectiveRole === ROLES.SUPERADMIN || effectiveRole === ROLES.ADMIN_KANWIL || effectiveRole === ROLES.KEPALA_UPT || effectiveRole === ROLES.SUPERVISOR;
 
   return (
     <div className={`fixed left-3.5 top-3.5 bottom-3.5 md:left-6 md:top-6 md:bottom-6 z-50 transition-all duration-300 ${
@@ -105,14 +107,24 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0B3D91] to-[#1E5FCC] text-white flex flex-col shadow-2xl overflow-hidden">
         
         {/* 1. Header / Logo */}
-        <div className={`pt-5 md:pt-6 pb-4 transition-all duration-300 flex items-center justify-between ${isExpandedView ? 'px-4 md:px-5' : 'px-2 justify-center'}`}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md">
-              <PhoneCall className="text-[#0B3D91] w-5 h-5" />
+        <div className={`pt-5 md:pt-6 pb-4 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between px-4 md:px-5' : 'justify-center px-2'}`}>
+          <div className={`flex items-center ${isExpandedView ? 'gap-3' : 'justify-center'}`}>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md overflow-hidden">
+              {isSadewaRole ? (
+                <img 
+                  src={ikonSadewa} 
+                  alt="Sadewa" 
+                  className="w-full h-full object-contain p-1" 
+                />
+              ) : (
+                <PhoneCall className="text-[#0B3D91] w-5 h-5" />
+              )}
             </div>
             {isExpandedView && (
               <div className="overflow-hidden whitespace-nowrap">
-                <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">PasCall</h1>
+                <h1 className="font-extrabold text-lg tracking-wider text-white leading-tight">
+                  {isSadewaRole ? 'Sadewa' : 'PasCall'}
+                </h1>
                 <p className="text-[11px] text-blue-200 font-medium">
                   {effectiveRoleLabel}
                 </p>

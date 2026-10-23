@@ -483,7 +483,7 @@ const Transactions = () => {
           if (!selectedTrx) return;
           const textContent = `
 ==================================================
-           PASCALL CANTEEN RECEIPT
+           SADEWA CANTEEN RECEIPT
 ==================================================
 ID Transaksi     : ${selectedTrx.id}
 Status           : ${selectedTrx.status}

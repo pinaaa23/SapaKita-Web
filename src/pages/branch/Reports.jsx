@@ -228,7 +228,7 @@ const BranchReports = () => {
 
       const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
       const success = exportToPDF({
-        title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN PASCALL',
+        title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN SADEWA',
         subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan`,
         filename,
         tables,

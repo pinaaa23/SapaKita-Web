@@ -142,14 +142,21 @@ const Dashboard = () => {
         if (effectiveIsSupervisor) {
           const [spvRes, pkgsRes, trxRes, inmatesRes] = await Promise.allSettled([
             getSupervisorSummary(),
-            getPackages(),
+            getPackages({ branchId: branchQueryParams.branchId, allowEmpty: true }),
             getBalanceTransactions({ limit: 100 }),
             getInmates({ page: 1, limit: 1, ...branchQueryParams })
           ]);
 
           if (isMounted) {
             const spvSummary = spvRes.status === 'fulfilled' ? spvRes.value : {};
-            const pkgs = pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value) ? pkgsRes.value : [];
+            const rawPkgs = pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value) ? pkgsRes.value : [];
+            const pkgs = rawPkgs.filter(p => {
+              if (!p.branchId || String(p.branchId).trim() === '') return false;
+              if (branchQueryParams.branchId) {
+                return String(p.branchId).toLowerCase() === String(branchQueryParams.branchId).toLowerCase();
+              }
+              return true;
+            });
             const activePkgs = pkgs.filter(p => p.status === 'Aktif' || p.status === 'ACTIVE' || p.isActive === true);
 
             const trxData = trxRes.status === 'fulfilled' ? trxRes.value : {};
@@ -292,18 +299,26 @@ const Dashboard = () => {
       const fetchSpvWidgets = async () => {
         setIsSupervisorDataLoading(true);
         try {
+          const currentBranchId = user?.branchId || user?.branch?.id || '';
           const [pkgsRes, inmatesRes] = await Promise.allSettled([
-            getPackages({ activeOnly: true }),
+            getPackages({ branchId: currentBranchId, activeOnly: true, allowEmpty: true }),
             getInmates({ 
               page: 1, 
               limit: 5,
-              branchId: user?.branchId || user?.branch?.id || '',
+              branchId: currentBranchId,
               branchName: uptName || user?.branchName || ''
             })
           ]);
           if (isMounted) {
             if (pkgsRes.status === 'fulfilled' && Array.isArray(pkgsRes.value)) {
-              setActivePackages(pkgsRes.value.slice(0, 5));
+              const filteredPkgs = pkgsRes.value.filter(p => {
+                if (!p.branchId || String(p.branchId).trim() === '') return false;
+                if (currentBranchId) {
+                  return String(p.branchId).toLowerCase() === String(currentBranchId).toLowerCase();
+                }
+                return true;
+              });
+              setActivePackages(filteredPkgs.slice(0, 5));
             } else {
               setActivePackages([]);
             }

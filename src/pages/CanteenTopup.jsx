@@ -2173,7 +2173,7 @@ export default function CanteenTopup() {
                             <div className="w-full max-w-md bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                                 <div>
-                                  <span className="font-black text-sm text-[#1565C0] block">PasCall Billing</span>
+                                  <span className="font-black text-sm text-[#1565C0] block">Sadewa Billing</span>
                                   <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
                                     Dokumen Struk Transfer Tagihan
                                   </span>
@@ -2300,7 +2300,7 @@ export default function CanteenTopup() {
                           type="text"
                           value={detailModalNotes}
                           onChange={(e) => setDetailModalNotes(e.target.value)}
-                          placeholder="Contoh: Dana telah masuk rekening giro BSI PasCall"
+                          placeholder="Contoh: Dana telah masuk rekening giro BSI Sadewa"
                           className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
@@ -2730,7 +2730,7 @@ export default function CanteenTopup() {
               ) : (
                 <div className="w-full max-w-sm bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                   <div className="text-center pb-3 border-b border-slate-100 mb-3">
-                    <span className="font-black text-base text-blue-600">PasCall</span>
+                    <span className="font-black text-base text-blue-600">Sadewa</span>
                     <p className="text-[11px] text-slate-400 uppercase tracking-wider font-bold">
                       Dokumen Bukti Transfer Tagihan
                     </p>

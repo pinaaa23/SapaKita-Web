@@ -393,7 +393,7 @@ const Detail = () => {
 
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" /> Status Operasional PasCall
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" /> Status Operasional Sadewa
                 </p>
                 <div className="flex items-center gap-2">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[11px] ${

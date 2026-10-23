@@ -98,7 +98,7 @@ export default function TabelTransaksi({
       { label: 'TOTAL PEMASUKAN', value: formatRupiah(totalNominal) },
     ];
 
-    const branchName = uptName || 'Lapas Cipinang';
+    const branchName = uptName || 'UPT Cipinang';
     const cleanBranch = branchName.replace(/\s+/g, '_');
     const dateStr = new Date().toISOString().slice(0, 10);
     const filename = `Laporan_Kantin_${cleanBranch}_${periode}_${dateStr}.pdf`;

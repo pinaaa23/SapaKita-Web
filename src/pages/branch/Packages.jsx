@@ -11,7 +11,6 @@ import {
   AlertCircle, 
   X, 
   Check,
-  Building2,
   Clock,
   Sparkles,
   Trash2
@@ -61,6 +60,7 @@ export default function BranchPackages() {
   const handleApplySingleTemplate = async (tpl) => {
     setApplyingTemplateName(tpl.nama);
     try {
+      const currentBId = user?.branchId || user?.branch?.id;
       await createPackage({
         nama: tpl.nama,
         name: tpl.nama,
@@ -68,6 +68,7 @@ export default function BranchPackages() {
         durasi: Number(tpl.durasi),
         harga: Number(tpl.harga),
         status: 'Aktif',
+        ...(currentBId ? { branchId: currentBId } : {}),
       });
 
       notifyPackagesUpdated();
@@ -87,6 +88,7 @@ export default function BranchPackages() {
     if (!templatesToApply || templatesToApply.length === 0) return;
     setIsApplyingTemplate(true);
     try {
+      const currentBId = user?.branchId || user?.branch?.id;
       let count = 0;
       for (const tpl of templatesToApply) {
         try {
@@ -97,6 +99,7 @@ export default function BranchPackages() {
             durasi: Number(tpl.durasi),
             harga: Number(tpl.harga),
             status: 'Aktif',
+            ...(currentBId ? { branchId: currentBId } : {}),
           });
           count++;
         } catch (err) {
@@ -117,19 +120,26 @@ export default function BranchPackages() {
   const fetchPackagesData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const currentBId = user?.branchId || user?.branch?.id;
       const data = await getPackages({
+        branchId: currentBId,
         search,
         kategori: selectedCategory,
         status: statusFilter === 'template' ? 'semua' : statusFilter,
+        allowEmpty: true,
       });
-      // Sembunyikan paket yang branchId-nya kosong (paket global), supaya SPV hanya melihat dan mengelola paket UPT-nya sendiri
-      const uptPackages = (data || []).filter(
-        (p) => Boolean(p.branchId && String(p.branchId).trim() !== '')
-      );
+      // Sembunyikan paket yang branchId-nya kosong / null (paket global),
+      // dan pastikan paket hanya milik cabang SPV itu sendiri dari BE (tanpa paket global dan tanpa fallback)
+      const uptPackages = (data || []).filter((p) => {
+        if (!p.branchId || String(p.branchId).trim() === '') return false;
+        if (currentBId) {
+          return String(p.branchId).toLowerCase() === String(currentBId).toLowerCase();
+        }
+        return true;
+      });
       setPackages(uptPackages);
 
       // Sinkronisasikan paket cabang yang aktif ke shared storage agar Kantin langsung sinkron
-      const currentBId = user?.branchId || user?.branch?.id || uptPackages[0]?.branchId;
       const currentBName = uptName || user?.branch?.name || uptPackages[0]?.branch;
       try {
         if (currentBId) {
@@ -233,22 +243,27 @@ export default function BranchPackages() {
 
     setIsSubmitting(true);
     try {
+      const currentBId = user?.branchId || user?.branch?.id;
       if (editingPackage) {
         await updatePackage(editingPackage.id, {
+          nama: trimmedName,
           name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
+          ...(currentBId ? { branchId: currentBId } : {}),
         });
         showToast(`Paket "${trimmedName}" berhasil diperbarui.`);
       } else {
         await createPackage({
+          nama: trimmedName,
           name: trimmedName,
           kategori: formData.kategori,
           durasi: durasiNum,
           harga: hargaNum,
           status: formData.status,
+          ...(currentBId ? { branchId: currentBId } : {}),
         });
         showToast(`Paket "${trimmedName}" berhasil ditambahkan.`);
       }
@@ -714,7 +729,7 @@ export default function BranchPackages() {
               </p>
             </div>
 
-            {displayedTemplates.length > 1 && (
+            {displayedTemplates.length >= 1 && (
               <button
                 type="button"
                 onClick={() => handleApplyAllTemplates(displayedTemplates)}

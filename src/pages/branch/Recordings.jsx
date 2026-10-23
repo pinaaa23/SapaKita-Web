@@ -23,6 +23,7 @@ import { useAuth } from '../../context/AuthContext';
 import { downloadTextFile, downloadTranscriptPDF } from '../../utils/exportUtils';
 import { CallChannelBadge } from '../../utils/callChannel';
 import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
+import CallChannelSummaryCards from '../../components/CallChannelSummaryCards';
 
 const Recordings = () => {
   const location = useLocation();
@@ -168,6 +169,8 @@ const Recordings = () => {
 
   return (
     <div className="space-y-6">
+      {/* 3 Card Ringkasan Jalur Panggilan */}
+      <CallChannelSummaryCards calls={filteredCalls} activeTab={activeTab} />
       
       {/* Main Table & Split View Container */}
       <div className="flex flex-col lg:flex-row gap-5 items-start w-full">

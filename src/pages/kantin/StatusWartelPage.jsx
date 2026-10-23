@@ -54,7 +54,7 @@ export default function StatusWartelPage() {
     nomor: '',
     nama: '',
     tipe: 'telepon',
-    lokasi: 'Bilik Utama Lapas',
+    lokasi: 'Bilik Utama Wartel',
     status: 'tersedia',
   });
   const [formError, setFormError] = useState('');
@@ -94,7 +94,7 @@ export default function StatusWartelPage() {
       nomor: nextNum,
       nama: `Wartel ${nextNum}`,
       tipe: 'telepon',
-      lokasi: 'Bilik Utama Lapas',
+      lokasi: 'Bilik Utama Wartel',
       status: 'tersedia',
     });
     setFormError('');
@@ -108,7 +108,7 @@ export default function StatusWartelPage() {
       nomor: booth.nomor || '',
       nama: booth.nama || `Wartel ${booth.nomor}`,
       tipe: booth.tipe || 'telepon',
-      lokasi: booth.lokasi || 'Bilik Utama Lapas',
+      lokasi: booth.lokasi || 'Bilik Utama Wartel',
       status: booth.status || 'tersedia',
     });
     setFormError('');
@@ -232,13 +232,13 @@ export default function StatusWartelPage() {
               Monitoring Bilik
             </span>
             <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Status Ketersediaan Wartel
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Pantau ketersediaan bilik wartel di lapas secara real-time. Anda dapat menambah, mengedit, atau menyesuaikan jumlah bilik sesuai kondisi fisik wartel cabang.
+            Pantau ketersediaan bilik wartel secara real-time. Anda dapat menambah, mengedit, atau menyesuaikan jumlah bilik sesuai kondisi fisik wartel cabang.
           </p>
         </div>
 
@@ -390,7 +390,7 @@ export default function StatusWartelPage() {
                         ? 'bg-emerald-200 border-emerald-500 ring-2 ring-emerald-400 animate-pulse'
                         : 'bg-emerald-50/70 border-emerald-200/80 hover:bg-emerald-100 hover:border-emerald-300'
                     }`}
-                    title={`${wartel.nama || `Wartel ${nomorDigit}`} (${wartel.lokasi || 'Bilik Lapas'}) - Klik untuk sesuaikan`}
+                    title={`${wartel.nama || `Wartel ${nomorDigit}`} (${wartel.lokasi || 'Bilik Wartel'}) - Klik untuk sesuaikan`}
                   >
                     {isVideo ? (
                       <Video className="w-4 h-4 text-emerald-600 shrink-0" />

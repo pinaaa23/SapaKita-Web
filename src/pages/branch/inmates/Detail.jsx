@@ -565,7 +565,7 @@ const InmatesDetail = () => {
                   </p>
                 )}
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Password ini digunakan oleh WBP untuk login ke aplikasi PasCall (bisa huruf/angka).
+                  Password ini digunakan oleh WBP untuk login ke aplikasi Sadewa (bisa huruf/angka).
                 </p>
               </div>
 

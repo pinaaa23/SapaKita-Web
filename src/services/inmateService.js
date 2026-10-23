@@ -196,8 +196,9 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
   if (limit) params.append('limit', limit.toString());
 
   // Hanya kirim ke BE jika didukung backend
+  const targetBranchId = branchId || effectiveBranchId;
   if (BACKEND_SUPPORTS_INMATE_FILTERS) {
-    if (branchId && branchId !== 'All') params.append('branchId', branchId);
+    if (targetBranchId && targetBranchId !== 'All') params.append('branchId', targetBranchId);
     if (status && status !== 'All') params.append('status', status);
   }
 
@@ -217,14 +218,23 @@ export const getInmates = async ({ search = '', page = 1, limit = 20, branchId =
             ? res.inmates
             : [];
 
-    const items = rawList.map(mapInmateItem).filter(Boolean);
+    let items = rawList.map(mapInmateItem).filter(Boolean);
+
+    // Filter ketat sisi FE: jika targetBranchId ditentukan, pastikan WBP hanya milik cabang tersebut
+    if (targetBranchId && targetBranchId !== 'All') {
+      items = items.filter(item => {
+        const itemBId = item.branchId || item.branch?.id;
+        if (!itemBId || String(itemBId).trim() === '') return false;
+        return String(itemBId).toLowerCase() === String(targetBranchId).toLowerCase();
+      });
+    }
 
     const total = typeof res?.pagination?.total === 'number'
-      ? res.pagination.total
+      ? (targetBranchId ? items.length : res.pagination.total)
       : typeof res?.total === 'number'
-        ? res.total
+        ? (targetBranchId ? items.length : res.total)
         : typeof res?.meta?.total === 'number'
-          ? res.meta.total
+          ? (targetBranchId ? items.length : res.meta.total)
           : items.length;
 
     const totalPages = typeof res?.pagination?.totalPages === 'number'

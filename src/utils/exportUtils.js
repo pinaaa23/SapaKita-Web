@@ -8,13 +8,13 @@ import autoTable from 'jspdf-autotable';
  */
 export const exportToExcel = (
   inputData,
-  filename = 'export_pascall.xlsx',
+  filename = 'export_sadewa.xlsx',
   sheetName = 'Data',
   options = {}
 ) => {
   // Support both array dataset or options object
   let data = inputData;
-  let title = options.title || 'LAPORAN DATA PASCALL';
+  let title = options.title || 'LAPORAN DATA SADEWA';
   let subtitle = options.subtitle || 'Sistem Layanan Komunikasi Pemasyarakatan';
   let metadata = options.metadata || {};
   let summaryMetrics = options.summaryMetrics || [];
@@ -32,7 +32,7 @@ export const exportToExcel = (
     const aoa = [];
 
     // --- Header Banner ---
-    aoa.push(['PASCALL INDONESIA']);
+    aoa.push(['SADEWA INDONESIA']);
     aoa.push([title.toUpperCase()]);
     aoa.push([subtitle]);
     aoa.push([]); // blank separator
@@ -112,9 +112,9 @@ export const exportToExcel = (
  * Utility to export datasets to a professional, read-only PDF (.pdf) with official Kop & styling.
  */
 export const exportToPDF = ({
-  title = 'LAPORAN DATA PASCALL',
+  title = 'LAPORAN DATA SADEWA',
   subtitle = 'Sistem Manajemen Layanan Komunikasi Pemasyarakatan',
-  filename = 'laporan_pascall.pdf',
+  filename = 'laporan_sadewa.pdf',
   headers = [],
   rows = [],
   tables = [], // Mendukung multi-tabel: [{ title, subtitle, headers, rows }]
@@ -148,7 +148,7 @@ export const exportToPDF = ({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(14);
     doc.setTextColor(30, 58, 138);
-    doc.text('PASCALL INDONESIA', margin, currentY + 4);
+    doc.text('SADEWA INDONESIA', margin, currentY + 4);
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -251,7 +251,7 @@ export const exportToPDF = ({
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184); // slate-400
       doc.text(
-        'PasCall - Sistem Layanan Panggilan Pemasyarakatan | Dokumen Resmi Bersifat Rahasia',
+        'Sadewa - Sistem Layanan Panggilan Pemasyarakatan | Dokumen Resmi Bersifat Rahasia',
         margin,
         pageHeight - 7
       );
@@ -430,7 +430,7 @@ export const downloadTranscriptPDF = ({
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(13);
     doc.setTextColor(30, 58, 138);
-    doc.text('PASCALL - TRANSKRIP RESMI REKAMAN PANGGILAN', margin, currentY + 4);
+    doc.text('SADEWA - TRANSKRIP RESMI REKAMAN PANGGILAN', margin, currentY + 4);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
@@ -582,7 +582,7 @@ export const downloadTranscriptPDF = ({
         doc.setFontSize(7);
         doc.setTextColor(148, 163, 184);
         doc.text(
-          `PasCall Monitor Layanan - Dicetak oleh: ${printedBy} | ${new Date().toLocaleDateString('id-ID')}`,
+          `Sadewa Monitor Layanan - Dicetak oleh: ${printedBy} | ${new Date().toLocaleDateString('id-ID')}`,
           margin,
           pageHeight - 7
         );
@@ -685,7 +685,7 @@ export const downloadAudioFile = async (audioUrl, filename = 'rekaman_panggilan.
 /**
  * Legacy CSV export fallback
  */
-export const exportToCSV = (data, filename = 'export_pascall.csv') => {
+export const exportToCSV = (data, filename = 'export_sadewa.csv') => {
   if (!data || !data.length) {
     alert('Tidak ada data untuk diexport.');
     return false;

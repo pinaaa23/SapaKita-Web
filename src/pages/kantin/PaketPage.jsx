@@ -127,7 +127,7 @@ export default function PaketPage() {
               Katalog Voucher
             </span>
             <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Katalog Paket Komunikasi

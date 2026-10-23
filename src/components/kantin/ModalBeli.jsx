@@ -43,7 +43,7 @@ export default function ModalBeli({ paket, isOpen, onClose, isBlocked = false, b
       }
     } catch (err) {
       if (err.isInactive || err.message?.includes('dinonaktifkan')) {
-        setErrorPencarian('Akun komunikasi WBP sedang dinonaktifkan oleh petugas lapas.');
+        setErrorPencarian('Akun komunikasi WBP sedang dinonaktifkan oleh petugas.');
       } else {
         setErrorPencarian(err.message || 'Terjadi kesalahan saat mencari data WBP.');
       }

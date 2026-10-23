@@ -49,7 +49,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil' };
     if (pathname === '/branch' || pathname === '/branch/' || pathname === '/branch/dashboard' || pathname.startsWith('/branch/dashboard')) {
       const greetingName = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Kepala UPT');
-      return { title: 'Dashboard', subtitle: greetingName ? `Selamat Datang, ${greetingName}!` : 'Selamat Datang di PasCall!' };
+      return { title: 'Dashboard', subtitle: greetingName ? `Selamat Datang, ${greetingName}!` : 'Selamat Datang di Sadewa!' };
     }
     
     if (pathname.startsWith('/branches/create')) return { title: 'Tambah UPT Baru', subtitle: 'Daftarkan rutan atau lapas baru ke sistem' };
@@ -73,7 +73,7 @@ const Topbar = ({ toggleMobileMenu }) => {
 
     if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh UPT' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
-    return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional PasCall seluruh UPT' };
+    return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional Sadewa seluruh UPT' };
   };
 
   const pageDetails = getPageDetails(location.pathname);
@@ -137,7 +137,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Laporan Wilayah', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh UPT' },
   ] : [
     { title: 'Kantor Wilayah (Kanwil)', category: 'Halaman', link: '/kanwil-management', desc: 'Kelola koordinator UPT dan audit wilayah' },
-    { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT PasCall nasional' },
+    { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT Sadewa nasional' },
     { title: 'Data WBP', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },

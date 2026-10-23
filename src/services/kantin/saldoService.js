@@ -167,7 +167,7 @@ export async function getRiwayatTopUp(params = {}) {
       ppn: (Number(item.nominal) || 0) - Math.round((Number(item.nominal) || 0) / (1 + PPN_RATE)),
       totalBayar: Number(item.nominal) || 0,
       menit: Number(item.minutes) || getMenitFromNominal(item.nominal),
-      bankTarget: item.bankTarget || 'Rekening Lapas',
+      bankTarget: item.bankTarget || 'Rekening Pusat',
       proofUrl: item.proofUrl || null,
       status: item.status, // 'PENDING' | 'APPROVED' | 'REJECTED'
       rejectReason: item.rejectReason || null,

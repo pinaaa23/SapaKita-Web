@@ -4,16 +4,16 @@ import { isDummyMode } from '../../dummy';
 export const WARTEL_STORAGE_KEY = 'pascall_kantin_wartel_booths_v2';
 
 export const DEFAULT_WARTEL_LIST = [
-  { id: 'wartel-01', nomor: '01', nama: 'Wartel 01', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-02', nomor: '02', nama: 'Wartel 02', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-03', nomor: '03', nama: 'Wartel 03', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-04', nomor: '04', nama: 'Wartel 04', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-05', nomor: '05', nama: 'Wartel 05', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-06', nomor: '06', nama: 'Wartel 06', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-07', nomor: '07', nama: 'Wartel 07', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-08', nomor: '08', nama: 'Wartel 08', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-09', nomor: '09', nama: 'Wartel 09', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
-  { id: 'wartel-10', nomor: '10', nama: 'Wartel 10', tipe: 'telepon', lokasi: 'Bilik Utama Lapas', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-01', nomor: '01', nama: 'Wartel 01', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-02', nomor: '02', nama: 'Wartel 02', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-03', nomor: '03', nama: 'Wartel 03', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-04', nomor: '04', nama: 'Wartel 04', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-05', nomor: '05', nama: 'Wartel 05', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-06', nomor: '06', nama: 'Wartel 06', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-07', nomor: '07', nama: 'Wartel 07', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-08', nomor: '08', nama: 'Wartel 08', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-09', nomor: '09', nama: 'Wartel 09', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
+  { id: 'wartel-10', nomor: '10', nama: 'Wartel 10', tipe: 'telepon', lokasi: 'Bilik Utama Wartel', status: 'tersedia', estimasiSelesai: null },
 ];
 
 /**
@@ -54,7 +54,7 @@ export function saveCustomBooths(booths) {
 /**
  * Menambahkan bilik wartel baru oleh kasir kantin (tersinkron ke backend API)
  */
-export async function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik Lapas', status = 'tersedia' }) {
+export async function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = 'Bilik Wartel', status = 'tersedia' }) {
   const currentBooths = getCustomBooths();
 
   // Format nomor: jika angka 1 digit -> 01, jika 2 digit -> 11, jika teks -> pertahankan
@@ -66,7 +66,7 @@ export async function addCustomBooth({ nomor, nama, tipe = 'telepon', lokasi = '
   }
 
   const cleanNama = (nama && nama.trim()) || `Wartel ${cleanNomor}`;
-  const cleanLokasi = (lokasi && lokasi.trim()) || 'Bilik Lapas';
+  const cleanLokasi = (lokasi && lokasi.trim()) || 'Bilik Wartel';
 
   // 1. Simpan ke Backend API: POST /api/wartel/booths
   try {
@@ -153,7 +153,7 @@ export async function updateCustomBooth(id, updates = {}) {
         nomor: updated.boothNumber || cleanNomor || (index !== -1 ? currentBooths[index].nomor : '01'),
         nama: updated.name || cleanNama || (index !== -1 ? currentBooths[index].nama : `Wartel ${cleanNomor}`),
         tipe: updates.tipe || (index !== -1 ? currentBooths[index].tipe : 'telepon'),
-        lokasi: updated.location || cleanLokasi || (index !== -1 ? currentBooths[index].lokasi : 'Bilik Lapas'),
+        lokasi: updated.location || cleanLokasi || (index !== -1 ? currentBooths[index].lokasi : 'Bilik Wartel'),
         status: updated.status || updates.status || 'tersedia',
       };
 
@@ -250,7 +250,7 @@ export async function getStatusWartel() {
         nomor: item.nomor || item.boothNumber || '01',
         nama: item.nama || item.name || `Wartel ${item.nomor || item.boothNumber || '01'}`,
         tipe: item.tipe || 'telepon',
-        lokasi: item.lokasi || item.location || 'Bilik Lapas',
+        lokasi: item.lokasi || item.location || 'Bilik Wartel',
         status: item.status || 'tersedia',
         estimasiSelesai: item.estimasiSelesai ? Number(item.estimasiSelesai) : null,
         detail: item.detail || null,
@@ -267,7 +267,7 @@ export async function getStatusWartel() {
         waktuServer,
         cabang: {
           id: data?.cabang?.id || null,
-          nama: data?.cabang?.nama || 'Cabang Lapas',
+          nama: data?.cabang?.nama || 'Cabang UPT',
           totalBilik: summary.total,
           bilikDigunakan: summary.digunakan,
           bilikTersedia: summary.tersedia,
@@ -283,7 +283,7 @@ export async function getStatusWartel() {
       waktuServer,
       cabang: {
         id: data?.cabang?.id || null,
-        nama: data?.cabang?.nama || 'Cabang Lapas',
+        nama: data?.cabang?.nama || 'Cabang UPT',
         totalBilik: summary.total,
         bilikDigunakan: summary.digunakan,
         bilikTersedia: summary.tersedia,

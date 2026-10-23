@@ -154,7 +154,7 @@ export default function ModalPembayaranTagihan({
           1. Buka aplikasi <strong>Mobile Banking</strong> (BCA, Mandiri, BRI, BNI, dll.) atau <strong>E-Wallet</strong> (GoPay, OVO, DANA, ShopeePay).
         </p>
         <p className="leading-relaxed text-slate-600 text-[11px]">
-          2. Pindai stiker / barcode QRIS resmi PasCall Kantin dan pastikan nominal tepat: <span className="font-bold font-mono text-blue-700">{formatRupiah(payableAmount)}</span>.
+          2. Pindai stiker / barcode QRIS resmi Sadewa Kantin dan pastikan nominal tepat: <span className="font-bold font-mono text-blue-700">{formatRupiah(payableAmount)}</span>.
         </p>
         <p className="leading-relaxed text-slate-600 text-[11px]">
           3. Simpan tangkapan layar / bukti struk pembayaran berhasil untuk diunggah di formulir bawah.
@@ -259,7 +259,7 @@ export default function ModalPembayaranTagihan({
                   <QrCode className="w-4.5 h-4.5" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-slate-900">QRIS Resmi PasCall</div>
+                  <div className="text-xs font-bold text-slate-900">QRIS Resmi Sadewa</div>
                   <div className="text-[10px] text-slate-500 font-medium">BCA, Mandiri, BRI, GoPay, DANA, OVO, ShopeePay</div>
                 </div>
               </div>

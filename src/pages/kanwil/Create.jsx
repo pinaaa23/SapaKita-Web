@@ -830,7 +830,7 @@ export default function KanwilCreate() {
               <button
                 type="button"
                 onClick={() => {
-                  const fullText = `*Kredensial Akun Administrator Kanwil PasCall*\nKantor Wilayah: ${createdCredentials.name} (${createdCredentials.code})\nWilayah: ${createdCredentials.wilayah}\nProvinsi: ${(createdCredentials.provinces || []).join(', ')}\nNama Admin: ${createdCredentials.adminName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\n\nSilakan login di portal PasCall.`;
+                  const fullText = `*Kredensial Akun Administrator Kanwil Sadewa*\nKantor Wilayah: ${createdCredentials.name} (${createdCredentials.code})\nWilayah: ${createdCredentials.wilayah}\nProvinsi: ${(createdCredentials.provinces || []).join(', ')}\nNama Admin: ${createdCredentials.adminName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\n\nSilakan login di portal Sadewa.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

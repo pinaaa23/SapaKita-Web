@@ -23,9 +23,9 @@ import {
   ArrowRight,
   Filter
 } from 'lucide-react';
-import { getInmates, mapInmateItem } from '../../services/inmateService';
+import { getInmates } from '../../services/inmateService';
 import { getContacts, createContact, deleteContact } from '../../services/contactService';
-import { getMockNapi } from '../../services/mockStorage';
+import { getAuthUser } from '../../services/api';
 
 export default function KontakPage() {
   const [inmates, setInmates] = useState([]);
@@ -57,34 +57,32 @@ export default function KontakPage() {
 
   const searchTimerRef = useRef(null);
 
-  // Fetch Inmates: panggil service BE, fallback ke data mock jika UPT belum memiliki napi di DB
+  // Fetch Inmates: panggil service BE khusus per cabang UPT akun kasir kantin
   const fetchInmates = useCallback(async (search = '') => {
     setIsLoadingInmates(true);
     try {
-      const data = await getInmates({ search: search.trim(), limit: 30 });
+      const user = getAuthUser();
+      const userBranchId = user?.branchId || user?.branch?.id;
+      const userBranchName =
+        user?.branch?.name ||
+        user?.branchName ||
+        (typeof user?.branch === 'string' ? user.branch : '');
+
+      const data = await getInmates({ 
+        search: search.trim(), 
+        limit: 50,
+        branchId: userBranchId,
+        branchName: userBranchName,
+      });
       let list = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []);
 
-      // Fallback: Jika data dari BE kosong (misal akun kasir belum ada WBP di DB atau offline), ambil dari mock storage
-      if (list.length === 0) {
-        try {
-          const mocks = getMockNapi();
-          if (Array.isArray(mocks) && mocks.length > 0) {
-            const mapped = mocks.map(mapInmateItem).filter(Boolean);
-            if (search.trim()) {
-              const q = search.trim().toLowerCase();
-              list = mapped.filter(
-                (m) =>
-                  (m.name || '').toLowerCase().includes(q) ||
-                  (m.identifier || '').toLowerCase().includes(q) ||
-                  (m.blockRoom || '').toLowerCase().includes(q)
-              );
-            } else {
-              list = mapped;
-            }
-          }
-        } catch (e) {
-          console.warn('[KontakPage] Fallback mock reading warning:', e);
-        }
+      // Pastikan data HANYA milik cabang kasir kantin ini (tanpa fallback mock)
+      if (userBranchId) {
+        list = list.filter((item) => {
+          const itemBId = item.branchId || item.branch?.id;
+          if (!itemBId || String(itemBId).trim() === '') return false;
+          return String(itemBId).toLowerCase() === String(userBranchId).toLowerCase();
+        });
       }
 
       setInmates(list);
@@ -93,20 +91,12 @@ export default function KontakPage() {
       setSelectedInmate((prev) => {
         if (!prev) return null;
         const found = list.find((i) => i.id === prev.id || i.identifier === prev.identifier);
-        return found || prev;
+        return found || null;
       });
     } catch (err) {
       console.error('Gagal mengambil daftar WBP:', err);
-      try {
-        const mocks = getMockNapi();
-        if (Array.isArray(mocks) && mocks.length > 0) {
-          setInmates(mocks.map(mapInmateItem).filter(Boolean));
-        } else {
-          setInmates([]);
-        }
-      } catch {
-        setInmates([]);
-      }
+      setInmates([]);
+      setSelectedInmate(null);
     } finally {
       setIsLoadingInmates(false);
     }
@@ -333,7 +323,7 @@ export default function KontakPage() {
               Manajemen Kontak
             </span>
             <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             Kelola Kontak Keluarga WBP
@@ -411,7 +401,7 @@ export default function KontakPage() {
           {/* Petunjuk Cepat */}
           <div className="px-3 py-2 bg-slate-50/70 border border-slate-200/60 rounded-xl text-[11px] text-slate-500 flex items-center gap-2">
             <Info className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Klik kartu narapidana untuk melihat daftar nomor.</span>
+            <span>Klik kartu warga binaan untuk melihat daftar nomor.</span>
           </div>
 
           {/* List Kartu WBP */}
@@ -511,7 +501,7 @@ export default function KontakPage() {
               {/* Card Ringkasan WBP Terpilih & Kuota Kontak */}
               <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs p-5 sm:p-6 space-y-5">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  {/* Info Narapidana */}
+                  {/* Info Warga Binaan */}
                   <div className="flex items-center gap-4">
                     <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-black text-xl flex items-center justify-center shadow-md shadow-blue-500/20 shrink-0">
                       {selectedInmate.name ? selectedInmate.name.charAt(0).toUpperCase() : 'W'}
@@ -662,7 +652,7 @@ export default function KontakPage() {
                       Belum Ada Kontak Keluarga Terdaftar
                     </div>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-5 leading-relaxed">
-                      Narapidana ini belum memiliki nomor telepon keluarga yang diverifikasi. Daftarkan nomor keluarga agar WBP dapat melakukan panggilan di Wartel.
+                      Warga binaan ini belum memiliki nomor telepon keluarga yang diverifikasi. Daftarkan nomor keluarga agar WBP dapat melakukan panggilan di Wartel.
                     </p>
                     <button
                       onClick={handleOpenAddModal}
@@ -802,7 +792,7 @@ export default function KontakPage() {
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1">
                   <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Langkah 1</div>
                   <div className="font-bold text-xs text-slate-800">Cari & Pilih WBP</div>
-                  <div className="text-[11px] text-slate-500">Pilih narapidana dari daftar sebelah kiri.</div>
+                  <div className="text-[11px] text-slate-500">Pilih warga binaan dari daftar sebelah kiri.</div>
                 </div>
 
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-1">

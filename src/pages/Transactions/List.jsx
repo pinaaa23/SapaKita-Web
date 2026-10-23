@@ -155,7 +155,7 @@ const List = () => {
 
     const filename = `Data_Transaksi_Kantin_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
     const success = exportToExcel(exportData, filename, 'Transaksi Kantin Nasional', {
-      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KANTIN NASIONAL PASCALL',
+      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KANTIN NASIONAL SADEWA',
       subtitle: 'Rekapitulasi Konsolidasi Seluruh Pembelian Paket Voucher Kantin Se-Indonesia',
       metadata: {
         'Tingkat': 'Pusat / Nasional',

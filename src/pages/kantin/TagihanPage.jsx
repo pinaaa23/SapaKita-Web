@@ -564,7 +564,7 @@ export default function TagihanPage() {
               Sistem Pascabayar
             </span>
             <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin Lapas</span>
+            <span className="text-xs font-semibold text-slate-500">Kantin</span>
             {isRefreshing && (
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 ml-2 animate-pulse">
                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -1354,7 +1354,7 @@ export default function TagihanPage() {
                   Rincian Perhitungan Tagihan Kantin
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear} • {canteenBilling?.uptName || 'Kantin Lapas'}
+                  Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear} • {canteenBilling?.uptName || 'Kantin'}
                 </p>
               </div>
               <button
