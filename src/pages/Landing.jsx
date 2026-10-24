@@ -1574,9 +1574,9 @@ export default function Landing() {
             <span className="text-gray-300">|</span>
             <a href="#" className="hover:text-[#2f6fed] transition-colors lp-focus-ring">Bantuan</a>
             <span className="text-gray-300">|</span>
-            <a href="mailto:cs@pascall.id" className="hover:text-[#2f6fed] transition-colors lp-focus-ring inline-flex items-center gap-1">
+            <a href="mailto:cs@sadewa.id" className="hover:text-[#2f6fed] transition-colors lp-focus-ring inline-flex items-center gap-1">
               <Mail className="w-3 h-3" aria-hidden="true" />
-              cs@pascall.id
+              cs@sadewa.id
             </a>
           </div>
           <p className="text-[#98a2b3] text-center sm:text-right">© 2026 PasCall. Seluruh hak cipta dilindungi.</p>

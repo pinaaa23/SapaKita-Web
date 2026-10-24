@@ -79,7 +79,7 @@ export default function Login() {
               user: {
                 id: 'u-kantin-demo',
                 name: 'Siti Aminah',
-                email: idLower.includes('@') ? idLower : 'kantin@pascall.id',
+                email: idLower.includes('@') ? idLower : 'kantin@sadewa.id',
                 role: 'operator_kantin',
                 branchId: 'b1',
                 branchName: 'Lapas Cipinang',
@@ -92,7 +92,7 @@ export default function Login() {
               user: {
                 id: '9bad760c-2ae8-4879-a1e7-fdb4cb50c9fc',
                 name: 'Super Administrator',
-                email: idLower.includes('@') ? idLower : 'superadmin@pascall.id',
+                email: idLower.includes('@') ? idLower : 'superadmin@sadewa.id',
                 role: 'superadmin',
               },
             };
@@ -102,7 +102,7 @@ export default function Login() {
               user: {
                 id: 'u-spv-demo',
                 name: 'Budi Santoso',
-                email: idLower.includes('@') ? idLower : 'supervisor.lapas@pascall.id',
+                email: idLower.includes('@') ? idLower : 'supervisor.lapas@sadewa.id',
                 role: 'supervisor',
                 branchId: 'b1',
                 branchName: 'Lapas Cipinang',
@@ -115,7 +115,7 @@ export default function Login() {
               user: {
                 id: 'u-upt-demo',
                 name: 'Hendra (Kepala UPT)',
-                email: idLower.includes('@') ? idLower : 'kepala.bandung@pascall.id',
+                email: idLower.includes('@') ? idLower : 'kepala.bandung@sadewa.id',
                 role: 'kepala_upt',
                 branchId: 'b1',
                 branchName: 'Lapas Cipinang',
@@ -128,7 +128,7 @@ export default function Login() {
               user: {
                 id: 'u-kanwil-demo',
                 name: 'Admin Kanwil',
-                email: idLower.includes('@') ? idLower : 'admin.jateng@pascall.id',
+                email: idLower.includes('@') ? idLower : 'admin.jateng@sadewa.id',
                 role: 'admin_kanwil',
               },
             };
@@ -367,7 +367,7 @@ export default function Login() {
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="0812xxxxxx / email@pascall.id"
+                  placeholder="0812xxxxxx / email@sadewa.id"
                   className="w-full py-2.5 pl-2.5 pr-3 bg-transparent text-xs sm:text-sm font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"
                 />
               </div>
@@ -593,7 +593,7 @@ export default function Login() {
                   <input
                     type="text"
                     required
-                    placeholder="email@pascall.id / 0812xxxxxx"
+                    placeholder="email@sadewa.id / 0812xxxxxx"
                     value={forgotEmail}
                     onChange={(e) => setForgotEmail(e.target.value)}
                     className="w-full py-2 pl-2 pr-3 bg-transparent text-xs font-semibold text-[#101828] placeholder-[#7d8fa9] focus:outline-none"

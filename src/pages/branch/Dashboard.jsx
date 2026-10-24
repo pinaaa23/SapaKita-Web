@@ -253,6 +253,7 @@ const Dashboard = () => {
         search: debouncedSearch,
         status: statusFilter,
         callType: activeTab,
+        channel: activeTab === 'voice' ? channelFilter : 'All',
         page: 1,
         limit,
       });
@@ -269,7 +270,7 @@ const Dashboard = () => {
     } finally {
       setIsCallsLoading(false);
     }
-  }, [effectiveCanViewRecordings, debouncedSearch, statusFilter, activeTab, limit, navigate, logout]);
+  }, [effectiveCanViewRecordings, debouncedSearch, statusFilter, activeTab, channelFilter, limit, navigate, logout]);
 
   // Client-side filtering terhadap jalur panggilan (Web / GSM) dan status
   const filteredCalls = React.useMemo(() => {

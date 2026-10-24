@@ -26,7 +26,7 @@ import { createBranch, buildCreateBranchPayload } from '../../services/branchSer
 import { getAllKanwilsForSuperadmin } from '../../services/kanwilService';
 import { logout } from '../../services/api';
 
-export const ADMIN_EMAIL_DOMAIN = 'pascall.id';
+export const ADMIN_EMAIL_DOMAIN = 'sadewa.id';
 
 const generateAdminEmail = (name, location) => {
   // Ambil teks sumber: utamakan lokasi jika ada, atau nama cabang

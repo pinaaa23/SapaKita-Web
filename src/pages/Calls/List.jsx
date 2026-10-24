@@ -116,6 +116,7 @@ const CallsList = () => {
         branchId: branchFilter,
         status: statusFilter,
         callType: activeTab,
+        channel: activeTab === 'voice' ? channelFilter : 'All',
         startDate,
         endDate,
         page,
@@ -133,7 +134,7 @@ const CallsList = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, branchFilter, statusFilter, activeTab, startDate, endDate, page, limit, navigate]);
+  }, [debouncedSearch, branchFilter, statusFilter, activeTab, channelFilter, startDate, endDate, page, limit, navigate]);
 
   useEffect(() => {
     fetchCalls();
@@ -638,7 +639,7 @@ const CallsList = () => {
             {!isLoading && callsData.items.length > 0 && (
               <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-500 bg-slate-50/40">
                 <span>
-                  Menampilkan {callsData.items.length} dari total {callsData.total} rekaman
+                  Menampilkan {filteredCalls.length} dari total {callsData.total} rekaman
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button 

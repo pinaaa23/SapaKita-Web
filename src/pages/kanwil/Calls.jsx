@@ -109,6 +109,7 @@ export default function KanwilCalls() {
         search: debouncedSearch,
         status: statusFilter,
         callType: activeTab,
+        channel: activeTab === 'voice' ? channelFilter : 'All',
         branchId: branchFilter !== 'All' ? branchFilter : '',
         startDate,
         endDate,
@@ -151,7 +152,7 @@ export default function KanwilCalls() {
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, statusFilter, activeTab, branchFilter, startDate, endDate, limit, branches, logout, navigate]);
+  }, [debouncedSearch, statusFilter, activeTab, channelFilter, branchFilter, startDate, endDate, limit, branches, logout, navigate]);
 
   useEffect(() => {
     fetchCalls();

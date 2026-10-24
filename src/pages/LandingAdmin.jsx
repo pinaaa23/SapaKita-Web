@@ -674,8 +674,8 @@ function LandingAdmin() {
                   <div className="flex items-center justify-center sm:justify-start gap-1.5 text-xs text-[#5b6472]">
                     <Mail className="w-3.5 h-3.5 text-[#2f6fed]" aria-hidden="true" />
                     <span>Email dukungan:</span>
-                    <a href="mailto:cs@pascall.id" className="font-semibold text-[#2f6fed] hover:underline lp-focus-ring">
-                      cs@pascall.id
+                    <a href="mailto:cs@sadewa.id" className="font-semibold text-[#2f6fed] hover:underline lp-focus-ring">
+                      cs@sadewa.id
                     </a>
                   </div>
                 </div>
@@ -725,9 +725,9 @@ function LandingAdmin() {
             <span className="text-gray-300">|</span>
             <a href="#" className="hover:text-[#2f6fed] transition-colors lp-focus-ring">Bantuan</a>
             <span className="text-gray-300">|</span>
-            <a href="mailto:cs@pascall.id" className="hover:text-[#2f6fed] transition-colors lp-focus-ring inline-flex items-center gap-1">
+            <a href="mailto:cs@sadewa.id" className="hover:text-[#2f6fed] transition-colors lp-focus-ring inline-flex items-center gap-1">
               <Mail className="w-3 h-3" aria-hidden="true" />
-              cs@pascall.id
+              cs@sadewa.id
             </a>
           </div>
           <p className="text-[#98a2b3] text-center sm:text-right">© 2026 PasCall. Seluruh hak cipta dilindungi.</p>

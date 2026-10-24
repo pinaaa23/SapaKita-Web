@@ -201,6 +201,7 @@ export const getKanwilCalls = async ({
   callType = '',
   startDate = '',
   endDate = '',
+  channel = '',
 } = {}) => {
   const query = new URLSearchParams();
   if (search && search.trim()) query.append('search', search.trim());
@@ -208,6 +209,7 @@ export const getKanwilCalls = async ({
   if (limit) query.append('limit', String(limit));
   if (branchId && branchId !== 'All' && branchId !== 'semua') query.append('branchId', branchId);
   if (status && status !== 'All' && status !== 'semua') query.append('status', status);
+  if (channel && channel !== 'All' && channel !== 'all' && channel !== 'semua') query.append('channel', channel.toLowerCase());
   if (startDate) query.append('startDate', startDate);
   if (endDate) query.append('endDate', endDate);
 
@@ -233,6 +235,7 @@ export const getKanwilCalls = async ({
       status,
       branchId,
       callType,
+      channel,
       startDate,
       endDate,
     });
@@ -251,6 +254,7 @@ export const getCallHistory = async ({
   callType = '',
   startDate = '',
   endDate = '',
+  channel = '',
 } = {}) => {
   if (isDummyMode()) {
     const { dummyStore } = await import('../dummy/store');
@@ -263,6 +267,10 @@ export const getCallHistory = async ({
     if (callType && callType !== 'All' && callType !== 'all') {
       const isVideoReq = callType.toLowerCase().includes('video');
       calls = calls.filter((c) => isVideoReq ? c.callType === 'Video' : c.callType === 'Voice');
+    }
+
+    if (channel && channel !== 'All' && channel !== 'all') {
+      calls = calls.filter((c) => (c.channel || 'web').toLowerCase() === channel.toLowerCase());
     }
 
     const total = calls.length;
@@ -295,6 +303,7 @@ export const getCallHistory = async ({
     if (startDate) query.append('startDate', startDate);
     if (endDate) query.append('endDate', endDate);
     if (callType && callType !== 'All' && callType !== 'all') query.append('callType', callType);
+    if (channel && channel !== 'All' && channel !== 'all') query.append('channel', channel.toLowerCase());
 
     const callsRes = await apiFetch(`/api/calls?${query.toString()}`).catch(() => null);
     if (callsRes && (Array.isArray(callsRes.data) || Array.isArray(callsRes.items))) {
@@ -326,6 +335,8 @@ export const getCallHistory = async ({
       branchId,
       startDate,
       endDate,
+      channel,
+      callType,
     });
 
     const rawList = Array.isArray(res)

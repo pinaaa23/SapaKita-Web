@@ -373,6 +373,12 @@ export const getRecordingsApi = async (params = {}) => {
       // ignore invalid date
     }
   }
+  if (params.channel && params.channel !== 'All' && params.channel !== 'all') {
+    query.append('channel', params.channel.toLowerCase());
+  }
+  if (params.callType && params.callType !== 'All' && params.callType !== 'all') {
+    query.append('callType', params.callType.toUpperCase());
+  }
   if (params.branchId && params.branchId !== 'All') {
     query.append('branchId', params.branchId);
   }

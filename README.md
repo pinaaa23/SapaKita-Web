@@ -76,7 +76,7 @@ Login dengan email yang mengandung kata:
 - `kantin.*` atau `*canteen*` → masuk sebagai Operator Kantin
 - `supervisor.*` atau `*spv*` → masuk sebagai Supervisor
 - `kepala.*` → masuk sebagai Kepala UPT
-- `superadmin.*` atau `pusat@pascall.id` → masuk sebagai Super Admin
+- `superadmin.*` atau `pusat@sadewa.id` → masuk sebagai Super Admin
 
 ## Manajemen Pengguna (Kepala UPT)
 
@@ -84,5 +84,5 @@ Kepala UPT dapat membuat dan mengelola akun:
 - **Supervisor** — akses dashboard UPT
 - **Operator Kantin** — akses halaman `/kantin`
 
-Format email yang disarankan: `peran.wilayah@pascall.id`
-Contoh: `kantin.cipinang@pascall.id`, `supervisor.cipinang@pascall.id`
+Format email yang disarankan: `peran.wilayah@sadewa.id`
+Contoh: `kantin.cipinang@sadewa.id`, `supervisor.cipinang@sadewa.id`

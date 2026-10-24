@@ -30,7 +30,7 @@ import { generateRandomPassword } from '../../services/userService';
 
 /**
  * Generator rekomendasi email administrator kanwil
- * Format: admin.[slug_wilayah]@pascall.id
+ * Format: admin.[slug_wilayah]@sadewa.id
  */
 export const generateRecommendedEmail = (name, wilayah, code) => {
   const text = `${wilayah || ''} ${name || ''} ${code || ''}`.toLowerCase();
@@ -77,7 +77,7 @@ export const generateRecommendedEmail = (name, wilayah, code) => {
       .filter((w) => w && !stopwords.includes(w));
     slug = rawWords.slice(0, 2).join('') || (code ? code.toLowerCase().replace(/[^a-z0-9]/g, '') : 'wilayah');
   }
-  return slug ? `admin.${slug}@pascall.id` : '';
+  return slug ? `admin.${slug}@sadewa.id` : '';
 };
 
 export default function KanwilCreate() {
@@ -92,7 +92,7 @@ export default function KanwilCreate() {
   const initialWilayah = passedKanwil?.wilayah || passedKanwil?.region || passedKanwil?.provinces?.[0] || '';
   const hasExistingCustomEmail = Boolean(
     passedKanwil?.adminEmail &&
-    passedKanwil.adminEmail !== 'superadmin@pascall.id' &&
+    passedKanwil.adminEmail !== 'superadmin@sadewa.id' &&
     passedKanwil.adminEmail.trim() !== ''
   );
   const initialEmail = hasExistingCustomEmail
@@ -160,7 +160,7 @@ export default function KanwilCreate() {
             const fName = found.kanwilName || found.name || '';
             const fWilayah = found.wilayah || found.region || found.provinces?.[0] || '';
             const fExistingEmail = found.adminEmail || found.adminUser?.email || '';
-            const fHasCustomEmail = Boolean(fExistingEmail && fExistingEmail !== 'superadmin@pascall.id');
+            const fHasCustomEmail = Boolean(fExistingEmail && fExistingEmail !== 'superadmin@sadewa.id');
             const fEmail = fHasCustomEmail
               ? fExistingEmail
               : generateRecommendedEmail(fName, fWilayah, found.code);
@@ -364,7 +364,7 @@ export default function KanwilCreate() {
                     const val = e.target.value;
                     const next = { ...formData, kanwilName: val };
                     const currentWilayah = formData.wilayah || formData.provinces[0] || val || '';
-                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@pascall.id' || formData.adminEmail.includes('@pascall.id')) {
+                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sadewa.id' || formData.adminEmail.includes('@sadewa.id')) {
                       next.adminEmail = generateRecommendedEmail(val, currentWilayah, formData.code);
                       next.adminName = val ? `Admin ${val}` : '';
                     }
@@ -403,7 +403,7 @@ export default function KanwilCreate() {
                       next.kanwilName = `Kanwil ${prov}`;
                       next.adminName = `Admin Kanwil ${prov}`;
                     }
-                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@pascall.id' || formData.adminEmail.includes('@pascall.id')) {
+                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sadewa.id' || formData.adminEmail.includes('@sadewa.id')) {
                       next.adminEmail = generateRecommendedEmail(next.kanwilName || prov, prov, formData.code);
                     }
                     setFormData(next);
@@ -546,7 +546,7 @@ export default function KanwilCreate() {
                   name="kanwilAdminEmail"
                   autoComplete="off"
                   required={!isEditing}
-                  placeholder="Contoh: admin.jateng@pascall.id"
+                  placeholder="Contoh: admin.jateng@sadewa.id"
                   value={formData.adminEmail}
                   onChange={(e) => {
                     setFormData({ ...formData, adminEmail: e.target.value });
@@ -556,7 +556,7 @@ export default function KanwilCreate() {
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Format resmi: <span className="text-slate-600">admin.[wilayah]@pascall.id</span>
+                Format resmi: <span className="text-slate-600">admin.[wilayah]@sadewa.id</span>
               </p>
             </div>
 

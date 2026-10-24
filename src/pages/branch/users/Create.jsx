@@ -80,7 +80,7 @@ export const extractBranchSlug = (branchName, user) => {
     }
   }
 
-  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.yogyakarta@pascall.id -> yogyakarta)
+  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.yogyakarta@sadewa.id -> yogyakarta)
   if (user?.email && user.email.includes('@')) {
     const localPart = user.email.split('@')[0];
     const parts = localPart.split('.');
@@ -102,7 +102,7 @@ export const extractBranchSlug = (branchName, user) => {
 
 /**
  * Generator rekomendasi email petugas UPT PasCall
- * Format: peran.nama.cabang@pascall.id (Contoh: spv.salsabila.yogyakarta@pascall.id)
+ * Format: peran.nama.cabang@sadewa.id (Contoh: spv.salsabila.yogyakarta@sadewa.id)
  */
 export const generateUserEmail = (name, role, branchName, user) => {
   const roleSlug = role === ROLES.OPERATOR_KANTIN ? 'kantin' : 'spv';
@@ -123,7 +123,7 @@ export const generateUserEmail = (name, role, branchName, user) => {
   if (nameSlug) parts.push(nameSlug);
   if (branchSlug) parts.push(branchSlug);
 
-  return `${parts.join('.')}@pascall.id`;
+  return `${parts.join('.')}@sadewa.id`;
 };
 
 const Create = () => {
@@ -516,7 +516,7 @@ const Create = () => {
                   onChange={handleEmailChange}
                   readOnly={role === ROLES.SUPERVISOR}
                   required
-                  placeholder="Contoh: spv.salsabila.cipinang@pascall.id"
+                  placeholder="Contoh: spv.salsabila.cipinang@sadewa.id"
                   className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none transition-all shadow-2xs font-mono ${
                     role === ROLES.SUPERVISOR
                       ? 'bg-slate-100/80 text-slate-600 border border-slate-200 cursor-not-allowed select-none'
@@ -525,7 +525,7 @@ const Create = () => {
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Format standar: <span className="text-slate-600">peran.nama.cabang@pascall.id</span>
+                Format standar: <span className="text-slate-600">peran.nama.cabang@sadewa.id</span>
               </p>
             </div>
 

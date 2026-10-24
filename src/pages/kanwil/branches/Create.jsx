@@ -25,7 +25,7 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import { createKanwilBranch } from '../../../services/kanwilService';
 
-export const ADMIN_EMAIL_DOMAIN = 'pascall.id';
+export const ADMIN_EMAIL_DOMAIN = 'sadewa.id';
 
 const generateHeadEmail = (name, location) => {
   const rawText = (location && location.trim()) || (name && name.trim()) || '';
