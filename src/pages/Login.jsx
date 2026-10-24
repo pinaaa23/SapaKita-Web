@@ -1049,6 +1049,16 @@ export default function Login() {
                 role: 'admin_kanwil',
               },
             };
+          } else if (idLower.includes('finance') || idLower.includes('keuangan')) {
+            responseData = {
+              token: 'mock-jwt-token-finance-' + Date.now(),
+              user: {
+                id: 'u-finance-demo',
+                name: 'Dewi Lestari (Finance)',
+                email: idLower.includes('@') ? idLower : 'finance@sadewa.id',
+                role: 'finance',
+              },
+            };
           } else {
             throw apiErr;
           }
@@ -1120,6 +1130,9 @@ export default function Login() {
       } else if (normalizedRole === 'admin_kanwil' || normalizedRole === 'kanwil_admin' || normalizedRole === 'kanwil') {
         setAuthContextSession(token, { ...user, role: 'admin_kanwil' });
         navigate('/kanwil/dashboard');
+      } else if (normalizedRole === 'finance' || normalizedRole === 'admin_finance' || normalizedRole === 'keuangan') {
+        setAuthContextSession(token, { ...user, role: 'finance' });
+        navigate('/finance/dashboard');
       } else {
         clearAuthSession();
         setError('Akun ini tidak memiliki hak akses ke dashboard ini.');

@@ -120,10 +120,41 @@ export default function ModalPembayaranTagihan({
         billingYear: targetYear,
       });
 
+      // Sinkronkan bukti transfer yang diunggah kantin ke data Finance lokal
+      if (proofFile && proofFile.type?.startsWith('image/')) {
+        try {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const dataUrl = event.target?.result;
+            if (dataUrl) {
+              const rawBillings = localStorage.getItem('pascall_finance_billings_v1');
+              if (rawBillings) {
+                const list = JSON.parse(rawBillings);
+                const matchIdx = list.findIndex((b) => b.month === Number(targetMonth) && b.year === Number(targetYear));
+                if (matchIdx !== -1) {
+                  list[matchIdx].status = 'PENDING_CONFIRMATION';
+                  list[matchIdx].paymentDate = new Date().toISOString();
+                  list[matchIdx].paymentMethod = metodePembayaran;
+                  list[matchIdx].proofUrl = dataUrl;
+                  if (!list[matchIdx].proof) list[matchIdx].proof = {};
+                  list[matchIdx].proof.proofImage = dataUrl;
+                  localStorage.setItem('pascall_finance_billings_v1', JSON.stringify(list));
+                  window.dispatchEvent(new Event('finance_billing_updated'));
+                }
+              }
+            }
+          };
+          reader.readAsDataURL(proofFile);
+        } catch (syncErr) {
+          console.warn('[ModalPembayaranTagihan] Gagal sinkronisasi proof ke finance:', syncErr);
+        }
+      }
+
       // Dispatch event agar komponen lain ikut update
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('pascall_billing_updated'));
         window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+        window.dispatchEvent(new Event('finance_billing_updated'));
       }
 
       onSuccess && onSuccess();

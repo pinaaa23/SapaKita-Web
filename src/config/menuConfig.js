@@ -21,6 +21,7 @@ export const ROLES = {
   KEPALA_UPT: 'kepala_upt',
   SUPERVISOR: 'supervisor',
   OPERATOR_KANTIN: 'operator_kantin',
+  FINANCE: 'finance',
 };
 
 /**
@@ -32,6 +33,7 @@ export const ROLE_LABELS = {
   [ROLES.KEPALA_UPT]: 'Kepala UPT',
   [ROLES.SUPERVISOR]: 'Supervisor',
   [ROLES.OPERATOR_KANTIN]: 'Operator Kantin',
+  [ROLES.FINANCE]: 'Admin Finance',
 };
 
 /**
@@ -71,6 +73,14 @@ export const normalizeRole = (rawRole) => {
     str === 'kasir_lapas' ||
     str === 'canteen'
   ) return ROLES.OPERATOR_KANTIN;
+  if (
+    str === 'finance' ||
+    str === 'admin_finance' ||
+    str === 'finance_admin' ||
+    str === 'keuangan' ||
+    str === 'admin_keuangan' ||
+    str === 'fin'
+  ) return ROLES.FINANCE;
 
   return '';
 };
@@ -161,6 +171,16 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
+    ];
+  }
+
+  // Menu untuk Admin Finance (Dashboard Keuangan, Rekap Tagihan UPT, Bagi Hasil 4 Pihak, Laporan Finansial)
+  if (normRole === ROLES.FINANCE) {
+    return [
+      { name: 'Dashboard Keuangan', icon: LayoutDashboard, path: '/finance/dashboard' },
+      { name: 'Rekap Tagihan UPT', icon: Receipt, path: '/finance/billing' },
+      { name: 'Bagi Hasil 4 Pihak', icon: Wallet, path: '/finance/contracts' },
+      { name: 'Laporan Keuangan', icon: BarChart3, path: '/finance/reports' },
     ];
   }
 

@@ -7,7 +7,8 @@ import {
   ChevronRight,
   PhoneCall,
   X,
-  LayoutDashboard
+  LayoutDashboard,
+  Wallet
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
@@ -20,12 +21,14 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
   const navigate = useNavigate();
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   const isKanwilAdmin = location.pathname === '/kanwil' || location.pathname.startsWith('/kanwil/');
+  const isFinance = location.pathname === '/finance' || location.pathname.startsWith('/finance/');
   
   const { role: currentRole, roleLabel, uptName, user, logout } = useAuth();
   const uptDisplayName = uptName || user?.branch?.name || user?.branchName || 'UPT Pemasyarakatan';
 
   // State hitungan permintaan top up kantin yang menunggu persetujuan
   const [pendingTopupCount, setPendingTopupCount] = useState(() => getPendingTopupCountSync());
+  const [financePendingCount, setFinancePendingCount] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -42,14 +45,31 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       }
     };
 
+    const updateFinanceCount = async () => {
+      try {
+        const { getPendingCanteenDepositCount } = await import('../services/financeService');
+        if (isMounted) {
+          setFinancePendingCount(getPendingCanteenDepositCount());
+        }
+      } catch {
+        // Abaikan
+      }
+    };
+
     updateCount();
+    updateFinanceCount();
     window.addEventListener('canteen_topup_changed', updateCount);
+    window.addEventListener('finance_billing_updated', updateFinanceCount);
     window.addEventListener('storage', updateCount);
-    const interval = setInterval(updateCount, 8000);
+    const interval = setInterval(() => {
+      updateCount();
+      updateFinanceCount();
+    }, 8000);
 
     return () => {
       isMounted = false;
       window.removeEventListener('canteen_topup_changed', updateCount);
+      window.removeEventListener('finance_billing_updated', updateFinanceCount);
       window.removeEventListener('storage', updateCount);
       clearInterval(interval);
     };
@@ -66,21 +86,24 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
 
   const effectiveRole = normalizedCurrent || 
     normalizedStored || 
-    (isBranchAdmin 
-      ? (storedRole?.toLowerCase().includes('spv') || storedRole?.toLowerCase().includes('supervisor') 
-          ? ROLES.SUPERVISOR 
-          : ROLES.KEPALA_UPT) 
-      : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
+    (isFinance
+      ? ROLES.FINANCE
+      : isBranchAdmin 
+        ? (storedRole?.toLowerCase().includes('spv') || storedRole?.toLowerCase().includes('supervisor') 
+            ? ROLES.SUPERVISOR 
+            : ROLES.KEPALA_UPT) 
+        : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
   
   const effectiveRoleLabel = roleLabel || 
     ROLE_LABELS[effectiveRole] || 
-    (effectiveRole === ROLES.ADMIN_KANWIL ? 'Admin Kanwil' : 
+    (effectiveRole === ROLES.FINANCE ? 'Admin Finance' :
+     effectiveRole === ROLES.ADMIN_KANWIL ? 'Admin Kanwil' : 
      effectiveRole === ROLES.SUPERVISOR ? 'Supervisor' : 
      effectiveRole === ROLES.KEPALA_UPT ? 'Kepala UPT' : 'Super Administrator');
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;
-  const isSadewaRole = effectiveRole === ROLES.SUPERADMIN || effectiveRole === ROLES.ADMIN_KANWIL || effectiveRole === ROLES.KEPALA_UPT || effectiveRole === ROLES.SUPERVISOR;
+  const isSadewaRole = effectiveRole === ROLES.SUPERADMIN || effectiveRole === ROLES.FINANCE || effectiveRole === ROLES.ADMIN_KANWIL || effectiveRole === ROLES.KEPALA_UPT || effectiveRole === ROLES.SUPERVISOR;
 
   return (
     <div className={`fixed left-3.5 top-3.5 bottom-3.5 md:left-6 md:top-6 md:bottom-6 z-50 transition-all duration-300 ${
@@ -156,7 +179,9 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                              (item.path !== '/kanwil/dashboard' || location.pathname === '/kanwil/dashboard');
             
             const isCanteenTopupMenu = item.path === '/canteen-topup';
-            const showBadge = isCanteenTopupMenu && pendingTopupCount > 0;
+            const isFinanceBillingMenu = item.path === '/finance/billing';
+            const showBadge = (isCanteenTopupMenu && pendingTopupCount > 0) || (isFinanceBillingMenu && financePendingCount > 0);
+            const badgeCount = isFinanceBillingMenu ? financePendingCount : pendingTopupCount;
 
             const ItemIcon = item.icon || LayoutDashboard;
 
@@ -165,7 +190,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                 key={item.name}
                 to={item.path}
                 onClick={() => closeMobileMenu?.()}
-                title={!isExpandedView ? (showBadge ? `${item.name} (${pendingTopupCount} permohonan baru)` : item.name) : undefined}
+                title={!isExpandedView ? (showBadge ? `${item.name} (${badgeCount} setoran/permohonan baru)` : item.name) : undefined}
                 className={`flex items-center transition-all duration-300 ${
                   !isExpandedView 
                     ? `mx-auto w-11 h-11 justify-center rounded-2xl relative ${
@@ -200,7 +225,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                     {showBadge && (
                       <span 
                         className="relative flex h-2.5 w-2.5 ml-auto shrink-0" 
-                        title={`${pendingTopupCount} permintaan top up baru menunggu konfirmasi`}
+                        title={`${badgeCount} setoran baru menunggu verifikasi`}
                       >
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-80"></span>
                         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 shadow-sm"></span>
@@ -251,6 +276,27 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                    <div className="flex items-center gap-1.5 mt-0.5">
                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                      <p className="text-[10px] text-blue-200">Online</p>
+                   </div>
+                 </div>
+               )}
+            </div>
+          )}
+
+          {effectiveRole === ROLES.FINANCE && (
+            <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
+              !isExpandedView 
+                ? 'w-11 h-11 justify-center p-0 mb-1' 
+                : 'p-3 gap-2.5 mb-2.5 mx-1'
+            }`}>
+               <div className="relative shrink-0">
+                 <Wallet className="w-5 h-5 text-emerald-300" />
+               </div>
+               {isExpandedView && (
+                 <div className="overflow-hidden whitespace-nowrap">
+                   <p className="text-xs font-semibold text-white truncate">{user?.name || 'Admin Finance'}</p>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
+                     <p className="text-[10px] text-emerald-200 font-medium">Divisi Keuangan</p>
                    </div>
                  </div>
                )}

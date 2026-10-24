@@ -44,6 +44,13 @@ import KanwilProfile from './pages/kanwil/Profile';
 import KanwilManagement from './pages/kanwil/KanwilManagement';
 import KanwilCreate from './pages/kanwil/Create';
 import KanwilAdmins from './pages/kanwil/KanwilAdmins';
+
+// Finance Pages (Role: FINANCE)
+import FinanceDashboard from './pages/finance/Dashboard';
+import FinanceBilling from './pages/finance/Billing';
+import FinanceContracts from './pages/finance/Contracts';
+import FinanceReports from './pages/finance/Reports';
+
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
 
@@ -211,6 +218,15 @@ function App() {
                 <Route path="canteen-topup" element={<CanteenTopup />} />
                 <Route path="reports" element={<KanwilReports />} />
                 <Route path="profile" element={<KanwilProfile />} />
+              </Route>
+
+              {/* Finance Admin Routes (Role: FINANCE) */}
+              <Route path="finance" element={<ProtectedRoute allowedRoles={[ROLES.FINANCE]} />}>
+                <Route index element={<Navigate to="/finance/dashboard" replace />} />
+                <Route path="dashboard" element={<FinanceDashboard />} />
+                <Route path="billing" element={<FinanceBilling />} />
+                <Route path="contracts" element={<FinanceContracts />} />
+                <Route path="reports" element={<FinanceReports />} />
               </Route>
             </Route>
           </Route>

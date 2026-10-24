@@ -27,6 +27,12 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.SUPERADMIN) {
         return <Navigate to="/dashboard" replace />;
       }
+      if (currentRole === ROLES.FINANCE) {
+        return <Navigate to="/finance/dashboard" replace />;
+      }
+      if (currentRole === ROLES.ADMIN_KANWIL) {
+        return <Navigate to="/kanwil/dashboard" replace />;
+      }
       if (currentRole === ROLES.OPERATOR_KANTIN) {
         return <Navigate to="/kantin" replace />;
       }
