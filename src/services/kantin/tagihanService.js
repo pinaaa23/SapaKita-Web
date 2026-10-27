@@ -31,9 +31,14 @@ export async function getMonthlyBilling(month, year) {
 export async function getPaymentHistory() {
   try {
     const res = await apiFetch('/api/canteen/topups?limit=50');
-    let items = res?.items || res?.data || (Array.isArray(res) ? res : []);
+    let items = [];
+    if (Array.isArray(res?.data?.items)) items = res.data.items;
+    else if (Array.isArray(res?.data?.data)) items = res.data.data;
+    else if (Array.isArray(res?.data)) items = res.data;
+    else if (Array.isArray(res?.items)) items = res.items;
+    else if (Array.isArray(res)) items = res;
 
-    // Sinkronisasi dengan status terbaru dari Superadmin (jika disetujui/ditolak di storage)
+    // Sinkronisasi dengan status terbaru dari Admin Finance (jika disetujui/ditolak di storage)
     try {
       if (typeof window !== 'undefined') {
         const rawNat = localStorage.getItem('pascall_superadmin_canteen_history_v1');
@@ -74,7 +79,8 @@ export async function getPaymentHistory() {
 
 /**
  * Mengirim bukti pembayaran tagihan bulanan ke Backend
- * Endpoint: POST /api/canteen/topups (FormData multipart)
+ * // TODO: sambungkan ke endpoint finance saat BE siap (misal POST /api/finance/canteen-topups)
+ * Endpoint saat ini: POST /api/canteen/topups (FormData multipart)
  *
  * @param {Object} payload
  * @param {number} payload.nominal - Total tagihan rupiah
@@ -124,9 +130,49 @@ export async function submitTagihanPayment({ nominal, minutes = 1, bankTarget, p
       method: 'POST',
       body: formData,
     });
-    return res?.data || res;
+    const resultData = res?.data || res;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+      window.dispatchEvent(new CustomEvent('finance_billing_updated'));
+    }
+    return resultData;
   } catch (err) {
-    console.error('[TagihanService] Gagal mengirim bukti pembayaran:', err);
+    console.warn('[TagihanService] Gagal POST ke API, beralih ke penyimpanan lokal:', err?.message || err);
+    // Fallback penyimpanan lokal
+    try {
+      if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem('user') || localStorage.getItem('pascall_user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const fakeId = `TOPUP-${Date.now()}`;
+        const newLocalPayment = {
+          id: fakeId,
+          nominal: Number(nominal),
+          minutes: Number(minutes) || 1,
+          bankTarget: String(bankTarget),
+          proofUrl: proofFile ? URL.createObjectURL(proofFile) : null,
+          billingMonth: Number(billingMonth) || new Date().getMonth() + 1,
+          billingYear: Number(billingYear) || new Date().getFullYear(),
+          status: 'PENDING',
+          createdAt: new Date().toISOString(),
+          submittedAt: new Date().toISOString(),
+          branchId: user?.branchId || user?.branch?.id || 'b1',
+          branchName: user?.branchName || user?.branch?.name || 'Cabang Lapas',
+          staffName: user?.name || 'Operator Kantin',
+          canteenName: user?.canteenName || user?.name || 'Kantin Lapas',
+        };
+
+        const existingRaw = localStorage.getItem('pascall_superadmin_canteen_history_v1');
+        const list = existingRaw ? JSON.parse(existingRaw) : [];
+        const updated = [newLocalPayment, ...(Array.isArray(list) ? list : [])];
+        localStorage.setItem('pascall_superadmin_canteen_history_v1', JSON.stringify(updated));
+
+        window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
+        window.dispatchEvent(new CustomEvent('finance_billing_updated'));
+        return newLocalPayment;
+      }
+    } catch (storeErr) {
+      console.error('[TagihanService] Fallback storage error:', storeErr);
+    }
     throw err;
   }
 }
@@ -155,7 +201,7 @@ export function determineBillingStatus(billingData, paymentHistory = []) {
   const approvedPayments = paymentHistory.filter((p) => p && p.status === 'APPROVED');
   const totalApproved = approvedPayments.reduce((sum, p) => sum + Number(p.nominal || p.totalBayar || 0), 0);
 
-  // Cek apakah ada pembayaran yang sedang PENDING menunggu ACC Superadmin
+  // Cek apakah ada pembayaran yang sedang PENDING menunggu ACC Admin Finance
   const pendingPayment = paymentHistory.find((p) => p && p.status === 'PENDING');
 
   // Cek apakah ada penolakan pembayaran yang belum diselesaikan
@@ -168,7 +214,7 @@ export function determineBillingStatus(billingData, paymentHistory = []) {
   if (pendingPayment) {
     return {
       status: 'PENDING',
-      label: 'Menunggu Konfirmasi Superadmin',
+      label: 'Menunggu Konfirmasi Admin Finance',
       canPay: false,
       badgeColor: 'amber',
       paymentItem: pendingPayment,

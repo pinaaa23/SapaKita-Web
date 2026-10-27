@@ -134,7 +134,6 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
-      { name: 'Tagihan Kantin', icon: Receipt, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];
   }
@@ -174,12 +173,12 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Admin Finance (Dashboard Keuangan, Rekap Tagihan UPT, Bagi Hasil 4 Pihak, Laporan Finansial)
+  // Menu untuk Admin Finance (Dashboard Keuangan, Tagihan & Setoran, Kontrak Bagi Hasil, Laporan Keuangan)
   if (normRole === ROLES.FINANCE) {
     return [
       { name: 'Dashboard Keuangan', icon: LayoutDashboard, path: '/finance/dashboard' },
-      { name: 'Rekap Tagihan UPT', icon: Receipt, path: '/finance/billing' },
-      { name: 'Bagi Hasil 4 Pihak', icon: Wallet, path: '/finance/contracts' },
+      { name: 'Tagihan & Setoran', icon: Receipt, path: '/finance/billing' },
+      { name: 'Kontrak Bagi Hasil', icon: Wallet, path: '/finance/contracts' },
       { name: 'Laporan Keuangan', icon: BarChart3, path: '/finance/reports' },
     ];
   }

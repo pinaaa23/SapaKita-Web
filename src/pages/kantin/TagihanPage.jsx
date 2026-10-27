@@ -188,6 +188,8 @@ export default function TagihanPage() {
     window.addEventListener('pascall_billing_updated', handleUpdate);
     window.addEventListener('pascall_contract_changed', handleUpdate);
     window.addEventListener('canteen_topup_changed', handleUpdate);
+    window.addEventListener('canteen_transaction_saved', handleUpdate);
+    window.addEventListener('finance_billing_updated', handleUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
@@ -197,6 +199,8 @@ export default function TagihanPage() {
       window.removeEventListener('pascall_billing_updated', handleUpdate);
       window.removeEventListener('pascall_contract_changed', handleUpdate);
       window.removeEventListener('canteen_topup_changed', handleUpdate);
+      window.removeEventListener('canteen_transaction_saved', handleUpdate);
+      window.removeEventListener('finance_billing_updated', handleUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, [fetchBillingAndPayments, fetchCalls, selectedMonth, selectedYear, currentPage, searchQuery]);
@@ -260,12 +264,58 @@ export default function TagihanPage() {
     ? Number(effectiveContract.superadminPercent ?? effectiveContract.negotiationPercent)
     : null;
 
+  // Daftar Transaksi Riil (Diperbarui nilai detik x tarif x persen SA)
+  const transactions = useMemo(() => {
+    const list = canteenBilling?.transactions || billingData?.transactions || [];
+    return Array.isArray(list) ? list : [];
+  }, [canteenBilling?.transactions, billingData?.transactions]);
+
+  // Filter Transaksi berdasarkan Query Pencarian
+  const filteredTransactions = useMemo(() => {
+    if (!searchQuery.trim()) return transactions;
+    const q = searchQuery.toLowerCase().trim();
+    return transactions.filter((t) => {
+      const id = String(t.id || '').toLowerCase();
+      const code = String(t.kodeVoucher || '').toLowerCase();
+      const inmateName = String(t.inmate?.name || t.inmateName || t.napi?.nama || '').toLowerCase();
+      const inmateNip = String(t.inmate?.identifier || t.inmateIdentifier || t.napi?.id || '').toLowerCase();
+      const pkgName = String(t.package?.name || t.packageName || t.paket?.nama || '').toLowerCase();
+      const cashierName = String(t.cashier?.name || t.cashier?.identifier || t.cashierName || t.petugas || '').toLowerCase();
+      return (
+        id.includes(q) ||
+        code.includes(q) ||
+        inmateName.includes(q) ||
+        inmateNip.includes(q) ||
+        pkgName.includes(q) ||
+        cashierName.includes(q)
+      );
+    });
+  }, [transactions, searchQuery]);
+
   // Sumber detik tunggal dari durasi paket/voucher yang dibeli WBP
-  const totalSecondsAll = Number(
-    callsData?.totalSeconds !== undefined && callsData?.totalSeconds !== null && !searchQuery
-      ? callsData.totalSeconds
-      : (canteenBilling?.totalSeconds || billingData?.summary?.totalSeconds || 0)
-  );
+  const totalSecondsAll = useMemo(() => {
+    const txSec = transactions.reduce((acc, t) => {
+      const min = Number(
+        t.package?.durationMinutes ||
+        t.package?.duration ||
+        t.packageDuration ||
+        t.durationMinutes ||
+        (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) ||
+        0
+      );
+      return acc + (min * 60);
+    }, 0);
+
+    const callsSec = Number(callsData?.totalSeconds || 0);
+    const canteenSec = Number(canteenBilling?.totalSeconds || 0);
+    const beSec = Number(billingData?.summary?.totalSeconds || 0);
+
+    if (searchQuery && callsSec > 0) {
+      return callsSec;
+    }
+
+    return Math.max(canteenSec, beSec, txSec, callsSec);
+  }, [canteenBilling?.totalSeconds, billingData?.summary?.totalSeconds, transactions, callsData?.totalSeconds, searchQuery]);
 
   const subtotalTagihan = isContractConfigured && ratePerSec !== null
     ? Math.round(totalSecondsAll * ratePerSec)
@@ -299,12 +349,12 @@ export default function TagihanPage() {
     0
   );
 
-  // Pembayaran yang sedang PENDING menunggu ACC Superadmin
+  // Pembayaran yang sedang PENDING menunggu ACC Admin Finance
   const pendingPayment = currentMonthPayments.find(
     (p) => p.status === 'PENDING' || p.status === 'Menunggu'
   );
 
-  // Pembayaran yang Ditolak oleh Superadmin
+  // Pembayaran yang Ditolak oleh Admin Finance
   const rejectedPayment = currentMonthPayments.find(
     (p) => p.status === 'REJECTED' || p.status === 'Ditolak'
   );
@@ -376,7 +426,7 @@ export default function TagihanPage() {
     if (isPendingAcc) {
       return {
         key: 'PENDING_ACC',
-        label: 'Menunggu ACC Superadmin',
+        label: 'Menunggu ACC Admin Finance',
         badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
         textColor: 'text-amber-300',
         icon: Clock,
@@ -439,39 +489,56 @@ export default function TagihanPage() {
     );
   }, [canteenBilling?.invoiceNumber, billingData?.invoiceNumber, selectedMonth, selectedYear]);
 
-  // Daftar Transaksi Riil (Diperbarui nilai detik x tarif x persen SA)
-  const transactions = useMemo(() => {
-    return canteenBilling?.transactions || billingData?.transactions || [];
-  }, [canteenBilling?.transactions, billingData?.transactions]);
+  // Data item yang ditampilkan di tabel rincian (prioritaskan callsData, fallback ke filteredTransactions)
+  const displayItems = useMemo(() => {
+    if (Array.isArray(callsData?.items) && callsData.items.length > 0) {
+      return callsData.items;
+    }
+    if (Array.isArray(filteredTransactions) && filteredTransactions.length > 0) {
+      return filteredTransactions.map((t) => {
+        const durMin = Number(
+          t.package?.durationMinutes ||
+          t.package?.duration ||
+          t.packageDuration ||
+          t.durationMinutes ||
+          (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) ||
+          0
+        );
+        const durSec = durMin * 60;
+        const nominal = isContractConfigured && ratePerSec !== null && saPercent !== null
+          ? Math.round(durSec * ratePerSec * (saPercent / 100))
+          : null;
 
-  // Filter Transaksi berdasarkan Query Pencarian
-  const filteredTransactions = useMemo(() => {
-    if (!searchQuery.trim()) return transactions;
-    const q = searchQuery.toLowerCase().trim();
-    return transactions.filter((t) => {
-      const id = String(t.id || '').toLowerCase();
-      const code = String(t.kodeVoucher || '').toLowerCase();
-      const inmateName = String(t.inmate?.name || '').toLowerCase();
-      const inmateNip = String(t.inmate?.identifier || '').toLowerCase();
-      const pkgName = String(t.package?.name || '').toLowerCase();
-      const cashierName = String(t.cashier?.name || t.cashier?.identifier || '').toLowerCase();
-      return (
-        id.includes(q) ||
-        code.includes(q) ||
-        inmateName.includes(q) ||
-        inmateNip.includes(q) ||
-        pkgName.includes(q) ||
-        cashierName.includes(q)
-      );
-    });
-  }, [transactions, searchQuery]);
+        return {
+          id: t.id,
+          createdAt: t.createdAt || t.waktu || t.date || new Date().toISOString(),
+          kodeVoucher: t.kodeVoucher || (t.id ? String(t.id).slice(-8).toUpperCase() : '-'),
+          inmateName: t.inmate?.name || t.inmateName || t.napi?.nama || 'WBP',
+          inmateIdentifier: t.inmate?.identifier || t.inmateIdentifier || t.napi?.id || '-',
+          packageName: t.package?.name || t.packageName || t.paket?.nama || 'Paket Komunikasi',
+          packageDuration: durMin,
+          cashierName: t.cashier?.name || t.cashier?.identifier || t.cashierName || t.petugas || 'Petugas Kasir',
+          durationSeconds: durSec,
+          ratePerSecond: ratePerSec,
+          superadminPercent: saPercent,
+          nominal,
+          totalAmount: Number(t.totalAmount || t.paket?.harga || t.package?.price || 0),
+        };
+      });
+    }
+    return [];
+  }, [callsData?.items, filteredTransactions, isContractConfigured, ratePerSec, saPercent]);
 
-  // Paginasi Transaksi
-  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / PAGE_SIZE));
-  const paginatedTransactions = useMemo(() => {
+  // Paginasi Transaksi / Panggilan
+  const totalCallsOrTxItems = Math.max(callsData?.totalItems || 0, displayItems.length);
+  const totalPages = Math.max(1, Math.ceil(totalCallsOrTxItems / PAGE_SIZE));
+  const paginatedDisplayItems = useMemo(() => {
+    if (Array.isArray(callsData?.items) && callsData.items.length > 0) {
+      return callsData.items;
+    }
     const startIndex = (currentPage - 1) * PAGE_SIZE;
-    return filteredTransactions.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [filteredTransactions, currentPage, PAGE_SIZE]);
+    return displayItems.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [callsData?.items, displayItems, currentPage, PAGE_SIZE]);
 
   // Payload untuk Modal Pembayaran
   const modalBillingPayload = useMemo(() => {
@@ -516,7 +583,7 @@ export default function TagihanPage() {
   };
 
   const handlePaymentSuccess = () => {
-    setToastMessage('Bukti pembayaran tagihan berhasil dikirim ke Superadmin untuk diverifikasi.');
+    setToastMessage('Bukti pembayaran setoran tagihan berhasil dikirim ke Admin Finance untuk diverifikasi (ACC).');
     fetchBillingAndPayments(selectedMonth, selectedYear, true);
     setTimeout(() => {
       setToastMessage('');
@@ -576,7 +643,7 @@ export default function TagihanPage() {
             Tagihan Bulanan Kantin
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Tagihan bulanan dihitung dari akumulasi durasi paket/voucher yang dibeli WBP di kantin dikalikan tarif per detik dan persen bagian Superadmin.
+            Tagihan bulanan dihitung dari akumulasi durasi paket/voucher yang dibeli WBP di kantin dikalikan tarif per detik dan porsi setoran ke Admin Finance (skema bagi hasil 4 pihak).
           </p>
         </div>
 
@@ -622,14 +689,14 @@ export default function TagihanPage() {
       {/* =========================================================================
           BANNER PERINGATAN KONTRAK & JATUH TEMPO
           Sesuai aturan:
-          - Kontrak belum diatur: Banner peringatan hubungi Superadmin
+          - Kontrak belum diatur: Banner peringatan hubungi Admin Finance
           - Sisa 7 hari atau kurang: Kuning
           - Sisa 3 hari atau kurang: Oranye
           - Sisa 1 hari atau kurang: Merah ("Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan")
           - Setelah lewat: Status Telat/Diblokir
           ========================================================================= */}
 
-      {/* 1. Banner Kontrak Belum Diatur (Superadmin Belum Membuat Kontrak) */}
+      {/* 1. Banner Kontrak Belum Diatur (Admin Finance Belum Membuat Kontrak) */}
       {!isLoading && !isContractConfigured && (
         <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex items-start sm:items-center gap-3 text-xs text-amber-900 animate-in fade-in">
           <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
@@ -638,7 +705,7 @@ export default function TagihanPage() {
               Tarif Belum Diatur
             </strong>
             <span>
-              Tarif belum diatur: tagihan belum muncul karena kontrak dengan Superadmin belum dibuat. Hubungi Admin Pusat/Superadmin.
+              Tarif belum diatur: tagihan belum muncul karena kontrak belum dibuat. Hubungi Admin Keuangan / Finance.
             </span>
           </div>
         </div>
@@ -710,7 +777,7 @@ export default function TagihanPage() {
         <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl flex items-start sm:items-center gap-3 text-xs text-rose-900 animate-in fade-in">
           <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
-            <strong className="block font-bold text-rose-800">Pembayaran Sebelumnya Ditolak oleh Superadmin</strong>
+            <strong className="block font-bold text-rose-800">Pembayaran Sebelumnya Ditolak oleh Admin Finance</strong>
             <p className="mt-0.5 text-rose-700">
               Alasan: <span className="font-semibold">{rejectedPayment.rejectReason || 'Bukti transfer tidak sesuai atau tidak valid.'}</span>
             </p>
@@ -788,7 +855,7 @@ export default function TagihanPage() {
                 ) : (
                   <p className="text-amber-200 text-xs sm:text-sm leading-relaxed flex items-center gap-1.5 font-medium">
                     <AlertTriangle className="w-4 h-4 text-amber-300 shrink-0" />
-                    <span>Tarif belum diatur: tagihan belum muncul karena kontrak dengan Superadmin belum dibuat. Hubungi Admin Pusat/Superadmin.</span>
+                    <span>Tarif belum diatur: tagihan belum muncul karena kontrak belum dibuat. Hubungi Admin Keuangan / Finance.</span>
                   </p>
                 )}
 
@@ -864,10 +931,10 @@ export default function TagihanPage() {
                   <div className="mb-3 p-3 bg-amber-500/20 border border-amber-400/30 rounded-xl text-amber-200 text-xs">
                     <div className="font-bold flex items-center gap-1.5 mb-0.5">
                       <Clock className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Menunggu ACC Superadmin</span>
+                      <span>Menunggu ACC Admin Finance</span>
                     </div>
                     <p className="text-[11px] text-amber-200/90 leading-relaxed">
-                      Bukti pembayaran tagihan telah dikirim dan sedang menunggu konfirmasi verifikasi dari Superadmin.
+                      Bukti pembayaran tagihan telah dikirim dan sedang menunggu konfirmasi verifikasi dari Admin Finance.
                     </p>
                   </div>
                 )}
@@ -926,7 +993,7 @@ export default function TagihanPage() {
                 {isPendingAcc && (
                   <div className="text-center py-2.5 text-xs font-bold text-amber-300 bg-amber-500/20 rounded-xl border border-amber-400/30 flex items-center justify-center gap-1.5">
                     <Clock className="w-4 h-4 text-amber-400 animate-spin" />
-                    <span>Menunggu ACC Superadmin</span>
+                    <span>Menunggu ACC Admin Finance</span>
                   </div>
                 )}
 
@@ -964,16 +1031,16 @@ export default function TagihanPage() {
               <span>WBP melakukan panggilan telepon/video. Durasi panggilan dihitung otomatis dalam satuan detik riil.</span>
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">2. Kontrak Superadmin</span>
-              <span>Tarif per detik dan persen bagian SA diatur terpusat oleh Superadmin di tab Pengaturan Kontrak.</span>
+              <span className="font-extrabold text-blue-700 block mb-1">2. Kontrak Bagi Hasil 4 Pihak</span>
+              <span>Tarif per detik dan alokasi bagi hasil (Kepala UPT 5%, Koperasi 30%, Inkopasindo 10%, Vendor 55%) dikelola oleh Admin Finance.</span>
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">3. Rumus Tagihan</span>
-              <span>Total Tagihan = Total Detik × Tarif per Detik × % Bagian SA. Dihitung 1 kali per bulan per kantin.</span>
+              <span className="font-extrabold text-blue-700 block mb-1">3. Rumus Setoran</span>
+              <span>Kantin menahan porsi 30% laba Koperasi, lalu mentransfer 70% porsi setoran ke rekening penampung Finance.</span>
             </div>
             <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">4. Pembayaran & ACC</span>
-              <span>Kantin membayar via QRIS/Transfer, mengunggah bukti bayar, diverifikasi Superadmin, dan bebas berjualan.</span>
+              <span className="font-extrabold text-blue-700 block mb-1">4. Transfer &amp; ACC Finance</span>
+              <span>Kantin mentransfer ke rekening penampung Finance, mengunggah bukti bayar, diverifikasi Admin Finance, dan bebas berjualan.</span>
             </div>
           </div>
         )}
@@ -996,7 +1063,7 @@ export default function TagihanPage() {
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Rincian Penjualan Voucher ({callsData.totalItems})
+              Rincian Penjualan Voucher ({totalCallsOrTxItems})
             </button>
             <button
               type="button"
@@ -1056,12 +1123,12 @@ export default function TagihanPage() {
                         <span>Memuat rincian transaksi penjualan voucher...</span>
                       </td>
                     </tr>
-                  ) : callsData.items.length === 0 ? (
+                  ) : displayItems.length === 0 ? (
                     <tr>
                       <td colSpan="8" className="py-12 text-center text-slate-400">
                         <Ticket className="w-6 h-6 mx-auto text-slate-300 mb-1" />
                         <p className="font-bold text-slate-700">
-                          {isLoading ? 'Memuat data...' : isContractConfigured ? 'Belum ada penjualan voucher bulan ini' : 'Tarif kontrak belum diatur oleh Superadmin'}
+                          {isLoading ? 'Memuat data...' : isContractConfigured ? 'Belum ada penjualan voucher bulan ini' : 'Tarif kontrak belum diatur oleh Admin Finance'}
                         </p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           {searchQuery
@@ -1070,12 +1137,12 @@ export default function TagihanPage() {
                             ? 'Silakan tunggu...'
                             : isContractConfigured
                             ? 'Belum ada transaksi pembelian voucher WBP yang tercatat di sistem pada periode ini'
-                            : 'Hubungi Superadmin untuk menetapkan kontrak tarif'}
+                            : 'Hubungi Admin Finance untuk menetapkan kontrak tarif'}
                         </p>
                       </td>
                     </tr>
                   ) : (
-                    callsData.items.map((call) => {
+                    paginatedDisplayItems.map((call) => {
                       const durSec = Number(call.durationSeconds || 0);
 
                       return (
@@ -1149,18 +1216,18 @@ export default function TagihanPage() {
                 </tbody>
 
                 {/* Baris Total di Bawah Tabel */}
-                {callsData.items.length > 0 && (
+                {displayItems.length > 0 && (
                   <tfoot>
                     <tr className="bg-slate-100/90 border-t-2 border-slate-300 font-bold text-slate-900 text-xs">
                       <td colSpan="6" className="py-3.5 px-4 text-slate-700">
                         Total Akumulasi Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear}
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-blue-900 font-black whitespace-nowrap">
-                        {Number(callsData.totalSeconds || 0).toLocaleString('id-ID')} Detik
+                        {Number(totalSecondsAll || 0).toLocaleString('id-ID')} Detik
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono text-[#1565C0] font-black text-sm whitespace-nowrap">
-                        {isContractConfigured && callsData.totalTagihan !== undefined && callsData.totalTagihan !== null
-                          ? formatRupiah(callsData.totalTagihan)
+                        {isContractConfigured && newTotalTagihan !== null
+                          ? formatRupiah(newTotalTagihan)
                           : '-'}
                       </td>
                     </tr>
@@ -1170,12 +1237,12 @@ export default function TagihanPage() {
             </div>
 
             {/* Kontrol Paginasi */}
-            {(callsData.pagination?.totalPages || 1) > 1 && (
+            {totalPages > 1 && (
               <div className="p-4 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-500">
                 <span>
                   Menampilkan {(currentPage - 1) * PAGE_SIZE + 1} -{' '}
-                  {Math.min(currentPage * PAGE_SIZE, callsData.totalItems)} dari{' '}
-                  {callsData.totalItems} panggilan
+                  {Math.min(currentPage * PAGE_SIZE, totalCallsOrTxItems)} dari{' '}
+                  {totalCallsOrTxItems} transaksi
                 </span>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -1187,12 +1254,12 @@ export default function TagihanPage() {
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <span className="font-bold text-slate-800 px-2">
-                    {currentPage} / {callsData.pagination?.totalPages || 1}
+                    {currentPage} / {totalPages}
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCurrentPage((p) => Math.min(callsData.pagination?.totalPages || 1, p + 1))}
-                    disabled={currentPage >= (callsData.pagination?.totalPages || 1)}
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage >= totalPages}
                     className="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                   >
                     <ChevronRight className="w-4 h-4" />
@@ -1238,7 +1305,7 @@ export default function TagihanPage() {
                       </div>
                       <p className="font-bold text-slate-700 text-xs sm:text-sm">Belum Ada Tagihan untuk Dibayarkan</p>
                       <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto leading-relaxed">
-                        Kontrak tarif belum diatur oleh Superadmin. Riwayat pembayaran akan tercatat di sini setelah kontrak tarif aktif dan pembayaran dilakukan.
+                        Kontrak tarif belum diatur oleh Admin Finance. Riwayat pembayaran akan tercatat di sini setelah kontrak tarif aktif dan pembayaran dilakukan.
                       </p>
                     </td>
                   </tr>
@@ -1371,10 +1438,10 @@ export default function TagihanPage() {
               <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs text-blue-950">
                 <div className="font-bold flex items-center gap-1.5 mb-1 text-blue-900">
                   <Coins className="w-4 h-4 text-blue-600" />
-                  Rumus: Total Detik × Tarif per Detik × Persen Bagian SA
+                  Rumus: Total Detik × Tarif per Detik × Porsi Setoran ke Finance
                 </div>
                 <p className="text-[11px] text-blue-800 leading-relaxed">
-                  Durasi detik panggilan terakumulasi otomatis dari rekaman panggilan WBP. Tarif per detik dan persen bagian SA ditentukan oleh Superadmin di tab Pengaturan Kontrak.
+                  Durasi detik panggilan terakumulasi otomatis dari rekaman panggilan WBP. Tarif per detik dan formula bagi hasil 4 pihak (Kepala UPT 5%, Koperasi 30%, Inkopasindo 10%, Vendor 55%) dikelola oleh Admin Finance.
                 </p>
               </div>
 
@@ -1393,28 +1460,28 @@ export default function TagihanPage() {
                 </div>
 
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-500">2. Tarif per Detik (Kontrak Superadmin):</span>
+                  <span className="text-slate-500">2. Tarif per Detik (Kontrak Finance):</span>
                   <span className="font-bold text-slate-900">
                     {isContractConfigured && ratePerSec !== null ? `${formatRupiah(ratePerSec)} / detik` : 'Belum diatur'}
                   </span>
                 </div>
 
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-500">3. Subtotal (1 × 2):</span>
+                  <span className="text-slate-500">3. Subtotal Omset Kotor (1 × 2):</span>
                   <span className="font-bold text-slate-900">
                     {isContractConfigured && subtotalTagihan !== null ? formatRupiah(subtotalTagihan) : '-'}
                   </span>
                 </div>
 
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-500">4. Bagian Superadmin (SA):</span>
+                  <span className="text-slate-500">4. Porsi Setoran ke Finance:</span>
                   <div className="text-right">
                     <span className="font-bold text-blue-700 block">
                       {isContractConfigured && saPercent !== null ? `${saPercent}%` : 'Belum diatur'}
                     </span>
                     {isContractConfigured && saPercent !== null && (
                       <span className="text-[11px] text-slate-500 font-normal block">
-                        Hak Kantin: {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))})
+                        Hak Koperasi UPT: {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))}) ditahan di UPT.
                       </span>
                     )}
                   </div>
@@ -1422,8 +1489,8 @@ export default function TagihanPage() {
 
                 <div className="pt-3 flex justify-between items-center text-sm">
                   <div>
-                    <span className="font-black text-slate-900 block">Total Tagihan Bulan Ini:</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Superadmin (Subtotal × % SA)</span>
+                    <span className="font-black text-slate-900 block">Total Setoran Bulan Ini:</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Admin Finance (Porsi {saPercent || 70}% Setoran)</span>
                   </div>
                   <span className="font-black text-[#1565C0] text-base">
                     {isContractConfigured && newTotalTagihan !== null ? formatRupiah(newTotalTagihan) : '-'}

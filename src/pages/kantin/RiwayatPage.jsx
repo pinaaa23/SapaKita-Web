@@ -72,12 +72,9 @@ export default function RiwayatPage() {
         }
 
         // Resolusi total detik bulan ini dari sumber yang sama persis dengan halaman Tagihan Bulanan:
-        let totalSecondsMonth = 0;
-        if (billingCallsRes.status === 'fulfilled' && billingCallsRes.value?.totalSeconds !== undefined && billingCallsRes.value?.totalSeconds !== null) {
-          totalSecondsMonth = Number(billingCallsRes.value.totalSeconds);
-        } else if (canteenBillingRes.status === 'fulfilled' && canteenBillingRes.value?.totalSeconds !== undefined && canteenBillingRes.value?.totalSeconds !== null) {
-          totalSecondsMonth = Number(canteenBillingRes.value.totalSeconds);
-        }
+        const callSec = Number(billingCallsRes.value?.totalSeconds || 0);
+        const canteenSec = Number(canteenBillingRes.value?.totalSeconds || 0);
+        let totalSecondsMonth = Math.max(callSec, canteenSec);
 
         if (rekapRes.status === 'fulfilled' && rekapRes.value) {
           setRekapData({

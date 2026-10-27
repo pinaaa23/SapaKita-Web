@@ -1,13 +1,26 @@
 /**
  * Finance Service (Modul Keuangan & Penagihan Pembagian Hasil 4 Pihak)
- * 
- * Skema Pembagian Hasil:
- * 1. Kepala UPT: 5%
- * 2. Koperasi: 30%
- * 3. Inkopasindo: 10%
- * 4. Vendor: 55%
- * Total = 100% (Konfigurasi persentase dinamis & dapat disesuaikan per cabang)
+ * ====================================================================
+ * Terhubung langsung ke Backend REST API PasCall:
+ * - GET   /api/finance/summary?month=&year=
+ * - GET   /api/finance/reports?year=&branchId=
+ * - GET   /api/finance/billings?month=&year=&branchId=&status=&search=
+ * - GET   /api/finance/billings/pending-count
+ * - GET   /api/finance/billings/:id
+ * - PATCH /api/finance/billings/:id/approve
+ * - PATCH /api/finance/billings/:id/reject
+ * - POST  /api/finance/billings/:id/pay
+ * - GET   /api/finance/billings/:id/proof
+ * - GET   /api/finance/contracts
+ * - GET   /api/finance/contracts/:branchId
+ * - PUT   /api/finance/contracts/:branchId
+ *
+ * Dilengkapi graceful fallback ke local storage jika backend offline/unreachable
+ * sehingga antarmuka tetap berjalan mulus.
  */
+
+import { apiFetch, API_BASE_URL } from './api';
+import { saveStoredContract } from '../dummy/canteenContractMock';
 
 export const DEFAULT_REVENUE_SPLIT = {
   kepalaUpt: 5,
@@ -16,14 +29,29 @@ export const DEFAULT_REVENUE_SPLIT = {
   vendor: 55,
 };
 
-// Daftar Cabang / UPT Awal
+export const MONTH_NAMES = [
+  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
+];
+
+// Format Rupiah helper
+export const formatRupiah = (num) => {
+  if (num === null || num === undefined || isNaN(Number(num))) return 'Rp 0';
+  return 'Rp ' + Number(num).toLocaleString('id-ID');
+};
+
+// Storage Keys untuk Fallback
+const CONTRACTS_STORAGE_KEY = 'pascall_finance_contracts_v1';
+const BILLINGS_STORAGE_KEY = 'pascall_finance_billings_v1';
+
+// Daftar Cabang / UPT Awal untuk Fallback Offline
 export const INITIAL_BRANCH_CONTRACTS = [
   {
     branchId: 'b1',
     branchName: 'Lapas Kelas I Cipinang',
     canteenName: 'Koperasi Pengayoman Lapas Cipinang',
     kanwilName: 'Kantor Wilayah DKI Jakarta',
-    ratePerSecond: 50, // Rp 50/detik (~Rp 3.000/menit)
+    ratePerSecond: 50,
     split: { kepalaUpt: 5, koperasi: 30, inkopasindo: 10, vendor: 55 },
     accountNumber: '123-00-9876543-1',
     bankName: 'Bank Mandiri',
@@ -116,29 +144,23 @@ export const INITIAL_BRANCH_CONTRACTS = [
   },
 ];
 
-// Seed generator untuk rekap tagihan bulanan
+// Generator tagihan awal untuk fallback
 const generateInitialBillings = () => {
   const billings = [];
-  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; // Jan - Okt 2026
+  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
   INITIAL_BRANCH_CONTRACTS.forEach((branch, bIdx) => {
     months.forEach((m) => {
-      // Variasi durasi realistis
       const baseSeconds = 280000 + (bIdx * 35000) + ((m % 4) * 45000);
       const grossAmount = baseSeconds * branch.ratePerSecond;
       const totalVouchers = Math.floor(baseSeconds / 300) + (m * 12);
 
-      // Hitung nominal bagi hasil 4 pihak
       const s = branch.split;
       const kepalaUptAmount = Math.round(grossAmount * (s.kepalaUpt / 100));
       const koperasiAmount = Math.round(grossAmount * (s.koperasi / 100));
       const inkopasindoAmount = Math.round(grossAmount * (s.inkopasindo / 100));
       const vendorAmount = grossAmount - kepalaUptAmount - koperasiAmount - inkopasindoAmount;
 
-      // Status pembayaran realistis:
-      // Bulan Jan - Ags: Sudah Dibayar (Lunas)
-      // Bulan Sep: Sebagian Sudah Dibayar, sebagian Menunggu Verifikasi
-      // Bulan Okt: Belum Dibayar / Periode Berjalan
       let status = 'PAID';
       let paymentDate = null;
       let paymentRef = null;
@@ -163,7 +185,6 @@ const generateInitialBillings = () => {
           status = 'UNPAID';
         }
       } else {
-        // Bulan 10 (Oktober)
         status = bIdx === 0 ? 'PENDING_CONFIRMATION' : 'UNPAID';
         if (bIdx === 0) {
           paymentDate = '2026-10-24T08:00:00Z';
@@ -171,7 +192,7 @@ const generateInitialBillings = () => {
         }
       }
 
-      const depositAmountToFinance = grossAmount - koperasiAmount; // 70% disetor ke Rekening Finance (Kepala UPT 5% + Inkopasindo 10% + Vendor 55%)
+      const depositAmountToFinance = grossAmount - koperasiAmount;
 
       billings.push({
         id: `BILL-2026-${String(m).padStart(2, '0')}-${branch.branchId.toUpperCase()}`,
@@ -185,10 +206,10 @@ const generateInitialBillings = () => {
         totalSeconds: baseSeconds,
         totalMinutes: Math.floor(baseSeconds / 60),
         ratePerSecond: branch.ratePerSecond,
-        grossAmount, // 100% Uang Cash yang dipegang Kantin
+        grossAmount,
         canteenCashCollected: grossAmount,
-        canteenKeepAmount: koperasiAmount, // 30% hak kantin/koperasi yang disimpan langsung
-        depositAmountToFinance, // 70% yang disetor ke Rekening Penampung Finance
+        canteenKeepAmount: koperasiAmount,
+        depositAmountToFinance,
         split: { ...branch.split },
         shares: {
           kepalaUpt: { percent: s.kepalaUpt, amount: kepalaUptAmount },
@@ -196,7 +217,7 @@ const generateInitialBillings = () => {
           inkopasindo: { percent: s.inkopasindo, amount: inkopasindoAmount },
           vendor: { percent: s.vendor, amount: vendorAmount },
         },
-        status, // 'PAID' | 'PENDING_CONFIRMATION' | 'UNPAID'
+        status,
         paymentDate,
         paymentRef,
         paymentMethod,
@@ -218,8 +239,8 @@ const generateInitialBillings = () => {
           receiptNumber: `SLIP-${branch.branchId.toUpperCase()}-2026${String(m).padStart(2, '0')}`,
           channel: 'ATM / Mobile Banking Transfer',
         },
-        notes: status === 'PAID' 
-          ? `Setoran bagi hasil sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke stakeholder` 
+        notes: status === 'PAID'
+          ? `Setoran bagi hasil sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke stakeholder`
           : status === 'PENDING_CONFIRMATION'
             ? `Bukti transfer setoran tunai telah diunggah oleh petugas kantin, menunggu verifikasi Admin Finance`
             : `Kantin memegang uang cash hasil penjualan voucher dan belum melakukan setoran ke Finance`,
@@ -233,12 +254,7 @@ const generateInitialBillings = () => {
   return billings;
 };
 
-// Storage Keys
-const CONTRACTS_STORAGE_KEY = 'pascall_finance_contracts_v1';
-const BILLINGS_STORAGE_KEY = 'pascall_finance_billings_v1';
-
-// Helper get contracts
-export const getFinanceContracts = () => {
+const getFinanceContractsFromStorage = () => {
   try {
     const raw = localStorage.getItem(CONTRACTS_STORAGE_KEY);
     if (raw) {
@@ -246,17 +262,103 @@ export const getFinanceContracts = () => {
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
   } catch (e) {
-    console.warn('[FinanceService] Gagal memuat kontrak dari storage:', e);
+    console.warn('[FinanceService] Fallback storage contracts error:', e);
   }
-  localStorage.setItem(CONTRACTS_STORAGE_KEY, JSON.stringify(INITIAL_BRANCH_CONTRACTS));
-  return INITIAL_BRANCH_CONTRACTS;
+  return [];
 };
 
-// Helper save contract
-export const saveFinanceContract = (branchId, contractData) => {
-  const contracts = getFinanceContracts();
+// Fallback Helper: Get All Billings from localStorage
+const getAllFinanceBillingsFromStorage = () => {
+  try {
+    const raw = localStorage.getItem(BILLINGS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('[FinanceService] Fallback storage billings error:', e);
+  }
+  return [];
+};
+
+// Fallback Helper: Filter Billings from localStorage
+const getFinanceBillingsFromStorage = ({ month, year, branchId, status, search }) => {
+  let list = getAllFinanceBillingsFromStorage();
+
+  if (month && month !== 'semua') {
+    list = list.filter((b) => b.month === Number(month));
+  }
+  if (year && year !== 'semua') {
+    list = list.filter((b) => b.year === Number(year));
+  }
+  if (branchId && branchId !== 'semua') {
+    list = list.filter((b) => b.branchId === branchId);
+  }
+  if (status && status !== 'semua') {
+    list = list.filter((b) => b.status === status);
+  }
+  if (search && search.trim()) {
+    const q = search.trim().toLowerCase();
+    list = list.filter(
+      (b) =>
+        b.branchName.toLowerCase().includes(q) ||
+        b.canteenName.toLowerCase().includes(q) ||
+        b.id.toLowerCase().includes(q) ||
+        b.kanwilName.toLowerCase().includes(q)
+    );
+  }
+
+  return list.sort((a, b) => {
+    if (b.year !== a.year) return b.year - a.year;
+    if (b.month !== a.month) return b.month - a.month;
+    return a.branchName.localeCompare(b.branchName);
+  });
+};
+
+// Fallback Helper: Summary from localStorage
+const getFinanceSummaryFromStorage = (month = null, year = 2026) => {
+  const all = getAllFinanceBillingsFromStorage();
+  const filtered = all.filter((b) => {
+    if (year && b.year !== Number(year)) return false;
+    if (month && month !== 'semua' && b.month !== Number(month)) return false;
+    return true;
+  });
+
+  const totalOmsetKotor = filtered.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+  const totalPaid = filtered.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+  const totalPending = filtered.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+  const totalUnpaid = filtered.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+
+  const shareKepalaUpt = filtered.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
+  const shareKoperasi = filtered.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
+  const shareInkopasindo = filtered.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
+  const shareVendor = filtered.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
+
+  return {
+    totalRecords: filtered.length,
+    totalOmsetKotor,
+    totalPaid,
+    totalPending,
+    totalUnpaid,
+    shares: {
+      kepalaUpt: shareKepalaUpt,
+      koperasi: shareKoperasi,
+      inkopasindo: shareInkopasindo,
+      vendor: shareVendor,
+    },
+    counts: {
+      paid: filtered.filter((b) => b.status === 'PAID').length,
+      pending: filtered.filter((b) => b.status === 'PENDING_CONFIRMATION').length,
+      unpaid: filtered.filter((b) => b.status === 'UNPAID').length,
+    },
+  };
+};
+
+// Fallback Helper: Save Contract to localStorage
+const saveFinanceContractToStorage = (branchId, contractData) => {
+  const contracts = getFinanceContractsFromStorage();
   const index = contracts.findIndex((c) => c.branchId === branchId);
-  
+
   const updatedContract = {
     ...(index >= 0 ? contracts[index] : {}),
     ...contractData,
@@ -264,25 +366,14 @@ export const saveFinanceContract = (branchId, contractData) => {
     updatedAt: new Date().toISOString(),
   };
 
-  let updatedList;
-  if (index >= 0) {
-    updatedList = [...contracts];
-    updatedList[index] = updatedContract;
-  } else {
-    updatedList = [...contracts, updatedContract];
-  }
+  const updatedList = index >= 0
+    ? contracts.map((c, idx) => (idx === index ? updatedContract : c))
+    : [...contracts, updatedContract];
 
   localStorage.setItem(CONTRACTS_STORAGE_KEY, JSON.stringify(updatedList));
 
-  // Sinkronkan juga tagihan aktif yang belum dibayar dengan persentase baru
-  syncBillingsWithNewSplit(branchId, updatedContract);
-
-  return updatedContract;
-};
-
-// Sinkronisasi tagihan yang belum dibayar saat kontrak diubah
-const syncBillingsWithNewSplit = (branchId, updatedContract) => {
-  const billings = getAllFinanceBillings();
+  // Sinkronkan tagihan yang belum lunas
+  const billings = getAllFinanceBillingsFromStorage();
   const { split, ratePerSecond } = updatedContract;
 
   const newBillings = billings.map((b) => {
@@ -312,64 +403,274 @@ const syncBillingsWithNewSplit = (branchId, updatedContract) => {
 
   localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(newBillings));
   window.dispatchEvent(new Event('finance_billing_updated'));
+  return updatedContract;
 };
 
-// Helper get all billings
-export const getAllFinanceBillings = () => {
+// =============================================================================
+// PUBLIC API (Connected to Backend with Automatic Offline Fallback)
+// =============================================================================
+
+/**
+ * 1. Mengambil daftar kontrak bagi hasil seluruh cabang UPT
+ * Endpoint Backend: GET /api/finance/contracts
+ */
+export const getFinanceContracts = async () => {
   try {
-    const raw = localStorage.getItem(BILLINGS_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    const res = await apiFetch('/api/finance/contracts');
+    const data = res?.data || (Array.isArray(res) ? res : null);
+    if (Array.isArray(data) && data.length > 0) {
+      localStorage.setItem(CONTRACTS_STORAGE_KEY, JSON.stringify(data));
+      return data;
     }
-  } catch (e) {
-    console.warn('[FinanceService] Gagal memuat tagihan dari storage:', e);
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/contracts fallback:', err?.message);
   }
-  const initial = generateInitialBillings();
-  localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(initial));
-  return initial;
+  return getFinanceContractsFromStorage();
 };
 
-// Helper filter billings
-export const getFinanceBillings = ({ month, year, branchId, status, search }) => {
-  let list = getAllFinanceBillings();
+/**
+ * 2. Memperbarui persentase kontrak bagi hasil UPT
+ * Endpoint Backend: PUT /api/finance/contracts/:branchId
+ */
+export const saveFinanceContract = async (branchId, contractData) => {
+  const rate = Number(contractData.ratePerSecond || 50);
+  const split = contractData.split || DEFAULT_REVENUE_SPLIT;
+  const payload = {
+    ratePerSecond: rate,
+    split,
+    bankName: contractData.bankName,
+    accountNumber: contractData.accountNumber,
+    accountHolder: contractData.accountHolder,
+    canteenName: contractData.canteenName,
+  };
 
-  if (month && month !== 'semua') {
-    list = list.filter((b) => b.month === Number(month));
-  }
-  if (year && year !== 'semua') {
-    list = list.filter((b) => b.year === Number(year));
-  }
-  if (branchId && branchId !== 'semua') {
-    list = list.filter((b) => b.branchId === branchId);
-  }
-  if (status && status !== 'semua') {
-    list = list.filter((b) => b.status === status);
-  }
-  if (search && search.trim()) {
-    const q = search.trim().toLowerCase();
-    list = list.filter(
-      (b) =>
-        b.branchName.toLowerCase().includes(q) ||
-        b.canteenName.toLowerCase().includes(q) ||
-        b.id.toLowerCase().includes(q) ||
-        b.kanwilName.toLowerCase().includes(q)
-    );
+  // Simpan ke local mock storage agar sinkron instan antar tab/halaman
+  try {
+    saveStoredContract(branchId, {
+      ratePerSecond: rate,
+      superadminPercent: Math.max(0, 100 - Number(split.koperasi ?? 30)),
+      canteenPercent: Number(split.koperasi ?? 30),
+      negotiationPercent: Math.max(0, 100 - Number(split.koperasi ?? 30)),
+      branchName: contractData.branchName,
+      canteenName: contractData.canteenName,
+    });
+  } catch (storeErr) {
+    console.warn('[FinanceService] saveStoredContract warning:', storeErr?.message);
   }
 
-  // Urutkan dari tahun & bulan terbaru, lalu nama UPT
-  return list.sort((a, b) => {
-    if (b.year !== a.year) return b.year - a.year;
-    if (b.month !== a.month) return b.month - a.month;
-    return a.branchName.localeCompare(b.branchName);
-  });
+  try {
+    // 1. Simpan ke endpoint finance
+    const res = await apiFetch(`/api/finance/contracts/${branchId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+
+    // 2. Sinkronisasikan juga ke endpoint canteen contract agar tabel Branch terupdate
+    try {
+      await apiFetch(`/api/canteen/contracts/${branchId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          ratePerSecond: rate,
+          kepalaUptPercent: Number(split.kepalaUpt ?? 5),
+          koperasiPercent: Number(split.koperasi ?? 30),
+          inkopasindoPercent: Number(split.inkopasindo ?? 10),
+          vendorPercent: Number(split.vendor ?? 55),
+        }),
+      });
+    } catch (canteenErr) {
+      console.warn('[FinanceService] PUT /api/canteen/contracts fallback:', canteenErr?.message);
+    }
+
+    const updated = res?.data || res;
+    window.dispatchEvent(new Event('finance_billing_updated'));
+    window.dispatchEvent(new Event('pascall_contract_changed'));
+    window.dispatchEvent(new Event('canteen_topup_changed'));
+    if (updated) {
+      return updated;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] PUT /api/finance/contracts/:branchId fallback:', err?.message);
+  }
+  return saveFinanceContractToStorage(branchId, contractData);
 };
 
-// Update status pembayaran tagihan
+/**
+ * 3. Mengambil daftar rekap tagihan bulanan UPT
+ * Endpoint Backend: GET /api/finance/billings?month=&year=&branchId=&status=&search=
+ */
+export const getFinanceBillings = async (params = {}) => {
+  const { month, year, branchId, status, search } = params;
+  const query = new URLSearchParams();
+  if (month && month !== 'semua') query.append('month', String(month));
+  if (year && year !== 'semua') query.append('year', String(year));
+  if (branchId && branchId !== 'semua') query.append('branchId', String(branchId));
+  if (status && status !== 'semua') query.append('status', String(status));
+  if (search && search.trim()) query.append('search', search.trim());
+
+  try {
+    const queryString = query.toString();
+    const endpoint = `/api/finance/billings${queryString ? `?${queryString}` : ''}`;
+    const res = await apiFetch(endpoint);
+    const data = res?.data || (Array.isArray(res) ? res : null);
+    if (Array.isArray(data)) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/billings fallback:', err?.message);
+  }
+  return getFinanceBillingsFromStorage(params);
+};
+
+/**
+ * 4. Mengambil seluruh tagihan (untuk agregasi laporan)
+ * Endpoint Backend: GET /api/finance/billings
+ */
+export const getAllFinanceBillings = async () => {
+  try {
+    const res = await apiFetch('/api/finance/billings');
+    const data = res?.data || (Array.isArray(res) ? res : null);
+    if (Array.isArray(data) && data.length > 0) {
+      localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(data));
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] Fallback getAllFinanceBillings:', err?.message);
+  }
+  return getAllFinanceBillingsFromStorage();
+};
+
+/**
+ * 5. Mengambil ringkasan data finansial dashboard
+ * Endpoint Backend: GET /api/finance/summary?month=&year=
+ */
+export const getFinanceSummary = async (month = null, year = 2026) => {
+  const query = new URLSearchParams();
+  if (month && month !== 'semua') query.append('month', String(month));
+  if (year && year !== 'semua') query.append('year', String(year));
+
+  try {
+    const queryString = query.toString();
+    const endpoint = `/api/finance/summary${queryString ? `?${queryString}` : ''}`;
+    const res = await apiFetch(endpoint);
+    const data = res?.data || res;
+    if (data && typeof data === 'object' && ('totalOmsetKotor' in data || 'totalRecords' in data)) {
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/summary fallback:', err?.message);
+  }
+  return getFinanceSummaryFromStorage(month, year);
+};
+
+/**
+ * 6. Mengambil laporan finansial tahunan / per cabang
+ * Endpoint Backend: GET /api/finance/reports?year=&branchId=
+ */
+export const getFinanceReports = async (year = 2026, branchId = null) => {
+  const query = new URLSearchParams();
+  if (year && year !== 'semua') query.append('year', String(year));
+  if (branchId && branchId !== 'semua') query.append('branchId', String(branchId));
+
+  try {
+    const queryString = query.toString();
+    const endpoint = `/api/finance/reports${queryString ? `?${queryString}` : ''}`;
+    const res = await apiFetch(endpoint);
+    if (res?.data) return res.data;
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/reports fallback:', err?.message);
+  }
+  return null;
+};
+
+/**
+ * 7. Mengambil jumlah setoran pending yang butuh verifikasi (Badge Sidebar)
+ * Endpoint Backend: GET /api/finance/billings/pending-count
+ */
+export const getPendingCanteenDepositCount = async () => {
+  try {
+    const res = await apiFetch('/api/finance/billings/pending-count');
+    if (typeof res?.count === 'number') return res.count;
+    if (typeof res?.data?.count === 'number') return res.data.count;
+  } catch (err) {
+    // fallback
+  }
+  const all = getAllFinanceBillingsFromStorage();
+  return all.filter((b) => b.status === 'PENDING_CONFIRMATION').length;
+};
+
+/**
+ * 8. Setujui (ACC) Setoran Pembayaran dari Kantin
+ * Endpoint Backend: PATCH /api/finance/billings/:id/approve
+ */
+export const approveCanteenDeposit = async (billingId, notes = '') => {
+  try {
+    const res = await apiFetch(`/api/finance/billings/${billingId}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    });
+    window.dispatchEvent(new Event('finance_billing_updated'));
+    return res?.data || res;
+  } catch (err) {
+    console.warn('[FinanceService] PATCH approve fallback ke storage:', err?.message);
+    const billings = getAllFinanceBillingsFromStorage();
+    const idx = billings.findIndex((b) => b.id === billingId);
+    if (idx >= 0) {
+      billings[idx] = {
+        ...billings[idx],
+        status: 'PAID',
+        paymentDate: new Date().toISOString(),
+        verifiedBy: 'Dewi Lestari (Finance)',
+        verifiedAt: new Date().toISOString(),
+        notes: notes || 'Setoran kasir/kantin telah diverifikasi dan disetujui (ACC) oleh Admin Keuangan.',
+      };
+      localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(billings));
+      window.dispatchEvent(new Event('finance_billing_updated'));
+      return billings[idx];
+    }
+    throw err;
+  }
+};
+
+/**
+ * 9. Tolak Bukti Setoran dari Kantin
+ * Endpoint Backend: PATCH /api/finance/billings/:id/reject
+ */
+export const rejectCanteenDeposit = async (billingId, reason = '') => {
+  try {
+    const res = await apiFetch(`/api/finance/billings/${billingId}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify({ reason }),
+    });
+    window.dispatchEvent(new Event('finance_billing_updated'));
+    return res?.data || res;
+  } catch (err) {
+    console.warn('[FinanceService] PATCH reject fallback ke storage:', err?.message);
+    const billings = getAllFinanceBillingsFromStorage();
+    const idx = billings.findIndex((b) => b.id === billingId);
+    if (idx >= 0) {
+      billings[idx] = {
+        ...billings[idx],
+        status: 'UNPAID',
+        rejectionReason: reason || 'Bukti transfer tidak valid atau nominal setoran tidak sesuai',
+        rejectedBy: 'Dewi Lestari (Finance)',
+        rejectedAt: new Date().toISOString(),
+        notes: `Ditolak oleh Finance: ${reason || 'Bukti transfer tidak valid'}`,
+      };
+      localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(billings));
+      window.dispatchEvent(new Event('finance_billing_updated'));
+      return billings[idx];
+    }
+    throw err;
+  }
+};
+
+/**
+ * 10. Update status pembayaran tagihan manual / internal
+ */
 export const updateFinanceBillingStatus = (billingId, newStatus, extraData = {}) => {
-  const billings = getAllFinanceBillings();
+  const billings = getAllFinanceBillingsFromStorage();
   const idx = billings.findIndex((b) => b.id === billingId);
-  if (idx === -1) throw new Error('Tagihan tidak ditemukan');
+  if (idx === -1) return null;
 
   const now = new Date().toISOString();
   const updatedItem = {
@@ -389,94 +690,24 @@ export const updateFinanceBillingStatus = (billingId, newStatus, extraData = {})
   return updatedItem;
 };
 
-// Ringkasan Dashboard Keuangan
-export const getFinanceSummary = (month = null, year = 2026) => {
-  const all = getAllFinanceBillings();
-  const filtered = all.filter((b) => {
-    if (year && b.year !== Number(year)) return false;
-    if (month && month !== 'semua' && b.month !== Number(month)) return false;
-    return true;
-  });
-
-  const totalOmsetKotor = filtered.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-  const totalPaid = filtered.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-  const totalPending = filtered.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-  const totalUnpaid = filtered.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-
-  // Akumulasi nominal 4 pihak
-  const shareKepalaUpt = filtered.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
-  const shareKoperasi = filtered.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
-  const shareInkopasindo = filtered.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
-  const shareVendor = filtered.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
-
-  const countPaid = filtered.filter((b) => b.status === 'PAID').length;
-  const countPending = filtered.filter((b) => b.status === 'PENDING_CONFIRMATION').length;
-  const countUnpaid = filtered.filter((b) => b.status === 'UNPAID').length;
-
-  return {
-    totalRecords: filtered.length,
-    totalOmsetKotor,
-    totalPaid,
-    totalPending,
-    totalUnpaid,
-    shares: {
-      kepalaUpt: shareKepalaUpt,
-      koperasi: shareKoperasi,
-      inkopasindo: shareInkopasindo,
-      vendor: shareVendor,
-    },
-    counts: {
-      paid: countPaid,
-      pending: countPending,
-      unpaid: countUnpaid,
-    },
-  };
+/**
+ * 11. Mengambil detail tagihan tunggal
+ * Endpoint Backend: GET /api/finance/billings/:id
+ */
+export const getFinanceBillingById = async (id) => {
+  try {
+    const res = await apiFetch(`/api/finance/billings/${id}`);
+    if (res?.data) return res.data;
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/billings/:id fallback:', err?.message);
+  }
+  const all = getAllFinanceBillingsFromStorage();
+  return all.find((b) => b.id === id) || null;
 };
 
-// Format Rupiah helper
-export const formatRupiah = (num) => {
-  if (num === null || num === undefined || isNaN(Number(num))) return 'Rp 0';
-  return 'Rp ' + Number(num).toLocaleString('id-ID');
+/**
+ * 12. URL streaming berkas bukti transfer
+ */
+export const getFinanceProofStreamUrl = (billingId) => {
+  return `${API_BASE_URL}/api/finance/billings/${billingId}/proof`;
 };
-
-// Hitung setoran kantin yang menunggu konfirmasi (Pending)
-export const getPendingCanteenDepositCount = () => {
-  const all = getAllFinanceBillings();
-  return all.filter((b) => b.status === 'PENDING_CONFIRMATION').length;
-};
-
-// Setujui (ACC) Setoran Pembayaran dari Kantin
-export const approveCanteenDeposit = (billingId, notes = '') => {
-  const now = new Date().toISOString();
-  return updateFinanceBillingStatus(billingId, 'PAID', {
-    paymentDate: now,
-    notes: notes || 'Setoran kasir/kantin telah diverifikasi dan disetujui (ACC) oleh Admin Keuangan.',
-  });
-};
-
-// Tolak Bukti Setoran dari Kantin
-export const rejectCanteenDeposit = (billingId, reason = '') => {
-  const billings = getAllFinanceBillings();
-  const idx = billings.findIndex((b) => b.id === billingId);
-  if (idx === -1) throw new Error('Tagihan tidak ditemukan');
-
-  const now = new Date().toISOString();
-  const updatedItem = {
-    ...billings[idx],
-    status: 'UNPAID',
-    rejectionReason: reason || 'Bukti transfer tidak valid atau nominal setoran tidak sesuai',
-    rejectedBy: 'Dewi Lestari (Finance)',
-    rejectedAt: now,
-    notes: `Ditolak oleh Finance: ${reason || 'Bukti transfer tidak valid'}`,
-  };
-
-  billings[idx] = updatedItem;
-  localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(billings));
-  window.dispatchEvent(new Event('finance_billing_updated'));
-  return updatedItem;
-};
-
-export const MONTH_NAMES = [
-  'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
-];

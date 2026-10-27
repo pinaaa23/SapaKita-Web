@@ -229,12 +229,16 @@ export const createUser = async (data) => {
     return mapUserItem(newUser);
   }
 
+  const user = getAuthUser();
+  const effectiveBranchId = data.branchId || user?.branchId || user?.branch?.id || localStorage.getItem('pascall_active_branch_id') || null;
+
   const payload = {
     name: data.name.trim(),
     email: data.email.trim(),
     ...(cleanPhone ? { phone: cleanPhone } : {}),
     role: toBackendRole(data.role || ROLES.SUPERVISOR),
     password: data.password,
+    ...(effectiveBranchId ? { branchId: effectiveBranchId } : {}),
   };
 
   const res = await apiFetch(USERS_ENDPOINT, {

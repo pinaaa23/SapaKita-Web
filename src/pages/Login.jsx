@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { login as loginApi, forgotPasswordApi, clearAuthSession } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import ikonSadewa from '../assets/ikon_sadewa.png';
+import sadewaLogo from '../assets/sadewa_blue.png';
 
 // ============================================================================
 // 1. ORGANIC NETWORK CONFIGURATION: "Pesan yang menempuh jarak"
@@ -1592,23 +1592,30 @@ export default function Login() {
             }}
           />
 
-          {/* Brand Logo (ikon_sadewa.png with delicate gold glow) */}
-          <div className="mb-2 transition-transform duration-300 hover:scale-105 relative z-10">
-            <img
-              src={ikonSadewa}
-              alt="Sadewa Logo"
-              className="w-16 h-16 sm:w-20 sm:h-20 object-contain"
+          {/* Brand Logo (sadewa_blue.png lockup) */}
+          <div className="relative mb-3 flex items-center justify-center">
+            {/* Soft luminous backlight behind logo so blue letters and gold wayang pop vividly */}
+            <div
+              aria-hidden="true"
+              className="absolute -inset-3 rounded-full pointer-events-none -z-0"
               style={{
-                filter: 'drop-shadow(0 0 12px rgba(234, 179, 8, 0.38))',
+                background: 'radial-gradient(ellipse at 50% 50%, rgba(255, 255, 255, 0.25) 0%, rgba(147, 197, 253, 0.15) 50%, transparent 80%)',
+                filter: 'blur(18px)',
+              }}
+            />
+            <h1 className="sr-only">Sadewa</h1>
+            <img
+              src={sadewaLogo}
+              alt="Sadewa"
+              className="relative z-10 w-52 sm:w-60 h-auto max-h-[76px] object-contain transition-transform duration-300 hover:scale-[1.03]"
+              style={{
+                filter: 'brightness(1.3) contrast(1.15) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 14px rgba(191, 219, 254, 0.45))',
               }}
             />
           </div>
 
-          {/* Title & Subtitle */}
-          <h1 className="text-2xl sm:text-[28px] font-extrabold tracking-tight text-center leading-tight bg-gradient-to-r from-white via-blue-100 to-sky-200 bg-clip-text text-transparent">
-            Sadewa
-          </h1>
-          <p className="text-xs sm:text-[13px] text-[#bfdbfe] font-medium mt-1 mb-6 text-center leading-relaxed">
+          {/* Subtitle */}
+          <p className="text-xs sm:text-[13px] text-[#bfdbfe] font-medium mb-6 text-center leading-relaxed">
             Welcome Back! Please login to continue.
           </p>
 
@@ -1754,206 +1761,292 @@ export default function Login() {
       </div>
 
       {/* ======================================================================
-          MODAL LUPA KATA SANDI (Navy Frosted Glass Theme)
+          MODAL LUPA KATA SANDI (Frosted Glass Theme matching Login aesthetic)
           ====================================================================== */}
       {isForgotModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-150">
-          <div
-            className="w-full max-w-md rounded-3xl p-6 sm:p-7 shadow-2xl border border-sky-400/30 relative animate-in zoom-in-95 duration-150 text-white"
-            style={{
-              backgroundColor: 'rgba(10, 26, 74, 0.92)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              boxShadow: '0 0 40px rgba(59, 130, 246, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.5)'
-            }}
-          >
-            <div className="flex items-center justify-between pb-3.5 border-b border-blue-500/30">
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center text-[#60a5fa] bg-blue-900/40 border border-blue-400/40 shadow-[0_0_12px_rgba(96,165,250,0.4)]"
-                >
-                  <KeyRound size={20} />
-                </div>
-                <div>
-                  <h2 className="text-sm font-extrabold text-white">Reset Kata Sandi</h2>
-                  <p className="text-[11px] text-[#bfdbfe]">Atur ulang kata sandi akun petugas Anda</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsForgotModalOpen(false)}
-                className="p-1.5 text-[#93c5fd] hover:text-white rounded-xl hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {forgotError && (
-              <div className="mt-3 p-2.5 rounded-xl bg-rose-950/70 border border-rose-500/40 text-rose-200 text-xs font-semibold flex items-center gap-2">
-                <AlertCircle size={15} className="shrink-0 text-rose-400" />
-                <span>{forgotError}</span>
-              </div>
-            )}
-
-            {forgotSuccess && (
-              <div className="mt-3 p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-200 text-xs font-semibold flex items-center gap-2">
-                <Check size={15} className="shrink-0 text-emerald-400" />
-                <span>{forgotSuccess}</span>
-              </div>
-            )}
-
-            <form
-              onSubmit={async (e) => {
-                e.preventDefault();
-                setForgotError('');
-                setForgotSuccess('');
-
-                const cleanEmail = forgotEmail.trim();
-                if (!cleanEmail) {
-                  setForgotError('Alamat email atau nomor HP akun wajib diisi.');
-                  return;
-                }
-
-                if (!forgotNewPassword || forgotNewPassword.length < 6) {
-                  setForgotError('Kata sandi baru minimal harus terdiri dari 6 karakter.');
-                  return;
-                }
-
-                if (forgotNewPassword !== forgotConfirmPassword) {
-                  setForgotError('Konfirmasi kata sandi tidak cocok dengan kata sandi baru.');
-                  return;
-                }
-
-                setIsSubmittingForgot(true);
-                try {
-                  const res = await forgotPasswordApi({
-                    email: cleanEmail,
-                    newPassword: forgotNewPassword,
-                    confirmPassword: forgotConfirmPassword,
-                  });
-
-                  setForgotSuccess(res?.message || 'Kata sandi berhasil diperbarui. Mengarahkan ke form login...');
-                  setTimeout(() => {
-                    setIdentifier(cleanEmail);
-                    setPassword('');
-                    setIsForgotModalOpen(false);
-                  }, 1800);
-                } catch (err) {
-                  console.error('[Login] Forgot password error:', err);
-                  if (err?.status === 400 || err?.status === 404) {
-                    setForgotError(err?.message || 'Akun dengan email tersebut tidak ditemukan.');
-                  } else if (err?.isNetworkError || err?.status === 0) {
-                    setForgotError('Server tidak dapat dihubungi. Pastikan backend aktif.');
-                  } else {
-                    setForgotError(err?.message || 'Gagal mereset kata sandi. Silakan coba lagi.');
-                  }
-                } finally {
-                  setIsSubmittingForgot(false);
-                }
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSubmittingForgot) {
+              setIsForgotModalOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 select-none"
+        >
+          {/* Modal Container with blue light reflection */}
+          <div className="relative w-full max-w-[440px] my-auto">
+            {/* Luminous blue glow reflection under modal card */}
+            <div
+              aria-hidden="true"
+              className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[70%] h-14 pointer-events-none -z-10"
+              style={{
+                background: 'radial-gradient(ellipse at 50% 50%, rgba(59, 130, 246, 0.4) 0%, transparent 70%)',
+                filter: 'blur(35px)',
               }}
-              className="mt-4 space-y-3.5 text-xs"
+            />
+
+            <div
+              className="relative w-full rounded-[32px] sm:rounded-[36px] p-6 sm:p-8 overflow-hidden text-white shadow-2xl animate-in zoom-in-95 duration-200"
+              style={{
+                background: 'linear-gradient(135deg, rgba(30, 64, 175, 0.45) 0%, rgba(14, 38, 105, 0.52) 50%, rgba(10, 26, 74, 0.62) 100%)',
+                backdropFilter: 'blur(24px)',
+                WebkitBackdropFilter: 'blur(24px)',
+                border: '1px solid rgba(191, 219, 254, 0.35)',
+                boxShadow: `
+                  0 40px 80px -20px rgba(2, 8, 32, 0.85),
+                  0 20px 40px -10px rgba(2, 8, 32, 0.6),
+                  0 0 70px rgba(59, 130, 246, 0.28),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.40),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.30),
+                  inset 1px 0 0 rgba(255, 255, 255, 0.12)
+                `,
+              }}
             >
-              <div>
-                <label className="block text-[11px] font-bold text-[#dbeafe] mb-1">
-                  Email Akun Terdaftar <span className="text-rose-400">*</span>
-                </label>
-                <div
-                  className="flex items-center rounded-full bg-white/[0.08] border border-blue-400/30 shadow-inner focus-within:ring-2 focus-within:ring-blue-400/60"
-                >
-                  <div className="pl-3.5 text-[#60a5fa]"><Mail size={15} /></div>
-                  <input
-                    type="text"
-                    required
-                    placeholder="email@sadewa.id / 0812xxxxxx"
-                    value={forgotEmail}
-                    onChange={(e) => setForgotEmail(e.target.value)}
-                    className="w-full py-2.5 pl-2.5 pr-4 bg-transparent text-xs font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
-                  />
-                </div>
-              </div>
+              {/* Surface Sheen Overlay (kilau permukaan 135deg) */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 pointer-events-none rounded-[inherit]"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, transparent 35%)',
+                }}
+              />
 
-              <div>
-                <label className="block text-[11px] font-bold text-[#dbeafe] mb-1">
-                  Kata Sandi Baru <span className="text-rose-400">*</span>
-                </label>
-                <div
-                  className="relative flex items-center rounded-full bg-white/[0.08] border border-blue-400/30 shadow-inner focus-within:ring-2 focus-within:ring-blue-400/60"
-                >
-                  <div className="pl-3.5 text-[#60a5fa]"><Lock size={15} /></div>
-                  <input
-                    type={showForgotNewPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    placeholder="Minimal 6 karakter"
-                    value={forgotNewPassword}
-                    onChange={(e) => setForgotNewPassword(e.target.value)}
-                    className="w-full py-2.5 pl-2.5 pr-10 bg-transparent text-xs font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
-                    className="absolute right-3.5 p-1 text-[#93c5fd] hover:text-white cursor-pointer"
+              {/* Modal Header */}
+              <div className="relative z-10 flex items-start justify-between pb-4 border-b border-[#93c5fd]/20">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-11 h-11 rounded-2xl flex items-center justify-center text-[#60a5fa] shrink-0"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(147, 197, 253, 0.35)',
+                      boxShadow: '0 0 15px rgba(59, 130, 246, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25)',
+                    }}
                   >
-                    {showForgotNewPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
+                    <KeyRound size={20} strokeWidth={2.2} />
+                  </div>
+                  <div>
+                    <h2 className="text-base sm:text-lg font-extrabold tracking-tight bg-gradient-to-r from-white via-blue-100 to-sky-200 bg-clip-text text-transparent">
+                      Reset Kata Sandi
+                    </h2>
+                    <p className="text-[11.5px] sm:text-xs text-[#bfdbfe] font-medium mt-0.5">
+                      Atur ulang kata sandi akun petugas Anda
+                    </p>
+                  </div>
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold text-[#dbeafe] mb-1">
-                  Konfirmasi Kata Sandi Baru <span className="text-rose-400">*</span>
-                </label>
-                <div
-                  className="relative flex items-center rounded-full bg-white/[0.08] border border-blue-400/30 shadow-inner focus-within:ring-2 focus-within:ring-blue-400/60"
-                >
-                  <div className="pl-3.5 text-[#60a5fa]"><Lock size={15} /></div>
-                  <input
-                    type={showForgotConfirmPassword ? 'text' : 'password'}
-                    required
-                    minLength={6}
-                    placeholder="Ulangi kata sandi baru"
-                    value={forgotConfirmPassword}
-                    onChange={(e) => setForgotConfirmPassword(e.target.value)}
-                    className="w-full py-2.5 pl-2.5 pr-10 bg-transparent text-xs font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
-                    className="absolute right-3.5 p-1 text-[#93c5fd] hover:text-white cursor-pointer"
-                  >
-                    {showForgotConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-blue-500/30">
                 <button
                   type="button"
                   onClick={() => setIsForgotModalOpen(false)}
                   disabled={isSubmittingForgot}
-                  className="px-4 py-2 text-xs font-bold text-[#bfdbfe] hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#93c5fd] hover:text-white hover:bg-white/10 transition-colors cursor-pointer shrink-0 mt-0.5 border border-transparent hover:border-[#93c5fd]/30"
+                  title="Tutup"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmittingForgot}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.6)] transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
-                >
-                  {isSubmittingForgot ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Memproses...
-                    </>
-                  ) : (
-                    <>
-                      <Check size={15} />
-                      Simpan Kata Sandi
-                    </>
-                  )}
+                  <X size={17} strokeWidth={2.2} />
                 </button>
               </div>
-            </form>
+
+              {/* Error Alert Message */}
+              {forgotError && (
+                <div className="relative z-10 mt-3.5 p-3 rounded-2xl text-xs font-semibold text-rose-200 flex items-center gap-2.5 bg-rose-950/60 border border-rose-500/40 backdrop-blur-xs shadow-sm animate-in fade-in">
+                  <AlertCircle size={16} className="shrink-0 text-rose-400" />
+                  <span className="text-[12px]">{forgotError}</span>
+                </div>
+              )}
+
+              {/* Success Alert Message */}
+              {forgotSuccess && (
+                <div className="relative z-10 mt-3.5 p-3 rounded-2xl text-xs font-semibold text-emerald-200 flex items-center gap-2.5 bg-emerald-950/60 border border-emerald-500/40 backdrop-blur-xs shadow-sm animate-in fade-in">
+                  <Check size={16} className="shrink-0 text-emerald-400 stroke-[2.5]" />
+                  <span className="text-[12px]">{forgotSuccess}</span>
+                </div>
+              )}
+
+              {/* Form Content */}
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  setForgotError('');
+                  setForgotSuccess('');
+
+                  const cleanEmail = forgotEmail.trim();
+                  if (!cleanEmail) {
+                    setForgotError('Alamat email atau nomor HP akun wajib diisi.');
+                    return;
+                  }
+
+                  if (!forgotNewPassword || forgotNewPassword.length < 6) {
+                    setForgotError('Kata sandi baru minimal harus terdiri dari 6 karakter.');
+                    return;
+                  }
+
+                  if (forgotNewPassword !== forgotConfirmPassword) {
+                    setForgotError('Konfirmasi kata sandi tidak cocok dengan kata sandi baru.');
+                    return;
+                  }
+
+                  setIsSubmittingForgot(true);
+                  try {
+                    const res = await forgotPasswordApi({
+                      email: cleanEmail,
+                      newPassword: forgotNewPassword,
+                      confirmPassword: forgotConfirmPassword,
+                    });
+
+                    setForgotSuccess(res?.message || 'Kata sandi berhasil diperbarui. Mengarahkan ke form login...');
+                    setTimeout(() => {
+                      setIdentifier(cleanEmail);
+                      setPassword('');
+                      setIsForgotModalOpen(false);
+                    }, 1800);
+                  } catch (err) {
+                    console.error('[Login] Forgot password error:', err);
+                    if (err?.status === 400 || err?.status === 404) {
+                      setForgotError(err?.message || 'Akun dengan email tersebut tidak ditemukan.');
+                    } else if (err?.isNetworkError || err?.status === 0) {
+                      setForgotError('Server tidak dapat dihubungi. Pastikan backend aktif.');
+                    } else {
+                      setForgotError(err?.message || 'Gagal mereset kata sandi. Silakan coba lagi.');
+                    }
+                  } finally {
+                    setIsSubmittingForgot(false);
+                  }
+                }}
+                className="relative z-10 mt-4 space-y-3.5 text-xs"
+              >
+                {/* Field 1: Email Akun Terdaftar */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11.5px] font-bold text-[#dbeafe] ml-3">
+                    Email Akun Terdaftar <span className="text-rose-400">*</span>
+                  </label>
+                  <div
+                    className="relative flex items-center rounded-full overflow-hidden transition-all focus-within:ring-2 focus-within:ring-[#60a5fa]/70 border border-[#93c5fd]/30"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
+                    }}
+                  >
+                    <div className="pl-4 text-[#60a5fa] pointer-events-none flex items-center justify-center shrink-0">
+                      <Mail size={18} strokeWidth={2.2} />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      autoComplete="username"
+                      placeholder="email@sadewa.id / 0812xxxxxx"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="pill-field-input w-full py-2.5 sm:py-3 pl-3 pr-4 bg-transparent text-xs sm:text-sm font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Field 2: Kata Sandi Baru */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11.5px] font-bold text-[#dbeafe] ml-3">
+                    Kata Sandi Baru <span className="text-rose-400">*</span>
+                  </label>
+                  <div
+                    className="relative flex items-center rounded-full overflow-hidden transition-all focus-within:ring-2 focus-within:ring-[#60a5fa]/70 border border-[#93c5fd]/30"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
+                    }}
+                  >
+                    <div className="pl-4 text-[#60a5fa] pointer-events-none flex items-center justify-center shrink-0">
+                      <Lock size={18} strokeWidth={2.2} />
+                    </div>
+                    <input
+                      type={showForgotNewPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Minimal 6 karakter"
+                      value={forgotNewPassword}
+                      onChange={(e) => setForgotNewPassword(e.target.value)}
+                      className="pill-field-input w-full py-2.5 sm:py-3 pl-3 pr-11 bg-transparent text-xs sm:text-sm font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotNewPassword(!showForgotNewPassword)}
+                      className="absolute right-4 p-1 text-[#93c5fd] hover:text-white transition-colors cursor-pointer rounded-lg"
+                      title={showForgotNewPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                    >
+                      {showForgotNewPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Field 3: Konfirmasi Kata Sandi Baru */}
+                <div className="space-y-1.5">
+                  <label className="block text-[11.5px] font-bold text-[#dbeafe] ml-3">
+                    Konfirmasi Kata Sandi Baru <span className="text-rose-400">*</span>
+                  </label>
+                  <div
+                    className="relative flex items-center rounded-full overflow-hidden transition-all focus-within:ring-2 focus-within:ring-[#60a5fa]/70 border border-[#93c5fd]/30"
+                    style={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.08)',
+                      boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
+                    }}
+                  >
+                    <div className="pl-4 text-[#60a5fa] pointer-events-none flex items-center justify-center shrink-0">
+                      <Lock size={18} strokeWidth={2.2} />
+                    </div>
+                    <input
+                      type={showForgotConfirmPassword ? 'text' : 'password'}
+                      required
+                      minLength={6}
+                      autoComplete="new-password"
+                      placeholder="Ulangi kata sandi baru"
+                      value={forgotConfirmPassword}
+                      onChange={(e) => setForgotConfirmPassword(e.target.value)}
+                      className="pill-field-input w-full py-2.5 sm:py-3 pl-3 pr-11 bg-transparent text-xs sm:text-sm font-semibold text-white placeholder-[#93c5fd]/70 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotConfirmPassword(!showForgotConfirmPassword)}
+                      className="absolute right-4 p-1 text-[#93c5fd] hover:text-white transition-colors cursor-pointer rounded-lg"
+                      title={showForgotConfirmPassword ? 'Sembunyikan kata sandi' : 'Lihat kata sandi'}
+                    >
+                      {showForgotConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Action Buttons Row */}
+                <div className="flex items-center gap-3 pt-3.5 border-t border-[#93c5fd]/20">
+                  <button
+                    type="button"
+                    onClick={() => setIsForgotModalOpen(false)}
+                    disabled={isSubmittingForgot}
+                    className="py-3 px-5 rounded-full font-bold text-xs sm:text-sm text-[#bfdbfe] hover:text-white hover:bg-white/10 transition-colors border border-[#93c5fd]/30 cursor-pointer disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmittingForgot}
+                    className="flex-1 py-3 sm:py-3.5 px-6 rounded-full font-bold text-white text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.99] disabled:opacity-75 disabled:cursor-not-allowed focus:outline-none"
+                    style={{
+                      background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)',
+                      boxShadow: '0 0 0 2px rgba(96, 165, 250, 0.4), 0 0 24px rgba(37, 99, 235, 0.65), inset 0 1px 2px rgba(255, 255, 255, 0.7)',
+                    }}
+                  >
+                    {isSubmittingForgot ? (
+                      <span className="inline-flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Menyimpan...</span>
+                      </span>
+                    ) : (
+                      <>
+                        <Check size={16} className="stroke-[3]" />
+                        <span className="tracking-wide">Simpan Kata Sandi</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

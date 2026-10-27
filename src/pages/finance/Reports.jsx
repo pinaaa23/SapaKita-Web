@@ -36,76 +36,95 @@ export default function FinanceReports() {
   });
 
   useEffect(() => {
-    const all = getAllFinanceBillings().filter((b) => b.year === Number(selectedYear));
+    let isSubscribed = true;
 
-    // Rekap per bulan (1-10)
-    const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const grouped = months.map((m) => {
-      const monthItems = all.filter((b) => b.month === m);
-      const gross = monthItems.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const paid = monthItems.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const pending = monthItems.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const unpaid = monthItems.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+    const fetchAndProcessData = async () => {
+      try {
+        const rawBillings = await getAllFinanceBillings();
+        if (!isSubscribed) return;
 
-      const ku = monthItems.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
-      const kop = monthItems.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
-      const ink = monthItems.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
-      const ven = monthItems.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
+        const all = (Array.isArray(rawBillings) ? rawBillings : []).filter(
+          (b) => b.year === Number(selectedYear)
+        );
 
-      return {
-        month: m,
-        monthName: MONTH_NAMES[m - 1],
-        totalUpt: monthItems.length,
-        gross,
-        paid,
-        pending,
-        unpaid,
-        shares: { kepalaUpt: ku, koperasi: kop, inkopasindo: ink, vendor: ven },
-      };
-    });
+        // Rekap per bulan (1-10)
+        const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        const grouped = months.map((m) => {
+          const monthItems = all.filter((b) => b.month === m);
+          const gross = monthItems.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const paid = monthItems.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const pending = monthItems.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const unpaid = monthItems.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
 
-    setMonthlyData(grouped);
+          const ku = monthItems.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
+          const kop = monthItems.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
+          const ink = monthItems.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
+          const ven = monthItems.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
 
-    // Stakeholder totals
-    const st = {
-      kepalaUpt: { total: 0, paid: 0, unpaid: 0 },
-      koperasi: { total: 0, paid: 0, unpaid: 0 },
-      inkopasindo: { total: 0, paid: 0, unpaid: 0 },
-      vendor: { total: 0, paid: 0, unpaid: 0 },
+          return {
+            month: m,
+            monthName: MONTH_NAMES[m - 1],
+            totalUpt: monthItems.length,
+            gross,
+            paid,
+            pending,
+            unpaid,
+            shares: { kepalaUpt: ku, koperasi: kop, inkopasindo: ink, vendor: ven },
+          };
+        });
+
+        setMonthlyData(grouped);
+
+        // Stakeholder totals
+        const st = {
+          kepalaUpt: { total: 0, paid: 0, unpaid: 0 },
+          koperasi: { total: 0, paid: 0, unpaid: 0 },
+          inkopasindo: { total: 0, paid: 0, unpaid: 0 },
+          vendor: { total: 0, paid: 0, unpaid: 0 },
+        };
+
+        all.forEach((b) => {
+          const isPaid = b.status === 'PAID';
+          const ku = b.shares?.kepalaUpt?.amount || 0;
+          const kop = b.shares?.koperasi?.amount || 0;
+          const ink = b.shares?.inkopasindo?.amount || 0;
+          const ven = b.shares?.vendor?.amount || 0;
+
+          st.kepalaUpt.total += ku;
+          if (isPaid) st.kepalaUpt.paid += ku;
+          else st.kepalaUpt.unpaid += ku;
+
+          st.koperasi.total += kop;
+          if (isPaid) st.koperasi.paid += kop;
+          else st.koperasi.unpaid += kop;
+
+          st.inkopasindo.total += ink;
+          if (isPaid) st.inkopasindo.paid += ink;
+          else st.inkopasindo.unpaid += ink;
+
+          st.vendor.total += ven;
+          if (isPaid) st.vendor.paid += ven;
+          else st.vendor.unpaid += ven;
+        });
+
+        setStakeholderTotals(st);
+
+        const omset = all.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const paid = all.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const pending = all.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const unpaid = all.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+
+        setGrandTotals({ omset, paid, pending, unpaid });
+      } catch (err) {
+        console.warn('[FinanceReports] Error processing reports data:', err);
+      }
     };
 
-    all.forEach((b) => {
-      const isPaid = b.status === 'PAID';
-      const ku = b.shares?.kepalaUpt?.amount || 0;
-      const kop = b.shares?.koperasi?.amount || 0;
-      const ink = b.shares?.inkopasindo?.amount || 0;
-      const ven = b.shares?.vendor?.amount || 0;
+    fetchAndProcessData();
 
-      st.kepalaUpt.total += ku;
-      if (isPaid) st.kepalaUpt.paid += ku;
-      else st.kepalaUpt.unpaid += ku;
-
-      st.koperasi.total += kop;
-      if (isPaid) st.koperasi.paid += kop;
-      else st.koperasi.unpaid += kop;
-
-      st.inkopasindo.total += ink;
-      if (isPaid) st.inkopasindo.paid += ink;
-      else st.inkopasindo.unpaid += ink;
-
-      st.vendor.total += ven;
-      if (isPaid) st.vendor.paid += ven;
-      else st.vendor.unpaid += ven;
-    });
-
-    setStakeholderTotals(st);
-
-    const omset = all.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const paid = all.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const pending = all.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const unpaid = all.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-
-    setGrandTotals({ omset, paid, pending, unpaid });
+    return () => {
+      isSubscribed = false;
+    };
   }, [selectedYear]);
 
   const handleExportCSV = () => {
@@ -150,43 +169,43 @@ export default function FinanceReports() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-blue-100 text-[#0B3D91]">
-              <BarChart3 className="w-5 h-5" />
-            </span>
-            <h1 className="text-2xl font-extrabold text-slate-800">
-              Laporan Keuangan & Bagi Hasil Tahunan
-            </h1>
-          </div>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">
-            Akumulasi performa pendapatan nasional, status realisasi pembayaran, dan rekapitulasi porsi 4 pihak.
-          </p>
+      {/* 1. Top Action Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-1">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-[#1565C0] border border-blue-200/80 text-xs font-bold whitespace-nowrap">
+            Akumulasi Tahunan
+          </span>
+          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+            Rekapitulasi omset kotor nasional &amp; pembagian hasil 4 pihak
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            className="px-3 py-2 text-xs md:text-sm rounded-xl border border-slate-200 bg-white font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0B3D91] cursor-pointer"
-          >
-            <option value="2026">Tahun Buku 2026</option>
-            <option value="2025">Tahun Buku 2025</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/90 bg-white text-xs font-bold text-slate-800 shadow-2xs">
+            <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+            >
+              <option value="2026">Tahun Buku 2026</option>
+              <option value="2025">Tahun Buku 2025</option>
+            </select>
+          </div>
 
           <button
+            type="button"
             onClick={handleExportCSV}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
             <Download className="w-4 h-4 text-emerald-600" />
-            <span>Ekspor Laporan</span>
+            <span>Ekspor CSV</span>
           </button>
 
           <button
+            type="button"
             onClick={handlePrint}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-bold shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-600" />
             <span>Cetak</span>
@@ -194,143 +213,215 @@ export default function FinanceReports() {
         </div>
       </div>
 
-      {/* Grand Totals Cards */}
+      {/* 2. Kartu Ringkasan (Stat Cards Rapi dengan Ikon & Whitespace-Nowrap) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Akumulasi Omset</span>
-          <p className="text-xl md:text-2xl font-extrabold text-slate-900 mt-2">
-            {formatRupiah(grandTotals.omset)}
-          </p>
-          <span className="text-[11px] text-blue-700 font-medium mt-1 block">Tahun Buku {selectedYear}</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Total Dana Terealisasi (Lunas)</span>
-          <p className="text-xl md:text-2xl font-extrabold text-emerald-700 mt-2">
-            {formatRupiah(grandTotals.paid)}
-          </p>
-          <span className="text-[11px] text-emerald-600 font-medium mt-1 block">Telah ditransfer ke stakeholder</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Menunggu Konfirmasi Transfer</span>
-          <p className="text-xl md:text-2xl font-extrabold text-amber-600 mt-2">
-            {formatRupiah(grandTotals.pending)}
-          </p>
-          <span className="text-[11px] text-amber-600 font-medium mt-1 block">Proses verifikasi admin</span>
-        </div>
-
-        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <span className="text-xs font-bold text-rose-600 uppercase tracking-wider">Piutang Belum Tertagih</span>
-          <p className="text-xl md:text-2xl font-extrabold text-rose-600 mt-2">
-            {formatRupiah(grandTotals.unpaid)}
-          </p>
-          <span className="text-[11px] text-rose-600 font-medium mt-1 block">Belum dibayar oleh kantin</span>
-        </div>
-      </div>
-
-      {/* Rekapitulasi Hak Stakeholder 4 Pihak */}
-      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-4">
-        <h2 className="text-lg font-bold text-slate-800">
-          Rekapitulasi Hak Finansial 4 Stakeholder ({selectedYear})
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Kepala UPT */}
-          <div className="p-4 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-purple-900">1. Kepala UPT (5%)</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-bold">5%</span>
-            </div>
-            <p className="text-lg font-extrabold text-purple-950">
-              {formatRupiah(stakeholderTotals.kepalaUpt.total)}
-            </p>
-            <div className="text-[11px] space-y-0.5 pt-2 border-t border-purple-200/60 text-purple-900">
-              <div className="flex justify-between">
-                <span>Terealisasi:</span>
-                <span className="font-bold text-emerald-700">{formatRupiah(stakeholderTotals.kepalaUpt.paid)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tertunda / Berjalan:</span>
-                <span className="font-bold text-rose-700">{formatRupiah(stakeholderTotals.kepalaUpt.unpaid)}</span>
-              </div>
+        {/* Total Akumulasi Omset */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Total Omset Kotor
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0">
+              <Wallet className="w-5 h-5" />
             </div>
           </div>
-
-          {/* Koperasi */}
-          <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-sky-900">2. Koperasi Lapas (30%)</span>
-              <span className="px-2 py-0.5 rounded-full bg-sky-200 text-sky-900 text-[10px] font-bold">30%</span>
-            </div>
-            <p className="text-lg font-extrabold text-sky-950">
-              {formatRupiah(stakeholderTotals.koperasi.total)}
+          <div className="mt-3">
+            <p className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
+              {formatRupiah(grandTotals.omset)}
             </p>
-            <div className="text-[11px] space-y-0.5 pt-2 border-t border-sky-200/60 text-sky-900">
-              <div className="flex justify-between">
-                <span>Terealisasi:</span>
-                <span className="font-bold text-emerald-700">{formatRupiah(stakeholderTotals.koperasi.paid)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tertunda / Berjalan:</span>
-                <span className="font-bold text-rose-700">{formatRupiah(stakeholderTotals.koperasi.unpaid)}</span>
-              </div>
+            <span className="text-[11px] text-[#1565C0] font-semibold mt-1 block">
+              Tahun Buku {selectedYear}
+            </span>
+          </div>
+        </div>
+
+        {/* Total Dana Terealisasi (Lunas) */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Sudah Terealisasi
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
           </div>
-
-          {/* Inkopasindo */}
-          <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-900">3. Inkopasindo (10%)</span>
-              <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">10%</span>
-            </div>
-            <p className="text-lg font-extrabold text-amber-950">
-              {formatRupiah(stakeholderTotals.inkopasindo.total)}
+          <div className="mt-3">
+            <p className="text-xl lg:text-2xl font-black text-emerald-700 tracking-tight whitespace-nowrap">
+              {formatRupiah(grandTotals.paid)}
             </p>
-            <div className="text-[11px] space-y-0.5 pt-2 border-t border-amber-200/60 text-amber-900">
-              <div className="flex justify-between">
-                <span>Terealisasi:</span>
-                <span className="font-bold text-emerald-700">{formatRupiah(stakeholderTotals.inkopasindo.paid)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tertunda / Berjalan:</span>
-                <span className="font-bold text-rose-700">{formatRupiah(stakeholderTotals.inkopasindo.unpaid)}</span>
-              </div>
+            <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
+              Telah disetor &amp; diverifikasi
+            </span>
+          </div>
+        </div>
+
+        {/* Menunggu Konfirmasi Transfer */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Menunggu Verifikasi
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
             </div>
           </div>
-
-          {/* Vendor */}
-          <div className="p-4 rounded-2xl bg-indigo-50/70 border border-indigo-100 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-indigo-900">4. Vendor Sadewa (55%)</span>
-              <span className="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-900 text-[10px] font-bold">55%</span>
-            </div>
-            <p className="text-lg font-extrabold text-indigo-950">
-              {formatRupiah(stakeholderTotals.vendor.total)}
+          <div className="mt-3">
+            <p className="text-xl lg:text-2xl font-black text-amber-600 tracking-tight whitespace-nowrap">
+              {formatRupiah(grandTotals.pending)}
             </p>
-            <div className="text-[11px] space-y-0.5 pt-2 border-t border-indigo-200/60 text-indigo-900">
-              <div className="flex justify-between">
-                <span>Terealisasi:</span>
-                <span className="font-bold text-emerald-700">{formatRupiah(stakeholderTotals.vendor.paid)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tertunda / Berjalan:</span>
-                <span className="font-bold text-rose-700">{formatRupiah(stakeholderTotals.vendor.unpaid)}</span>
-              </div>
+            <span className="text-[11px] text-amber-600 font-semibold mt-1 block">
+              Proses konfirmasi admin finance
+            </span>
+          </div>
+        </div>
+
+        {/* Piutang Belum Tertagih */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm hover:shadow-md transition-all flex flex-col justify-between h-full">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+              Belum Tertagih
+            </span>
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-5 h-5" />
             </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-xl lg:text-2xl font-black text-rose-600 tracking-tight whitespace-nowrap">
+              {formatRupiah(grandTotals.unpaid)}
+            </p>
+            <span className="text-[11px] text-rose-600 font-semibold mt-1 block">
+              Sisa tagihan berjalan UPT
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Tabel Rincian Per Bulan */}
-      <div className="bg-white rounded-3xl p-5 md:p-6 border border-slate-100 shadow-sm overflow-hidden">
-        <h3 className="text-base font-bold text-slate-800 mb-4">
-          Rincian Omset & Realisasi Pembagian Hasil Bulanan ({selectedYear})
-        </h3>
+      {/* 3. Rekapitulasi Hak Stakeholder 4 Pihak (Tanpa Teks Terpotong) */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div>
+          <h2 className="text-sm font-bold text-slate-800">
+            Rekapitulasi Hak Finansial 4 Stakeholder ({selectedYear})
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Akumulasi pembagian hasil kotor nasional berdasarkan skema kontrak resmi 4 pihak.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+          {/* 1. Kepala UPT */}
+          <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/70 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-purple-900">1. Kepala UPT</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-bold">5%</span>
+              </div>
+              <p className="text-lg font-black text-purple-950 mt-1 whitespace-nowrap">
+                {formatRupiah(stakeholderTotals.kepalaUpt.total)}
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-purple-200/60 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Terealisasi:</span>
+                <span className="font-bold text-emerald-700 block whitespace-nowrap">{formatRupiah(stakeholderTotals.kepalaUpt.paid)}</span>
+              </div>
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Tertunda:</span>
+                <span className="font-bold text-rose-600 block whitespace-nowrap">{formatRupiah(stakeholderTotals.kepalaUpt.unpaid)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Koperasi */}
+          <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200/70 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-sky-900">2. Koperasi Lapas</span>
+                <span className="px-2 py-0.5 rounded-full bg-sky-200 text-sky-900 text-[10px] font-bold">30%</span>
+              </div>
+              <p className="text-lg font-black text-sky-950 mt-1 whitespace-nowrap">
+                {formatRupiah(stakeholderTotals.koperasi.total)}
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-sky-200/60 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Terealisasi:</span>
+                <span className="font-bold text-emerald-700 block whitespace-nowrap">{formatRupiah(stakeholderTotals.koperasi.paid)}</span>
+              </div>
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Tertunda:</span>
+                <span className="font-bold text-rose-600 block whitespace-nowrap">{formatRupiah(stakeholderTotals.koperasi.unpaid)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Inkopasindo */}
+          <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/70 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-amber-900">3. Inkopasindo</span>
+                <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">10%</span>
+              </div>
+              <p className="text-lg font-black text-amber-950 mt-1 whitespace-nowrap">
+                {formatRupiah(stakeholderTotals.inkopasindo.total)}
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-amber-200/60 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Terealisasi:</span>
+                <span className="font-bold text-emerald-700 block whitespace-nowrap">{formatRupiah(stakeholderTotals.inkopasindo.paid)}</span>
+              </div>
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Tertunda:</span>
+                <span className="font-bold text-rose-600 block whitespace-nowrap">{formatRupiah(stakeholderTotals.inkopasindo.unpaid)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Vendor */}
+          <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/70 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-bold text-indigo-900">4. Vendor Sadewa</span>
+                <span className="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-900 text-[10px] font-bold">55%</span>
+              </div>
+              <p className="text-lg font-black text-indigo-950 mt-1 whitespace-nowrap">
+                {formatRupiah(stakeholderTotals.vendor.total)}
+              </p>
+            </div>
+            <div className="mt-3 pt-2.5 border-t border-indigo-200/60 grid grid-cols-2 gap-2 text-[11px]">
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Terealisasi:</span>
+                <span className="font-bold text-emerald-700 block whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.paid)}</span>
+              </div>
+              <div className="bg-white/80 rounded-lg p-2">
+                <span className="text-slate-500 block text-[10px]">Tertunda:</span>
+                <span className="font-bold text-rose-600 block whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.unpaid)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Tabel Rincian Bulanan (Tabel Lega, Tanpa Angka Terpotong, Lengkap dengan Total) */}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-slate-800">
+              Rincian Omset &amp; Realisasi Pembagian Hasil Bulanan ({selectedYear})
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Rincian performa keuangan, realisasi setoran, dan hak bagi hasil per bulan buku.
+            </p>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200/80 self-start sm:self-center">
+            {monthlyData.length} Bulan Terdata
+          </span>
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs md:text-sm">
+          <table className="w-full text-left text-xs md:text-sm min-w-[860px]">
             <thead>
-              <tr className="border-b border-slate-100 text-slate-500 font-semibold bg-slate-50/80">
+              <tr className="border-b border-slate-100 text-slate-500 font-semibold bg-slate-50/70">
                 <th className="py-3 px-4 rounded-l-xl">Bulan</th>
                 <th className="py-3 px-4 text-center">Jumlah UPT</th>
                 <th className="py-3 px-4 text-right">Omset Kotor</th>
@@ -345,36 +436,52 @@ export default function FinanceReports() {
             <tbody className="divide-y divide-slate-100">
               {monthlyData.map((m) => (
                 <tr key={m.month} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-slate-800">
+                  <td className="py-3 px-4 font-bold text-slate-800">
                     {m.monthName} {selectedYear}
                   </td>
-                  <td className="py-3.5 px-4 text-center font-medium text-slate-600">
-                    {m.totalUpt} UPT
+                  <td className="py-3 px-4 text-center">
+                    <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium text-xs whitespace-nowrap">
+                      {m.totalUpt} UPT
+                    </span>
                   </td>
-                  <td className="py-3.5 px-4 text-right font-extrabold text-slate-900">
+                  <td className="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap">
                     {formatRupiah(m.gross)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-bold text-emerald-700">
+                  <td className="py-3 px-4 text-right font-bold text-emerald-700 whitespace-nowrap">
                     {formatRupiah(m.paid)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-bold text-rose-600">
+                  <td className="py-3 px-4 text-right font-bold text-rose-600 whitespace-nowrap">
                     {formatRupiah(m.unpaid + m.pending)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-semibold text-purple-900">
+                  <td className="py-3 px-4 text-right font-semibold text-purple-900 whitespace-nowrap">
                     {formatRupiah(m.shares.kepalaUpt)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-semibold text-sky-900">
+                  <td className="py-3 px-4 text-right font-semibold text-sky-900 whitespace-nowrap">
                     {formatRupiah(m.shares.koperasi)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-semibold text-amber-900">
+                  <td className="py-3 px-4 text-right font-semibold text-amber-900 whitespace-nowrap">
                     {formatRupiah(m.shares.inkopasindo)}
                   </td>
-                  <td className="py-3.5 px-4 text-right font-semibold text-indigo-900">
+                  <td className="py-3 px-4 text-right font-semibold text-indigo-900 whitespace-nowrap">
                     {formatRupiah(m.shares.vendor)}
                   </td>
                 </tr>
               ))}
             </tbody>
+            {/* Summary Footer */}
+            <tfoot>
+              <tr className="border-t-2 border-slate-200 bg-slate-50/90 font-extrabold text-slate-900">
+                <td className="py-3 px-4 rounded-l-xl">Total Akumulasi</td>
+                <td className="py-3 px-4 text-center">-</td>
+                <td className="py-3 px-4 text-right text-slate-900 whitespace-nowrap">{formatRupiah(grandTotals.omset)}</td>
+                <td className="py-3 px-4 text-right text-emerald-700 whitespace-nowrap">{formatRupiah(grandTotals.paid)}</td>
+                <td className="py-3 px-4 text-right text-rose-600 whitespace-nowrap">{formatRupiah(grandTotals.unpaid + grandTotals.pending)}</td>
+                <td className="py-3 px-4 text-right text-purple-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.kepalaUpt.total)}</td>
+                <td className="py-3 px-4 text-right text-sky-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.koperasi.total)}</td>
+                <td className="py-3 px-4 text-right text-amber-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.inkopasindo.total)}</td>
+                <td className="py-3 px-4 text-right rounded-r-xl text-indigo-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.total)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>

@@ -116,9 +116,9 @@ function App() {
                   <Route path=":id" element={<TransactionDetail />} />
                 </Route>
 
-                {/* Superadmin Packages, Canteen Topup & Kanwil Management Routes */}
+                {/* Superadmin Packages, Kanwil Management Routes (canteen-topup dialihkan ke dashboard) */}
                 <Route path="packages" element={<PackagesList />} />
-                <Route path="canteen-topup" element={<CanteenTopup />} />
+                <Route path="canteen-topup" element={<Navigate to="/dashboard" replace />} />
                 <Route path="kanwil-management" element={<KanwilManagement />} />
                 <Route path="kanwil-management/create" element={<KanwilCreate />} />
                 <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />

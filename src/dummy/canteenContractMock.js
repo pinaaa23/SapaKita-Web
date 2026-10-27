@@ -200,7 +200,7 @@ export function isCanteenContractConfigured(contract) {
   if (contract.isContractSet === false) return false;
 
   const rate = contract.ratePerSecond;
-  const saPercent =
+  let saPercent =
     contract.superadminPercent !== undefined &&
     contract.superadminPercent !== null &&
     contract.superadminPercent !== ''
@@ -210,6 +210,22 @@ export function isCanteenContractConfigured(contract) {
          contract.negotiationPercent !== ''
           ? contract.negotiationPercent
           : null);
+
+  // Jika contract menggunakan struktur Finance 4-way split atau contractSharePercentage
+  if (saPercent === null || saPercent === undefined || isNaN(Number(saPercent))) {
+    if (contract.contractSharePercentage !== undefined && contract.contractSharePercentage !== null && contract.contractSharePercentage !== '') {
+      saPercent = contract.contractSharePercentage;
+    } else if (contract.split) {
+      const kop = Number(contract.split.koperasi ?? 30);
+      saPercent = 100 - kop;
+    } else if (contract.koperasiPercent !== undefined && contract.koperasiPercent !== null && contract.koperasiPercent !== '') {
+      saPercent = 100 - Number(contract.koperasiPercent);
+    } else if (contract.shareKoperasiPercent !== undefined && contract.shareKoperasiPercent !== null && contract.shareKoperasiPercent !== '') {
+      saPercent = 100 - Number(contract.shareKoperasiPercent);
+    } else if (contract.shareKoperasi !== undefined && contract.shareKoperasi !== null && contract.shareKoperasi !== '') {
+      saPercent = 100 - Number(contract.shareKoperasi);
+    }
+  }
 
   // Nilai kosong/null/undefined/bukan angka = belum diatur
   if (rate === null || rate === undefined || rate === '' || isNaN(Number(rate))) {

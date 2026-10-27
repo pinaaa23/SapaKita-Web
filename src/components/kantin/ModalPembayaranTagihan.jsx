@@ -111,6 +111,8 @@ export default function ModalPembayaranTagihan({
       const targetMonth = billingData?.month || (billingData?.period?.month) || (now.getMonth() + 1);
       const targetYear = billingData?.year || (billingData?.period?.year) || now.getFullYear();
 
+      // Mengirim bukti bayar ke backend (saat ini via submitTagihanPayment)
+      // TODO: sambungkan ke endpoint finance saat BE siap (misal POST /api/finance/canteen-topups)
       await submitTagihanPayment({
         nominal: payableAmount,
         minutes: totalMinutes,
@@ -259,7 +261,7 @@ export default function ModalPembayaranTagihan({
             )}
             {billingData.superadminPercent !== undefined && (
               <div className="flex justify-between text-slate-600">
-                <span>Porsi Superadmin (SA)</span>
+                <span>Porsi Setoran ke Finance</span>
                 <span className="font-semibold text-blue-700">{billingData.superadminPercent}%</span>
               </div>
             )}

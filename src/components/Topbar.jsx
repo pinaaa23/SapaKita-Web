@@ -74,6 +74,33 @@ const Topbar = ({ toggleMobileMenu }) => {
 
     if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh UPT' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
+
+    // Finance Admin Page Details
+    if (pathname.startsWith('/finance/billing')) {
+      return { 
+        title: 'Tagihan & Setoran', 
+        subtitle: 'Konfirmasi setoran kasir kantin, rekapitulasi penagihan bulanan seluruh UPT, dan riwayat verifikasi' 
+      };
+    }
+    if (pathname.startsWith('/finance/contracts')) {
+      return { 
+        title: 'Kontrak Bagi Hasil', 
+        subtitle: 'Pengaturan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) dan data rekening' 
+      };
+    }
+    if (pathname.startsWith('/finance/reports')) {
+      return { 
+        title: 'Laporan Keuangan', 
+        subtitle: 'Rekapitulasi pembagian hasil 4 pihak dan performa penerimaan omset nasional' 
+      };
+    }
+    if (pathname.startsWith('/finance/dashboard') || pathname === '/finance' || pathname === '/finance/') {
+      return { 
+        title: 'Dashboard Keuangan', 
+        subtitle: 'Ringkasan performa finansial, omset tagihan, dan status setoran UPT' 
+      };
+    }
+
     return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional Sadewa seluruh UPT' };
   };
 
@@ -143,7 +170,6 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi keuangan seluruh Indonesia' },
     { title: 'Katalog Paket UPT', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh cabang UPT' },
-    { title: 'Tagihan Kantin', category: 'Halaman', link: '/canteen-topup', desc: 'Laporan tagihan bulanan seluruh UPT & verifikasi transfer' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },
   ]);

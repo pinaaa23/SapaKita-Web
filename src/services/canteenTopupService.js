@@ -180,7 +180,12 @@ export async function getSuperadminTopupHistory({
   const qs = params.toString();
   const endpoint = qs ? `/api/canteen/topups?${qs}` : '/api/canteen/topups';
   const res = await apiFetch(endpoint);
-  const items = res?.data || [];
+  let items = [];
+  if (Array.isArray(res?.data?.items)) items = res.data.items;
+  else if (Array.isArray(res?.data?.data)) items = res.data.data;
+  else if (Array.isArray(res?.data)) items = res.data;
+  else if (Array.isArray(res?.items)) items = res.items;
+  else if (Array.isArray(res)) items = res;
 
   return items.map((item) => ({
     id: item.id,

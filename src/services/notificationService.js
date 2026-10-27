@@ -37,7 +37,7 @@ function formatRelativeTime(dateStr) {
 function resolveNotificationLink(type, data) {
   const normType = (type || '').toUpperCase();
   if (normType.includes('TOPUP_REQUESTED') || normType === 'CANTEEN_TOPUP_REQUESTED') {
-    return '/canteen-topup';
+    return '/finance/billing';
   }
   if (normType.includes('TOPUP_APPROVED') || normType.includes('TOPUP_REJECTED')) {
     return '/kantin/top-up-saldo';

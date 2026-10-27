@@ -263,6 +263,8 @@ const Create = () => {
     setIsSubmitting(true);
 
     try {
+      const effectiveBranchId = user?.branchId || user?.branch?.id || localStorage.getItem('pascall_active_branch_id') || undefined;
+
       await createUser({
         name: name.trim(),
         email: email.trim(),
@@ -270,6 +272,7 @@ const Create = () => {
         role,
         password,
         status,
+        branchId: effectiveBranchId,
       });
 
       setCreatedCredentials({

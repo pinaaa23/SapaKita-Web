@@ -32,10 +32,10 @@ import {
 } from '../../services/kantin/saldoService';
 
 const BANK_OPTIONS = [
-  'BCA - 0123456789 (a.n Sadewa Pusat)',
-  'BRI - 9876543210 (a.n Sadewa Pusat)',
-  'Mandiri - 1370012345678 (a.n Sadewa Pusat)',
-  'BNI - 0987654321 (a.n Sadewa Pusat)',
+  'BCA - 0123456789 (a.n Sadewa Finance)',
+  'BRI - 9876543210 (a.n Sadewa Finance)',
+  'Mandiri - 1370012345678 (a.n Sadewa Finance)',
+  'BNI - 0987654321 (a.n Sadewa Finance)',
 ];
 
 export default function TopUpSaldoPage() {
@@ -171,6 +171,7 @@ export default function TopUpSaldoPage() {
     setIsProcessing(true);
     setPesanError('');
     try {
+      // TODO: sambungkan ke endpoint finance saat BE siap (misal POST /api/finance/canteen-topups)
       await prosesTopUp({
         nominal: paketTerpilih.nominal,
         minutes: paketTerpilih.menit,
@@ -181,7 +182,7 @@ export default function TopUpSaldoPage() {
       setPesanSukses(
         `Pengajuan top up kuota ${menitValue.toLocaleString('id-ID')} Menit (${formatRupiah(
           nominalValue
-        )}) berhasil dikirim! Menunggu konfirmasi persetujuan dari Super Administrator.`
+        )}) berhasil dikirim! Menunggu konfirmasi persetujuan dari Admin Finance.`
       );
       setPaketTerpilih(null);
       setShowKonfirmasi(false);
@@ -425,7 +426,7 @@ export default function TopUpSaldoPage() {
                 </div>
                 <div>
                   <h4 className="text-base font-bold text-slate-800">Form Pengajuan Top Up Saldo</h4>
-                  <p className="text-[11px] text-slate-500">Unggah bukti transfer untuk diverifikasi Superadmin</p>
+                  <p className="text-[11px] text-slate-500">Unggah bukti transfer untuk diverifikasi Admin Finance</p>
                 </div>
               </div>
               <button
@@ -472,7 +473,7 @@ export default function TopUpSaldoPage() {
               {/* Pilihan Bank Tujuan Transfer */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  Rekening Tujuan Transfer (Pusat)
+                  Rekening Tujuan Transfer (Rekening Penampung Finance)
                 </label>
                 <select
                   value={bankTarget}
@@ -525,7 +526,7 @@ export default function TopUpSaldoPage() {
               </div>
 
               <div className="p-3 bg-amber-50/60 border border-amber-200/60 rounded-xl text-[11px] text-amber-800 leading-relaxed">
-                Menit akan bertambah otomatis di akun kantin cabang setelah Super Administrator memverifikasi bukti transfer dan menyetujui pengajuan ini.
+                Menit akan bertambah otomatis di akun kantin cabang setelah Admin Finance memverifikasi bukti transfer dan menyetujui pengajuan ini.
               </div>
 
               {/* Tombol Aksi */}

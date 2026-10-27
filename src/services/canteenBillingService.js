@@ -40,37 +40,48 @@ export async function getCanteenBillingNational(month, year) {
   const targetMonth = month || now.getMonth() + 1;
   const targetYear = year || now.getFullYear();
 
-  // 1. Ambil data cabang UPT dari backend
-  let branches = [];
-  try {
-    const branchesRes = await getBranches({ limit: 100 });
-    branches = Array.isArray(branchesRes?.items)
-      ? branchesRes.items
-      : Array.isArray(branchesRes)
-      ? branchesRes
-      : [];
-  } catch (err) {
-    console.warn('[canteenBillingService] Gagal memuat branches dari API:', err);
-  }
-
-  if (branches.length === 0) {
-    branches = [
-      { id: 'b1', name: 'Lapas Kelas I Cipinang', kanwil: { name: 'Kanwil DKI Jakarta' } },
-      { id: 'b2', name: 'Lapas Kelas IIA Salemba', kanwil: { name: 'Kanwil DKI Jakarta' } },
-      { id: 'b3', name: 'Lapas Kelas IIA Yogyakarta', kanwil: { name: 'Kanwil D.I. Yogyakarta' } },
-      { id: 'b4', name: 'Lapas Kelas I Surabaya', kanwil: { name: 'Kanwil Jawa Timur' } },
-      { id: 'b5', name: 'Lapas Kelas I Medan', kanwil: { name: 'Kanwil Sumatera Utara' } },
-      { id: 'b6', name: 'Lapas Kelas IIA Surakarta', kanwil: { name: 'Kanwil Jawa Tengah' } },
-    ];
-  }
-
-  // 2. Ambil data real transaksi / billing dari Backend (GET /api/canteen/billing/national-summary)
+  // 1. Ambil data real transaksi / billing dari Backend (GET /api/canteen/billing/national-summary)
   let beNationalData = null;
   try {
     const natRes = await apiFetch(`/api/canteen/billing/national-summary?month=${targetMonth}&year=${targetYear}`);
     beNationalData = natRes?.data || natRes || null;
   } catch (_e) {
     // Abaikan jika offline
+  }
+
+  // 2. Ambil data cabang UPT dari beNationalData (riil database) atau getBranches()
+  let branches = [];
+  if (Array.isArray(beNationalData?.branches) && beNationalData.branches.length > 0) {
+    branches = beNationalData.branches.map((b) => ({
+      id: b.branchId || b.id,
+      name: b.branchName || b.name,
+      kanwilName: b.kanwilName || b.kanwil?.name || 'Kanwil Ditjenpas',
+      province: b.province,
+      totalMinutes: Number(b.totalMinutes || 0),
+      totalSeconds: Number(b.totalSeconds || 0),
+      ratePerSecond: b.ratePerSecond,
+      calculatedGrossAmount: b.calculatedGrossAmount,
+      passcallSharePercentage: b.passcallSharePercentage,
+      kantinSharePercentage: b.kantinSharePercentage,
+      billingStatus: b.billingStatus,
+      paymentProof: b.paymentProof,
+    }));
+  } else {
+    try {
+      const branchesRes = await getBranches({ limit: 100 });
+      branches = Array.isArray(branchesRes?.items)
+        ? branchesRes.items
+        : Array.isArray(branchesRes)
+        ? branchesRes
+        : [];
+    } catch (err) {
+      console.warn('[canteenBillingService] Gagal memuat branches dari API:', err);
+    }
+  }
+
+  // Jika data cabang belum ditemukan dan offline
+  if (branches.length === 0) {
+    return [];
   }
 
   // 3. Ambil riwayat bukti bayar topup yang tersimpan di sistem
@@ -82,7 +93,7 @@ export async function getCanteenBillingNational(month, year) {
     allTopups = [];
   }
 
-  // 4. SATU SUMBER KONTRAK: Ambil seluruh kontrak resmi dari GET /api/canteen/contracts (sama dengan Tab Pengaturan Kontrak)
+  // 4. SATU SUMBER KONTRAK: Ambil seluruh kontrak resmi dari GET /api/canteen/contracts & GET /api/finance/contracts
   let contractsList = [];
   try {
     contractsList = await getAllCanteenContracts();
@@ -99,6 +110,34 @@ export async function getCanteenBillingNational(month, year) {
     });
   }
 
+  // Tambahkan juga dari cache kontrak Finance jika ada
+  try {
+    const rawFinContracts = typeof window !== 'undefined' ? localStorage.getItem('pascall_finance_contracts_v1') : null;
+    if (rawFinContracts) {
+      const parsedFin = JSON.parse(rawFinContracts);
+      if (Array.isArray(parsedFin)) {
+        parsedFin.forEach((fc) => {
+          const kop = fc.split?.koperasi ?? 30;
+          const mapped = {
+            branchId: fc.branchId,
+            branchName: fc.branchName,
+            canteenName: fc.canteenName,
+            ratePerSecond: Number(fc.ratePerSecond || 50),
+            superadminPercent: 100 - Number(kop),
+            canteenPercent: Number(kop),
+            negotiationPercent: 100 - Number(kop),
+            isContractSet: true,
+            split: fc.split,
+          };
+          const bId = String(fc.branchId).toLowerCase();
+          const bName = String(fc.branchName).toLowerCase();
+          if (!contractMap[bId] || !contractMap[bId].isContractSet) contractMap[bId] = mapped;
+          if (!contractMap[bName] || !contractMap[bName].isContractSet) contractMap[bName] = mapped;
+        });
+      }
+    }
+  } catch (_) {}
+
   const isCurrentMonth = targetYear === now.getFullYear() && targetMonth === now.getMonth() + 1;
   const dueDate = new Date(targetYear, targetMonth, 2, 23, 59, 59, 999);
   const isPastDue = now > dueDate;
@@ -109,25 +148,50 @@ export async function getCanteenBillingNational(month, year) {
     const bName = String(b.name || '').toLowerCase();
     let contract = contractMap[bId] || contractMap[bName] || findStoredContract(b.id, { branchName: b.name });
 
-    // Helper status kontrak TUNGGAL:
-    const isContractSet = isCanteenContractConfigured(contract);
+    // Cari data real UPT ini dari respon backend
+    const beBranchInfo = beNationalData?.branches?.find((bb) => (bb.branchId && (bb.branchId === b.id || String(bb.branchId).toLowerCase() === bId)) || bb.branchName?.toLowerCase() === bName) || b;
 
-    const canteenName = contract?.canteenName || `Kantin ${b.name}`;
+    // Fallback: Jika kontrak belum ada di contractMap, gunakan data tarif dan bagi hasil yang dikirim backend UPT
+    if (!contract && beBranchInfo) {
+      const beRate = beBranchInfo.ratePerSecond;
+      const beSa = beBranchInfo.passcallSharePercentage ?? beBranchInfo.contractSharePercentage ?? beBranchInfo.superadminPercent;
+      if (beRate !== null && beRate !== undefined && beSa !== null && beSa !== undefined) {
+        contract = {
+          branchId: b.id,
+          branchName: b.name,
+          ratePerSecond: Number(beRate),
+          superadminPercent: Number(beSa),
+          canteenPercent: Math.max(0, 100 - Number(beSa)),
+          negotiationPercent: Number(beSa),
+          isContractSet: true,
+        };
+      }
+    }
+
+    // Helper status kontrak TUNGGAL:
+    const isContractSet = isCanteenContractConfigured(contract) || isCanteenContractConfigured(beBranchInfo);
+
+    const canteenName = contract?.canteenName || (b.name ? `Kantin ${b.name}` : 'Kantin Lapas');
     const uptName = b.name;
     const kanwilName = b.kanwil?.name || b.kanwilName || 'Kanwil Ditjenpas';
 
-    // Cari data real UPT ini dari respon backend
-    const beBranchInfo = beNationalData?.branches?.find((bb) => bb.branchId === b.id || bb.branchName?.toLowerCase() === b.name?.toLowerCase());
-
     // Hitung total detik real dari menit durasi paket voucher yang dibeli di kantin pada bulan itu
-    const realMinutes = Number(beBranchInfo?.totalMinutes || 0);
-    const totalSeconds = realMinutes * 60;
+    const totalSeconds = Number(
+      beBranchInfo?.totalSeconds !== undefined && beBranchInfo?.totalSeconds !== null && Number(beBranchInfo.totalSeconds) > 0
+        ? beBranchInfo.totalSeconds
+        : (beBranchInfo?.totalMinutes ? Number(beBranchInfo.totalMinutes) * 60 : (b.totalSeconds || (b.totalMinutes ? b.totalMinutes * 60 : 0)))
+    );
 
-    // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin)
+    // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin/Finance)
+    const effectiveRate = isContractSet ? (contract?.ratePerSecond ?? beBranchInfo?.ratePerSecond ?? 15) : null;
+    const effectiveSa = isContractSet
+      ? (contract?.superadminPercent ?? contract?.negotiationPercent ?? contract?.contractSharePercentage ?? (contract?.split?.koperasi ? 100 - contract.split.koperasi : null) ?? beBranchInfo?.passcallSharePercentage ?? beBranchInfo?.contractSharePercentage ?? 70)
+      : null;
+
     const billingCalc = calculateUnifiedBilling({
       totalSeconds,
-      ratePerSecond: isContractSet ? contract.ratePerSecond : null,
-      superadminPercent: isContractSet ? (contract.superadminPercent ?? contract.negotiationPercent) : null,
+      ratePerSecond: effectiveRate,
+      superadminPercent: effectiveSa,
     });
 
     // Cari riwayat pembayaran cabang ini untuk periode ini
@@ -163,17 +227,20 @@ export async function getCanteenBillingNational(month, year) {
     } else if (totalApproved >= billingCalc.totalAmount && billingCalc.totalAmount > 0) {
       statusPembayaran = 'Lunas';
       rawStatus = 'LUNAS';
-    } else if (pendingPayment) {
+    } else if (pendingPayment || beBranchInfo?.billingStatus === 'PENDING_CONFIRMATION') {
       statusPembayaran = 'Menunggu ACC';
       rawStatus = 'PENDING';
-    } else if (rejectedPayment) {
+    } else if (rejectedPayment || beBranchInfo?.billingStatus === 'REJECTED') {
       statusPembayaran = 'Ditolak';
       rawStatus = 'REJECTED';
       isBlocked = true;
+    } else if (beBranchInfo?.billingStatus === 'PAID') {
+      statusPembayaran = 'Lunas';
+      rawStatus = 'LUNAS';
     } else if (billingCalc.totalAmount === 0) {
       statusPembayaran = 'Tidak Ada Tagihan';
       rawStatus = 'TIDAK_ADA_TAGIHAN';
-    } else if (!isMonthClosed) {
+    } else if (!isMonthClosed || beBranchInfo?.billingStatus === 'BERJALAN') {
       statusPembayaran = 'Bulan Berjalan';
       rawStatus = 'BERJALAN';
     } else if (isPastDue && billingCalc.totalAmount > 0) {
@@ -201,6 +268,13 @@ export async function getCanteenBillingNational(month, year) {
       canteenShare: billingCalc.canteenShare,
       isContractSet: billingCalc.isContractSet,
       contractNote: billingCalc.contractNote,
+      grossAmount: billingCalc.subtotal || 0,
+      canteenKeepAmount: billingCalc.canteenShare || 0,
+      depositAmountToFinance: billingCalc.totalAmount || 0,
+      shares: {
+        koperasi: { percent: billingCalc.canteenPercent || 30, amount: billingCalc.canteenShare || 0 },
+        finance: { percent: billingCalc.superadminPercent || 70, amount: billingCalc.totalAmount || 0 },
+      },
       statusPembayaran,
       rawStatus,
       isBlocked,
@@ -241,19 +315,54 @@ export async function getCanteenBillingMonthly(month, year) {
   }
 
   // 2. Ambil transaksi real
-  const transactions = Array.isArray(beBillingData?.transactions) ? beBillingData.transactions : [];
+  let transactions = Array.isArray(beBillingData?.transactions) ? beBillingData.transactions : [];
+
+  // Fallback: Jika transactions kosong di respons billing, ambil dari endpoint transaksi kantin
+  if (transactions.length === 0) {
+    try {
+      const q = new URLSearchParams();
+      q.append('page', '1');
+      q.append('limit', '500');
+      q.append('periode', 'bulanan');
+      const mStr = String(targetMonth).padStart(2, '0');
+      q.append('bulan', `${targetYear}-${mStr}`);
+      if (rawBranchId) q.append('branchId', rawBranchId);
+
+      const tRes = await apiFetch(`/api/canteen/transactions?${q.toString()}`);
+      const tItems = Array.isArray(tRes?.data) ? tRes.data : (Array.isArray(tRes?.items) ? tRes.items : (Array.isArray(tRes) ? tRes : []));
+      if (tItems.length > 0) {
+        transactions = tItems;
+      }
+    } catch (_tErr) {}
+
+    if (transactions.length === 0) {
+      try {
+        const { getRiwayat } = await import('./kantin/kantinService');
+        const rList = await getRiwayat({
+          periode: 'bulanan',
+          tanggal: new Date(targetYear, targetMonth - 1, 15),
+          limit: 500,
+        });
+        if (Array.isArray(rList) && rList.length > 0) {
+          transactions = rList;
+        }
+      } catch (_rErr) {}
+    }
+  }
 
   // Hitung total detik real dari transaksi penjualan paket/voucher di kantin
   // Sesuai Aturan Baru: total detik = akumulasi durasi paket yang dibeli WBP
   let totalSeconds = 0;
   if (beBillingData?.summary?.totalSeconds !== undefined && beBillingData?.summary?.totalSeconds !== null && Number(beBillingData.summary.totalSeconds) > 0) {
     totalSeconds = Number(beBillingData.summary.totalSeconds);
-  } else {
-    totalSeconds = transactions.reduce((acc, t) => {
-      const durationMin = Number(t.package?.durationMinutes || t.package?.duration || t.packageDuration || t.durationMinutes || (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) || 0);
-      return acc + (durationMin * 60);
-    }, 0);
   }
+  
+  const calculatedSecondsFromTx = transactions.reduce((acc, t) => {
+    const durationMin = Number(t.package?.durationMinutes || t.package?.duration || t.packageDuration || t.durationMinutes || (typeof t.paket?.durasi === 'string' ? parseInt(t.paket.durasi, 10) : t.paket?.durasi) || 0);
+    return acc + (durationMin * 60);
+  }, 0);
+
+  totalSeconds = Math.max(totalSeconds, calculatedSecondsFromTx);
 
   // 3. Resolusi kontrak tarif (Read-only dari GET /api/canteen/contracts/:branchId)
   const rawBranchName = user?.branchName || user?.branch?.name || beBillingData?.branchName || null;
@@ -358,6 +467,16 @@ export async function getCanteenBillingMonthly(month, year) {
     canteenShare: billingCalc.canteenShare,
     isContractSet: billingCalc.isContractSet,
     contractNote: billingCalc.contractNote,
+    kepalaUptPercent: Number(contract?.kepalaUptPercent ?? 5),
+    koperasiPercent: Number(contract?.koperasiPercent ?? 30),
+    inkopasindoPercent: Number(contract?.inkopasindoPercent ?? 10),
+    vendorPercent: Number(contract?.vendorPercent ?? 55),
+    shares: {
+      kepalaUpt: Number(contract?.kepalaUptPercent ?? 5),
+      koperasi: Number(contract?.koperasiPercent ?? 30),
+      inkopasindo: Number(contract?.inkopasindoPercent ?? 10),
+      vendor: Number(contract?.vendorPercent ?? 55),
+    },
     transactions: recalculatedTransactions,
     rawStatus: isContractSet ? (beBillingData?.billingStatus || 'BERJALAN') : 'BELUM_DIATUR',
     statusPembayaran: isContractSet
@@ -383,6 +502,24 @@ export async function getCanteenContractByBranchId(branchId) {
   } catch (err) {
     console.warn(`[canteenBillingService] Gagal memuat kontrak UPT (${branchId}):`, err?.message || err);
     return null;
+  }
+}
+
+/**
+ * Mengambil histori perubahan kontrak bagi hasil UPT (Audit Log)
+ * Endpoint: GET /api/canteen/contracts/:branchId/history
+ *
+ * @param {string} branchId
+ * @returns {Promise<Array>}
+ */
+export async function getCanteenContractHistory(branchId) {
+  if (!branchId) return [];
+  try {
+    const res = await apiFetch(`/api/canteen/contracts/${branchId}/history`);
+    return res?.data?.items || (Array.isArray(res?.data) ? res.data : []);
+  } catch (err) {
+    console.warn(`[canteenBillingService] Gagal memuat riwayat kontrak (${branchId}):`, err?.message || err);
+    return [];
   }
 }
 
@@ -419,7 +556,7 @@ export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20
       if (search && search.trim()) q.append('search', search.trim());
 
       const res = await apiFetch(`/api/canteen/billing/calls?${q.toString()}`);
-      if (res?.data) {
+      if (res?.data && Array.isArray(res.data.items) && res.data.items.length > 0 && Number(res.data.totalSeconds) > 0) {
         return {
           items: res.data.items || [],
           totalItems: res.data.totalItems || 0,
@@ -677,12 +814,44 @@ export async function getAllCanteenContracts() {
   let beContracts = [];
   try {
     const res = await apiFetch('/api/canteen/contracts');
-    const items = res?.data?.items || res?.items || (Array.isArray(res) ? res : []);
+    const items = Array.isArray(res?.data)
+      ? res.data
+      : Array.isArray(res?.data?.items)
+      ? res.data.items
+      : Array.isArray(res?.items)
+      ? res.items
+      : Array.isArray(res)
+      ? res
+      : [];
     if (Array.isArray(items) && items.length > 0) {
       beContracts = items;
     }
   } catch (err) {
     console.warn('[canteenBillingService] Gagal memuat GET /api/canteen/contracts:', err?.message || err);
+  }
+
+  // Jika beContracts masih kosong, coba ambil dari GET /api/finance/contracts
+  if (beContracts.length === 0) {
+    try {
+      const finRes = await apiFetch('/api/finance/contracts');
+      const finItems = Array.isArray(finRes?.data) ? finRes.data : Array.isArray(finRes) ? finRes : [];
+      if (finItems.length > 0) {
+        beContracts = finItems.map((fc) => {
+          const kop = fc.split?.koperasi ?? 30;
+          return {
+            branchId: fc.branchId,
+            branchName: fc.branchName,
+            canteenName: fc.canteenName,
+            ratePerSecond: fc.ratePerSecond,
+            superadminPercent: 100 - Number(kop),
+            canteenPercent: Number(kop),
+            negotiationPercent: 100 - Number(kop),
+            split: fc.split,
+            isContractSet: true,
+          };
+        });
+      }
+    } catch (_fe) {}
   }
 
   // 2. Ambil data cabang UPT untuk melengkapi informasi wilayah/kanwil jika diperlukan
@@ -709,31 +878,35 @@ export async function getAllCanteenContracts() {
       const b = branchMap[item.branchId] || {};
       const isContractSet = isCanteenContractConfigured(item);
 
+      const saPct = item.superadminPercent !== undefined && item.superadminPercent !== null
+        ? Number(item.superadminPercent)
+        : (item.contractSharePercentage !== undefined && item.contractSharePercentage !== null
+            ? Number(item.contractSharePercentage)
+            : (item.split?.koperasi ? 100 - Number(item.split.koperasi) : 70));
+
+      const ktPct = item.canteenPercent !== undefined && item.canteenPercent !== null
+        ? Number(item.canteenPercent)
+        : (item.split?.koperasi ? Number(item.split.koperasi) : 30);
+
       return {
         branchId: item.branchId,
         canteenName: item.canteenName || `Kantin ${item.branchName || b.name || item.branchId}`,
         uptName: item.branchName || b.name || `UPT ${item.branchId}`,
         kanwilName: b.kanwil?.name || b.kanwilName || 'Kanwil Ditjenpas',
         ratePerSecond: isContractSet ? Number(item.ratePerSecond) : null,
-        superadminPercent: isContractSet ? Number(item.superadminPercent) : null,
-        canteenPercent: isContractSet ? Number(item.canteenPercent) : null,
-        negotiationPercent: isContractSet ? Number(item.superadminPercent) : null,
+        superadminPercent: isContractSet ? saPct : null,
+        canteenPercent: isContractSet ? ktPct : null,
+        negotiationPercent: isContractSet ? saPct : null,
         isContractSet,
         updatedAt: item.updatedAt || null,
         updatedBy: item.updatedBy || 'Superadmin',
+        split: item.split,
       };
     });
   }
 
   if (branches.length === 0) {
-    branches = [
-      { id: 'b1', name: 'Lapas Kelas I Cipinang', kanwil: { name: 'Kanwil DKI Jakarta' } },
-      { id: 'b2', name: 'Lapas Kelas IIA Salemba', kanwil: { name: 'Kanwil DKI Jakarta' } },
-      { id: 'b3', name: 'Lapas Kelas IIA Yogyakarta', kanwil: { name: 'Kanwil D.I. Yogyakarta' } },
-      { id: 'b4', name: 'Lapas Kelas I Surabaya', kanwil: { name: 'Kanwil Jawa Timur' } },
-      { id: 'b5', name: 'Lapas Kelas I Medan', kanwil: { name: 'Kanwil Sumatera Utara' } },
-      { id: 'b6', name: 'Lapas Kelas IIA Surakarta', kanwil: { name: 'Kanwil Jawa Tengah' } },
-    ];
+    return [];
   }
 
   // 3. Fallback jika /api/canteen/contracts belum termuat
