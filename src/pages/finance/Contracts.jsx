@@ -45,9 +45,13 @@ export default function FinanceContracts() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const loadContracts = () => {
-    const list = getFinanceContracts();
-    setContracts(list);
+  const loadContracts = async () => {
+    try {
+      const list = await getFinanceContracts();
+      if (Array.isArray(list)) setContracts(list);
+    } catch (err) {
+      console.error('[Contracts] Gagal memuat kontrak:', err);
+    }
   };
 
   useEffect(() => {
@@ -70,7 +74,7 @@ export default function FinanceContracts() {
   const totalPercent = Number(kepalaUptPct || 0) + Number(koperasiPct || 0) + Number(inkopasindoPct || 0) + Number(vendorPct || 0);
   const isPercentValid = totalPercent === 100;
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     if (!editModalItem) return;
 
@@ -80,7 +84,7 @@ export default function FinanceContracts() {
     }
 
     try {
-      saveFinanceContract(editModalItem.branchId, {
+      await saveFinanceContract(editModalItem.branchId, {
         ratePerSecond: Number(ratePerSecond),
         split: {
           kepalaUpt: Number(kepalaUptPct),
@@ -95,7 +99,7 @@ export default function FinanceContracts() {
 
       showToast(`Kontrak bagi hasil untuk ${editModalItem.branchName} berhasil disimpan.`);
       setEditModalItem(null);
-      loadContracts();
+      await loadContracts();
     } catch (err) {
       showToast(err.message || 'Gagal menyimpan kontrak', 'error');
     }

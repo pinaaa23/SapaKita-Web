@@ -75,18 +75,23 @@ export default function FinanceBilling() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  const loadData = () => {
-    const data = getFinanceBillings({
-      month: selectedMonth,
-      year: selectedYear,
-      status: selectedStatus,
-      search: searchQuery,
-    });
-    setBillings(data);
-
-    if (initialId && !detailModalItem) {
-      const match = data.find((b) => b.id === initialId);
-      if (match) openDetail(match);
+  const loadData = async () => {
+    try {
+      const data = await getFinanceBillings({
+        month: selectedMonth,
+        year: selectedYear,
+        status: selectedStatus,
+        search: searchQuery,
+      });
+      if (Array.isArray(data)) {
+        setBillings(data);
+        if (initialId && !detailModalItem) {
+          const match = data.find((b) => b.id === initialId);
+          if (match) openDetail(match);
+        }
+      }
+    } catch (err) {
+      console.error('[Billing] Gagal memuat daftar tagihan:', err);
     }
   };
 
@@ -107,14 +112,14 @@ export default function FinanceBilling() {
     setNotes(item.notes || '');
   };
 
-  const handleApprove = (item) => {
+  const handleApprove = async (item) => {
     if (window.confirm(`Setujui (ACC) bukti transfer setoran dari ${item.canteenName} (${item.branchName}) sebesar ${formatRupiah(item.depositAmountToFinance || item.grossAmount)}?`)) {
       try {
-        approveCanteenDeposit(item.id, `Setoran kasir kantin diverifikasi & disetujui (ACC) oleh Admin Keuangan pada ${new Date().toLocaleString('id-ID')}`);
+        await approveCanteenDeposit(item.id, `Setoran kasir kantin diverifikasi & disetujui (ACC) oleh Admin Keuangan pada ${new Date().toLocaleString('id-ID')}`);
         showToast(`Setoran ${item.canteenName} BERHASIL DISETUJUI (ACC). Status tagihan kini Lunas.`);
         if (proofPreviewItem?.id === item.id) setProofPreviewItem(null);
         if (detailModalItem?.id === item.id) setDetailModalItem(null);
-        loadData();
+        await loadData();
       } catch (err) {
         showToast(err.message || 'Gagal memproses persetujuan', 'error');
       }
@@ -126,7 +131,7 @@ export default function FinanceBilling() {
     setRejectReason('');
   };
 
-  const handleConfirmReject = (e) => {
+  const handleConfirmReject = async (e) => {
     e.preventDefault();
     if (!rejectModalItem) return;
     if (!rejectReason.trim()) {
@@ -135,30 +140,32 @@ export default function FinanceBilling() {
     }
 
     try {
-      rejectCanteenDeposit(rejectModalItem.id, rejectReason.trim());
+      await rejectCanteenDeposit(rejectModalItem.id, rejectReason.trim());
       showToast(`Setoran dari ${rejectModalItem.canteenName} DITOLAK.`);
       setRejectModalItem(null);
       if (proofPreviewItem?.id === rejectModalItem.id) setProofPreviewItem(null);
       if (detailModalItem?.id === rejectModalItem.id) setDetailModalItem(null);
-      loadData();
+      await loadData();
     } catch (err) {
       showToast(err.message || 'Gagal menolak setoran', 'error');
     }
   };
 
-  const handleSaveStatus = () => {
+  const handleSaveStatus = async () => {
     if (!detailModalItem) return;
     setIsSaving(true);
     try {
-      const updated = updateFinanceBillingStatus(detailModalItem.id, statusAction, {
+      const updated = await updateFinanceBillingStatus(detailModalItem.id, statusAction, {
         paymentDate: `${paymentDate}T12:00:00Z`,
         paymentRef,
         paymentMethod,
         notes,
       });
-      setDetailModalItem(updated);
-      showToast(`Status tagihan ${updated.id} berhasil diperbarui.`);
-      loadData();
+      if (updated) {
+        setDetailModalItem(updated);
+        showToast(`Status tagihan ${updated.id} berhasil diperbarui.`);
+      }
+      await loadData();
     } catch (err) {
       showToast(err.message || 'Gagal memperbarui status', 'error');
     } finally {

@@ -36,76 +36,88 @@ export default function FinanceReports() {
   });
 
   useEffect(() => {
-    const all = getAllFinanceBillings().filter((b) => b.year === Number(selectedYear));
+    let isMounted = true;
+    const loadReports = async () => {
+      try {
+        const rawAll = await getAllFinanceBillings();
+        if (!isMounted || !Array.isArray(rawAll)) return;
+        const all = rawAll.filter((b) => b.year === Number(selectedYear));
 
-    // Rekap per bulan (1-10)
-    const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-    const grouped = months.map((m) => {
-      const monthItems = all.filter((b) => b.month === m);
-      const gross = monthItems.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const paid = monthItems.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const pending = monthItems.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-      const unpaid = monthItems.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        // Rekap per bulan (1-12)
+        const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        const grouped = months.map((m) => {
+          const monthItems = all.filter((b) => b.month === m);
+          const gross = monthItems.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const paid = monthItems.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const pending = monthItems.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+          const unpaid = monthItems.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
 
-      const ku = monthItems.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
-      const kop = monthItems.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
-      const ink = monthItems.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
-      const ven = monthItems.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
+          const ku = monthItems.reduce((acc, b) => acc + (b.shares?.kepalaUpt?.amount || 0), 0);
+          const kop = monthItems.reduce((acc, b) => acc + (b.shares?.koperasi?.amount || 0), 0);
+          const ink = monthItems.reduce((acc, b) => acc + (b.shares?.inkopasindo?.amount || 0), 0);
+          const ven = monthItems.reduce((acc, b) => acc + (b.shares?.vendor?.amount || 0), 0);
 
-      return {
-        month: m,
-        monthName: MONTH_NAMES[m - 1],
-        totalUpt: monthItems.length,
-        gross,
-        paid,
-        pending,
-        unpaid,
-        shares: { kepalaUpt: ku, koperasi: kop, inkopasindo: ink, vendor: ven },
-      };
-    });
+          return {
+            month: m,
+            monthName: MONTH_NAMES[m - 1],
+            totalUpt: monthItems.length,
+            gross,
+            paid,
+            pending,
+            unpaid,
+            shares: { kepalaUpt: ku, koperasi: kop, inkopasindo: ink, vendor: ven },
+          };
+        });
 
-    setMonthlyData(grouped);
+        setMonthlyData(grouped);
 
-    // Stakeholder totals
-    const st = {
-      kepalaUpt: { total: 0, paid: 0, unpaid: 0 },
-      koperasi: { total: 0, paid: 0, unpaid: 0 },
-      inkopasindo: { total: 0, paid: 0, unpaid: 0 },
-      vendor: { total: 0, paid: 0, unpaid: 0 },
+        // Stakeholder totals
+        const st = {
+          kepalaUpt: { total: 0, paid: 0, unpaid: 0 },
+          koperasi: { total: 0, paid: 0, unpaid: 0 },
+          inkopasindo: { total: 0, paid: 0, unpaid: 0 },
+          vendor: { total: 0, paid: 0, unpaid: 0 },
+        };
+
+        all.forEach((b) => {
+          const isPaid = b.status === 'PAID';
+          const ku = b.shares?.kepalaUpt?.amount || 0;
+          const kop = b.shares?.koperasi?.amount || 0;
+          const ink = b.shares?.inkopasindo?.amount || 0;
+          const ven = b.shares?.vendor?.amount || 0;
+
+          st.kepalaUpt.total += ku;
+          if (isPaid) st.kepalaUpt.paid += ku;
+          else st.kepalaUpt.unpaid += ku;
+
+          st.koperasi.total += kop;
+          if (isPaid) st.koperasi.paid += kop;
+          else st.koperasi.unpaid += kop;
+
+          st.inkopasindo.total += ink;
+          if (isPaid) st.inkopasindo.paid += ink;
+          else st.inkopasindo.unpaid += ink;
+
+          st.vendor.total += ven;
+          if (isPaid) st.vendor.paid += ven;
+          else st.vendor.unpaid += ven;
+        });
+
+        setStakeholderTotals(st);
+
+        const omset = all.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const paid = all.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const pending = all.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+        const unpaid = all.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
+
+        setGrandTotals({ omset, paid, pending, unpaid });
+      } catch (err) {
+        console.error('[Reports] Gagal memuat data laporan:', err);
+      }
     };
 
-    all.forEach((b) => {
-      const isPaid = b.status === 'PAID';
-      const ku = b.shares?.kepalaUpt?.amount || 0;
-      const kop = b.shares?.koperasi?.amount || 0;
-      const ink = b.shares?.inkopasindo?.amount || 0;
-      const ven = b.shares?.vendor?.amount || 0;
-
-      st.kepalaUpt.total += ku;
-      if (isPaid) st.kepalaUpt.paid += ku;
-      else st.kepalaUpt.unpaid += ku;
-
-      st.koperasi.total += kop;
-      if (isPaid) st.koperasi.paid += kop;
-      else st.koperasi.unpaid += kop;
-
-      st.inkopasindo.total += ink;
-      if (isPaid) st.inkopasindo.paid += ink;
-      else st.inkopasindo.unpaid += ink;
-
-      st.vendor.total += ven;
-      if (isPaid) st.vendor.paid += ven;
-      else st.vendor.unpaid += ven;
-    });
-
-    setStakeholderTotals(st);
-
-    const omset = all.reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const paid = all.filter((b) => b.status === 'PAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const pending = all.filter((b) => b.status === 'PENDING_CONFIRMATION').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-    const unpaid = all.filter((b) => b.status === 'UNPAID').reduce((acc, b) => acc + (b.grossAmount || 0), 0);
-
-    setGrandTotals({ omset, paid, pending, unpaid });
+    loadReports();
+    return () => { isMounted = false; };
   }, [selectedYear]);
 
   const handleExportCSV = () => {

@@ -37,16 +37,21 @@ export default function FinanceDashboard() {
   const [recentBillings, setRecentBillings] = useState([]);
   const [statusFilter, setStatusFilter] = useState('semua');
 
-  const loadData = () => {
-    const s = getFinanceSummary(selectedMonth, selectedYear);
-    setSummary(s);
-
-    const b = getFinanceBillings({
-      month: selectedMonth,
-      year: selectedYear,
-      status: statusFilter,
-    });
-    setRecentBillings(b.slice(0, 8));
+  const loadData = async () => {
+    try {
+      const [s, b] = await Promise.all([
+        getFinanceSummary(selectedMonth, selectedYear),
+        getFinanceBillings({
+          month: selectedMonth,
+          year: selectedYear,
+          status: statusFilter,
+        }),
+      ]);
+      if (s) setSummary(s);
+      if (Array.isArray(b)) setRecentBillings(b.slice(0, 8));
+    } catch (err) {
+      console.error('[Dashboard] Gagal memuat data keuangan:', err);
+    }
   };
 
   useEffect(() => {
@@ -57,14 +62,18 @@ export default function FinanceDashboard() {
     };
   }, [selectedMonth, selectedYear, statusFilter]);
 
-  const handleQuickPay = (id, branchName, month) => {
+  const handleQuickPay = async (id, branchName, month) => {
     if (window.confirm(`Konfirmasi pelunasan tagihan ${branchName} untuk ${MONTH_NAMES[month - 1]} ${selectedYear}?`)) {
-      updateFinanceBillingStatus(id, 'PAID', {
-        paymentMethod: 'Bank Transfer Mandiri (Auto-verified)',
-        paymentRef: `TRX-${Date.now()}`,
-        notes: 'Diverifikasi langsung oleh Admin Keuangan via Dashboard',
-      });
-      loadData();
+      try {
+        await updateFinanceBillingStatus(id, 'PAID', {
+          paymentMethod: 'Bank Transfer Mandiri (Auto-verified)',
+          paymentRef: `TRX-${Date.now()}`,
+          notes: 'Diverifikasi langsung oleh Admin Keuangan via Dashboard',
+        });
+        await loadData();
+      } catch (err) {
+        console.error('[Dashboard] Gagal pelunasan cepat:', err);
+      }
     }
   };
 
