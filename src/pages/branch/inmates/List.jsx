@@ -32,7 +32,7 @@ import FamilyMembersEditor, { validateFamilies } from '../../../components/Famil
 const InmatesList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { uptName, isSupervisor, userName, roleLabel, user } = useAuth();
+  const { uptName, isSupervisor, isSuperadmin, userName, roleLabel, user: authUser } = useAuth();
   
   const [inmatesList, setInmatesList] = useState([]);
   const [searchInput, setSearchInput] = useState('');

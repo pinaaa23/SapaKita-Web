@@ -32,6 +32,7 @@ import { useAuth } from '../../context/AuthContext';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { CallChannelBadge } from '../../utils/callChannel';
 import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
+import { downloadTranscriptPDF } from '../../utils/exportUtils';
 
 const Dashboard = () => {
   const navigate = useNavigate();

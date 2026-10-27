@@ -50,14 +50,6 @@ export default function TransferProofModal({
 
   const refNumber = item.paymentRef || item.proof?.transferId || `TRX-${Date.now().toString().slice(-8)}`;
 
-  const handleCustomUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setCustomImage(url);
-    }
-  };
-
   const handleDownloadProof = () => {
     // Buat canvas untuk generate gambar struk transfer asli
     const canvas = document.createElement('canvas');

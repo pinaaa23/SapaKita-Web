@@ -1,4 +1,4 @@
-import { apiFetch, logout } from './api';
+import { apiFetch, logout, getAuthUser } from './api';
 import { ROLES, normalizeRole, ROLE_LABELS } from '../config/menuConfig';
 import { isDummyMode } from '../dummy';
 

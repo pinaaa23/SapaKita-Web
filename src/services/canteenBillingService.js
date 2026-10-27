@@ -13,6 +13,7 @@
  */
 
 import { apiFetch, getAuthUser } from './api';
+import { isDummyMode } from '../dummy';
 import { getBranches } from './branchService';
 import {
   getStoredContracts,
