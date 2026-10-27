@@ -33,6 +33,7 @@ const InmatesList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { uptName, isSupervisor, isSuperadmin, userName, roleLabel, user: authUser } = useAuth();
+  const user = authUser;
   
   const [inmatesList, setInmatesList] = useState([]);
   const [searchInput, setSearchInput] = useState('');
@@ -101,16 +102,18 @@ const InmatesList = () => {
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
+      const activeBranchId = user?.branchId || user?.branch?.id || '';
       const res = await getInmates({ 
         search: debouncedSearch, 
         page, 
         limit,
-        branchId: user?.branchId || user?.branch?.id || '',
+        branchId: activeBranchId,
         branchName: uptName || user?.branchName || ''
       });
       setInmatesList(res.items);
       setPagination({ total: res.total, totalPages: res.totalPages });
     } catch (err) {
+      console.error('[InmatesList] Gagal memuat data WBP:', err);
       if (err?.status === 401) {
         logout();
         navigate('/login', { replace: true });
@@ -123,13 +126,13 @@ const InmatesList = () => {
       } else if (err?.status === 400) {
         showToast(err?.message || 'Permintaan tidak valid.', 'error');
       } else {
-        showToast('Gagal memuat data WBP.', 'error');
+        showToast(err?.message || 'Gagal memuat data WBP.', 'error');
       }
       setInmatesList([]);
     } finally {
       setIsLoading(false);
     }
-  }, [debouncedSearch, page, limit, navigate]);
+  }, [debouncedSearch, page, limit, user?.branchId, user?.branch?.id, uptName, user?.branchName, navigate]);
 
   useEffect(() => {
     loadData();
@@ -143,7 +146,12 @@ const InmatesList = () => {
 
   useEffect(() => {
     if (location.state?.toast) {
-      showToast(location.state.toast, 'success');
+      const toastData = location.state.toast;
+      if (typeof toastData === 'string') {
+        showToast(toastData, 'success');
+      } else if (toastData?.message) {
+        showToast(toastData.message, toastData.type || 'success');
+      }
       window.history.replaceState({}, document.title);
     }
   }, [location]);

@@ -588,6 +588,10 @@ export const getFinanceReports = async (year = 2026, branchId = null) => {
  */
 export const getPendingCanteenDepositCount = async () => {
   try {
+    const rawRole = (localStorage.getItem('role') || localStorage.getItem('user_role') || '').toLowerCase().trim().replace(/[\s\-_]+/g, '_');
+    if (rawRole && !['superadmin', 'super_admin', 'admin_pusat', 'finance', 'admin_finance'].includes(rawRole)) {
+      return 0;
+    }
     const res = await apiFetch('/api/finance/billings/pending-count');
     if (typeof res?.count === 'number') return res.count;
     if (typeof res?.data?.count === 'number') return res.data.count;

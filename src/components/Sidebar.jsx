@@ -67,6 +67,10 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     };
 
     const updateFinanceCount = async () => {
+      const activeRole = normalizeRole(currentRole || localStorage.getItem('role') || user?.role);
+      if (activeRole !== ROLES.SUPERADMIN && activeRole !== ROLES.FINANCE) {
+        return;
+      }
       try {
         const { getPendingCanteenDepositCount } = await import('../services/financeService');
         if (isMounted) {
@@ -95,7 +99,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       window.removeEventListener('storage', updateCount);
       clearInterval(interval);
     };
-  }, []);
+  }, [currentRole, user?.role]);
 
   const handleLogout = () => {
     logout();
