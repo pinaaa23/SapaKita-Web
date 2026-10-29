@@ -133,6 +133,8 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Data WBP', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
+      { name: 'Tagihan & Setoran', icon: Receipt, path: '/billing' },
+      { name: 'Kontrak & Bagi Hasil', icon: Wallet, path: '/contracts' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];

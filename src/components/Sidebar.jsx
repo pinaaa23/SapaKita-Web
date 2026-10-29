@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
 import { getPendingTopupCountSync } from '../services/canteenTopupService';
+import { getAuthToken } from '../services/api';
 import ikonSadewa from '../assets/ikon_sadewa.png';
 import sadewaBlue from '../assets/sadewa_blue.png';
 
@@ -55,6 +56,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     let isMounted = true;
     const updateCount = async () => {
       setPendingTopupCount(getPendingTopupCountSync());
+      if (!getAuthToken()) return;
       try {
         const { getTopupSummary } = await import('../services/canteenTopupService');
         const summary = await getTopupSummary();
@@ -67,6 +69,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     };
 
     const updateFinanceCount = async () => {
+      if (!getAuthToken()) return;
       const activeRole = normalizeRole(currentRole || localStorage.getItem('role') || user?.role);
       if (activeRole !== ROLES.SUPERADMIN && activeRole !== ROLES.FINANCE) {
         return;
@@ -86,7 +89,13 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     updateFinanceCount();
     window.addEventListener('canteen_topup_changed', updateCount);
     window.addEventListener('finance_billing_updated', updateFinanceCount);
-    window.addEventListener('storage', updateCount);
+    const handleStorage = (e) => {
+      if (e?.key && !e.key.includes('canteen') && !e.key.includes('topup')) return;
+      if (getAuthToken()) {
+        updateCount();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
     const interval = setInterval(() => {
       updateCount();
       updateFinanceCount();
@@ -96,7 +105,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       isMounted = false;
       window.removeEventListener('canteen_topup_changed', updateCount);
       window.removeEventListener('finance_billing_updated', updateFinanceCount);
-      window.removeEventListener('storage', updateCount);
+      window.removeEventListener('storage', handleStorage);
       clearInterval(interval);
     };
   }, [currentRole, user?.role]);

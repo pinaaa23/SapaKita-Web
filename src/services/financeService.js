@@ -715,3 +715,150 @@ export const getFinanceBillingById = async (id) => {
 export const getFinanceProofStreamUrl = (billingId) => {
   return `${API_BASE_URL}/api/finance/billings/${billingId}/proof`;
 };
+
+/**
+ * 13. Mengambil pengaturan rekening penampung & QRIS default untuk kasir kantin
+ * Endpoint Backend: GET /api/finance/payment-settings
+ */
+export const getFinancePaymentSettings = async () => {
+  try {
+    const res = await apiFetch('/api/finance/payment-settings');
+    if (res?.data) return res.data;
+    if (res?.bankName) return res;
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/payment-settings fallback:', err?.message);
+  }
+
+  // Fallback lokal jika offline / development
+  const local = localStorage.getItem('pascall_finance_payment_settings');
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch {}
+  }
+
+  return {
+    id: 'default',
+    bankName: 'Bank Mandiri',
+    accountNumber: '168-00-9988112-7',
+    accountHolder: 'PT PasCall Solusi Indonesia',
+    qrisImageUrl: null,
+    qrisContent: null,
+    instructions: 'Transfer tepat sesuai nominal tagihan dan unggah bukti transfer yang sah.',
+    isActive: true,
+  };
+};
+
+/**
+ * 14. Menyimpan/memperbarui pengaturan rekening penampung & QRIS default
+ * Endpoint Backend: PUT /api/finance/payment-settings (FormData or JSON)
+ */
+export const updateFinancePaymentSettings = async (payload) => {
+  let body;
+  let headers = {};
+
+  if (payload instanceof FormData) {
+    body = payload;
+  } else {
+    body = JSON.stringify(payload);
+    headers['Content-Type'] = 'application/json';
+  }
+
+  try {
+    const res = await apiFetch('/api/finance/payment-settings', {
+      method: 'PUT',
+      body,
+      headers: payload instanceof FormData ? undefined : headers,
+    });
+
+    const data = res?.data || res;
+    if (data) {
+      localStorage.setItem('pascall_finance_payment_settings', JSON.stringify(data));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('finance_payment_settings_updated', { detail: data }));
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] PUT /api/finance/payment-settings fallback:', err?.message);
+    if (!(payload instanceof FormData)) {
+      localStorage.setItem('pascall_finance_payment_settings', JSON.stringify(payload));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('finance_payment_settings_updated', { detail: payload }));
+      }
+      return payload;
+    }
+    throw err;
+  }
+};
+
+
+
+/**
+ * 15. Mengambil pengaturan tarif billing & formula bagi hasil global nasional
+ * Endpoint Backend: GET /api/finance/global-settings
+ */
+export const getGlobalBillingSettings = async () => {
+  try {
+    const res = await apiFetch('/api/finance/global-settings');
+    const data = res?.data || res;
+    if (data && typeof data.defaultRatePerSecond !== 'undefined') {
+      localStorage.setItem('pascall_finance_global_settings', JSON.stringify(data));
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] GET /api/finance/global-settings fallback:', err?.message);
+  }
+
+  const local = localStorage.getItem('pascall_finance_global_settings');
+  if (local) {
+    try {
+      return JSON.parse(local);
+    } catch {}
+  }
+
+  return {
+    id: 'default',
+    defaultRatePerSecond: 15,
+    shareKepalaUptPercent: 5,
+    shareKoperasiPercent: 30,
+    shareInkopasindoPercent: 10,
+    shareVendorPercent: 55,
+    totalBranches: 0,
+    matchingBranches: 0,
+  };
+};
+
+/**
+ * 16. Memperbarui pengaturan tarif billing global nasional (dengan opsi terapkan serentak ke semua UPT)
+ * Endpoint Backend: PUT /api/finance/global-settings
+ */
+export const updateGlobalBillingSettings = async (payload) => {
+  try {
+    const res = await apiFetch('/api/finance/global-settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    const data = res?.data || res;
+    if (data) {
+      localStorage.setItem('pascall_finance_global_settings', JSON.stringify(data));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('finance_global_settings_updated', { detail: data }));
+        window.dispatchEvent(new Event('finance_billing_updated'));
+      }
+      return data;
+    }
+  } catch (err) {
+    console.warn('[FinanceService] PUT /api/finance/global-settings fallback:', err?.message);
+    const existing = await getGlobalBillingSettings();
+    const updated = { ...existing, ...payload };
+    localStorage.setItem('pascall_finance_global_settings', JSON.stringify(updated));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('finance_global_settings_updated', { detail: updated }));
+      window.dispatchEvent(new Event('finance_billing_updated'));
+    }
+    return updated;
+  }
+};

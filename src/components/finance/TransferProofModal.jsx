@@ -27,6 +27,7 @@ export default function TransferProofModal({
   item,
   onApprove,
   onReject,
+  canApprove = true,
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -51,6 +52,11 @@ export default function TransferProofModal({
   const refNumber = item.paymentRef || item.proof?.transferId || `TRX-${Date.now().toString().slice(-8)}`;
 
   const handleDownloadProof = () => {
+    const realImgUrl = item.proofUrl || item.proof?.proofImage;
+    if (realImgUrl && !realImgUrl.includes('virtual-proof')) {
+      window.open(realImgUrl, '_blank');
+      return;
+    }
     // Buat canvas untuk generate gambar struk transfer asli
     const canvas = document.createElement('canvas');
     canvas.width = 600;
@@ -143,7 +149,7 @@ export default function TransferProofModal({
     drawRow('Bank Penerima', 'Bank Mandiri (Rek Penampung)');
     drawRow('Nomor Rekening Penerima', '168-00-9988112-7');
     drawRow('Total Cash di Kantin', formatRupiah(item.grossAmount));
-    drawRow('Porsi Koperasi (30% Ditahan)', formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount));
+    drawRow('Hak Internal UPT (45% Dikelola)', formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.grossAmount || item.nominal || 0) * 0.45)));
     drawRow('Jenis Setoran', 'Setoran Bagi Hasil PasCall');
     drawRow('Catatan Petugas', 'Kewajiban setor periode ' + item.month + '/' + item.year);
 
@@ -268,6 +274,12 @@ export default function TransferProofModal({
                       src={item.proofUrl || item.proof?.proofImage || item.proof?.proofStreamUrl}
                       alt={`Bukti Transfer dari ${item.canteenName}`}
                       className="w-full max-h-[440px] object-contain rounded-2xl mx-auto shadow-md"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        if (item.id && !e.currentTarget.src.includes('/proof')) {
+                          e.currentTarget.src = `/api/canteen/topups/${item.id}/proof`;
+                        }
+                      }}
                     />
                     <div className="pt-2 text-[10px] text-slate-400 font-mono">
                       Foto Asli Dikirim Petugas {item.canteenName}
@@ -375,13 +387,13 @@ export default function TransferProofModal({
                     <span className="font-extrabold text-slate-800">{formatRupiah(item.grossAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sky-800">
-                    <span>Porsi Koperasi (30% Ditahan Kantin):</span>
-                    <span className="font-bold">-{formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount)}</span>
+                    <span>Hak Internal UPT (45% Dikelola UPT):</span>
+                    <span className="font-bold">-{formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.grossAmount || item.nominal || 0) * 0.45))}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
-                    <span className="font-bold text-slate-800">Harus Disetor ke Finance (70%):</span>
+                    <span className="font-bold text-slate-800">Harus Disetor ke Vendor (55%):</span>
                     <span className="font-black text-emerald-700 text-sm">
-                      {formatRupiah(depositAmount)}
+                      {formatRupiah(depositAmount || Math.round((item.grossAmount || item.nominal || 0) * 0.55))}
                     </span>
                   </div>
                 </div>
@@ -405,19 +417,19 @@ export default function TransferProofModal({
                   <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                     <div className="bg-purple-50 p-2 rounded-xl text-purple-900">
                       <span className="block text-[10px] text-purple-700">Kepala UPT (5%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.kepalaUpt?.amount)}</span>
+                      <span className="font-bold">{formatRupiah(item.shares?.kepalaUpt?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.05))}</span>
                     </div>
                     <div className="bg-sky-50 p-2 rounded-xl text-sky-900">
                       <span className="block text-[10px] text-sky-700">Koperasi (30%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.koperasi?.amount)}</span>
+                      <span className="font-bold">{formatRupiah(item.shares?.koperasi?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.30))}</span>
                     </div>
                     <div className="bg-amber-50 p-2 rounded-xl text-amber-900">
                       <span className="block text-[10px] text-amber-700">Inkopasindo (10%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.inkopasindo?.amount)}</span>
+                      <span className="font-bold">{formatRupiah(item.shares?.inkopasindo?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.10))}</span>
                     </div>
                     <div className="bg-indigo-50 p-2 rounded-xl text-indigo-900">
                       <span className="block text-[10px] text-indigo-700">Vendor (55%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.vendor?.amount)}</span>
+                      <span className="font-bold">{formatRupiah(item.shares?.vendor?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.55))}</span>
                     </div>
                   </div>
                 </div>
@@ -465,25 +477,32 @@ export default function TransferProofModal({
             {/* Tombol Eksekusi ACC / Tolak di Modal */}
             <div className="pt-4 border-t border-slate-100 space-y-2">
               {item.status !== 'PAID' && !isRejecting && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsRejecting(true)}
-                    className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Ban className="w-4 h-4" />
-                    <span>Tolak Setoran</span>
-                  </button>
+                canApprove ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsRejecting(true)}
+                      className="px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Ban className="w-4 h-4" />
+                      <span>Tolak Setoran</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => onApprove(item)}
-                    className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                  >
-                    <Check className="w-4 h-4" />
-                    <span>Setujui (ACC)</span>
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => onApprove(item)}
+                      className="px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span>Setujui (ACC)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 flex items-center gap-2 text-xs font-bold text-amber-800">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Mode Pantau: Menunggu verifikasi &amp; persetujuan Superadmin</span>
+                  </div>
+                )
               )}
 
               {item.status === 'PAID' && (

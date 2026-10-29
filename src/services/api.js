@@ -52,9 +52,10 @@ export const clearAuthSession = () => {
   } catch (e) {
     // ignore
   }
-  // Dispatch custom/storage event to sync any listeners
+  // Dispatch custom auth event to notify components that session was cleared.
+  // DO NOT dispatch fake 'storage' event which triggers recursive re-fetch loops in the same window!
   try {
-    window.dispatchEvent(new Event('storage'));
+    window.dispatchEvent(new CustomEvent('auth_session_cleared'));
   } catch (e) {
     // ignore
   }

@@ -61,7 +61,9 @@ export default function FinanceBilling() {
   // 1. Hak Akses (Rule 6: Hanya Role Admin Finance yang dapat mengelola tagihan & setoran)
   const { user } = useAuth();
   const userRole = normalizeRole(user?.role);
-  const isFinanceAdmin = userRole === ROLES.FINANCE || user?.isSuperAdmin;
+  const isSuperadmin = userRole === ROLES.SUPERADMIN;
+  const isFinanceAdmin = userRole === ROLES.FINANCE;
+  const canAccessBilling = isSuperadmin || isFinanceAdmin || user?.isSuperAdmin;
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -195,8 +197,8 @@ export default function FinanceBilling() {
           branchName: b.uptName || b.branchName || 'Cabang Lapas',
           canteenName: b.canteenName || (b.uptName ? `Kantin ${b.uptName}` : 'Kantin Lapas'),
           staffName: b.paymentProof?.staffName || 'Kasir Kantin',
-          nominal: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.7 || 50000,
-          totalBayar: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.7 || 50000,
+          nominal: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55 || 50000,
+          totalBayar: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55 || 50000,
           status: 'Menunggu',
           rawStatus: 'PENDING',
           proofUrl: b.paymentProof?.proofUrl || b.paymentProof?.proofStreamUrl || null,
@@ -206,8 +208,8 @@ export default function FinanceBilling() {
           month: b.month || Number(selectedMonth),
           year: b.year || Number(selectedYear),
           grossAmount: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) || 71428,
-          canteenKeepAmount: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.3) || 21428,
-          depositAmountToFinance: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.7) || 50000,
+          canteenKeepAmount: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.45) || 21428,
+          depositAmountToFinance: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55) || 50000,
         }));
 
       // Gabungkan & deduplikasi ID
@@ -407,8 +409,8 @@ export default function FinanceBilling() {
       'Total Menit',
       'Total Detik',
       'Total Cash Kantin (Rp)',
-      'Laba Koperasi 30% (Rp)',
-      'Setoran ke Finance 70% (Rp)',
+      'Hak Internal UPT 45% (Rp)',
+      'Setoran ke Vendor 55% (Rp)',
       'Status Pembayaran',
       'Tanggal Verifikasi',
       'No Referensi',
@@ -423,8 +425,8 @@ export default function FinanceBilling() {
       Math.floor((b.totalSeconds || (b.menit ? b.menit * 60 : 0)) / 60),
       b.totalSeconds || (b.menit ? b.menit * 60 : 0),
       b.grossAmount || b.totalAmount || b.totalBayar || 0,
-      b.canteenKeepAmount || b.shares?.koperasi?.amount || Math.round((b.totalAmount || b.totalBayar || 0) * 0.3),
-      b.depositAmountToFinance || Math.round((b.totalAmount || b.totalBayar || 0) * 0.7),
+      b.canteenKeepAmount || b.shares?.koperasi?.amount || Math.round((b.totalAmount || b.totalBayar || 0) * 0.45),
+      b.depositAmountToFinance || Math.round((b.totalAmount || b.totalBayar || 0) * 0.55),
       `"${b.statusPembayaran || (b.status === 'APPROVED' ? 'Lunas' : b.status === 'PENDING' ? 'Menunggu ACC' : b.status)}"`,
       `"${b.approvedAt || b.verifiedAt || b.paymentDate || '-'}"`,
       `"${b.paymentRef || b.proof?.transferId || '-'}"`,
@@ -497,12 +499,12 @@ export default function FinanceBilling() {
   const pendingGrossTotal = pendingRequestsList.reduce((acc, item) => acc + (item.grossAmount || item.totalBayar || item.nominal || 0), 0);
   const pendingKeepTotal = pendingRequestsList.reduce((acc, item) => {
     const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-    return acc + (item.canteenKeepAmount || Math.round(gross * 0.3));
+    return acc + (item.canteenKeepAmount || Math.round(gross * 0.45));
   }, 0);
   const pendingDepositTotal = pendingRequestsList.reduce((acc, item) => {
     const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-    const keep = item.canteenKeepAmount || Math.round(gross * 0.3);
-    return acc + (item.depositAmountToFinance || (gross - keep));
+    const keep = item.canteenKeepAmount || Math.round(gross * 0.45);
+    return acc + (item.depositAmountToFinance || Math.round(gross * 0.55));
   }, 0);
 
   // Statistik Tab 3 (Riwayat Setoran)
@@ -512,8 +514,8 @@ export default function FinanceBilling() {
     .filter((item) => item.status === 'Berhasil' || item.status === 'APPROVED')
     .reduce((acc, item) => acc + (item.totalBayar || item.nominal || item.depositAmountToFinance || item.grossAmount || 0), 0);
 
-  // Jika bukan role Admin Finance (dan bukan Superadmin), tolak akses (Rule 6)
-  if (!isFinanceAdmin) {
+  // Tolak akses jika bukan Superadmin dan bukan Admin Finance
+  if (!canAccessBilling) {
     return (
       <div className="p-8 max-w-lg mx-auto text-center space-y-4">
         <div className="w-16 h-16 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
@@ -521,7 +523,7 @@ export default function FinanceBilling() {
         </div>
         <h2 className="text-xl font-extrabold text-slate-800">Akses Dibatasi</h2>
         <p className="text-sm text-slate-500">
-          Halaman Tagihan &amp; Setoran Kantin ini hanya dapat diakses oleh akun dengan peran <strong>Admin Finance</strong>.
+          Halaman Tagihan &amp; Setoran Kantin ini hanya dapat diakses oleh akun dengan peran <strong>Super Administrator</strong> atau <strong>Admin Finance</strong>.
         </p>
         <button
           onClick={() => navigate('/dashboard')}
@@ -581,11 +583,11 @@ export default function FinanceBilling() {
                 Alur Pascabayar
               </span>
               <h3 className="text-xs sm:text-sm font-bold text-white">
-                Kantin Pegang Cash 100% → Setor 70% ke Finance
+                Kantin Pegang Cash 100% → Setor 55% ke Vendor
               </h3>
             </div>
             <p className="text-[11px] text-blue-100/90 leading-relaxed">
-              Kasir kantin menahan porsi 30% laba Koperasi di UPT, lalu mentransfer 70% ke rekening penampung Finance dan mengunggah struk transfer untuk diverifikasi (ACC).
+              Kasir kantin menahan porsi 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) di UPT, lalu mentransfer 55% porsi Vendor ke rekening penampung resmi dan mengunggah struk transfer untuk diverifikasi (ACC).
             </p>
           </div>
 
@@ -603,7 +605,7 @@ export default function FinanceBilling() {
             <div className="bg-white/10 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-0.5">
                 <Store className="w-3.5 h-3.5 text-sky-300 shrink-0" />
-                <span className="font-extrabold text-white text-[11px] truncate">2. Setor 70%</span>
+                <span className="font-extrabold text-white text-[11px] truncate">2. Setor 55%</span>
               </div>
               <span className="text-[10px] text-blue-200 block truncate">Upload bukti bayar</span>
             </div>
@@ -842,7 +844,7 @@ export default function FinanceBilling() {
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Hak Koperasi (30% Ditahan)
+                  Hak Internal UPT (45% Dikelola UPT)
                 </span>
                 <div className="text-2xl font-black text-sky-700 tracking-tight">
                   {formatRupiah(pendingKeepTotal)}
@@ -860,7 +862,7 @@ export default function FinanceBilling() {
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Setoran Masuk Finance (70%)
+                  Setoran Masuk Vendor (55%)
                 </span>
                 <div className="text-2xl font-black text-emerald-600 tracking-tight">
                   {formatRupiah(pendingDepositTotal)}
@@ -883,7 +885,7 @@ export default function FinanceBilling() {
                   Daftar Setoran Masuk dari Kasir Kantin
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Petugas kantin mentransfer 70% dan mengunggah struk transfer. Klik "Lihat Struk" lalu setujui (ACC).
+                  Petugas kantin mentransfer 55% porsi Vendor dan mengunggah struk transfer. Klik "Lihat Struk" lalu setujui (ACC).
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold self-start sm:self-auto">
@@ -915,8 +917,8 @@ export default function FinanceBilling() {
                       <th className="py-3 px-4">No. Pengajuan &amp; Tanggal</th>
                       <th className="py-3 px-4">Nama UPT &amp; Kantin</th>
                       <th className="py-3 px-4 text-right">Cash Bruto (100%)</th>
-                      <th className="py-3 px-4 text-right">Hak Kantin (30%)</th>
-                      <th className="py-3 px-4 text-right font-bold text-[#1565C0]">Setoran Finance (70%)</th>
+                      <th className="py-3 px-4 text-right">Hak Internal UPT (45%)</th>
+                      <th className="py-3 px-4 text-right font-bold text-[#1565C0]">Setoran Vendor (55%)</th>
                       <th className="py-3 px-4 text-center">Bukti Transfer</th>
                       <th className="py-3 px-4 text-right">Aksi Verifikasi</th>
                     </tr>
@@ -924,8 +926,8 @@ export default function FinanceBilling() {
                   <tbody className="divide-y divide-slate-100">
                     {pendingRequestsList.map((item) => {
                       const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-                      const keep = item.canteenKeepAmount || Math.round(gross * 0.3);
-                      const deposit = item.depositAmountToFinance || (gross - keep);
+                      const keep = item.canteenKeepAmount || Math.round(gross * 0.45);
+                      const deposit = item.depositAmountToFinance || Math.round(gross * 0.55);
 
                       return (
                         <tr key={item.id} className="hover:bg-amber-50/25 transition-colors">
@@ -950,13 +952,13 @@ export default function FinanceBilling() {
                           {/* Porsi Koperasi Ditahan (30%) */}
                           <td className="py-3 px-4 text-right font-semibold text-sky-800 whitespace-nowrap">
                             {formatRupiah(keep)}
-                            <span className="text-[10px] text-sky-600 block font-normal">Hak laba kantin UPT</span>
+                            <span className="text-[10px] text-sky-600 block font-normal">Hak internal UPT (45%)</span>
                           </td>
 
                           {/* Nominal Disetor ke Finance (70%) */}
                           <td className="py-3 px-4 text-right font-extrabold text-emerald-700 whitespace-nowrap">
                             {formatRupiah(deposit)}
-                            <span className="text-[10px] text-emerald-600 block font-normal">Disetor ke Mandiri Finance</span>
+                            <span className="text-[10px] text-emerald-600 block font-normal">Disetor ke Rekening Vendor (55%)</span>
                           </td>
 
                           {/* Bukti Transfer */}
@@ -1207,15 +1209,15 @@ export default function FinanceBilling() {
                           <td className="py-3 px-4">
                             <div className="flex flex-col gap-1 text-[11px] min-w-[200px]">
                               <div className="flex justify-between bg-sky-50 text-sky-900 px-2 py-0.5 rounded">
-                                <span>Koperasi (30% Ditahan):</span>
+                                <span>Hak UPT (45% Dikelola UPT):</span>
                                 <span className="font-bold">
-                                  {formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.totalAmount || 0) * 0.3))}
+                                  {formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.totalAmount || 0) * 0.45))}
                                 </span>
                               </div>
                               <div className="flex justify-between bg-emerald-50 text-emerald-900 px-2 py-0.5 rounded">
-                                <span>Setor ke Finance (70%):</span>
+                                <span>Setor ke Vendor (55%):</span>
                                 <span className="font-bold">
-                                  {formatRupiah(item.depositAmountToFinance || Math.round((item.totalAmount || 0) * 0.7))}
+                                  {formatRupiah(item.depositAmountToFinance || Math.round((item.totalAmount || 0) * 0.55))}
                                 </span>
                               </div>
                             </div>
@@ -1249,7 +1251,7 @@ export default function FinanceBilling() {
                           {/* Aksi */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {isPending && (
+                              {isPending && isSuperadmin && (
                                 <button
                                   type="button"
                                   onClick={() => openDetail(item)}
@@ -1470,6 +1472,7 @@ export default function FinanceBilling() {
         isOpen={Boolean(proofPreviewItem)}
         onClose={() => setProofPreviewItem(null)}
         item={proofPreviewItem}
+        canApprove={isSuperadmin}
         onApprove={(item) => handleApprove(item)}
         onReject={(item, reason) => {
           setRejectModalItem(item);
@@ -1634,16 +1637,16 @@ export default function FinanceBilling() {
                         </span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-sky-700 block">Hak Koperasi (30% Ditahan):</span>
+                        <span className="text-sky-700 block">Hak Internal UPT (45% Dikelola UPT):</span>
                         <span className="font-bold text-sky-900 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.totalAmount || 0) * 0.3))}
+                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.totalAmount || 0) * 0.45))}
                         </span>
-                        <span className="text-[10px] text-sky-600 font-normal">Laba ditahan kantin UPT</span>
+                        <span className="text-[10px] text-sky-600 font-normal">Dikelola internal UPT</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-emerald-700 block">Setor ke Finance (70%):</span>
+                        <span className="text-emerald-700 block">Setor ke Vendor (55%):</span>
                         <span className="font-extrabold text-emerald-800 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.totalAmount || 0) * 0.7))}
+                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.totalAmount || 0) * 0.55))}
                         </span>
                         <span className="text-[10px] text-emerald-600 font-normal">Disetor ke penampung</span>
                       </div>
@@ -1652,6 +1655,7 @@ export default function FinanceBilling() {
 
                   {/* Bagian Aksi Verifikasi ACC / Tolak jika Berstatus Pending */}
                   {detailModalItem.statusPembayaran === 'Menunggu ACC' && (
+                    isSuperadmin ? (
                     <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-3">
                       <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
                         <Clock className="w-4 h-4 text-amber-600" />
@@ -1742,6 +1746,17 @@ export default function FinanceBilling() {
                         </div>
                       )}
                     </div>
+                    ) : (
+                      <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex items-start gap-3 text-xs text-amber-900">
+                        <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-bold">Menunggu Verifikasi &amp; Persetujuan Superadmin</p>
+                          <p className="text-[11px] text-amber-800/90 mt-0.5 leading-relaxed">
+                            Mode Pantau: Role Finance hanya berwenang memantau data tagihan dan bukti transfer tanpa hak mutasi. Persetujuan (ACC) atau penolakan setoran dilakukan secara terpusat oleh Superadmin.
+                          </p>
+                        </div>
+                      </div>
+                    )
                   )}
 
                   {detailModalItem.statusPembayaran === 'Lunas' && (

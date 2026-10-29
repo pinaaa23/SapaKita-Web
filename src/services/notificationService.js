@@ -7,7 +7,7 @@
  * - POST  /api/notifications/mark-all-read (Tandai seluruh notifikasi terbaca)
  */
 
-import { apiFetch, logout } from './api';
+import { apiFetch, logout, getAuthToken } from './api';
 
 export const NOTIFICATIONS_ENDPOINT = '/api/notifications';
 
@@ -82,6 +82,8 @@ export const mapNotificationItem = (item) => {
  * @returns {Promise<Array>} List notifikasi yang sudah distandardisasi
  */
 export const getNotifications = async (params = {}) => {
+  const token = getAuthToken();
+  if (!token) return [];
   const query = new URLSearchParams();
   if (params.page) query.append('page', String(params.page));
   if (params.limit) query.append('limit', String(params.limit));
@@ -102,8 +104,7 @@ export const getNotifications = async (params = {}) => {
     return rawList.map(mapNotificationItem).filter(Boolean);
   } catch (error) {
     if (error?.status === 401) {
-      logout();
-      throw error;
+      return [];
     }
     console.error('[NotificationService] Gagal memuat notifikasi dari BE:', error?.message || error);
     return [];
@@ -115,6 +116,8 @@ export const getNotifications = async (params = {}) => {
  * Endpoint: GET /api/notifications?limit=1
  */
 export const getUnreadNotificationCount = async () => {
+  const token = getAuthToken();
+  if (!token) return 0;
   try {
     const res = await apiFetch(`${NOTIFICATIONS_ENDPOINT}?limit=1`);
     if (typeof res?.unreadCount === 'number') {

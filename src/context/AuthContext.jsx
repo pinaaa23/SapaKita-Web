@@ -124,7 +124,11 @@ export const AuthProvider = ({ children }) => {
       setUser(getAuthUser());
     };
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('auth_session_cleared', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth_session_cleared', handleStorageChange);
+    };
   }, []);
 
   // Auto-resolve branch name & profil untuk semua role yang login (dieksekusi sekali per session/token)
