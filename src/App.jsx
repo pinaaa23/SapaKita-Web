@@ -123,6 +123,8 @@ function App() {
                 <Route path="kanwil-management/create" element={<KanwilCreate />} />
                 <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />
                 <Route path="kanwil-admins" element={<KanwilAdmins />} />
+                <Route path="billing" element={<FinanceBilling />} />
+                <Route path="contracts" element={<FinanceContracts />} />
 
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
@@ -220,8 +222,8 @@ function App() {
                 <Route path="profile" element={<KanwilProfile />} />
               </Route>
 
-              {/* Finance Admin Routes (Role: FINANCE) */}
-              <Route path="finance" element={<ProtectedRoute allowedRoles={[ROLES.FINANCE]} />}>
+              {/* Finance Admin Routes (Role: FINANCE & SUPERADMIN) */}
+              <Route path="finance" element={<ProtectedRoute allowedRoles={[ROLES.FINANCE, ROLES.SUPERADMIN]} />}>
                 <Route index element={<Navigate to="/finance/dashboard" replace />} />
                 <Route path="dashboard" element={<FinanceDashboard />} />
                 <Route path="billing" element={<FinanceBilling />} />

@@ -4,6 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getNotifications, markNotificationAsRead, markAllNotificationsAsRead } from '../services/notificationService';
 import { ROLES } from '../config/menuConfig';
+import { getAuthToken } from '../services/api';
 
 const Topbar = ({ toggleMobileMenu }) => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -16,6 +17,7 @@ const Topbar = ({ toggleMobileMenu }) => {
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   const { role: normRole, roleLabel: userRole, userName, uptName, user, logout } = useAuth();
   const isKanwilUser = normRole === ROLES.ADMIN_KANWIL || location.pathname.startsWith('/kanwil');
+  const isFinanceUser = normRole === ROLES.FINANCE || location.pathname.startsWith('/finance');
   const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile');
 
   const getPageDetails = (pathname) => {
@@ -82,10 +84,10 @@ const Topbar = ({ toggleMobileMenu }) => {
         subtitle: 'Konfirmasi setoran kasir kantin, rekapitulasi penagihan bulanan seluruh UPT, dan riwayat verifikasi' 
       };
     }
-    if (pathname.startsWith('/finance/contracts')) {
+    if (pathname.startsWith('/contracts') || pathname.startsWith('/finance/contracts')) {
       return { 
         title: 'Kontrak Bagi Hasil', 
-        subtitle: 'Pengaturan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) dan data rekening' 
+        subtitle: 'Pengaturan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) dan tarif per detik UPT' 
       };
     }
     if (pathname.startsWith('/finance/reports')) {
@@ -115,6 +117,11 @@ const Topbar = ({ toggleMobileMenu }) => {
   const searchRef = useRef(null);
 
   const fetchNotifs = async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setNotifications([]);
+      return;
+    }
     try {
       const notifList = await getNotifications();
       setNotifications(Array.isArray(notifList) ? notifList : []);
@@ -133,13 +140,19 @@ const Topbar = ({ toggleMobileMenu }) => {
 
     window.addEventListener('canteen_topup_changed', handleUpdate);
     window.addEventListener('pascall_notification_updated', handleUpdate);
-    window.addEventListener('storage', handleUpdate);
+    const handleStorage = (e) => {
+      if (e?.key && !['notifications', 'pascall_notifications'].includes(e.key)) return;
+      if (getAuthToken()) {
+        fetchNotifs();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
     const interval = setInterval(fetchNotifs, 6000);
 
     return () => {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
       window.removeEventListener('pascall_notification_updated', handleUpdate);
-      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('storage', handleStorage);
       clearInterval(interval);
     };
   }, []);
@@ -493,15 +506,19 @@ const Topbar = ({ toggleMobileMenu }) => {
                 <p className="text-sm font-semibold text-slate-800">{userName}</p>
                 <p className="text-xs text-slate-500">{userRole}</p>
               </div>
-              <Link 
-                to={profileLink}
-                onClick={() => setIsDropdownOpen(false)}
-                className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
-              >
-                <User className="w-4 h-4 text-slate-400" />
-                Lihat Profil
-              </Link>
-              <div className="h-px bg-slate-100 my-1"></div>
+              {!isFinanceUser && (
+                <>
+                  <Link 
+                    to={profileLink}
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+                  >
+                    <User className="w-4 h-4 text-slate-400" />
+                    Lihat Profil
+                  </Link>
+                  <div className="h-px bg-slate-100 my-1"></div>
+                </>
+              )}
               <button 
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors w-full text-left cursor-pointer"
