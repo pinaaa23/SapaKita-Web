@@ -73,6 +73,9 @@ export default function FinanceDashboard() {
                 <span className="px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-blue-200">
                   Rekapitulasi Pascabayar
                 </span>
+                <span className="px-2 py-0.5 rounded-full bg-white/20 text-blue-100 text-[10px] font-bold uppercase tracking-wider border border-white/25">
+                  Akses: Read-Only
+                </span>
                 <span className="text-xs font-semibold text-white/90 hidden sm:inline">
                   • 4 Pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor)
                 </span>
@@ -216,8 +219,8 @@ export default function FinanceDashboard() {
             onClick={() => navigate('/finance/contracts')}
             className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
           >
-            <Sliders className="w-3.5 h-3.5" />
-            <span>Sesuaikan Persentase Kontrak</span>
+            <Eye className="w-3.5 h-3.5" />
+            <span>Lihat Kontrak Bagi Hasil</span>
           </button>
         </div>
 

@@ -30,6 +30,45 @@ export const mapCallItem = (item) => {
     ? call.durationSeconds 
     : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
 
+  // Ekstraksi nilai biaya eksplisit dari berbagai kemungkinan nama field respons backend
+  const explicitCostCandidates = [
+    item.cost,
+    call.cost,
+    item.totalCost,
+    call.totalCost,
+    item.amount,
+    call.amount,
+    item.nominal,
+    call.nominal,
+    item.billingAmount,
+    call.billingAmount,
+    item.totalPrice,
+    call.totalPrice,
+    item.price,
+    call.price,
+  ];
+
+  const validPositiveCost = explicitCostCandidates.find(
+    (v) => (typeof v === 'number' && v > 0) || (typeof v === 'string' && !isNaN(Number(v)) && Number(v) > 0)
+  );
+
+  // Tarif per detik jika disertakan dari branch/kontrak (default tarif panggilan Rp 50 / detik)
+  const ratePerSec = Number(
+    item.ratePerSecond ||
+    call.ratePerSecond ||
+    branchObj?.contractRatePerSecond ||
+    call.inmate?.branch?.contractRatePerSecond ||
+    50
+  );
+
+  // Jika backend sudah mengirim nilai biaya riil (> 0), gunakan nilai tersebut.
+  // Jika backend belum menghitung biaya (mengirim 0 / null) namun panggilan terjawab (durasi > 0),
+  // hitung estimasi biaya riil: durasi detik x tarif per detik.
+  // Jika panggilan tidak terjawab / ditolak (durasi 0), biaya tetap 0.
+  const resolvedCost = validPositiveCost !== undefined
+    ? Number(validPositiveCost)
+    : (durationSec > 0 && normalizedStatus === 'Answered' ? Math.round(durationSec * ratePerSec) : 0);
+
   let hasRecording = Boolean(
     storageUrl || 
     recordingObj?.storageUrl ||
@@ -169,25 +208,11 @@ export const mapCallItem = (item) => {
     targetPhone: resolvedPhone,
     targetNumber: resolvedPhone,
     date: item.createdAt || call.connectedAt || call.date || item.date || new Date().toISOString(),
-    durationSeconds: typeof call.durationSeconds === 'number' 
-      ? call.durationSeconds 
-      : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0)),
-    cost: (() => {
-      const durationSec = typeof call.durationSeconds === 'number' 
-        ? call.durationSeconds 
-        : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
-      const ratePerSec = Number(call.ratePerSecond || item.ratePerSecond || call.inmate?.branch?.contractRatePerSecond || item.branch?.contractRatePerSecond || 15);
-      const rawCost = (typeof item.totalCost === 'number' && item.totalCost > 0)
-        ? item.totalCost
-        : ((typeof call.totalCost === 'number' && call.totalCost > 0)
-          ? call.totalCost
-          : ((typeof item.cost === 'number' && item.cost > 0)
-            ? item.cost
-            : ((typeof call.cost === 'number' && call.cost > 0)
-              ? call.cost
-              : null)));
-      return rawCost !== null ? rawCost : (durationSec > 0 ? Math.round(durationSec * ratePerSec) : 0);
-    })(),
+    durationSeconds: durationSec,
+    cost: resolvedCost,
+    totalCost: resolvedCost,
+    amount: resolvedCost,
+
     status: normalizedStatus,
     statusText,
     rawStatus,

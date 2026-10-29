@@ -88,11 +88,8 @@ export default function KanwilBranchCreate() {
   // Admin account state
   const [adminEmail, setAdminEmail] = useState('');
   const [isEmailManuallyEdited, setIsEmailManuallyEdited] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
-  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
-
+  const [adminPassword, setAdminPassword] = useState(() => generateRandomPassword());
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [copiedField, setCopiedField] = useState('');
 
   const [errorMsg, setErrorMsg] = useState('');
@@ -135,7 +132,6 @@ export default function KanwilBranchCreate() {
   const handleAutoGeneratePassword = () => {
     const pwd = generateRandomPassword();
     setAdminPassword(pwd);
-    setAdminConfirmPassword(pwd);
   };
 
   useEffect(() => {
@@ -182,10 +178,6 @@ export default function KanwilBranchCreate() {
     }
     if (adminPassword.length < 8) {
       setErrorMsg('Password minimal harus 8 karakter.');
-      return;
-    }
-    if (adminPassword !== adminConfirmPassword) {
-      setErrorMsg('Password dan konfirmasi password tidak cocok.');
       return;
     }
 
@@ -469,7 +461,7 @@ export default function KanwilBranchCreate() {
               className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Buat Otomatis Password</span>
+              <span>Acak Ulang Password</span>
             </button>
           </div>
 
@@ -530,86 +522,72 @@ export default function KanwilBranchCreate() {
               </p>
             </div>
 
-            {/* Password & Confirm Password */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
+            {/* Password Akun Kepala UPT (Dibuat Otomatis & Terkunci untuk Kanwil) */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Password <span className="text-rose-500">*</span>
+                    Password Akun Kepala UPT <span className="text-rose-500">*</span>
                   </label>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={handleAutoGeneratePassword}
-                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
-                      title="Buat ulang password acak baru"
-                    >
-                      <Sparkles className="w-3 h-3 text-amber-500" />
-                      <span>Generate Ulang</span>
-                    </button>
-                    {adminPassword && (
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(adminPassword, 'password')}
-                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" /> Dibuat Otomatis (Terkunci)
+                  </span>
+
                 </div>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input 
-                    type={showPassword ? 'text' : 'password'}
-                    name="branch_admin_password"
-                    autoComplete="new-password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    required
-                    placeholder="Minimal 8 karakter"
-                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
-                  />
+                <button
+                  type="button"
+                  onClick={handleAutoGeneratePassword}
+                  className="text-[11px] text-primary hover:text-primary-dark font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <Sparkles className="w-3 h-3" /> Acak Ulang Password
+                </button>
+              </div>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input 
+                  type={showPassword ? 'text' : 'password'}
+                  name="branch_admin_password"
+                  autoComplete="new-password"
+                  value={adminPassword}
+                  readOnly
+                  required
+                  placeholder="Password akun Kepala UPT"
+                  className="w-full pl-10 pr-20 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 placeholder-slate-400 focus:outline-none cursor-default select-all transition-all shadow-2xs font-mono"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <button
                     type="button"
+                    onClick={() => handleCopy(adminPassword, 'password')}
+                    className="p-1.5 text-slate-400 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                    title="Salin password"
+                  >
+                    {copiedField === 'password' ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                  <button 
+                    type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                    className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg transition-colors cursor-pointer"
+                    title={showPassword ? "Sembunyikan password" : "Lihat password"}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Konfirmasi Password <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input 
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="branch_admin_confirm_password"
-                    autoComplete="new-password"
-                    value={adminConfirmPassword}
-                    onChange={(e) => setAdminConfirmPassword(e.target.value)}
-                    required
-                    placeholder="Ketik ulang password"
-                    className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
+              <div className="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                <p>
+                  Password dibuat otomatis oleh sistem untuk keamanan akun Kepala UPT. Klik ikon salin untuk menyalin password.
+                </p>
+                {copiedField === 'password' && (
+                  <span className="text-emerald-600 font-bold flex items-center gap-1 shrink-0 ml-2">
+                    <Check className="w-3 h-3" /> Password berhasil disalin!
+                  </span>
+                )}
               </div>
             </div>
-            <p className="text-[11px] text-slate-400 leading-normal">
-              Password default dapat diacak otomatis dengan tombol di atas atau diketik manual minimal 8 karakter.
-            </p>
           </div>
         </div>
 

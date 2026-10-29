@@ -27,7 +27,8 @@ export default function TransferProofModal({
   item,
   onApprove,
   onReject,
-  canApprove = true,
+canApprove = true,
+  readOnly = false,
 }) {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -436,7 +437,7 @@ export default function TransferProofModal({
               </div>
 
               {/* Form Input Alasan jika ingin Menolak */}
-              {isRejecting && (
+              {!readOnly && isRejecting && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl space-y-2 text-xs">
                   <label className="block font-bold text-rose-900">Alasan Penolakan Bukti Transfer:</label>
                   <textarea
@@ -476,8 +477,8 @@ export default function TransferProofModal({
 
             {/* Tombol Eksekusi ACC / Tolak di Modal */}
             <div className="pt-4 border-t border-slate-100 space-y-2">
-              {item.status !== 'PAID' && !isRejecting && (
-                canApprove ? (
+{item.status !== 'PAID' && !isRejecting && (
+                canApprove && !readOnly ? (
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       type="button"
@@ -487,6 +488,7 @@ export default function TransferProofModal({
                       <Ban className="w-4 h-4" />
                       <span>Tolak Setoran</span>
                     </button>
+
 
                     <button
                       type="button"
@@ -503,6 +505,11 @@ export default function TransferProofModal({
                     <span>Mode Pantau: Menunggu verifikasi &amp; persetujuan Superadmin</span>
                   </div>
                 )
+              )}
+              {readOnly && item.status !== 'PAID' && (
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500 font-medium">
+                  Pratinjau Bukti Transfer (Read-Only) &bull; Verifikasi dan persetujuan setoran dikelola oleh Superadmin.
+                </div>
               )}
 
               {item.status === 'PAID' && (

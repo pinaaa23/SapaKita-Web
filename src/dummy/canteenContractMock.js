@@ -127,6 +127,16 @@ export function saveStoredContract(branchId, payload) {
     superadminPercent: saPercent,
     canteenPercent: kantinPercent,
     negotiationPercent: saPercent, // Porsi yang ditagihkan ke kantin
+    kepalaUptPercent: payload.kepalaUptPercent !== undefined ? Number(payload.kepalaUptPercent) : (payload.split?.kepalaUpt !== undefined ? Number(payload.split.kepalaUpt) : existing.kepalaUptPercent),
+    koperasiPercent: payload.koperasiPercent !== undefined ? Number(payload.koperasiPercent) : (payload.split?.koperasi !== undefined ? Number(payload.split.koperasi) : kantinPercent),
+    inkopasindoPercent: payload.inkopasindoPercent !== undefined ? Number(payload.inkopasindoPercent) : (payload.split?.inkopasindo !== undefined ? Number(payload.split.inkopasindo) : existing.inkopasindoPercent),
+    vendorPercent: payload.vendorPercent !== undefined ? Number(payload.vendorPercent) : (payload.split?.vendor !== undefined ? Number(payload.split.vendor) : existing.vendorPercent),
+    split: payload.split || (payload.kepalaUptPercent !== undefined ? {
+      kepalaUpt: Number(payload.kepalaUptPercent),
+      koperasi: Number(payload.koperasiPercent ?? kantinPercent),
+      inkopasindo: Number(payload.inkopasindoPercent),
+      vendor: Number(payload.vendorPercent),
+    } : existing.split),
     updatedAt: new Date().toISOString(),
     updatedBy: 'Superadmin',
   };

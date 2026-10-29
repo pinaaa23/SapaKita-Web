@@ -9,7 +9,8 @@ import {
   UserCog,
   Wallet,
   Landmark,
-  Receipt
+  Receipt,
+  User
 } from 'lucide-react';
 
 /**
@@ -107,10 +108,16 @@ export const permissions = {
     return norm === ROLES.SUPERVISOR;
   },
 
-  // Role Kanwil bersifat statis (read-only): tidak dapat menambah, mengedit, atau menghapus data
+  // Role Kanwil dan Finance bersifat statis (read-only): tidak dapat menambah, mengedit, atau menghapus data
   isReadOnlyRole: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.ADMIN_KANWIL;
+    return norm === ROLES.ADMIN_KANWIL || norm === ROLES.FINANCE;
+  },
+
+  // Seluruh pembayaran & verifikasi setoran dikembalikan ke Superadmin
+  canManagePayments: (role) => {
+    const norm = normalizeRole(role);
+    return norm === ROLES.SUPERADMIN;
   },
 };
 
@@ -119,11 +126,6 @@ export const permissions = {
  */
 export const getMenuItemsByRole = (role) => {
   const normRole = normalizeRole(role);
-  const isKanwilDemo =
-    import.meta.env.VITE_KANWIL_DEMO !== 'false' &&
-    (import.meta.env.VITE_KANWIL_DEMO === 'true' ||
-      import.meta.env.DEV ||
-      localStorage.getItem('pascall_kanwil_demo') === 'true');
 
   if (normRole === ROLES.SUPERADMIN) {
     return [
@@ -136,6 +138,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Tagihan & Setoran', icon: Receipt, path: '/billing' },
       { name: 'Kontrak & Bagi Hasil', icon: Wallet, path: '/contracts' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
+      { name: 'Tagihan Kantin', icon: Receipt, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
     ];
   }
@@ -175,13 +178,14 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Admin Finance (Dashboard Keuangan, Tagihan & Setoran, Kontrak Bagi Hasil, Laporan Keuangan)
+  // Menu untuk Admin Finance (Dashboard Keuangan, Tagihan & Setoran, Kontrak Bagi Hasil, Laporan Keuangan, Profil)
   if (normRole === ROLES.FINANCE) {
     return [
       { name: 'Dashboard Keuangan', icon: LayoutDashboard, path: '/finance/dashboard' },
       { name: 'Tagihan & Setoran', icon: Receipt, path: '/finance/billing' },
       { name: 'Kontrak Bagi Hasil', icon: Wallet, path: '/finance/contracts' },
       { name: 'Laporan Keuangan', icon: BarChart3, path: '/finance/reports' },
+      { name: 'Profil', icon: User, path: '/finance/profile' },
     ];
   }
 

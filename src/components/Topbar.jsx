@@ -18,7 +18,7 @@ const Topbar = ({ toggleMobileMenu }) => {
   const { role: normRole, roleLabel: userRole, userName, uptName, user, logout } = useAuth();
   const isKanwilUser = normRole === ROLES.ADMIN_KANWIL || location.pathname.startsWith('/kanwil');
   const isFinanceUser = normRole === ROLES.FINANCE || location.pathname.startsWith('/finance');
-  const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile');
+const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile');
 
   const getPageDetails = (pathname) => {
     // Kanwil Admin Page Details
