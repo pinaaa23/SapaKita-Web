@@ -50,6 +50,7 @@ import FinanceDashboard from './pages/finance/Dashboard';
 import FinanceBilling from './pages/finance/Billing';
 import FinanceContracts from './pages/finance/Contracts';
 import FinanceReports from './pages/finance/Reports';
+import FinanceProfile from './pages/finance/Profile';
 
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
@@ -118,7 +119,8 @@ function App() {
 
                 {/* Superadmin Packages, Kanwil Management Routes (canteen-topup dialihkan ke dashboard) */}
                 <Route path="packages" element={<PackagesList />} />
-                <Route path="canteen-topup" element={<Navigate to="/dashboard" replace />} />
+                <Route path="canteen-topup" element={<CanteenTopup />} />
+                <Route path="billing" element={<CanteenTopup />} />
                 <Route path="kanwil-management" element={<KanwilManagement />} />
                 <Route path="kanwil-management/create" element={<KanwilCreate />} />
                 <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />
@@ -227,6 +229,7 @@ function App() {
                 <Route path="billing" element={<FinanceBilling />} />
                 <Route path="contracts" element={<FinanceContracts />} />
                 <Route path="reports" element={<FinanceReports />} />
+                <Route path="profile" element={<FinanceProfile />} />
               </Route>
             </Route>
           </Route>

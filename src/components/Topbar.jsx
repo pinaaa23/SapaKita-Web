@@ -16,7 +16,8 @@ const Topbar = ({ toggleMobileMenu }) => {
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   const { role: normRole, roleLabel: userRole, userName, uptName, user, logout } = useAuth();
   const isKanwilUser = normRole === ROLES.ADMIN_KANWIL || location.pathname.startsWith('/kanwil');
-  const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile');
+  const isFinanceUser = normRole === ROLES.FINANCE || location.pathname.startsWith('/finance');
+  const profileLink = isFinanceUser ? '/finance/profile' : (isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile'));
 
   const getPageDetails = (pathname) => {
     // Kanwil Admin Page Details
@@ -86,6 +87,12 @@ const Topbar = ({ toggleMobileMenu }) => {
       return { 
         title: 'Kontrak Bagi Hasil', 
         subtitle: 'Pengaturan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) dan data rekening' 
+      };
+    }
+    if (pathname.startsWith('/finance/profile')) {
+      return { 
+        title: 'Profil Pengguna', 
+        subtitle: 'Informasi akun & profil Admin Finance' 
       };
     }
     if (pathname.startsWith('/finance/reports')) {

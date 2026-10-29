@@ -12,6 +12,7 @@ import {
   FileText,
   Calendar,
   AlertTriangle,
+  AlertCircle,
   ShieldAlert,
   Filter,
   RefreshCw,
@@ -118,11 +119,13 @@ export default function CanteenTopup() {
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // 6. Modal Edit Kontrak Tarif (Khusus Superadmin)
+  // 6. Modal Edit Kontrak Tarif 4 Pihak (Khusus Superadmin)
   const [editContractModal, setEditContractModal] = useState(null); // item objek kantin
   const [editRate, setEditRate] = useState('');
-  const [editSuperadminPercent, setEditSuperadminPercent] = useState('');
-  const [, setEditCanteenPercent] = useState('');
+  const [editKepalaUptPercent, setEditKepalaUptPercent] = useState('');
+  const [editKoperasiPercent, setEditKoperasiPercent] = useState('');
+  const [editInkopasindoPercent, setEditInkopasindoPercent] = useState('');
+  const [editVendorPercent, setEditVendorPercent] = useState('');
   const [editError, setEditError] = useState('');
   const [isSavingContract, setIsSavingContract] = useState(false);
 
@@ -357,84 +360,110 @@ export default function CanteenTopup() {
   const totalDetikBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalSeconds) || 0), 0);
   const kantinTerkonfigurasiCount = billingReports.filter((r) => r.isContractSet).length;
 
-  // Handlers Edit Kontrak Tarif (Khusus Superadmin)
+  // Handlers Edit Kontrak Tarif (Khusus Superadmin - 4 Pihak)
   const handleOpenEditContract = (target) => {
-    // 6. Reset state form setiap modal dibuka
     setEditError('');
     setEditContractModal(target);
 
     const isSet = isCanteenContractConfigured(target);
     if (isSet) {
       setEditRate(target.ratePerSecond !== null && target.ratePerSecond !== undefined ? String(target.ratePerSecond) : '');
-      const saP = target.superadminPercent !== null && target.superadminPercent !== undefined
-        ? target.superadminPercent
-        : (target.negotiationPercent !== null && target.negotiationPercent !== undefined ? target.negotiationPercent : '');
-      setEditSuperadminPercent(saP !== '' ? String(saP) : '');
-      setEditCanteenPercent(saP !== '' ? String(100 - Number(saP)) : '');
+      const ku = target.kepalaUptPercent ?? target.split?.kepalaUpt;
+      const kop = target.koperasiPercent ?? target.split?.koperasi ?? target.canteenPercent;
+      const inko = target.inkopasindoPercent ?? target.split?.inkopasindo;
+      const ven = target.vendorPercent ?? target.split?.vendor;
+
+      setEditKepalaUptPercent(ku !== '' && ku !== null && ku !== undefined ? String(ku) : '');
+      setEditKoperasiPercent(kop !== '' && kop !== null && kop !== undefined ? String(kop) : '');
+      setEditInkopasindoPercent(inko !== '' && inko !== null && inko !== undefined ? String(inko) : '');
+      setEditVendorPercent(ven !== '' && ven !== null && ven !== undefined ? String(ven) : '');
     } else {
-      // 1. Kolom Tarif dan SA (%) KOSONG untuk kantin yang belum punya kontrak
+      // TIDAK BOLEH ADA NILAI BAWAAN (kolom kosong kalau kontrak belum diatur)
       setEditRate('');
-      setEditSuperadminPercent('');
-      setEditCanteenPercent('');
+      setEditKepalaUptPercent('');
+      setEditKoperasiPercent('');
+      setEditInkopasindoPercent('');
+      setEditVendorPercent('');
     }
   };
 
   const handleCloseEditContract = () => {
     setEditContractModal(null);
     setEditRate('');
-    setEditSuperadminPercent('');
-    setEditCanteenPercent('');
+    setEditKepalaUptPercent('');
+    setEditKoperasiPercent('');
+    setEditInkopasindoPercent('');
+    setEditVendorPercent('');
     setEditError('');
   };
 
-  const handleSuperadminPercentChange = (val) => {
-    setEditSuperadminPercent(val);
-    if (val === '') {
-      setEditCanteenPercent('');
-      return;
-    }
-    const num = Number(val);
-    if (!isNaN(num) && num >= 0 && num <= 100) {
-      setEditCanteenPercent(String(100 - num));
-    } else {
-      setEditCanteenPercent('');
-    }
-  };
-
   const isRateValid = editRate !== '' && !isNaN(Number(editRate)) && Number(editRate) > 0;
-  const isSaPercentValid = editSuperadminPercent !== '' && !isNaN(Number(editSuperadminPercent)) && Number(editSuperadminPercent) >= 0 && Number(editSuperadminPercent) <= 100;
-  const isContractFormValid = isRateValid && isSaPercentValid;
+  const isKepalaUptValid = editKepalaUptPercent !== '' && !isNaN(Number(editKepalaUptPercent)) && Number(editKepalaUptPercent) >= 0 && Number(editKepalaUptPercent) <= 100;
+  const isKoperasiValid = editKoperasiPercent !== '' && !isNaN(Number(editKoperasiPercent)) && Number(editKoperasiPercent) >= 0 && Number(editKoperasiPercent) <= 100;
+  const isInkopasindoValid = editInkopasindoPercent !== '' && !isNaN(Number(editInkopasindoPercent)) && Number(editInkopasindoPercent) >= 0 && Number(editInkopasindoPercent) <= 100;
+  const isVendorValid = editVendorPercent !== '' && !isNaN(Number(editVendorPercent)) && Number(editVendorPercent) >= 0 && Number(editVendorPercent) <= 100;
+
+  const areAllPercentagesFilled =
+    editKepalaUptPercent !== '' &&
+    editKoperasiPercent !== '' &&
+    editInkopasindoPercent !== '' &&
+    editVendorPercent !== '';
+
+  const totalSplitPercent =
+    Number(editKepalaUptPercent || 0) +
+    Number(editKoperasiPercent || 0) +
+    Number(editInkopasindoPercent || 0) +
+    Number(editVendorPercent || 0);
+
+  const isPercentSumValid = areAllPercentagesFilled && totalSplitPercent === 100;
+  const isContractFormValid = isRateValid && isKepalaUptValid && isKoperasiValid && isInkopasindoValid && isVendorValid && isPercentSumValid;
 
   const handleSaveContract = async (e) => {
     e.preventDefault();
     if (!editContractModal) return;
 
-    const rateNum = Number(editRate);
-    const saPercentNum = Number(editSuperadminPercent);
-    const canteenPercentNum = 100 - saPercentNum;
-
     if (!isRateValid) {
-      setEditError('Tarif per detik wajib diisi dengan angka lebih dari 0.');
+      setEditError('Tarif per detik wajib diisi dengan angka lebih besar dari 0.');
       return;
     }
-    if (!isSaPercentValid) {
-      setEditError('Persentase Superadmin wajib diisi antara 0% hingga 100%.');
+    if (!areAllPercentagesFilled) {
+      setEditError('Semua 4 kolom persentase bagi hasil wajib diisi.');
       return;
     }
+    if (!isPercentSumValid) {
+      setEditError(`Total persentase 4 pihak harus tepat 100% (saat ini ${totalSplitPercent}%).`);
+      return;
+    }
+
+    const rateNum = Number(editRate);
+    const kepalaUptNum = Number(editKepalaUptPercent);
+    const koperasiNum = Number(editKoperasiPercent);
+    const inkopasindoNum = Number(editInkopasindoPercent);
+    const vendorNum = Number(editVendorPercent);
 
     setIsSavingContract(true);
     setEditError('');
     try {
       await updateCanteenContract(editContractModal.branchId, {
         ratePerSecond: rateNum,
-        superadminPercent: saPercentNum,
-        canteenPercent: canteenPercentNum,
-        negotiationPercent: saPercentNum,
+        kepalaUptPercent: kepalaUptNum,
+        koperasiPercent: koperasiNum,
+        inkopasindoPercent: inkopasindoNum,
+        vendorPercent: vendorNum,
+        split: {
+          kepalaUpt: kepalaUptNum,
+          koperasi: koperasiNum,
+          inkopasindo: inkopasindoNum,
+          vendor: vendorNum,
+        },
+        superadminPercent: Math.round((100 - koperasiNum) * 100) / 100,
+        canteenPercent: koperasiNum,
+        negotiationPercent: Math.round((100 - koperasiNum) * 100) / 100,
         canteenName: editContractModal.canteenName,
         branchName: editContractModal.uptName,
       });
 
-      showToast(`Kontrak tarif untuk ${editContractModal.canteenName} berhasil disimpan. Perhitungan tagihan otomatis diperbarui.`);
+      showToast(`Kontrak tarif 4 pihak untuk ${editContractModal.canteenName} berhasil disimpan. Perhitungan tagihan otomatis diperbarui.`);
       handleCloseEditContract();
       await Promise.all([loadData(), loadContractsData()]);
     } catch (err) {
@@ -444,7 +473,7 @@ export default function CanteenTopup() {
     }
   };
 
-  // Handlers Approve & Reject Bukti Bayar
+    // Handlers Approve & Reject Bukti Bayar
   const handleOpenApproveModal = (item) => {
     setActionNotes('');
     setTopupActionModal({ action: 'approve', item });
@@ -769,7 +798,7 @@ export default function CanteenTopup() {
                 {formatRupiah(totalTagihanBulanIni)}
               </div>
               <span className="text-[11px] font-medium text-slate-500 block">
-                Rumus: Detik × Tarif × % SA
+                Rumus: Total Detik × Tarif per Detik (Bagi Hasil 4 Pihak)
               </span>
             </div>
             <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
@@ -1205,7 +1234,7 @@ export default function CanteenTopup() {
                   Pengaturan Kontrak Tarif Kantin
                 </h3>
                 <p className="text-xs text-blue-100/80 mt-1 max-w-2xl leading-relaxed">
-                  Konfigurasi tarif per detik dan persentase bagi hasil (Superadmin &amp; Kantin) yang bersifat tetap per kantin. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
+                  Konfigurasi tarif per detik dan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) yang bersifat tetap per kantin. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
                 </p>
               </div>
 
@@ -1302,7 +1331,7 @@ export default function CanteenTopup() {
                     <th className="py-3.5 px-6">Nama Kantin</th>
                     <th className="py-3.5 px-4">UPT &amp; Kanwil</th>
                     <th className="py-3.5 px-4 text-right">Tarif per Detik</th>
-                    <th className="py-3.5 px-4 text-center">Bagi Hasil (SA %, Kantin %)</th>
+                    <th className="py-3.5 px-4 text-center">Bagi Hasil 4 Pihak</th>
                     <th className="py-3.5 px-6 text-center">Aksi</th>
                   </tr>
                 </thead>
@@ -1366,14 +1395,22 @@ export default function CanteenTopup() {
                           )}
                         </td>
 
-                        {/* 4. Bagi Hasil (SA %, Kantin %) */}
+                        {/* 4. Bagi Hasil 4 Pihak */}
                         <td className="py-4 px-4 text-center whitespace-nowrap">
                           {c.isContractSet ? (
-                            <div className="inline-flex items-center gap-1.5 font-bold text-slate-800 bg-slate-100 px-3 py-1 rounded-xl text-xs">
-                              <Percent className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                              <span>SA: {c.superadminPercent}%</span>
-                              <span className="text-slate-300">•</span>
-                              <span className="text-emerald-700">Kantin: {c.canteenPercent}%</span>
+                            <div className="flex flex-wrap items-center justify-center gap-1 text-[11px] font-bold">
+                              <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Kepala UPT">
+                                UPT: {c.kepalaUptPercent ?? c.split?.kepalaUpt ?? 5}%
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200" title="Koperasi">
+                                Kop: {c.koperasiPercent ?? c.split?.koperasi ?? c.canteenPercent ?? 30}%
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Inkopasindo">
+                                Inko: {c.inkopasindoPercent ?? c.split?.inkopasindo ?? 10}%
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200" title="Vendor">
+                                Ven: {c.vendorPercent ?? c.split?.vendor ?? 55}%
+                              </span>
                             </div>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
@@ -1712,8 +1749,8 @@ export default function CanteenTopup() {
           MODAL 1: EDIT KONTRAK TARIF KANTIN (HANYA SUPERADMIN)
           ========================================================================= */}
       {editContractModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-8">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -1733,7 +1770,7 @@ export default function CanteenTopup() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveContract} className="space-y-4">
+            <form onSubmit={handleSaveContract} className="space-y-4 max-h-[75vh] overflow-y-auto pr-1">
               {editError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -1771,97 +1808,166 @@ export default function CanteenTopup() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-400 mt-1">
-                    Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.
+                    {editRate ? `Setara Rp ${(Number(editRate) * 60).toLocaleString('id-ID')} / menit. Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.` : 'Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.'}
                   </p>
                 )}
               </div>
 
-              {/* Input Bagi Hasil: Persen SA (Input) dan Persen Kantin (Tampil, tidak diinput) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* Form Kiri: Input Persen SA */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Bagi Hasil Superadmin / SA (%) <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      required
-                      placeholder="Contoh: 60"
-                      value={editSuperadminPercent}
-                      onChange={(e) => handleSuperadminPercentChange(e.target.value)}
-                      className={`w-full pl-3.5 pr-8 py-2 bg-slate-50 border rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 ${
-                        editSuperadminPercent !== '' && !isSaPercentValid
-                          ? 'border-rose-400 focus:ring-rose-500/20'
-                          : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
-                      }`}
-                    />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-400">
-                      %
-                    </span>
+              {/* Input Bagi Hasil 4 Pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/60 space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                      Bagi Hasil 4 Pihak <span className="text-rose-500">*</span>
+                    </h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Total persentase harus tepat 100% (Kepala UPT + Koperasi + Inkopasindo + Vendor)
+                    </p>
                   </div>
-                  {editSuperadminPercent !== '' && !isSaPercentValid ? (
-                    <p className="text-[11px] text-rose-500 font-semibold mt-1">
-                      Bagi hasil Superadmin harus berupa angka antara 0% hingga 100%.
-                    </p>
-                  ) : (
-                    <p className="text-[11px] text-slate-400 mt-1">
-                      Porsi yang disetor ke Superadmin (Total Tagihan).
-                    </p>
-                  )}
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold w-fit ${
+                    isPercentSumValid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                  }`}>
+                    Total: {totalSplitPercent}% / 100%
+                  </div>
                 </div>
 
-                {/* Form Kanan: Tampilan Persen Kantin (Read-only, otomatis = 100 - SA) */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Bagi Hasil Kantin (%) <span className="text-slate-400 font-normal">(Otomatis)</span>
-                  </label>
-                  <div className="w-full pl-3.5 pr-4 py-2 bg-slate-100/80 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 flex items-center justify-between">
-                    <span className="text-slate-800 text-sm font-black">
-                      {isSaPercentValid ? `${100 - Number(editSuperadminPercent)}%` : '-'}
-                    </span>
-                    <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                      100% - SA
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                  {/* 1. Kepala UPT */}
+                  <div className="bg-white p-2.5 rounded-xl border border-purple-200 shadow-2xs">
+                    <label className="block text-purple-900 font-bold mb-1">1. Kepala UPT</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        placeholder="0"
+                        value={editKepalaUptPercent}
+                        onChange={(e) => setEditKepalaUptPercent(e.target.value)}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 2. Koperasi */}
+                  <div className="bg-white p-2.5 rounded-xl border border-sky-200 shadow-2xs">
+                    <label className="block text-sky-900 font-bold mb-1">2. Koperasi</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        placeholder="0"
+                        value={editKoperasiPercent}
+                        onChange={(e) => setEditKoperasiPercent(e.target.value)}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Inkopasindo */}
+                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs">
+                    <label className="block text-amber-900 font-bold mb-1">3. Inkopasindo</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        placeholder="0"
+                        value={editInkopasindoPercent}
+                        onChange={(e) => setEditInkopasindoPercent(e.target.value)}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Vendor */}
+                  <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-2xs">
+                    <label className="block text-indigo-900 font-bold mb-1">4. Vendor</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        required
+                        placeholder="0"
+                        value={editVendorPercent}
+                        onChange={(e) => setEditVendorPercent(e.target.value)}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Validation Indicator */}
+                {!isPercentSumValid ? (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>
+                      {areAllPercentagesFilled
+                        ? `Jumlah total persentase saat ini ${totalSplitPercent}%. Mohon sesuaikan agar tepat 100% sebelum menyimpan.`
+                        : 'Semua 4 kolom persentase harus diisi angka (0 - 100%) dan totalnya tepat 100%.'}
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Hak porsi operasional kantin (tampil otomatis).
-                  </p>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>Total persentase valid (100%). Skema bagi hasil siap disimpan.</span>
+                  </div>
+                )}
               </div>
 
-              {/* Live Preview Perhitungan Rumus Tagihan */}
+              {/* Live Preview Perhitungan Rumus Tagihan 4 Pihak */}
               {(() => {
                 if (!isContractFormValid) {
                   return (
                     <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 text-center py-6">
                       <Calculator className="w-6 h-6 mx-auto text-slate-300 mb-1.5" />
-                      <span className="text-xs font-bold text-slate-700 block">Simulasi Rumus Tagihan</span>
+                      <span className="text-xs font-bold text-slate-700 block">Simulasi Rumus Tagihan 4 Pihak</span>
                       <span className="text-[11px] text-slate-500 block mt-0.5">
-                        Isi tarif dan persen untuk melihat simulasi
+                        Isi tarif dan seluruh persentase 4 pihak (total 100%) untuk melihat simulasi
                       </span>
                     </div>
                   );
                 }
 
                 const rateNum = Number(editRate);
-                const saPercentNum = Number(editSuperadminPercent);
-                const canteenPercentNum = Math.max(0, 100 - saPercentNum);
+                const kuNum = Number(editKepalaUptPercent);
+                const kopNum = Number(editKoperasiPercent);
+                const inkoNum = Number(editInkopasindoPercent);
+                const venNum = Number(editVendorPercent);
+
                 const displaySeconds = (editContractModal.totalSeconds && editContractModal.totalSeconds > 0)
                   ? editContractModal.totalSeconds
                   : 1140;
                 const isSimulatedSec = !(editContractModal.totalSeconds && editContractModal.totalSeconds > 0);
                 const subtotal = displaySeconds * rateNum;
-                const totalTagihan = Math.round(subtotal * (saPercentNum / 100));
-                const hakKantin = Math.round(subtotal * (canteenPercentNum / 100));
+
+                const nominalKepalaUpt = Math.round(subtotal * (kuNum / 100));
+                const nominalKoperasi = Math.round(subtotal * (kopNum / 100));
+                const nominalInkopasindo = Math.round(subtotal * (inkoNum / 100));
+                const nominalVendor = Math.round(subtotal * (venNum / 100));
+
+                const disetorPercent = 100 - kopNum;
+                const totalTagihanDisetor = subtotal - nominalKoperasi;
 
                 return (
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-2.5">
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
-                      <span>Simulasi Rumus Tagihan</span>
+                      <span className="flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                        Simulasi Rumus Tagihan 4 Pihak
+                      </span>
                       <span className="text-blue-600 font-bold">
                         {isSimulatedSec ? 'Contoh 1.140 Detik' : 'Detik Riil Kantin'}
                       </span>
@@ -1880,27 +1986,48 @@ export default function CanteenTopup() {
                           {formatRupiah(subtotal)}
                         </span>
                       </div>
-                      <div className="flex justify-between text-slate-600">
-                        <span>Bagi Hasil (SA / Kantin):</span>
-                        <span className="font-bold text-slate-800">
-                          {saPercentNum}% SA • {canteenPercentNum}% Kantin
-                        </span>
+
+                      {/* 4 Porsi Breakdown */}
+                      <div className="pt-2 border-t border-slate-200/80">
+                        <span className="text-[11px] font-bold text-slate-600 block mb-1.5">Porsi Pembagian Hasil:</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                          <div className="bg-white p-2 rounded-lg border border-purple-100">
+                            <span className="text-purple-800 font-semibold block text-[10px]">Kepala UPT ({kuNum}%):</span>
+                            <span className="font-bold text-purple-950 text-xs block mt-0.5">
+                              {formatRupiah(nominalKepalaUpt)}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-sky-100">
+                            <span className="text-sky-800 font-semibold block text-[10px]">Koperasi ({kopNum}%):</span>
+                            <span className="font-bold text-sky-950 text-xs block mt-0.5">
+                              {formatRupiah(nominalKoperasi)}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-amber-100">
+                            <span className="text-amber-800 font-semibold block text-[10px]">Inkopasindo ({inkoNum}%):</span>
+                            <span className="font-bold text-amber-950 text-xs block mt-0.5">
+                              {formatRupiah(nominalInkopasindo)}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-indigo-100">
+                            <span className="text-indigo-800 font-semibold block text-[10px]">Vendor ({venNum}%):</span>
+                            <span className="font-bold text-indigo-950 text-xs block mt-0.5">
+                              {formatRupiah(nominalVendor)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex justify-between text-slate-500 text-[11px] pt-1 border-t border-slate-200/60">
-                        <span>• Porsi Hak Kantin ({canteenPercentNum}%):</span>
-                        <span className="font-semibold text-emerald-700">
-                          {formatRupiah(hakKantin)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-slate-200 text-slate-900 font-black text-sm">
+
+                      {/* Total Tagihan Disetor */}
+                      <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 text-slate-900 font-black text-sm">
                         <div>
-                          <span>Total Tagihan Disetor (SA):</span>
-                          <span className="block text-[10px] text-slate-400 font-normal">
-                            Subtotal × {saPercentNum}% Persen SA
+                          <span>Total Tagihan Disetor (Superadmin / Pusat):</span>
+                          <span className="block text-[10px] text-slate-500 font-normal">
+                            Subtotal × {disetorPercent}% (Porsi Kepala UPT, Inkopasindo, dan Vendor)
                           </span>
                         </div>
                         <span className="text-blue-600 font-black text-base">
-                          {formatRupiah(totalTagihan)}
+                          {formatRupiah(totalTagihanDisetor)}
                         </span>
                       </div>
                     </div>
@@ -2099,17 +2226,37 @@ export default function CanteenTopup() {
                     </div>
 
                     {/* Pembagian Persen */}
-                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                      <span className="text-slate-500 block mb-0.5 font-medium">Bagi Hasil SA / Kantin:</span>
-                      <span className="text-sm font-black text-blue-700 block">
-                        {detailModalItem.isContractSet
-                          ? `${detailModalItem.superadminPercent}% SA • ${detailModalItem.canteenPercent}% Kantin`
-                          : 'Belum diatur'}
-                      </span>
-                      {detailModalItem.isContractSet && (
-                        <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">
-                          Hak Kantin ({detailModalItem.canteenPercent}%): {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.canteenPercent) / 100)))}
-                        </span>
+                    <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70 sm:col-span-2">
+                      <span className="text-slate-500 block mb-1.5 font-medium text-xs">Bagi Hasil 4 Pihak:</span>
+                      {detailModalItem.isContractSet ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5 text-xs">
+                          <div className="bg-white p-2 rounded-lg border border-purple-200">
+                            <span className="text-purple-800 font-semibold block text-[10px]">Kepala UPT ({detailModalItem.kepalaUptPercent ?? detailModalItem.split?.kepalaUpt ?? 5}%):</span>
+                            <span className="font-bold text-purple-950 text-xs block mt-0.5">
+                              {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.kepalaUptPercent ?? detailModalItem.split?.kepalaUpt ?? 5) / 100)))}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-sky-200">
+                            <span className="text-sky-800 font-semibold block text-[10px]">Koperasi ({detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30}%):</span>
+                            <span className="font-bold text-sky-950 text-xs block mt-0.5">
+                              {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30) / 100)))}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-amber-200">
+                            <span className="text-amber-800 font-semibold block text-[10px]">Inkopasindo ({detailModalItem.inkopasindoPercent ?? detailModalItem.split?.inkopasindo ?? 10}%):</span>
+                            <span className="font-bold text-amber-950 text-xs block mt-0.5">
+                              {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.inkopasindoPercent ?? detailModalItem.split?.inkopasindo ?? 10) / 100)))}
+                            </span>
+                          </div>
+                          <div className="bg-white p-2 rounded-lg border border-indigo-200">
+                            <span className="text-indigo-800 font-semibold block text-[10px]">Vendor ({detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? 55}%):</span>
+                            <span className="font-bold text-indigo-950 text-xs block mt-0.5">
+                              {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? 55) / 100)))}
+                            </span>
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs font-bold text-amber-600">Belum diatur</span>
                       )}
                     </div>
                   </div>
@@ -2118,11 +2265,11 @@ export default function CanteenTopup() {
                   <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between">
                     <div>
                       <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
-                        Total Tagihan Bersih (Disetor ke Superadmin):
+                        Total Tagihan Bersih (Disetor ke Superadmin / Pusat):
                       </span>
                       <span className="text-[11px] text-blue-700 font-medium">
                         {detailModalItem.isContractSet
-                          ? `Subtotal × ${detailModalItem.superadminPercent}% Porsi SA`
+                          ? `Subtotal × ${100 - Number(detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30)}% Porsi Non-Koperasi (Kepala UPT + Inkopasindo + Vendor)`
                           : 'Menunggu pengaturan kontrak tarif'}
                       </span>
                     </div>

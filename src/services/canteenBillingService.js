@@ -272,10 +272,23 @@ export async function getCanteenBillingNational(month, year) {
       grossAmount: billingCalc.subtotal || 0,
       canteenKeepAmount: billingCalc.canteenShare || 0,
       depositAmountToFinance: billingCalc.totalAmount || 0,
-      shares: {
-        koperasi: { percent: billingCalc.canteenPercent || 30, amount: billingCalc.canteenShare || 0 },
+      kepalaUptPercent: isContractSet ? Number(contract?.kepalaUptPercent ?? contract?.split?.kepalaUpt ?? beBranchInfo?.kepalaUptPercent ?? 5) : null,
+      koperasiPercent: isContractSet ? Number(contract?.koperasiPercent ?? contract?.split?.koperasi ?? beBranchInfo?.koperasiPercent ?? (billingCalc.canteenPercent || 30)) : null,
+      inkopasindoPercent: isContractSet ? Number(contract?.inkopasindoPercent ?? contract?.split?.inkopasindo ?? beBranchInfo?.inkopasindoPercent ?? 10) : null,
+      vendorPercent: isContractSet ? Number(contract?.vendorPercent ?? contract?.split?.vendor ?? beBranchInfo?.vendorPercent ?? 55) : null,
+      split: isContractSet ? {
+        kepalaUpt: Number(contract?.kepalaUptPercent ?? contract?.split?.kepalaUpt ?? beBranchInfo?.kepalaUptPercent ?? 5),
+        koperasi: Number(contract?.koperasiPercent ?? contract?.split?.koperasi ?? beBranchInfo?.koperasiPercent ?? (billingCalc.canteenPercent || 30)),
+        inkopasindo: Number(contract?.inkopasindoPercent ?? contract?.split?.inkopasindo ?? beBranchInfo?.inkopasindoPercent ?? 10),
+        vendor: Number(contract?.vendorPercent ?? contract?.split?.vendor ?? beBranchInfo?.vendorPercent ?? 55),
+      } : null,
+      shares: isContractSet ? {
+        kepalaUpt: { percent: Number(contract?.kepalaUptPercent ?? contract?.split?.kepalaUpt ?? beBranchInfo?.kepalaUptPercent ?? 5), amount: Math.round((billingCalc.subtotal || 0) * (Number(contract?.kepalaUptPercent ?? contract?.split?.kepalaUpt ?? beBranchInfo?.kepalaUptPercent ?? 5) / 100)) },
+        koperasi: { percent: Number(contract?.koperasiPercent ?? contract?.split?.koperasi ?? beBranchInfo?.koperasiPercent ?? (billingCalc.canteenPercent || 30)), amount: billingCalc.canteenShare || Math.round((billingCalc.subtotal || 0) * (Number(contract?.koperasiPercent ?? contract?.split?.koperasi ?? beBranchInfo?.koperasiPercent ?? (billingCalc.canteenPercent || 30)) / 100)) },
+        inkopasindo: { percent: Number(contract?.inkopasindoPercent ?? contract?.split?.inkopasindo ?? beBranchInfo?.inkopasindoPercent ?? 10), amount: Math.round((billingCalc.subtotal || 0) * (Number(contract?.inkopasindoPercent ?? contract?.split?.inkopasindo ?? beBranchInfo?.inkopasindoPercent ?? 10) / 100)) },
+        vendor: { percent: Number(contract?.vendorPercent ?? contract?.split?.vendor ?? beBranchInfo?.vendorPercent ?? 55), amount: Math.round((billingCalc.subtotal || 0) * (Number(contract?.vendorPercent ?? contract?.split?.vendor ?? beBranchInfo?.vendorPercent ?? 55) / 100)) },
         finance: { percent: billingCalc.superadminPercent || 70, amount: billingCalc.totalAmount || 0 },
-      },
+      } : null,
       statusPembayaran,
       rawStatus,
       isBlocked,
@@ -733,25 +746,66 @@ export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20
  */
 export async function updateCanteenContract(branchId, payload) {
   const rate = Number(payload.ratePerSecond);
-  const saPercent = payload.superadminPercent !== undefined && payload.superadminPercent !== null && payload.superadminPercent !== ''
-    ? Number(payload.superadminPercent)
-    : Number(payload.negotiationPercent);
-  const ktPercent = payload.canteenPercent !== undefined && payload.canteenPercent !== null && payload.canteenPercent !== ''
-    ? Number(payload.canteenPercent)
-    : (100 - saPercent);
+  if (isNaN(rate) || rate <= 0) {
+    throw new Error('Tarif per detik harus berupa angka lebih besar dari 0.');
+  }
 
-  // Validasi input
-  if (isNaN(rate) || rate < 0) {
-    throw new Error('Tarif per detik tidak boleh bernilai negatif.');
-  }
-  if (isNaN(saPercent) || saPercent < 0 || saPercent > 100) {
-    throw new Error('Persen Superadmin harus berada di antara 0% hingga 100%.');
-  }
-  if (isNaN(ktPercent) || ktPercent < 0 || ktPercent > 100) {
-    throw new Error('Persen Kantin harus berada di antara 0% hingga 100%.');
-  }
-  if (Math.round((saPercent + ktPercent) * 100) / 100 !== 100) {
-    throw new Error('Total persentase Superadmin dan Kantin harus berjumlah 100%.');
+  const has4Parties =
+    payload.kepalaUptPercent !== undefined ||
+    payload.koperasiPercent !== undefined ||
+    payload.inkopasindoPercent !== undefined ||
+    payload.vendorPercent !== undefined ||
+    Boolean(payload.split);
+
+  let kepalaUpt = payload.kepalaUptPercent !== undefined ? Number(payload.kepalaUptPercent) : (payload.split?.kepalaUpt !== undefined ? Number(payload.split.kepalaUpt) : undefined);
+  let koperasi = payload.koperasiPercent !== undefined ? Number(payload.koperasiPercent) : (payload.split?.koperasi !== undefined ? Number(payload.split.koperasi) : undefined);
+  let inkopasindo = payload.inkopasindoPercent !== undefined ? Number(payload.inkopasindoPercent) : (payload.split?.inkopasindo !== undefined ? Number(payload.split.inkopasindo) : undefined);
+  let vendor = payload.vendorPercent !== undefined ? Number(payload.vendorPercent) : (payload.split?.vendor !== undefined ? Number(payload.split.vendor) : undefined);
+
+  let saPercent;
+  let ktPercent;
+
+  if (has4Parties) {
+    if (isNaN(kepalaUpt) || kepalaUpt < 0 || kepalaUpt > 100) {
+      throw new Error('Persentase Kepala UPT harus berada di antara 0% hingga 100%.');
+    }
+    if (isNaN(koperasi) || koperasi < 0 || koperasi > 100) {
+      throw new Error('Persentase Koperasi harus berada di antara 0% hingga 100%.');
+    }
+    if (isNaN(inkopasindo) || inkopasindo < 0 || inkopasindo > 100) {
+      throw new Error('Persentase Inkopasindo harus berada di antara 0% hingga 100%.');
+    }
+    if (isNaN(vendor) || vendor < 0 || vendor > 100) {
+      throw new Error('Persentase Vendor harus berada di antara 0% hingga 100%.');
+    }
+    const sum4 = Math.round((kepalaUpt + koperasi + inkopasindo + vendor) * 100) / 100;
+    if (sum4 !== 100) {
+      throw new Error(`Total persentase 4 pihak harus berjumlah tepat 100% (saat ini ${sum4}%).`);
+    }
+    ktPercent = koperasi;
+    saPercent = Math.round((100 - koperasi) * 100) / 100;
+  } else {
+    saPercent = payload.superadminPercent !== undefined && payload.superadminPercent !== null && payload.superadminPercent !== ''
+      ? Number(payload.superadminPercent)
+      : Number(payload.negotiationPercent);
+    ktPercent = payload.canteenPercent !== undefined && payload.canteenPercent !== null && payload.canteenPercent !== ''
+      ? Number(payload.canteenPercent)
+      : (100 - saPercent);
+
+    if (isNaN(saPercent) || saPercent < 0 || saPercent > 100) {
+      throw new Error('Persen Superadmin harus berada di antara 0% hingga 100%.');
+    }
+    if (isNaN(ktPercent) || ktPercent < 0 || ktPercent > 100) {
+      throw new Error('Persen Kantin harus berada di antara 0% hingga 100%.');
+    }
+    if (Math.round((saPercent + ktPercent) * 100) / 100 !== 100) {
+      throw new Error('Total persentase Superadmin dan Kantin harus berjumlah 100%.');
+    }
+    koperasi = ktPercent;
+    const billedPortion = saPercent;
+    vendor = Math.round((billedPortion * (55 / 70)) * 100) / 100;
+    inkopasindo = Math.round((billedPortion * (10 / 70)) * 100) / 100;
+    kepalaUpt = Math.round((billedPortion - vendor - inkopasindo) * 100) / 100;
   }
 
   // 1. Simpan langsung ke endpoint resmi BE: PUT /api/canteen/contracts/:branchId
@@ -761,6 +815,10 @@ export async function updateCanteenContract(branchId, payload) {
       method: 'PUT',
       body: JSON.stringify({
         ratePerSecond: rate,
+        kepalaUptPercent: kepalaUpt,
+        koperasiPercent: koperasi,
+        inkopasindoPercent: inkopasindo,
+        vendorPercent: vendor,
         superadminPercent: saPercent,
         canteenPercent: ktPercent,
       }),
@@ -770,6 +828,23 @@ export async function updateCanteenContract(branchId, payload) {
     console.warn('[canteenBillingService] Gagal update /api/canteen/contracts/:branchId:', err?.message || err);
     throw err;
   }
+
+  // Juga sinkronkan ke PUT /api/finance/contracts/:branchId jika tersedia
+  try {
+    await apiFetch(`/api/finance/contracts/${branchId}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        ratePerSecond: rate,
+        split: {
+          kepalaUpt,
+          koperasi,
+          inkopasindo,
+          vendor,
+        },
+        canteenName: payload.canteenName,
+      }),
+    });
+  } catch (_finErr) {}
 
   // Juga sinkronkan ke PUT /api/branches/:id agar data entity branch selalu konsisten
   try {
@@ -788,15 +863,55 @@ export async function updateCanteenContract(branchId, payload) {
   const updated = saveStoredContract(branchId, {
     ...payload,
     ratePerSecond: rate,
+    kepalaUptPercent: kepalaUpt,
+    koperasiPercent: koperasi,
+    inkopasindoPercent: inkopasindo,
+    vendorPercent: vendor,
+    split: {
+      kepalaUpt,
+      koperasi,
+      inkopasindo,
+      vendor,
+    },
     superadminPercent: saPercent,
     canteenPercent: ktPercent,
     negotiationPercent: saPercent,
+    isContractSet: true,
   });
+
+  // Simpan juga ke localStorage pascall_finance_contracts_v1 agar sinkron dengan Finance
+  try {
+    const rawFin = typeof window !== 'undefined' ? localStorage.getItem('pascall_finance_contracts_v1') : null;
+    let finList = rawFin ? JSON.parse(rawFin) : [];
+    if (Array.isArray(finList)) {
+      const idx = finList.findIndex((fc) => String(fc.branchId).toLowerCase() === String(branchId).toLowerCase());
+      const finItem = {
+        branchId,
+        branchName: payload.branchName || updated.branchName,
+        canteenName: payload.canteenName || updated.canteenName,
+        ratePerSecond: rate,
+        split: {
+          kepalaUpt,
+          koperasi,
+          inkopasindo,
+          vendor,
+        },
+        updatedAt: new Date().toISOString(),
+      };
+      if (idx >= 0) {
+        finList[idx] = { ...finList[idx], ...finItem };
+      } else {
+        finList.push(finItem);
+      }
+      localStorage.setItem('pascall_finance_contracts_v1', JSON.stringify(finList));
+    }
+  } catch (_) {}
 
   // Trigger event pembaruan agar semua tampilan sinkron seketika
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('pascall_billing_updated'));
     window.dispatchEvent(new CustomEvent('pascall_contract_changed', { detail: updated }));
+    window.dispatchEvent(new CustomEvent('finance_billing_updated'));
     window.dispatchEvent(new CustomEvent('canteen_topup_changed'));
     window.dispatchEvent(new Event('storage'));
   }
@@ -889,6 +1004,22 @@ export async function getAllCanteenContracts() {
         ? Number(item.canteenPercent)
         : (item.split?.koperasi ? Number(item.split.koperasi) : 30);
 
+      const kepalaUpt = item.kepalaUptPercent !== undefined && item.kepalaUptPercent !== null
+        ? Number(item.kepalaUptPercent)
+        : (item.split?.kepalaUpt !== undefined ? Number(item.split.kepalaUpt) : (isContractSet ? 5 : null));
+
+      const koperasi = item.koperasiPercent !== undefined && item.koperasiPercent !== null
+        ? Number(item.koperasiPercent)
+        : (item.split?.koperasi !== undefined ? Number(item.split.koperasi) : (ktPct ?? (isContractSet ? 30 : null)));
+
+      const inkopasindo = item.inkopasindoPercent !== undefined && item.inkopasindoPercent !== null
+        ? Number(item.inkopasindoPercent)
+        : (item.split?.inkopasindo !== undefined ? Number(item.split.inkopasindo) : (isContractSet ? 10 : null));
+
+      const vendor = item.vendorPercent !== undefined && item.vendorPercent !== null
+        ? Number(item.vendorPercent)
+        : (item.split?.vendor !== undefined ? Number(item.split.vendor) : (isContractSet ? 55 : null));
+
       return {
         branchId: item.branchId,
         canteenName: item.canteenName || `Kantin ${item.branchName || b.name || item.branchId}`,
@@ -898,10 +1029,19 @@ export async function getAllCanteenContracts() {
         superadminPercent: isContractSet ? saPct : null,
         canteenPercent: isContractSet ? ktPct : null,
         negotiationPercent: isContractSet ? saPct : null,
+        kepalaUptPercent: isContractSet ? kepalaUpt : null,
+        koperasiPercent: isContractSet ? koperasi : null,
+        inkopasindoPercent: isContractSet ? inkopasindo : null,
+        vendorPercent: isContractSet ? vendor : null,
         isContractSet,
         updatedAt: item.updatedAt || null,
         updatedBy: item.updatedBy || 'Superadmin',
-        split: item.split,
+        split: isContractSet && kepalaUpt !== null ? {
+          kepalaUpt,
+          koperasi,
+          inkopasindo,
+          vendor,
+        } : (isContractSet ? item.split : null),
       };
     });
   }
@@ -943,6 +1083,11 @@ export async function getAllCanteenContracts() {
           : Math.max(0, 100 - (saPercent || 0)))
       : null;
 
+    const kepalaUpt = isContractSet ? (contract?.kepalaUptPercent ?? contract?.split?.kepalaUpt ?? 5) : null;
+    const koperasi = isContractSet ? (contract?.koperasiPercent ?? contract?.split?.koperasi ?? ktPercent ?? 30) : null;
+    const inkopasindo = isContractSet ? (contract?.inkopasindoPercent ?? contract?.split?.inkopasindo ?? 10) : null;
+    const vendor = isContractSet ? (contract?.vendorPercent ?? contract?.split?.vendor ?? 55) : null;
+
     return {
       branchId: b.id,
       canteenName: contract?.canteenName || `Kantin ${b.name}`,
@@ -952,6 +1097,16 @@ export async function getAllCanteenContracts() {
       superadminPercent: saPercent,
       canteenPercent: ktPercent,
       negotiationPercent: saPercent,
+      kepalaUptPercent: kepalaUpt,
+      koperasiPercent: koperasi,
+      inkopasindoPercent: inkopasindo,
+      vendorPercent: vendor,
+      split: isContractSet && kepalaUpt !== null ? {
+        kepalaUpt,
+        koperasi,
+        inkopasindo,
+        vendor,
+      } : null,
       isContractSet,
       updatedAt: contract?.updatedAt || null,
       updatedBy: contract?.updatedBy || null,

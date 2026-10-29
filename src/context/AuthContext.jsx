@@ -90,6 +90,8 @@ export const AuthProvider = ({ children }) => {
   const canViewRecordings = useMemo(() => Boolean(role && permissions.canViewRecordings(role)), [role]);
   const canManageUsers = useMemo(() => Boolean(role && permissions.canManageUsers(role)), [role]);
   const canManagePackages = useMemo(() => Boolean(role && permissions.canManagePackages(role)), [role]);
+  const isReadOnlyRole = useMemo(() => Boolean(role && permissions.isReadOnlyRole(role)), [role]);
+  const canManagePayments = useMemo(() => Boolean(role && permissions.canManagePayments(role)), [role]);
 
   const isAuthenticated = useMemo(() => Boolean(token && (user || role)), [token, user, role]);
 
@@ -198,6 +200,8 @@ export const AuthProvider = ({ children }) => {
     canViewRecordings,
     canManageUsers,
     canManagePackages,
+    isReadOnlyRole,
+    canManagePayments,
     login,
     logout,
   }), [
@@ -211,6 +215,8 @@ export const AuthProvider = ({ children }) => {
     canViewRecordings,
     canManageUsers,
     canManagePackages,
+    isReadOnlyRole,
+    canManagePayments,
     login,
     logout,
   ]);

@@ -14,7 +14,8 @@ import {
   RefreshCw,
   Landmark,
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Eye
 } from 'lucide-react';
 import {
   getFinanceContracts,
@@ -168,6 +169,24 @@ export default function FinanceContracts() {
         </div>
       </div>
 
+      {/* Read-Only Notice */}
+      <div className="rounded-2xl p-4 bg-blue-50/80 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+            <Eye className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs text-blue-950 sm:text-sm">Akses Hanya Lihat (Read-Only)</h4>
+            <p className="text-[11px] text-blue-800 leading-relaxed mt-0.5">
+              Pengaturan persentase bagi hasil dan nomor rekening dikelola terpusat oleh Superadmin. Role Finance hanya memiliki izin melihat dan meninjau data kontrak.
+            </p>
+          </div>
+        </div>
+        <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-bold text-xs self-start sm:self-auto shrink-0">
+          Mode Read-Only
+        </span>
+      </div>
+
       {/* 2. Tabel Kontrak UPT & Pencarian */}
       <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm space-y-4">
         {/* Header Tabel & Kotak Pencarian */}
@@ -316,10 +335,10 @@ export default function FinanceContracts() {
                         <button
                           onClick={() => openEditModal(c)}
                           className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] text-xs font-bold transition shadow-2xs cursor-pointer"
-                          title="Ubah persentase & tarif kontrak"
+                          title="Lihat rincian tarif & formula bagi hasil"
                         >
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>Ubah Persentase</span>
+                          <Eye className="w-3.5 h-3.5" />
+                          <span>Lihat Kontrak</span>
                         </button>
                       </td>
                     </tr>
@@ -343,7 +362,7 @@ export default function FinanceContracts() {
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-slate-800">
-                    Ubah Kontrak &amp; Persentase Bagi Hasil
+                    Rincian Kontrak &amp; Persentase Bagi Hasil (Hanya Lihat)
                   </h3>
                   <p className="text-xs text-slate-500">
                     {editModalItem.branchName} ({editModalItem.kanwilName})
@@ -371,7 +390,8 @@ export default function FinanceContracts() {
                     step="5"
                     value={ratePerSecond}
                     onChange={(e) => setRatePerSecond(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1565C0] font-bold text-slate-800"
+                    disabled={true}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-bold text-slate-700 cursor-not-allowed"
                     required
                   />
                   <span className="text-[11px] text-slate-400 mt-0.5 block">Setara Rp {(ratePerSecond * 60).toLocaleString('id-ID')} / menit</span>
@@ -383,7 +403,8 @@ export default function FinanceContracts() {
                     type="text"
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1565C0] text-slate-800"
+                    disabled={true}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 cursor-not-allowed"
                     required
                   />
                 </div>
@@ -394,7 +415,8 @@ export default function FinanceContracts() {
                     type="text"
                     value={accountNumber}
                     onChange={(e) => setAccountNumber(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1565C0] font-mono text-slate-800"
+                    disabled={true}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 font-mono text-slate-700 cursor-not-allowed"
                     required
                   />
                 </div>
@@ -405,7 +427,8 @@ export default function FinanceContracts() {
                     type="text"
                     value={accountHolder}
                     onChange={(e) => setAccountHolder(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#1565C0] text-slate-800"
+                    disabled={true}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-slate-700 cursor-not-allowed"
                     required
                   />
                 </div>
@@ -565,21 +588,14 @@ export default function FinanceContracts() {
               </div>
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <span className="text-[11px] text-slate-500 font-medium">Mode Lihat: Perubahan konfigurasi kontrak dikelola oleh Superadmin.</span>
                 <button
                   type="button"
                   onClick={() => setEditModalItem(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer shadow-sm"
                 >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={!isPercentValid}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#1565C0] hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>Simpan Kontrak Bagi Hasil</span>
+                  Tutup
                 </button>
               </div>
             </form>

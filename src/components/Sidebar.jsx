@@ -211,7 +211,8 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
               const isActive = location.pathname.startsWith(item.path) && 
                                (item.path !== '/dashboard' || location.pathname === '/dashboard') && 
                                (item.path !== '/branch/dashboard' || location.pathname === '/branch/dashboard') &&
-                               (item.path !== '/kanwil/dashboard' || location.pathname === '/kanwil/dashboard');
+                               (item.path !== '/kanwil/dashboard' || location.pathname === '/kanwil/dashboard') &&
+                               (item.path !== '/finance/dashboard' || location.pathname === '/finance/dashboard');
               
               const isCanteenTopupMenu = item.path === '/canteen-topup';
               const isFinanceBillingMenu = item.path === '/finance/billing';

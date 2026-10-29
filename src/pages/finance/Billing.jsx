@@ -551,6 +551,24 @@ export default function FinanceBilling() {
         </div>
       )}
 
+      {/* Read-Only Notice Banner */}
+      <div className="rounded-2xl p-4 bg-blue-50/80 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+            <Eye className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="font-bold text-xs text-blue-950 sm:text-sm">Akses Hanya Lihat (Read-Only)</h4>
+            <p className="text-[11px] text-blue-800 leading-relaxed mt-0.5">
+              Seluruh verifikasi bukti transfer, persetujuan (ACC), dan penolakan pembayaran dikelola terpusat oleh Superadmin. Role Finance hanya berhak meninjau data tagihan dan riwayat setoran.
+            </p>
+          </div>
+        </div>
+        <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-bold text-xs self-start sm:self-auto shrink-0">
+          Mode Read-Only
+        </span>
+      </div>
+
       {/* Top Action Bar: Tombol Ekspor CSV dan Refresh di Sisi Kanan */}
       <div className="flex items-center justify-end gap-2 -mt-1">
         <button
@@ -918,7 +936,7 @@ export default function FinanceBilling() {
                       <th className="py-3 px-4 text-right">Hak Kantin (30%)</th>
                       <th className="py-3 px-4 text-right font-bold text-[#1565C0]">Setoran Finance (70%)</th>
                       <th className="py-3 px-4 text-center">Bukti Transfer</th>
-                      <th className="py-3 px-4 text-right">Aksi Verifikasi</th>
+                      <th className="py-3 px-4 text-center">Status Verifikasi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -977,30 +995,12 @@ export default function FinanceBilling() {
                             </button>
                           </td>
 
-                          {/* Aksi Verifikasi */}
-                          <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1.5">
-                              <button
-                                type="button"
-                                onClick={() => handleApprove(item)}
-                                disabled={isProcessingAction}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition-all cursor-pointer disabled:opacity-50"
-                                title="Setujui dan verifikasi setoran ini"
-                              >
-                                <Check className="w-3.5 h-3.5" />
-                                <span>Setujui (ACC)</span>
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenReject(item)}
-                                disabled={isProcessingAction}
-                                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition-all cursor-pointer disabled:opacity-50"
-                                title="Tolak bukti setoran jika tidak sesuai"
-                              >
-                                <Ban className="w-3.5 h-3.5" />
-                                <span>Tolak</span>
-                              </button>
-                            </div>
+                          {/* Status Verifikasi (Read-Only) */}
+                          <td className="py-3 px-4 text-center whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                              <span>Menunggu Superadmin</span>
+                            </span>
                           </td>
                         </tr>
                       );
@@ -1249,17 +1249,7 @@ export default function FinanceBilling() {
                           {/* Aksi */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {isPending && (
-                                <button
-                                  type="button"
-                                  onClick={() => openDetail(item)}
-                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-black text-white bg-amber-500 hover:bg-amber-600 transition shadow-xs cursor-pointer"
-                                  title="Periksa bukti transfer dan lakukan persetujuan (ACC)"
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  <span>Periksa &amp; ACC</span>
-                                </button>
-                              )}
+                              
                               <button
                                 type="button"
                                 onClick={() => openDetail(item)}
@@ -1470,12 +1460,9 @@ export default function FinanceBilling() {
         isOpen={Boolean(proofPreviewItem)}
         onClose={() => setProofPreviewItem(null)}
         item={proofPreviewItem}
-        onApprove={(item) => handleApprove(item)}
-        onReject={(item, reason) => {
-          setRejectModalItem(item);
-          setRejectReason(reason || '');
-          setProofPreviewItem(null);
-        }}
+        onApprove={() => {}}
+        onReject={() => {}}
+        readOnly={true}
       />
 
       {/* =========================================================================
