@@ -38,6 +38,30 @@ export const mapBranchItem = (item) => {
     kanwil: kanwilObj,
     kanwilName,
     matchStatus: item.matchStatus || null,
+    contractRatePerSecond: item.contractRatePerSecond !== undefined && item.contractRatePerSecond !== null
+      ? Number(item.contractRatePerSecond)
+      : null,
+    contractSharePercentage: item.contractSharePercentage !== undefined && item.contractSharePercentage !== null
+      ? Number(item.contractSharePercentage)
+      : null,
+    passcallSharePercentage: item.passcallSharePercentage !== undefined && item.passcallSharePercentage !== null
+      ? Number(item.passcallSharePercentage)
+      : null,
+    kantinSharePercentage: item.kantinSharePercentage !== undefined && item.kantinSharePercentage !== null
+      ? Number(item.kantinSharePercentage)
+      : null,
+    shareKepalaUptPercent: item.shareKepalaUptPercent !== undefined && item.shareKepalaUptPercent !== null
+      ? Number(item.shareKepalaUptPercent)
+      : null,
+    shareKoperasiPercent: item.shareKoperasiPercent !== undefined && item.shareKoperasiPercent !== null
+      ? Number(item.shareKoperasiPercent)
+      : null,
+    shareInkopasindoPercent: item.shareInkopasindoPercent !== undefined && item.shareInkopasindoPercent !== null
+      ? Number(item.shareInkopasindoPercent)
+      : null,
+    shareVendorPercent: item.shareVendorPercent !== undefined && item.shareVendorPercent !== null
+      ? Number(item.shareVendorPercent)
+      : null,
     mismatchReason: item.mismatchReason || null,
     createdAt: item.createdAt || new Date().toISOString(),
     isMock: Boolean(item.isMock),
@@ -78,6 +102,13 @@ export const buildCreateBranchPayload = (branchData, adminData) => {
       password: passwordVal,
     },
     ...(branchData.kanwilId && String(branchData.kanwilId).trim() ? { kanwilId: String(branchData.kanwilId).trim() } : {}),
+    ...(branchData.contractRatePerSecond !== undefined && branchData.contractRatePerSecond !== ''
+      ? { contractRatePerSecond: Number(branchData.contractRatePerSecond) }
+      : {}),
+    ...(branchData.shareKepalaUptPercent !== undefined ? { shareKepalaUptPercent: Number(branchData.shareKepalaUptPercent) } : {}),
+    ...(branchData.shareKoperasiPercent !== undefined ? { shareKoperasiPercent: Number(branchData.shareKoperasiPercent) } : {}),
+    ...(branchData.shareInkopasindoPercent !== undefined ? { shareInkopasindoPercent: Number(branchData.shareInkopasindoPercent) } : {}),
+    ...(branchData.shareVendorPercent !== undefined ? { shareVendorPercent: Number(branchData.shareVendorPercent) } : {}),
   };
 
   return payload;
@@ -330,6 +361,24 @@ export const updateBranch = async (id, data) => {
     else if (s === 'draft') payload.status = 'Draft';
     else if (s === 'inactive' || s === 'nonaktif') payload.status = 'Nonaktif';
     else payload.status = data.status;
+  }
+  if (data.contractRatePerSecond !== undefined) {
+    payload.contractRatePerSecond = Number(data.contractRatePerSecond);
+  }
+  if (data.shareKepalaUptPercent !== undefined) {
+    payload.shareKepalaUptPercent = Number(data.shareKepalaUptPercent);
+  }
+  if (data.shareKoperasiPercent !== undefined) {
+    payload.shareKoperasiPercent = Number(data.shareKoperasiPercent);
+  }
+  if (data.shareInkopasindoPercent !== undefined) {
+    payload.shareInkopasindoPercent = Number(data.shareInkopasindoPercent);
+  }
+  if (data.shareVendorPercent !== undefined) {
+    payload.shareVendorPercent = Number(data.shareVendorPercent);
+  }
+  if (data.kanwilId !== undefined) {
+    payload.kanwilId = data.kanwilId;
   }
 
   const endpoint = BRANCH_DETAIL_ENDPOINT(id);

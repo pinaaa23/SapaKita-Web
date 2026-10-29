@@ -20,7 +20,8 @@ import {
   Check,
   CheckCircle2,
   AlertTriangle,
-  X
+  X,
+  Receipt
 } from 'lucide-react';
 import { createBranch, buildCreateBranchPayload } from '../../services/branchService';
 import { getAllKanwilsForSuperadmin } from '../../services/kanwilService';
@@ -87,7 +88,12 @@ const Create = () => {
     phone: '',
     capacity: '',
     status: 'Active',
-    headName: ''
+    headName: '',
+    contractRatePerSecond: 15,
+    shareKepalaUptPercent: 5,
+    shareKoperasiPercent: 30,
+    shareInkopasindoPercent: 10,
+    shareVendorPercent: 55
   });
 
   useEffect(() => {
@@ -100,6 +106,7 @@ const Create = () => {
       }
     };
     fetchKanwils();
+    handleAutoGeneratePassword();
   }, []);
 
   // Admin account state
@@ -203,6 +210,17 @@ const Create = () => {
     }
     if (adminPassword !== adminConfirmPassword) {
       setErrorMsg('Password dan konfirmasi password tidak cocok.');
+      return;
+    }
+
+    if (!formData.contractRatePerSecond || Number(formData.contractRatePerSecond) <= 0) {
+      setErrorMsg('Tarif billing per detik harus lebih besar dari 0.');
+      return;
+    }
+
+    const totalSplit = Number(formData.shareKepalaUptPercent) + Number(formData.shareKoperasiPercent) + Number(formData.shareInkopasindoPercent) + Number(formData.shareVendorPercent);
+    if (Math.abs(totalSplit - 100) > 0.01) {
+      setErrorMsg(`Total persentase bagi hasil 4 pihak harus tepat 100%. Saat ini: ${totalSplit}%`);
       return;
     }
 
@@ -497,7 +515,117 @@ const Create = () => {
           </div>
         </div>
 
-        {/* Section 3: Akun Kepala UPT */}
+        {/* Section 3: Tarif Billing & Pembagian Hasil Kontrak */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+          <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+                <Receipt className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">Tarif Billing & Bagi Hasil UPT</h3>
+                <p className="text-[11px] text-slate-500">
+                  Tarif panggilan warga binaan per detik dan porsi bagi hasil 4 pihak (otomatis sinkron ke Modul Keuangan)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            {/* Tarif Per Detik */}
+            <div className="max-w-md space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                Tarif Panggilan Per Detik (Rp / detik) <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 font-bold text-xs text-slate-400">Rp</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  name="contractRatePerSecond"
+                  value={formData.contractRatePerSecond}
+                  onChange={(e) => setFormData(prev => ({ ...prev, contractRatePerSecond: e.target.value }))}
+                  required
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                />
+              </div>
+              <p className="text-[11px] text-blue-600 font-semibold">
+                Setara Rp {(Number(formData.contractRatePerSecond || 0) * 60).toLocaleString('id-ID')} / menit
+              </p>
+            </div>
+
+            {/* Bagi Hasil 4 Pihak */}
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Porsi Bagi Hasil 4 Pihak</h4>
+                  <p className="text-[11px] text-slate-400">Total akumulasi wajib tepat 100%</p>
+                </div>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${
+                  Math.abs((Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)) - 100) < 0.01
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
+                }`}>
+                  Total: {Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)}%
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Kepala UPT (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="shareKepalaUptPercent"
+                    value={formData.shareKepalaUptPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, shareKepalaUptPercent: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Lapas (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="shareKoperasiPercent"
+                    value={formData.shareKoperasiPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, shareKoperasiPercent: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Inkopasindo (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="shareInkopasindoPercent"
+                    value={formData.shareInkopasindoPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, shareInkopasindoPercent: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-[11px] font-bold text-slate-700">Vendor PasCall (%)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    name="shareVendorPercent"
+                    value={formData.shareVendorPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, shareVendorPercent: e.target.value }))}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Section 4: Akun Kepala UPT */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -583,16 +711,27 @@ const Create = () => {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Password <span className="text-rose-500">*</span>
                   </label>
-                  {adminPassword && (
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => handleCopy(adminPassword, 'password')}
-                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={handleAutoGeneratePassword}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                      title="Buat ulang password acak baru"
                     >
-                      {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Generate Ulang</span>
                     </button>
-                  )}
+                    {adminPassword && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(adminPassword, 'password')}
+                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />

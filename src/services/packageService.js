@@ -603,7 +603,46 @@ export const getPackageTemplates = async () => {
   }
 };
 
+/**
+ * Mengambil informasi tarif acuan per detik & batas maksimal paket untuk SPV
+ * Endpoint: GET /api/packages/tariff-info
+ */
+export const getPackageTariffInfo = async () => {
+  try {
+    const res = await apiFetch('/api/packages/tariff-info');
+    if (res?.data) return res.data;
+    if (res?.baseRatePerSecond) return res;
+  } catch (err) {
+    console.warn('[PackageService] Gagal memuat info tarif paket, gunakan fallback:', err?.message || err);
+  }
+
+  // Fallback jika offline / backend belum merespons
+  try {
+    const local = localStorage.getItem('pascall_finance_global_settings');
+    if (local) {
+      const parsed = JSON.parse(local);
+      const base = Number(parsed.defaultRatePerSecond || 15);
+      return {
+        baseRatePerSecond: base,
+        maxMarkupPerSecond: 2,
+        maxAllowedRatePerSecond: base + 2,
+        branchId: null,
+        branchName: null,
+      };
+    }
+  } catch {}
+
+  return {
+    baseRatePerSecond: 15,
+    maxMarkupPerSecond: 2,
+    maxAllowedRatePerSecond: 17,
+    branchId: null,
+    branchName: null,
+  };
+};
+
 export default {
+  getPackageTariffInfo,
   PACKAGES_ENDPOINT,
   PACKAGE_DETAIL_ENDPOINT,
   PACKAGE_STATUS_ENDPOINT,

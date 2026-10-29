@@ -13,11 +13,15 @@ import {
   Check,
   Clock,
   Sparkles,
-  Trash2
+  Trash2,
+  Coins,
+  Info,
+  ShieldAlert
 } from 'lucide-react';
 import { 
   getPackages, 
   getPackageTemplates,
+  getPackageTariffInfo,
   createPackage, 
   updatePackage, 
   togglePackageStatus,
@@ -35,6 +39,34 @@ export default function BranchPackages() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('semua');
   const [statusFilter, setStatusFilter] = useState('semua');
+
+  // Data Tarif Acuan UPT & Batas Maksimal (+Rp 2/detik)
+  const [tariffInfo, setTariffInfo] = useState({
+    baseRatePerSecond: 15,
+    maxMarkupPerSecond: 2,
+    maxAllowedRatePerSecond: 17,
+    branchId: null,
+    branchName: null,
+  });
+
+  const fetchTariff = useCallback(async () => {
+    try {
+      const data = await getPackageTariffInfo();
+      if (data) {
+        setTariffInfo(data);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat tarif acuan paket:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchTariff();
+  }, [fetchTariff]);
+
+  const baseRate = Number(tariffInfo?.baseRatePerSecond || 15);
+  const maxRate = Number(tariffInfo?.maxAllowedRatePerSecond || baseRate + 2);
+
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -247,6 +279,18 @@ export default function BranchPackages() {
       return;
     }
 
+    // Validasi batas maksimal harga paket untuk status Aktif
+    const durasiDetik = durasiNum * 60;
+    const batasHargaMaksimal = Math.round(durasiDetik * maxRate);
+    const isHargaMelebihiBatas = hargaNum > batasHargaMaksimal;
+
+    if (formData.status === 'Aktif' && isHargaMelebihiBatas) {
+      setFormError(
+        `Harga paket (${formatRupiah(hargaNum)}) melebihi batas maksimal ${formatRupiah(batasHargaMaksimal)} (Tarif acuan ${formatRupiah(baseRate)}/detik + batas toleransi markup Rp 2/detik). Paket tidak diizinkan untuk diaktifkan atau diperjualbelikan.`
+      );
+      return;
+    }
+
     if (!formData.status) {
       setFormError('Status paket wajib dipilih.');
       return;
@@ -288,6 +332,15 @@ export default function BranchPackages() {
   };
 
   const handleToggleClick = (pkg) => {
+    const dur = Number(pkg.durasi || pkg.durationMinutes || 0);
+    const prc = Number(pkg.harga || pkg.price || 0);
+    const maxP = Math.round(dur * 60 * maxRate);
+
+    if (pkg.status !== 'Aktif' && dur > 0 && prc > maxP) {
+      showToast(`Paket "${pkg.nama || pkg.name}" tidak dapat diaktifkan karena harganya (${formatRupiah(prc)}) melebihi batas maksimal ${formatRupiah(maxP)} (Tarif acuan ${formatRupiah(baseRate)}/dtk + batas toleransi Rp 2/dtk). Silakan ubah harga terlebih dahulu.`);
+      return;
+    }
+
     if (pkg.status === 'Aktif') {
       setSelectedPackageForToggle(pkg);
       setIsConfirmModalOpen(true);
@@ -418,6 +471,41 @@ export default function BranchPackages() {
           <span>{toastMessage}</span>
         </div>
       )}
+
+      
+      {/* Banner Informasi Tarif Acuan & Batas Penjualan Maksimal SPV (+Rp 2/detik) */}
+      <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 rounded-2xl p-4 border border-blue-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+            <Coins className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-black text-slate-800 text-sm tracking-tight">
+                Ketentuan Tarif & Batas Maksimal Harga Paket SPV
+              </span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-200/80 text-blue-900 border border-blue-300">
+                Aturan Maksimal +Rp 2/detik
+              </span>
+            </div>
+            <p className="text-slate-600 text-[11px] mt-0.5 leading-relaxed">
+              Sesuai ketentuan, harga jual paket yang dibuat oleh Supervisor (SPV) maksimal adalah <strong>Tarif Acuan + Rp 2/detik</strong>. Paket yang melebihi batas ini tidak dapat diaktifkan untuk kasir kantin.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-center shrink-0 bg-white/90 px-3.5 py-2 rounded-xl border border-blue-200">
+          <div>
+            <span className="text-[10px] text-slate-400 font-semibold block uppercase tracking-wider">Tarif Acuan UPT</span>
+            <span className="text-xs font-mono font-bold text-slate-800">{formatRupiah(baseRate)}/detik</span>
+          </div>
+          <div className="h-6 w-px bg-slate-200" />
+          <div>
+            <span className="text-[10px] text-blue-700 font-bold block uppercase tracking-wider">Batas Maksimal (+2)</span>
+            <span className="text-xs font-mono font-black text-blue-900">{formatRupiah(maxRate)}/detik</span>
+          </div>
+        </div>
+      </div>
 
       {/* Control Toolbar: Tabs Kategori, Search, Filter Status, dan Tombol Tambah Paket */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
@@ -574,6 +662,10 @@ export default function BranchPackages() {
               <tbody className="divide-y divide-slate-100">
                 {displayedBranchPackages.map((pkg) => {
                   const isInactive = pkg.status === 'Nonaktif' || pkg.isActive === false;
+                  const pkgDur = Number(pkg.durasi || pkg.durationMinutes || 0);
+                  const pkgPrc = Number(pkg.harga || pkg.price || 0);
+                  const pkgMaxP = Math.round(pkgDur * 60 * maxRate);
+                  const isOverLimit = pkgDur > 0 && pkgPrc > pkgMaxP;
                   const isTelepon = (pkg.kategori || '').toLowerCase() === 'telepon';
 
                   return (
@@ -669,6 +761,14 @@ export default function BranchPackages() {
                           />
                           {isInactive ? 'Nonaktif' : 'Aktif'}
                         </span>
+                        {isOverLimit && (
+                          <span
+                            className="block mt-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 w-fit mx-auto cursor-help"
+                            title={`Harga paket melebihi batas maksimal ${formatRupiah(pkgMaxP)}`}
+                          >
+                            Melebihi Batas (+2)
+                          </span>
+                        )}
                       </td>
 
                       {/* Aksi */}
@@ -689,11 +789,15 @@ export default function BranchPackages() {
                             className={`p-1.5 rounded-lg transition cursor-pointer shadow-2xs hover:scale-105 border ${
                               !isInactive
                                 ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border-rose-200/80'
+                                : isOverLimit
+                                ? 'bg-slate-200 text-slate-400 border-slate-300 cursor-not-allowed opacity-60'
                                 : 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600'
                             }`}
                             title={
                               !isInactive
                                 ? 'Nonaktifkan Paket (Sembunyikan dari Kasir Kantin)'
+                                : isOverLimit
+                                ? `Tidak dapat diaktifkan: Harga (${formatRupiah(pkgPrc)}) melebihi batas maksimal (${formatRupiah(pkgMaxP)})`
                                 : 'Aktifkan Paket (Tampilkan di Kasir Kantin)'
                             }
                           >
@@ -845,7 +949,17 @@ export default function BranchPackages() {
               </button>
             </div>
 
+            
             {/* Form Modal */}
+            {(() => {
+              const currentDurasi = Number(formData.durasi || 0);
+              const currentHarga = Number(formData.harga || 0);
+              const durasiDetik = currentDurasi * 60;
+              const modalBasePrice = Math.round(durasiDetik * baseRate);
+              const modalMaxPrice = Math.round(durasiDetik * maxRate);
+              const isOverPrice = currentDurasi > 0 && formData.harga !== '' && currentHarga > modalMaxPrice;
+
+              return (
             <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
@@ -934,10 +1048,61 @@ export default function BranchPackages() {
                     placeholder="15000"
                     value={formData.harga}
                     onChange={(e) => setFormData({ ...formData, harga: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
+                    className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 ${
+                      isOverPrice
+                        ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500 bg-rose-50/20'
+                        : 'border-slate-200 focus:border-[#1565C0] focus:ring-blue-500'
+                    }`}
                   />
                 </div>
               </div>
+
+              {/* Panduan Rincian Tarif & Batas Maksimal */}
+              {currentDurasi > 0 && (
+                <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11px] text-slate-600 flex items-center justify-between">
+                  <span>Tarif Dasar: <strong>{formatRupiah(modalBasePrice)}</strong> ({formatRupiah(baseRate)}/dtk)</span>
+                  <span className={isOverPrice ? 'text-rose-600 font-extrabold' : 'text-blue-700 font-bold'}>
+                    Batas Maksimal (+2): {formatRupiah(modalMaxPrice)} ({formatRupiah(maxRate)}/dtk)
+                  </span>
+                </div>
+              )}
+
+              {/* Kotak Peringatan & Saran Otomatis Jika Harga Melebihi Batas */}
+              {isOverPrice && (
+                <div className="p-3.5 bg-amber-50 border border-amber-200/90 rounded-2xl space-y-2 text-xs text-amber-900 animate-in fade-in duration-150">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block text-amber-900">
+                        Harga Paket Terlalu Mahal
+                      </span>
+                      <p className="text-[11px] text-amber-800 leading-relaxed mt-0.5">
+                        Maksimal harga yang dapat dijual untuk paket <strong>{currentDurasi} menit</strong> adalah{' '}
+                        <strong className="text-amber-950 font-black">{formatRupiah(modalMaxPrice)}</strong> (Berdasarkan tarif acuan {formatRupiah(baseRate)}/detik + batas toleransi markup Rp 2/detik).
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 flex items-center justify-between border-t border-amber-200/70 text-[11px]">
+                    <span className="text-amber-800">Saran Harga Maksimal: <strong>{formatRupiah(modalMaxPrice)}</strong></span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData({ ...formData, harga: String(modalMaxPrice), status: 'Aktif' });
+                        setFormError('');
+                      }}
+                      className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white font-bold rounded-lg transition cursor-pointer text-[10px] flex items-center gap-1 shadow-2xs"
+                    >
+                      <Check className="w-3 h-3" />
+                      <span>Gunakan Harga Maksimal</span>
+                    </button>
+                  </div>
+
+                  <p className="text-[10px] text-amber-700 italic">
+                    * Catatan: Paket dengan harga melebihi batas maksimal hanya dapat disimpan dengan status <strong>Nonaktif (Draft)</strong> dan tidak diizinkan untuk diperjualbelikan di kasir kantin.
+                  </p>
+                </div>
+              )}
 
               {/* Status Paket */}
               <div>
@@ -945,12 +1110,15 @@ export default function BranchPackages() {
                   Status Paket <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={formData.status}
+                  value={isOverPrice ? 'Nonaktif' : formData.status}
+                  disabled={isOverPrice}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
                 >
-                  <option value="Aktif">Aktif (Tampil di Kasir Kantin)</option>
-                  <option value="Nonaktif">Nonaktif (Disembunyikan dari Kantin)</option>
+                  <option value="Aktif" disabled={isOverPrice}>
+                    {isOverPrice ? 'Aktif (Dilarang: Melebihi Batas Harga)' : 'Aktif (Tampil di Kasir Kantin)'}
+                  </option>
+                  <option value="Nonaktif">Nonaktif (Disembunyikan dari Kantin / Draft)</option>
                 </select>
               </div>
 
@@ -971,6 +1139,8 @@ export default function BranchPackages() {
                 </button>
               </div>
             </form>
+              );
+            })()}
           </div>
         </div>
       )}

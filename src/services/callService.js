@@ -172,9 +172,22 @@ export const mapCallItem = (item) => {
     durationSeconds: typeof call.durationSeconds === 'number' 
       ? call.durationSeconds 
       : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0)),
-    cost: typeof item.cost === 'number' 
-      ? item.cost 
-      : (typeof call.cost === 'number' ? call.cost : (Number(item.amount ?? item.cost) || Math.round((call.durationSeconds || item.durationSeconds || 0) * 25))),
+    cost: (() => {
+      const durationSec = typeof call.durationSeconds === 'number' 
+        ? call.durationSeconds 
+        : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
+      const ratePerSec = Number(call.ratePerSecond || item.ratePerSecond || call.inmate?.branch?.contractRatePerSecond || item.branch?.contractRatePerSecond || 15);
+      const rawCost = (typeof item.totalCost === 'number' && item.totalCost > 0)
+        ? item.totalCost
+        : ((typeof call.totalCost === 'number' && call.totalCost > 0)
+          ? call.totalCost
+          : ((typeof item.cost === 'number' && item.cost > 0)
+            ? item.cost
+            : ((typeof call.cost === 'number' && call.cost > 0)
+              ? call.cost
+              : null)));
+      return rawCost !== null ? rawCost : (durationSec > 0 ? Math.round(durationSec * ratePerSec) : 0);
+    })(),
     status: normalizedStatus,
     statusText,
     rawStatus,

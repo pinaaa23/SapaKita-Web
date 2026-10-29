@@ -18,7 +18,8 @@ import {
   Copy,
   Check,
   X,
-  Landmark
+  Landmark,
+  Receipt
 } from 'lucide-react';
 import { getBranchById, updateBranchStatus } from '../../services/branchService';
 import { getUsers, resetUserPassword } from '../../services/userService';
@@ -423,6 +424,46 @@ const Detail = () => {
                 <p className="text-slate-800 font-bold text-sm">
                   {new Intl.NumberFormat('id-ID').format(branch.inmateCount)} <span className="text-slate-500 font-normal text-xs">Orang</span>
                 </p>
+              </div>
+
+              {/* Tarif Kontrak Billing */}
+              <div className="space-y-1">
+                <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-slate-400" /> Tarif Panggilan Billing
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-900 font-black font-mono text-sm">
+                    Rp {Number(branch.contractRatePerSecond || 15).toLocaleString('id-ID')} / detik
+                  </span>
+                  <span className="text-[11px] text-blue-600 font-semibold bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Rp {(Number(branch.contractRatePerSecond || 15) * 60).toLocaleString('id-ID')} / menit
+                  </span>
+                </div>
+              </div>
+
+              {/* Bagi Hasil 4 Pihak */}
+              <div className="md:col-span-2 space-y-2 bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
+                <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <Wallet className="w-3.5 h-3.5 text-slate-400" /> Porsi Bagi Hasil 4 Pihak
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 block font-medium">Kepala UPT</span>
+                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKepalaUptPercent || 5}%</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 block font-medium">Koperasi Lapas</span>
+                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKoperasiPercent || 30}%</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 block font-medium">Inkopasindo</span>
+                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareInkopasindoPercent || 10}%</span>
+                  </div>
+                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
+                    <span className="text-[10px] text-slate-400 block font-medium">Vendor PasCall</span>
+                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareVendorPercent || 55}%</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

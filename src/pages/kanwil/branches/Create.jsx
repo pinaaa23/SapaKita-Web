@@ -138,6 +138,10 @@ export default function KanwilBranchCreate() {
     setAdminConfirmPassword(pwd);
   };
 
+  useEffect(() => {
+    handleAutoGeneratePassword();
+  }, []);
+
   const handleCopy = (text, fieldName) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
@@ -533,16 +537,27 @@ export default function KanwilBranchCreate() {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Password <span className="text-rose-500">*</span>
                   </label>
-                  {adminPassword && (
+                  <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => handleCopy(adminPassword, 'password')}
-                      className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      onClick={handleAutoGeneratePassword}
+                      className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer"
+                      title="Buat ulang password acak baru"
                     >
-                      {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                      <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                      <span>Generate Ulang</span>
                     </button>
-                  )}
+                    {adminPassword && (
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(adminPassword, 'password')}
+                        className="text-[11px] font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                      >
+                        {copiedField === 'password' ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        <span>{copiedField === 'password' ? 'Disalin' : 'Salin Password'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
