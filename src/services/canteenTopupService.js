@@ -90,6 +90,10 @@ export function setPendingTopupCountSync(count) {
  * @returns {Promise<{ totalSaldoTerjual: number, totalPpn: number, totalTopupCount: number, totalPending: number }>}
  */
 export async function getTopupSummary(params = {}) {
+  const token = getAuthToken();
+  if (!token) {
+    return { totalSaldoTerjual: 0, totalPpn: 0, totalTopupCount: 0, totalPending: 0 };
+  }
   if (isDummyMode()) {
     await delay(100);
     const history = getStoredNationalHistory();

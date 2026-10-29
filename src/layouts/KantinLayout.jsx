@@ -15,6 +15,7 @@ import {
   Users
 } from 'lucide-react';
 import { formatTanggal } from '../utils/formatKantin';
+import { getAuthToken } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
 import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
@@ -55,6 +56,7 @@ export default function KantinLayout() {
 
   const fetchNotifData = async () => {
     if (isFetchingNotifRef.current) return;
+    if (!getAuthToken()) { setNotifications([]); return; }
     isFetchingNotifRef.current = true;
     try {
       const list = await getNotifications();

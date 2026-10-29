@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   Calendar, 
   CheckCircle2, 
@@ -28,6 +29,8 @@ import {
   FileText,
   ExternalLink,
   Lock,
+  Building2,
+  QrCode,
 } from 'lucide-react';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import { 
@@ -41,6 +44,15 @@ import {
   isCanteenContractConfigured,
 } from '../../services/canteenBillingService';
 import ModalPembayaranTagihan from '../../components/kantin/ModalPembayaranTagihan';
+import { getFinancePaymentSettings } from '../../services/financeService';
+
+function resolveImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  return `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
+}
 import { API_BASE_URL } from '../../services/api';
 
 export default function TagihanPage() {
@@ -79,6 +91,26 @@ export default function TagihanPage() {
   // Modal Pembayaran Tagihan State
   const [isModalBayarOpen, setIsModalBayarOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+
+  // Pengaturan Rekening Penampung & QRIS Finance
+  const [financeSetting, setFinanceSetting] = useState(null);
+  const [copiedRekening, setCopiedRekening] = useState(false);
+  const [previewQrisModal, setPreviewQrisModal] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadSettings = () => {
+      getFinancePaymentSettings().then((s) => {
+        if (isMounted && s) setFinanceSetting(s);
+      });
+    };
+    loadSettings();
+    window.addEventListener('finance_payment_settings_updated', loadSettings);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('finance_payment_settings_updated', loadSettings);
+    };
+  }, []);
 
   // Pastikan halaman selalu dimulai dari paling atas saat dibuka
   useEffect(() => {
@@ -848,7 +880,7 @@ export default function TagihanPage() {
                       </strong>{' '}
                       dan{' '}
                       <strong className="text-white font-bold">
-                        {saPercent !== null ? `${saPercent}% bagian SA` : '-'}
+                        {saPercent !== null ? `${saPercent}% porsi Vendor` : '-'}
                       </strong>.
                     </p>
                   )
@@ -983,9 +1015,19 @@ export default function TagihanPage() {
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   ) : (
-                    <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/80 rounded-xl border border-slate-700/80 flex items-center justify-center gap-1.5">
+                    <div className="space-y-2">
+                      <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/80 rounded-xl border border-slate-700/80 flex items-center justify-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-slate-400" />
-                      <span>Tidak Ada Tagihan (Rp 0)</span>
+                        <span>Tidak Ada Tagihan (Rp 0)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsModalBayarOpen(true)}
+                        className="w-full inline-flex items-center justify-center gap-2 px-3.5 py-2.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs rounded-xl border border-white/20 transition cursor-pointer shadow-xs"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-blue-300" />
+                        <span>Lihat Rekening Bank & QRIS Resmi</span>
+                      </button>
                     </div>
                   )
                 )}
@@ -1007,6 +1049,228 @@ export default function TagihanPage() {
             </div>
           </div>
         </div>
+
+      {/* =========================================================================
+          KARTU INFORMASI REKENING PENAMPUNG & BARCODE QRIS RESMI (ALWAYS VISIBLE)
+          ========================================================================= */}
+      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 transition-all space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Rekening Penampung & Barcode QRIS Resmi Setoran
+                </h3>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
+                  Sinkron Terpusat
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Rekening resmi Finance PasCall untuk pembayaran setoran tagihan bulanan dan operasional kasir kantin.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Rekening Terverifikasi Superadmin</span>
+          </span>
+        </div>
+
+        {/* Grid 2 Kolom: Rekening Bank & QRIS Barcode */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2">
+          {/* Kolom Kiri: Kartu Rekening Bank Modern (7 Kolom) */}
+          <div className="lg:col-span-7 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 border border-blue-900/40 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px]">
+            {/* Background Pattern */}
+            <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-4 translate-y-4">
+              <Building2 className="w-48 h-48 text-blue-200" />
+            </div>
+
+            <div className="flex items-center justify-between relative z-10">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-1 bg-blue-500/30 text-blue-200 text-xs font-black uppercase tracking-wider rounded-lg border border-blue-400/30">
+                  {financeSetting?.bankName || 'Bank Mandiri'}
+                </span>
+                <span className="text-[11px] text-slate-300 font-medium">Rekening Tujuan Setoran</span>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-400/30">
+                Default Aktif
+              </span>
+            </div>
+
+            <div className="my-3.5 relative z-10">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block mb-1">
+                Nomor Rekening Tujuan
+              </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-xl sm:text-2xl font-mono font-black text-white tracking-widest select-all">
+                  {financeSetting?.accountNumber || '168-00-9988112-7'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const num = financeSetting?.accountNumber || '168-00-9988112-7';
+                    navigator.clipboard.writeText(num);
+                    setCopiedRekening(true);
+                    setTimeout(() => setCopiedRekening(false), 2000);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer"
+                  title="Salin nomor rekening"
+                >
+                  {copiedRekening ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-emerald-300">Tersalin</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5 text-blue-300" />
+                      <span>Salin No. Rekening</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 relative z-10">
+              <div>
+                <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
+                <span className="font-bold text-white text-xs">
+                  {financeSetting?.accountHolder || 'PT PasCall Solusi Indonesia'}
+                </span>
+              </div>
+              <CreditCard className="w-5 h-5 text-blue-400/60" />
+            </div>
+          </div>
+
+          {/* Kolom Kanan: Barcode QRIS Resmi (5 Kolom) */}
+          <div className="lg:col-span-5 bg-gradient-to-br from-blue-50/70 to-indigo-50/50 rounded-2xl p-4 sm:p-5 border border-blue-200/80 flex flex-col justify-between">
+            <div className="flex items-start gap-4">
+              <div
+                onClick={() => financeSetting?.qrisImageUrl && setPreviewQrisModal(true)}
+                className={`relative group shrink-0 ${financeSetting?.qrisImageUrl ? 'cursor-pointer' : ''}`}
+                title={financeSetting?.qrisImageUrl ? 'Klik untuk memperbesar barcode QRIS' : ''}
+              >
+                {financeSetting?.qrisImageUrl ? (
+                  <div className="relative">
+                    <img
+                      src={resolveImageUrl(financeSetting.qrisImageUrl)}
+                      alt="QRIS Resmi Penampung"
+                      className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-xl bg-white border border-blue-200 shadow-xs p-1.5 group-hover:scale-105 transition-transform"
+                    />
+                    <div className="absolute inset-0 bg-slate-900/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1">
+                      <Eye className="w-4 h-4" />
+                      <span>Perbesar</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-white border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-[10px] p-2 text-center">
+                    <QrCode className="w-6 h-6 mb-1 text-slate-400" />
+                    <span>QRIS Belum Tersedia</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-1.5 flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <QrCode className="w-4 h-4 text-blue-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-900">Scan Barcode QRIS</span>
+                </div>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  Pindai barcode menggunakan aplikasi m-Banking (Mandiri Livin, BCA, BRImo, BNI) atau E-Wallet (GoPay, OVO, DANA).
+                </p>
+                {financeSetting?.qrisImageUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewQrisModal(true)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 transition pt-1 cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Perbesar Barcode QRIS</span>
+                    <ArrowRight className="w-3 h-3 ml-0.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Petunjuk Pembayaran Tambahan */}
+            {financeSetting?.instructions && (
+              <div className="mt-3 pt-2.5 border-t border-blue-200/60 text-[11px] text-slate-600 flex items-start gap-1.5">
+                <Info className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>Petunjuk:</strong> {financeSetting.instructions}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* =========================================================================
+          MODAL PREVIEW BARCODE QRIS RESMI (FULL SIZE ZOOM)
+          ========================================================================= */}
+      {previewQrisModal && financeSetting?.qrisImageUrl && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0, padding: '1rem' }}
+          onClick={() => setPreviewQrisModal(false)}
+        >
+          <div 
+            className="relative w-full max-w-xl sm:max-w-2xl bg-white rounded-3xl shadow-2xl p-6 sm:p-8 border border-slate-100 text-center animate-in zoom-in-95 duration-200 my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setPreviewQrisModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <QrCode className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Barcode QRIS Nasional</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT PasCall Solusi Indonesia'}
+            </p>
+
+            <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 border-slate-200/90 shadow-md flex items-center justify-center w-full max-w-[480px] mx-auto my-4 aspect-square">
+              <img
+                src={resolveImageUrl(financeSetting.qrisImageUrl)}
+                alt="Barcode QRIS Resmi"
+                className="w-full h-full object-contain rounded-lg select-none"
+              />
+            </div>
+
+            <p className="text-[11px] text-slate-500 mt-4 leading-relaxed">
+              Pindai barcode ini langsung dari layar menggunakan aplikasi m-Banking atau e-Wallet pada ponsel kasir kantin.
+            </p>
+
+            <div className="mt-5 flex items-center justify-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => window.open(resolveImageUrl(financeSetting.qrisImageUrl), '_blank')}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold rounded-xl text-xs border border-blue-200 transition cursor-pointer"
+              >
+                <ExternalLink className="w-4 h-4" />
+                <span>Buka Gambar di Tab Baru</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPreviewQrisModal(false)}
+                className="px-6 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition cursor-pointer"
+              >
+                Tutup Pratinjau
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Info Accordion Alur Pembayaran Pascabayar */}
       <div className="no-print bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 transition-all">
@@ -1411,8 +1675,11 @@ export default function TagihanPage() {
           Rincian: Total detik, tarif per detik, subtotal (detik x tarif),
           persen SA, dan total tagihan.
           ========================================================================= */}
-      {showDetailModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      {showDetailModal && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
+        >
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
@@ -1438,10 +1705,10 @@ export default function TagihanPage() {
               <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs text-blue-950">
                 <div className="font-bold flex items-center gap-1.5 mb-1 text-blue-900">
                   <Coins className="w-4 h-4 text-blue-600" />
-                  Rumus: Total Detik × Tarif per Detik × Porsi Setoran ke Finance
+                  Rumus: Total Detik × Tarif per Detik × Porsi Setoran Vendor (55%)
                 </div>
                 <p className="text-[11px] text-blue-800 leading-relaxed">
-                  Durasi detik panggilan terakumulasi otomatis dari rekaman panggilan WBP. Tarif per detik dan formula bagi hasil 4 pihak (Kepala UPT 5%, Koperasi 30%, Inkopasindo 10%, Vendor 55%) dikelola oleh Admin Finance.
+                  Durasi detik terakumulasi dari voucher yang dibeli WBP. Kantin menyetor langsung porsi 55% untuk hak Vendor PasCall ke rekening penampung. Sisa 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) dikelola dan didistribusikan di tingkat internal UPT.
                 </p>
               </div>
 
@@ -1474,14 +1741,14 @@ export default function TagihanPage() {
                 </div>
 
                 <div className="py-2.5 flex justify-between">
-                  <span className="text-slate-500">4. Porsi Setoran ke Finance:</span>
+                  <span className="text-slate-500">4. Porsi Setoran ke Rekening Vendor:</span>
                   <div className="text-right">
                     <span className="font-bold text-blue-700 block">
                       {isContractConfigured && saPercent !== null ? `${saPercent}%` : 'Belum diatur'}
                     </span>
                     {isContractConfigured && saPercent !== null && (
                       <span className="text-[11px] text-slate-500 font-normal block">
-                        Hak Koperasi UPT: {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))}) ditahan di UPT.
+                        Hak Internal UPT (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%): {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))}) dikelola UPT.
                       </span>
                     )}
                   </div>
@@ -1490,7 +1757,7 @@ export default function TagihanPage() {
                 <div className="pt-3 flex justify-between items-center text-sm">
                   <div>
                     <span className="font-black text-slate-900 block">Total Setoran Bulan Ini:</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Admin Finance (Porsi {saPercent || 70}% Setoran)</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Rekening Vendor (Porsi {saPercent || 55}% Vendor PasCall)</span>
                   </div>
                   <span className="font-black text-[#1565C0] text-base">
                     {isContractConfigured && newTotalTagihan !== null ? formatRupiah(newTotalTagihan) : '-'}
@@ -1527,8 +1794,11 @@ export default function TagihanPage() {
       {/* =========================================================================
           MODAL PREVIEW BUKTI PEMBAYARAN (GAMBAR / PDF)
           ========================================================================= */}
-      {previewProofItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      {previewProofItem && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
+        >
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-5 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div>

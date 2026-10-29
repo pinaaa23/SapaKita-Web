@@ -18,7 +18,12 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  CreditCard,
+  QrCode,
+  Copy,
+  Check,
 } from 'lucide-react';
+import { getFinancePaymentSettings } from '../../services/financeService';
 import { formatRupiah, formatTanggal } from '../../utils/formatKantin';
 import {
   PPN_RATE,
@@ -54,6 +59,8 @@ export default function TopUpSaldoPage() {
   // State modal konfirmasi & form pengajuan
   const [showKonfirmasi, setShowKonfirmasi] = useState(false);
   const [bankTarget, setBankTarget] = useState(BANK_OPTIONS[0]);
+  const [financeSetting, setFinanceSetting] = useState(null);
+  const [copiedRekening, setCopiedRekening] = useState(false);
   const [proofFile, setProofFile] = useState(null);
   const [fileError, setFileError] = useState('');
 
@@ -67,16 +74,41 @@ export default function TopUpSaldoPage() {
     loadSaldo();
     loadRiwayat();
 
+    // Load Pengaturan Rekening Default dari Finance
+    const fetchFinanceSetting = async () => {
+      try {
+        const s = await getFinancePaymentSettings();
+        if (s) {
+          setFinanceSetting(s);
+          const defaultOpt = `${s.bankName || 'Bank Mandiri'} - ${s.accountNumber || '168-00-9988112-7'} (a.n. ${s.accountHolder || 'PT PasCall Solusi Indonesia'})`;
+          setBankTarget(defaultOpt);
+        }
+      } catch (err) {
+        console.warn('Gagal memuat setting finance:', err);
+      }
+    };
+    fetchFinanceSetting();
+
     const handleUpdate = () => {
       loadSaldo();
       loadRiwayat();
     };
 
+    const handleFinanceUpdate = (e) => {
+      if (e?.detail) {
+        setFinanceSetting(e.detail);
+        const opt = `${e.detail.bankName || 'Bank Mandiri'} - ${e.detail.accountNumber || '168-00-9988112-7'} (a.n. ${e.detail.accountHolder || 'PT PasCall Solusi Indonesia'})`;
+        setBankTarget(opt);
+      }
+    };
+
     window.addEventListener('canteen_topup_changed', handleUpdate);
+    window.addEventListener('finance_payment_settings_updated', handleFinanceUpdate);
     window.addEventListener('storage', handleUpdate);
 
     return () => {
       window.removeEventListener('canteen_topup_changed', handleUpdate);
+      window.removeEventListener('finance_payment_settings_updated', handleFinanceUpdate);
       window.removeEventListener('storage', handleUpdate);
     };
   }, [statusFilter]);
@@ -470,10 +502,75 @@ export default function TopUpSaldoPage() {
                 </div>
               </div>
 
+              {/* Rekening Default dari Finance (Highlight Card) */}
+              {financeSetting && (
+                <div className="p-3.5 bg-gradient-to-br from-blue-50/90 to-indigo-50/70 border border-blue-200/90 rounded-2xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-[10px]">
+                        <CreditCard className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-xs font-bold text-blue-950">
+                        {financeSetting.bankName || 'Bank Mandiri'}
+                      </span>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-600 text-white shadow-2xs">
+                      Default Resmi Finance
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-white/90 p-2.5 rounded-xl border border-blue-100">
+                    <div>
+                      <p className="text-[10px] text-slate-500 font-medium">Nomor Rekening Penampung:</p>
+                      <p className="text-sm font-mono font-black text-blue-900 tracking-wider">
+                        {financeSetting.accountNumber || '168-00-9988112-7'}
+                      </p>
+                      <p className="text-[11px] text-slate-700 font-semibold mt-0.5">
+                        a.n. {financeSetting.accountHolder || 'PT PasCall Solusi Indonesia'}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (financeSetting.accountNumber) {
+                          navigator.clipboard.writeText(financeSetting.accountNumber);
+                          setCopiedRekening(true);
+                          setTimeout(() => setCopiedRekening(false), 2000);
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-bold border border-blue-200 transition flex items-center gap-1 cursor-pointer"
+                    >
+                      {copiedRekening ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                      <span>{copiedRekening ? 'Tersalin' : 'Salin'}</span>
+                    </button>
+                  </div>
+
+                  {financeSetting.qrisImageUrl && (
+                    <div className="flex items-center gap-3 p-2 bg-white/80 rounded-xl border border-blue-100">
+                      <img
+                        src={financeSetting.qrisImageUrl}
+                        alt="QRIS"
+                        className="w-12 h-12 rounded-lg object-contain border border-slate-200 shadow-2xs shrink-0"
+                      />
+                      <div className="text-[11px] text-slate-600">
+                        <p className="font-bold text-slate-800">Tersedia Barcode QRIS Resmi</p>
+                        <p className="text-[10px] text-slate-500">Bisa langsung scan barcode saat transfer dari m-banking</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {financeSetting.instructions && (
+                    <p className="text-[10px] text-slate-600 italic">
+                      Catatan: {financeSetting.instructions}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Pilihan Bank Tujuan Transfer */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700">
-                  Rekening Tujuan Transfer (Rekening Penampung Finance)
+                  Pilihan Rekening Penampung Finance
                 </label>
                 <select
                   value={bankTarget}
@@ -481,6 +578,11 @@ export default function TopUpSaldoPage() {
                   disabled={isProcessing}
                   className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
+                  {financeSetting && (
+                    <option value={`${financeSetting.bankName || 'Bank Mandiri'} - ${financeSetting.accountNumber || '168-00-9988112-7'} (a.n. ${financeSetting.accountHolder || 'PT PasCall Solusi Indonesia'})`}>
+                      ⭐ Rekening Default: {financeSetting.bankName} - {financeSetting.accountNumber} ({financeSetting.accountHolder})
+                    </option>
+                  )}
                   {BANK_OPTIONS.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}

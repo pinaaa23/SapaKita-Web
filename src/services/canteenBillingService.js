@@ -186,7 +186,7 @@ export async function getCanteenBillingNational(month, year) {
     // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin/Finance)
     const effectiveRate = isContractSet ? (contract?.ratePerSecond ?? beBranchInfo?.ratePerSecond ?? 15) : null;
     const effectiveSa = isContractSet
-      ? (contract?.superadminPercent ?? contract?.negotiationPercent ?? contract?.contractSharePercentage ?? (contract?.split?.koperasi ? 100 - contract.split.koperasi : null) ?? beBranchInfo?.passcallSharePercentage ?? beBranchInfo?.contractSharePercentage ?? 70)
+      ? (contract?.superadminPercent ?? contract?.negotiationPercent ?? contract?.contractSharePercentage ?? (contract?.split?.koperasi ? 100 - contract.split.koperasi : null) ?? beBranchInfo?.passcallSharePercentage ?? beBranchInfo?.contractSharePercentage ?? 55)
       : null;
 
     const billingCalc = calculateUnifiedBilling({
@@ -273,8 +273,8 @@ export async function getCanteenBillingNational(month, year) {
       canteenKeepAmount: billingCalc.canteenShare || 0,
       depositAmountToFinance: billingCalc.totalAmount || 0,
       shares: {
-        koperasi: { percent: billingCalc.canteenPercent || 30, amount: billingCalc.canteenShare || 0 },
-        finance: { percent: billingCalc.superadminPercent || 70, amount: billingCalc.totalAmount || 0 },
+        koperasi: { percent: billingCalc.canteenPercent || 45, amount: billingCalc.canteenShare || 0 },
+        finance: { percent: billingCalc.superadminPercent || 55, amount: billingCalc.totalAmount || 0 },
       },
       statusPembayaran,
       rawStatus,
@@ -883,7 +883,7 @@ export async function getAllCanteenContracts() {
         ? Number(item.superadminPercent)
         : (item.contractSharePercentage !== undefined && item.contractSharePercentage !== null
             ? Number(item.contractSharePercentage)
-            : (item.split?.koperasi ? 100 - Number(item.split.koperasi) : 70));
+            : (item.split?.vendor ? Number(item.split.vendor) : (item.split?.koperasi ? 100 - Number(item.split.koperasi) : 55)));
 
       const ktPct = item.canteenPercent !== undefined && item.canteenPercent !== null
         ? Number(item.canteenPercent)
