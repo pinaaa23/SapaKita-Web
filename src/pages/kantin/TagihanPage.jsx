@@ -69,7 +69,6 @@ export default function TagihanPage() {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [searchQuery, setSearchQuery] = useState('');
   const [copiedInvoice, setCopiedInvoice] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState('calls'); // 'calls' (Rincian Panggilan) | 'payments' (Riwayat Pembayaran)
   const [previewProofItem, setPreviewProofItem] = useState(null);
@@ -1261,44 +1260,6 @@ export default function TagihanPage() {
         </div>,
         document.body
       )}
-
-      {/* Info Accordion Alur Pembayaran Pascabayar */}
-      <div className="no-print bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 transition-all">
-        <button
-          type="button"
-          onClick={() => setShowGuide(!showGuide)}
-          className="w-full flex items-center justify-between gap-3 text-left cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5 text-xs font-bold text-blue-900">
-            <Info className="w-4 h-4 text-blue-600 shrink-0" />
-            <span>Bagaimana Cara Kerja Sistem Tagihan Detik Pascabayar Kantin?</span>
-          </div>
-          <span className="text-xs text-blue-700 font-semibold underline shrink-0">
-            {showGuide ? 'Sembunyikan' : 'Pelajari Selengkapnya'}
-          </span>
-        </button>
-
-        {showGuide && (
-          <div className="mt-4 pt-3 border-t border-blue-200/60 grid grid-cols-1 md:grid-cols-4 gap-3 text-xs text-slate-600 animate-in fade-in duration-200">
-            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">1. Panggilan WBP</span>
-              <span>WBP melakukan panggilan telepon/video. Durasi panggilan dihitung otomatis dalam satuan detik riil.</span>
-            </div>
-            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">2. Kontrak Bagi Hasil 4 Pihak</span>
-              <span>Tarif per detik dan alokasi bagi hasil (Kepala UPT 5%, Koperasi 30%, Inkopasindo 10%, Vendor 55%) dikelola oleh Admin Finance.</span>
-            </div>
-            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">3. Rumus Setoran</span>
-              <span>Kantin menahan porsi 30% laba Koperasi, lalu mentransfer 70% porsi setoran ke rekening penampung Finance.</span>
-            </div>
-            <div className="p-3 bg-white/80 rounded-xl border border-blue-100">
-              <span className="font-extrabold text-blue-700 block mb-1">4. Transfer &amp; ACC Finance</span>
-              <span>Kantin mentransfer ke rekening penampung Finance, mengunggah bukti bayar, diverifikasi Admin Finance, dan bebas berjualan.</span>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* =========================================================================
           TABEL KONTEN UTAMA:
