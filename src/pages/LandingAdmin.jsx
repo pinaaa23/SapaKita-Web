@@ -208,7 +208,7 @@ function LandingAdmin() {
           HEADER (Navbar Rapi dengan Logo dan Badge Admin di Kiri)
           ============================================================== */}
       <header className="w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-5 flex items-center justify-between bg-white lp-header-animate sticky top-0 z-50 shadow-[0_2px_12px_rgba(0,0,0,0.03)] backdrop-blur-md bg-white/95">
-        <Link to="/" className="flex items-center gap-2.5 lp-focus-ring" aria-label="PasCall Beranda Admin">
+        <Link to="/" className="flex items-center gap-2.5 lp-focus-ring" aria-label="Sadewa Beranda Admin">
           <svg width="32" height="24" viewBox="0 0 32 24" fill="none" aria-hidden="true">
             <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#hdr-g-admin)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
             <defs>
@@ -219,7 +219,7 @@ function LandingAdmin() {
             </defs>
           </svg>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-xl font-extrabold tracking-tight text-[#101828]">PasCall</span>
+            <span className="text-xl font-extrabold tracking-tight text-[#101828]">Sadewa</span>
             <span className="text-xs font-bold uppercase tracking-wider text-[#2f6fed] bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100">Admin</span>
           </div>
         </Link>
@@ -241,7 +241,7 @@ function LandingAdmin() {
             {/* Tag / Badge */}
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100/80 text-[#2f6fed] text-xs font-bold mb-4 lp-hero-swipe-left">
               <span className="w-2 h-2 rounded-full bg-[#2f6fed] animate-pulse" />
-              Sistem Manajemen PasCall
+              Sistem Manajemen Sadewa
             </div>
 
             {/* Judul Hero — Rapi 3 baris di layar laptop, proporsional, tidak menabrak gambar */}
@@ -275,7 +275,7 @@ function LandingAdmin() {
 
             {/* Deskripsi dengan jarak cukup ke garis gelombang */}
             <p className="lp-hero-swipe-left text-sm sm:text-base text-[#475467] leading-relaxed max-w-[460px] mt-8 sm:mt-10 mb-8">
-              PasCall membantu admin mengelola layanan komunikasi warga binaan dengan aman, terverifikasi, dan tercatat dalam satu sistem.
+              Sadewa membantu admin mengelola layanan komunikasi warga binaan dengan aman, terverifikasi, dan tercatat dalam satu sistem.
             </p>
 
             {/* Hero CTAs */}
@@ -411,7 +411,7 @@ function LandingAdmin() {
               <div className="relative z-10 rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(15,23,42,0.18)] border-4 border-white/90 bg-white group transition-all duration-300 hover:shadow-[0_25px_60px_rgba(47,111,237,0.25)]">
                 <img
                   src={adminDashboardMockup}
-                  alt="Tampilan Dashboard PasCall"
+                  alt="Tampilan Dashboard Sadewa"
                   className="w-full h-auto object-cover block transition-transform duration-500 group-hover:scale-[1.01]"
                 />
               </div>
@@ -666,7 +666,7 @@ function LandingAdmin() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
                 <div className="flex-1">
                   <h3 className="text-xl sm:text-2xl font-extrabold text-[#101828] leading-snug mb-2">
-                    Siap mengelola layanan PasCall?
+                    Siap mengelola layanan Sadewa?
                   </h3>
                   <p className="text-[#475467] text-sm sm:text-base max-w-[500px] mb-3">
                     Masuk dengan akun admin Anda. Lupa password atau butuh bantuan? Hubungi tim dukungan.
@@ -714,7 +714,7 @@ function LandingAdmin() {
                   </linearGradient>
                 </defs>
               </svg>
-              PasCall
+              Sadewa
             </span>
             <span className="text-[#98a2b3]">Sistem manajemen layanan komunikasi</span>
           </div>
@@ -730,7 +730,7 @@ function LandingAdmin() {
               cs@sadewa.id
             </a>
           </div>
-          <p className="text-[#98a2b3] text-center sm:text-right">© 2026 PasCall. Seluruh hak cipta dilindungi.</p>
+          <p className="text-[#98a2b3] text-center sm:text-right">© 2026 Sadewa. Seluruh hak cipta dilindungi.</p>
         </div>
       </footer>
     </div>

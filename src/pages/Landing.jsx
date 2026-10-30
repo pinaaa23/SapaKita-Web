@@ -516,7 +516,7 @@ export default function Landing() {
           HEADER (Slides down slowly from top)
           ============================================================== */}
       <header className="w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-5 flex items-center justify-between bg-white lp-header-animate">
-        <a href="#" className="flex items-center gap-2 lp-focus-ring" aria-label="PasCall beranda">
+        <a href="#" className="flex items-center gap-2 lp-focus-ring" aria-label="Sadewa beranda">
           <svg width="32" height="24" viewBox="0 0 32 24" fill="none" aria-hidden="true">
             <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#hdr-g)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
             <defs>
@@ -526,7 +526,7 @@ export default function Landing() {
               </linearGradient>
             </defs>
           </svg>
-          <span className="text-xl font-extrabold tracking-tight text-[#101828]">PasCall</span>
+          <span className="text-xl font-extrabold tracking-tight text-[#101828]">Sadewa</span>
         </a>
         <Link
           to="/login"
@@ -567,7 +567,7 @@ export default function Landing() {
             </h1>
 
             <p className="lp-hero-swipe-left text-base sm:text-lg text-[#475467] leading-relaxed max-w-[480px] mt-10 sm:mt-12 mb-8">
-              PasCall menjaga komunikasi Anda dengan orang tercinta tetap aman, terverifikasi, dan tercatat, di mana pun mereka berada.
+              Sadewa menjaga komunikasi Anda dengan orang tercinta tetap aman, terverifikasi, dan tercatat, di mana pun mereka berada.
             </p>
 
             {/* Hero CTAs (Fade & rise up after description & mockup) */}
@@ -581,7 +581,7 @@ export default function Landing() {
                            transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35"
               >
                 <Download className="w-4 h-4" aria-hidden="true" />
-                Dapatkan PasCall
+                Dapatkan Sadewa
               </a>
 
               {/* Secondary CTA */}
@@ -703,7 +703,7 @@ export default function Landing() {
               {/* 5. Mockup image */}
               <img
                 src={mockupPascall}
-                alt="Mockup Aplikasi PasCall"
+                alt="Mockup Aplikasi Sadewa"
                 className="relative z-10 w-full h-auto object-contain max-w-full block pointer-events-none"
               />
             </div>
@@ -859,7 +859,7 @@ export default function Landing() {
 
             {/* Narrative Paragraph */}
             <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[490px] mb-6">
-              Keterbatasan waktu kunjungan fisik dan jarak tempuh seringkali menjadi kendala utama bagi keluarga. PasCall hadir menjembatani kehangatan komunikasi dengan sistem yang aman, terverifikasi, dan mudah diakses.
+              Keterbatasan waktu kunjungan fisik dan jarak tempuh seringkali menjadi kendala utama bagi keluarga. Sadewa hadir menjembatani kehangatan komunikasi dengan sistem yang aman, terverifikasi, dan mudah diakses.
             </p>
 
             {/* 3 Metric Columns with Dividers (Matching Reference) */}
@@ -899,7 +899,7 @@ export default function Landing() {
               </div>
               <div>
                 <span className="block text-sm sm:text-base font-extrabold text-[#101828] tracking-tight font-serif italic">
-                  PasCall Indonesia
+                  Sadewa Indonesia
                 </span>
                 <span className="block text-[10px] sm:text-[11px] font-semibold text-[#64748b] tracking-wider uppercase">
                   Sistem Layanan Terpadu & Terintegrasi
@@ -1524,10 +1524,10 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
                 <div>
                   <h3 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#101828] leading-snug mb-2">
-                    PasCall, kini hadir untuk keluarga Anda.
+                    Sadewa, kini hadir untuk keluarga Anda.
                   </h3>
                   <p className="text-[#475467] text-xs sm:text-sm max-w-[480px]">
-                    Unduh aplikasi PasCall sekarang dan mulai terhubung dengan keluarga tercinta.
+                    Unduh aplikasi Sadewa sekarang dan mulai terhubung dengan keluarga tercinta.
                   </p>
                 </div>
                 <a
@@ -1538,7 +1538,7 @@ export default function Landing() {
                              transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35"
                 >
                   <Download className="w-4 h-4" aria-hidden="true" />
-                  Dapatkan PasCall
+                  Dapatkan Sadewa
                 </a>
               </div>
             </div>
@@ -1563,7 +1563,7 @@ export default function Landing() {
                   </linearGradient>
                 </defs>
               </svg>
-              PasCall
+              Sadewa
             </span>
             <span className="text-[#98a2b3]">Program komunikasi terverifikasi</span>
           </div>
@@ -1579,7 +1579,7 @@ export default function Landing() {
               cs@sadewa.id
             </a>
           </div>
-          <p className="text-[#98a2b3] text-center sm:text-right">© 2026 PasCall. Seluruh hak cipta dilindungi.</p>
+          <p className="text-[#98a2b3] text-center sm:text-right">© 2026 Sadewa. Seluruh hak cipta dilindungi.</p>
         </div>
       </footer>
     </div>
