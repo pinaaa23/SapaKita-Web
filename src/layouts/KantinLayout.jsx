@@ -6,20 +6,23 @@ import {
   PhoneCall, 
   LogOut, 
   User, 
-  Store, 
   Calendar, 
-  Wallet,
-  Bell,
-  CheckCircle2,
-  X,
-  Users
+  Wallet, 
+  Bell, 
+  CheckCircle2, 
+  X, 
+  Users,
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { formatTanggal } from '../utils/formatKantin';
 import { getAuthToken } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
 import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
-import ikonSadewaNew from '../assets/ikon_sadewa new.png';
+import sadewaBlue from '../assets/sadewa_blue.png';
+import ikonSadewa from '../assets/ikon_sadewa.png';
 import { getUnreadApprovedTopupCountSync } from '../services/kantin/saldoService';
 import { 
   getNotifications, 
@@ -29,13 +32,29 @@ import {
 
 /**
  * KantinLayout - Layout khusus untuk halaman Operator Kantin.
- * Hanya dipakai untuk route /kantin/*.
- * Dilengkapi badge angka notifikasi dana top up masuk & notification bell realtime.
+ * Mengadopsi arsitektur Sidebar Superadmin (Modern Floating Gradient Pill Sidebar).
+ * Dilengkapi notifikasi realtime, status wartel, dan saldo pascabayar.
  */
 export default function KantinLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userName, logout } = useAuth();
+
+  // Sidebar toggle state (seperti Superadmin)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const saved = localStorage.getItem('pascall_kantin_sidebar_open');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('pascall_kantin_sidebar_open', isSidebarOpen);
+  }, [isSidebarOpen]);
+
+  // Tutup drawer mobile otomatis setiap berpindah rute
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
 
   // State notifikasi & badge dana masuk
   const [notifications, setNotifications] = useState([]);
@@ -199,146 +218,218 @@ export default function KantinLayout() {
   // Tampilkan email atau nama user
   const displayName = userName || user?.name || user?.email || 'Operator Kantin';
   const displayEmail = user?.email || '';
+  const isExpandedView = isSidebarOpen || isMobileMenuOpen;
 
   return (
-    <div className="h-screen max-h-screen bg-[#F5F7FA] flex flex-col md:flex-row text-[#1E293B] w-full max-w-full overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-[#E4EFFC] via-[#EFF5FC] to-[#F8FAFC] font-sans text-slate-900 flex relative overflow-x-hidden w-full max-w-full">
 
-      {/* SIDEBAR DESKTOP / TABLET (Hidden on Mobile) */}
-      <aside className="no-print hidden md:flex flex-col w-64 bg-white border-r border-[#E2E8F0] shrink-0 h-full max-h-screen z-30 overflow-hidden select-none">
-        {/* Logo Header */}
-        <div className="px-6 py-4.5 border-b border-[#E2E8F0] shrink-0">
-          <div className="flex flex-col items-start min-w-0">
-            <img 
-              src={ikonSadewaNew} 
-              alt="Sadewa" 
-              className="w-[112px] h-auto object-contain object-left block" 
-            />
-            <p className="text-[11px] text-slate-500 font-bold tracking-wider uppercase mt-1 pl-1 truncate max-w-full text-left">
-              Kantin
-            </p>
-          </div>
-        </div>
+      {/* Backdrop Gelap saat Drawer Mobile Terbuka */}
+      {isMobileMenuOpen && (
+        <div 
+          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 md:hidden transition-opacity duration-300 animate-in fade-in"
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Navigation Menus (Paket, Status Wartel, Riwayat, Top Up Saldo) */}
-        <nav className="flex-1 min-h-0 p-3 space-y-1 overflow-y-auto">
-          <div className="px-2.5 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Menu Petugas
-          </div>
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const showBadge = item.isTopup && unreadApprovedCount > 0;
+      {/* SIDEBAR MODERN (Mengadopsi Layout Sidebar Superadmin) */}
+      <aside className={`fixed left-3.5 top-3.5 bottom-3.5 md:left-6 md:top-6 md:bottom-6 z-50 transition-all duration-300 ${
+        isMobileMenuOpen ? 'translate-x-0 w-64 max-w-[85vw]' : '-translate-x-[150%] md:translate-x-0'
+      } ${isSidebarOpen ? 'md:w-60' : 'md:w-[80px]'}`}>
 
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 px-3 py-2.5 rounded-xl font-bold text-xs transition-all duration-150 relative ${
-                    isActive
-                      ? 'bg-[#E3F2FD] text-[#1565C0] shadow-2xs'
-                      : 'text-[#64748B] hover:bg-slate-50 hover:text-[#1E293B]'
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    <Icon
-                      className={`w-4 h-4 transition-colors shrink-0 ${
-                        isActive ? 'text-[#1565C0]' : 'text-slate-400'
-                      }`}
-                    />
-                    <span className="truncate">{item.label}</span>
+        {/* Toggle Button on the side edge of sidebar (Desktop only) */}
+        <button
+          onClick={() => setIsSidebarOpen(prev => !prev)}
+          title={isSidebarOpen ? "Tutup Sidebar" : "Buka Sidebar"}
+          aria-label="Toggle Sidebar"
+          className="hidden md:flex absolute -right-3 top-14 z-50 w-6 h-6 bg-white text-[#0B3D91] rounded-full items-center justify-center shadow-md hover:bg-slate-50 hover:scale-110 transition-all cursor-pointer border border-blue-100"
+        >
+          {isSidebarOpen ? (
+            <ChevronLeft className="w-3.5 h-3.5 text-[#0B3D91]" />
+          ) : (
+            <ChevronRight className="w-3.5 h-3.5 text-[#0B3D91]" />
+          )}
+        </button>
 
-                    {/* Badge angka notifikasi dana masuk */}
-                    {showBadge && (
-                      <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 min-w-[18px] text-[10px] font-extrabold bg-emerald-500 text-white rounded-full shadow-xs animate-pulse shrink-0">
-                        {unreadApprovedCount}
-                      </span>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
-
-          {/* Badge Ringkas Status Wartel di Bawah Menu Navigasi */}
-          <div className="pt-3 px-0.5">
-            <div className="px-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              Ketersediaan Unit
-            </div>
-            <WartelBadgeSidebar />
-          </div>
-
-          {/* Badge Tagihan Pascabayar (Pengganti Saldo Prabayar Lama) */}
-          <div className="pt-2 px-0.5">
-            <div className="px-2 pb-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-              {/* FITUR LAMA DIKOMENTARI: Saldo Kantin */}
-              Tagihan Pascabayar
-            </div>
-            <SaldoBadgeSidebar />
-          </div>
-        </nav>
-
-        {/* Footer Sidebar: Info Operator & Tombol Logout */}
-        <div className="p-3 border-t border-[#E2E8F0] bg-slate-50/70 space-y-2 shrink-0 mt-auto">
-          <div className="p-2.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-blue-100 text-[#1565C0] flex items-center justify-center font-bold shrink-0">
-                <User className="w-3.5 h-3.5" />
+        {/* Main Floating Gradient Sidebar Container */}
+        <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0B3D91] to-[#1E5FCC] text-white flex flex-col shadow-2xl overflow-hidden select-none">
+          
+          {/* 1. Header / Logo */}
+          <div className={`pt-5 pb-3 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-[24px] pr-4' : 'justify-center px-2'}`}>
+            {isExpandedView ? (
+              <div className="flex flex-col items-start min-w-0 overflow-hidden">
+                <img 
+                  src={sadewaBlue} 
+                  alt="Sadewa" 
+                  className="w-[110px] h-auto object-contain object-left drop-shadow-[0_1px_2px_rgba(0,0,0,0.2)]" 
+                />
+                <p className="text-[11px] text-blue-100/90 font-medium tracking-wide mt-1 truncate max-w-full">
+                  Operator Kantin
+                </p>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-slate-800 truncate" title={displayName}>
-                  {displayName}
-                </div>
-                <div className="text-[10px] text-slate-400 font-medium truncate" title={displayEmail}>
-                  {displayEmail || 'Operator Kantin'}
-                </div>
+            ) : (
+              <div className="flex items-center justify-center py-1">
+                <img 
+                  src={ikonSadewa} 
+                  alt="Sadewa" 
+                  className="w-8 h-8 object-contain drop-shadow-sm" 
+                />
               </div>
-            </div>
+            )}
+            {/* Tombol X untuk close drawer di layar mobile */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(false)}
+              aria-label="Tutup Menu"
+              className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
 
-          {/* Tombol Logout */}
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100/80 rounded-xl transition cursor-pointer border border-rose-200/60 shadow-2xs"
-            title="Keluar dari sesi kasir"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Keluar</span>
-          </button>
+          {/* Thin Divider Line */}
+          <div className="mx-4 mb-2">
+            <div className="border-b border-white/15 w-full"></div>
+          </div>
+
+          {/* 2. Menu Items Container */}
+          <nav className="flex-1 min-h-0 overflow-y-auto py-1 px-3 space-y-1.5 no-scrollbar">
+            {isExpandedView && (
+              <div className="px-3 py-1 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
+                Menu Petugas
+              </div>
+            )}
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const showBadge = item.isTopup && unreadApprovedCount > 0;
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  title={!isExpandedView ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `flex items-center transition-all duration-200 ${
+                      !isExpandedView
+                        ? `mx-auto w-10 h-10 justify-center rounded-2xl relative ${
+                            isActive
+                              ? 'bg-white text-[#0B3D91] shadow-md font-bold'
+                              : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                          }`
+                        : `px-3.5 py-2.5 gap-3 rounded-2xl font-semibold text-xs ${
+                            isActive
+                              ? 'bg-white text-[#0B3D91] shadow-md font-bold'
+                              : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                          }`
+                    }`
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon className={`w-4 h-4 shrink-0 transition-colors ${isActive ? 'text-[#0B3D91]' : 'text-blue-200'}`} />
+                      {isExpandedView && <span className="truncate">{item.label}</span>}
+
+                      {/* Badge angka notifikasi dana masuk */}
+                      {showBadge && (
+                        <span className="ml-auto inline-flex items-center justify-center px-1.5 py-0.5 min-w-[18px] text-[10px] font-extrabold bg-emerald-400 text-slate-900 rounded-full shadow-xs animate-pulse shrink-0">
+                          {unreadApprovedCount}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </NavLink>
+              );
+            })}
+
+            {/* Badges Ringkas Kantin (Ketersediaan Unit & Tagihan Pascabayar) */}
+            {isExpandedView && (
+              <>
+                <div className="pt-3 px-1">
+                  <div className="px-2 pb-1.5 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
+                    Ketersediaan Unit
+                  </div>
+                  <WartelBadgeSidebar isDarkTheme={true} />
+                </div>
+
+                <div className="pt-2 px-1">
+                  <div className="px-2 pb-1.5 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
+                    Tagihan Pascabayar
+                  </div>
+                  <SaldoBadgeSidebar isDarkTheme={true} />
+                </div>
+              </>
+            )}
+          </nav>
+
+          {/* 3. Footer Sidebar: Info Operator & Tombol Logout */}
+          <div className={`p-3.5 bg-black/10 border-t border-white/10 space-y-2 shrink-0 mt-auto ${!isExpandedView ? 'px-2' : ''}`}>
+            {isExpandedView ? (
+              <div className="p-2.5 bg-white/10 rounded-2xl border border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center font-bold shrink-0">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold text-white truncate" title={displayName}>
+                      {displayName}
+                    </div>
+                    <div className="text-[10px] text-blue-200 truncate" title={displayEmail}>
+                      {displayEmail || 'Operator Kantin'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="w-10 h-10 mx-auto rounded-2xl bg-white/10 flex items-center justify-center text-white" title={displayName}>
+                <User className="w-4 h-4" />
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className={`flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-200 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 rounded-xl transition cursor-pointer border border-rose-400/20 shadow-xs ${
+                !isExpandedView ? 'w-10 h-10 p-0 mx-auto' : 'w-full'
+              }`}
+              title="Keluar dari sesi kasir"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              {isExpandedView && <span>Keluar</span>}
+            </button>
+          </div>
         </div>
       </aside>
 
-      {/* AREA KONTEN UTAMA */}
+      {/* AREA KONTEN UTAMA APLIKASI */}
       <div 
         ref={mainContentRef}
-        className="flex-1 flex flex-col min-w-0 h-full max-h-screen overflow-y-auto pb-20 md:pb-6 relative"
+        className={`flex-1 flex flex-col min-w-0 min-h-screen max-w-full transition-all duration-300 px-3.5 sm:px-6 py-4 md:py-6 md:pr-6 ${
+          isSidebarOpen ? 'md:pl-[272px]' : 'md:pl-[112px]'
+        }`}
       >
-        {/* UNIFIED PAGE TOPBAR: Hanya 1 judul dengan keterangan di bawahnya, sejajar dengan tanggal & notifikasi */}
-        <header className="no-print bg-white border-b border-[#E2E8F0] px-4 sm:px-8 py-4.5 sm:py-5 shadow-2xs shrink-0">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
-                {/* Brand icon on mobile */}
-                <div className="md:hidden flex items-center gap-2 mr-2">
-                  <img 
-                    src={ikonSadewaNew} 
-                    alt="Sadewa" 
-                    className="h-5 w-auto object-contain" 
-                  />
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Kantin
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+        {/* HEADER JUDUL HALAMAN: Langsung judul bersih tanpa box background */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-1">
+          <div className="flex items-start sm:items-center gap-3">
+            {/* Hamburger Button untuk Mobile Drawer */}
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              aria-label="Buka Menu"
+              className="md:hidden w-10 h-10 rounded-2xl bg-white text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-xs border border-slate-200/80 shrink-0 cursor-pointer transition-colors"
+            >
+              <Menu className="w-5 h-5 text-slate-700" />
+            </button>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100/80 text-blue-800 border border-blue-200/60">
                   {pageInfo.badge}
                 </span>
-                <span className="text-slate-300">•</span>
+                <span className="text-slate-400">•</span>
                 <span className="text-xs font-semibold text-slate-500">Kantin</span>
               </div>
-
               <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
                 {pageInfo.title}
               </h1>
@@ -346,25 +437,26 @@ export default function KantinLayout() {
                 {pageInfo.subtitle}
               </p>
             </div>
+          </div>
 
-            {/* SEJAJAR: Fitur Notifikasi & Tanggal */}
-            <div className="flex items-center gap-2.5 self-start lg:self-center shrink-0">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/90 px-3.5 py-2 rounded-xl shadow-2xs">
-                <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
-                <span>{formatTanggal(new Date(), false)}</span>
-              </div>
+          {/* Fitur Tanggal & Notifikasi Bell (Sejajar dengan Judul) */}
+          <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 px-3.5 py-2 rounded-2xl shadow-2xs">
+              <Calendar className="w-4 h-4 text-[#1565C0]" />
+              <span>{formatTanggal(new Date(), false)}</span>
+            </div>
 
-              {/* Notification Bell Dropdown */}
+            {/* Notification Bell Popover */}
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 title="Notifikasi"
-                className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center shadow-xs border border-slate-200/80 transition-all cursor-pointer"
+                className="relative w-10 h-10 rounded-2xl bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center shadow-2xs border border-slate-200/90 transition-all cursor-pointer"
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotifCount > 0 && (
-                  <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
                 )}
               </button>
 
@@ -443,19 +535,13 @@ export default function KantinLayout() {
                                 : 'bg-blue-100 text-[#1565C0]'
                             }`}
                           >
-                            {n.type === 'canteen_topup_approved' ? (
-                              <CheckCircle2 className="w-4 h-4" />
-                            ) : n.type === 'canteen_topup_rejected' ? (
-                              <X className="w-4 h-4" />
-                            ) : (
-                              <Wallet className="w-4 h-4" />
-                            )}
+                            <Bell className="w-4 h-4" />
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline justify-between gap-2">
                               <p
-                                className={`text-xs ${
-                                  !n.read ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'
+                                className={`text-xs truncate ${
+                                  !n.read ? 'font-bold text-slate-900' : 'font-medium text-slate-700'
                                 }`}
                               >
                                 {n.title}
@@ -488,69 +574,15 @@ export default function KantinLayout() {
                 </div>
               )}
             </div>
-
-            {/* Mobile Logout Quick Button */}
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="md:hidden p-2 text-rose-600 hover:bg-rose-50 rounded-xl border border-rose-200 transition cursor-pointer"
-              title="Keluar"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
           </div>
         </div>
-      </header>
 
         {/* OUTLET KONTEN */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 w-full max-w-full">
           <Outlet />
         </main>
       </div>
 
-      {/* BOTTOM NAVIGATION FOR MOBILE (Paket, Status Wartel, Riwayat, Top Up Saldo) */}
-      <nav className="no-print md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[#E2E8F0] z-40 px-2 py-1.5 flex justify-around shadow-lg">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const showBadge = item.isTopup && unreadApprovedCount > 0;
-
-          return (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 py-1 px-1.5 sm:px-4 rounded-xl transition font-bold text-xs ${
-                  isActive
-                    ? 'text-[#1565C0]'
-                    : 'text-slate-400 hover:text-slate-600'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <div
-                    className={`p-1.5 rounded-xl transition relative ${
-                      isActive ? 'bg-[#E3F2FD]' : ''
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    {showBadge && (
-                      <>
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white animate-ping" />
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
-                      </>
-                    )}
-                  </div>
-                  <span className="text-[10px] sm:text-xs text-center truncate max-w-[70px] sm:max-w-none">
-                    {item.label}
-                  </span>
-                </>
-              )}
-            </NavLink>
-          );
-        })}
-      </nav>
     </div>
   );
 }

@@ -14,24 +14,52 @@ import {
  * Jika kuota di bawah SALDO_MINIMUM_WARNING (30 Menit),
  * kartu berubah warna jadi peringatan (kuning/merah) dengan tulisan "Kuota menipis".
  */
-export default function SaldoBadgeSidebar() {
+export default function SaldoBadgeSidebar({ isDarkTheme = false }) {
   const [saldo, setSaldo] = useState(() => getSaldoSync());
 
   useEffect(() => {
-    // Muat saldo awal dari BE
     getSaldo().then((s) => setSaldo(s)).catch(() => {});
-
-    // Subscribe untuk menerima update saldo menit realtime
     const unsubscribe = subscribeSaldoUpdate((newSaldo) => {
       setSaldo(newSaldo);
     });
-
     return () => {
       unsubscribe();
     };
   }, []);
 
   const saldoRendah = saldo < SALDO_MINIMUM_WARNING;
+
+  if (isDarkTheme) {
+    return (
+      <NavLink
+        to="/kantin/tagihan"
+        className={({ isActive }) =>
+          `block p-2.5 rounded-2xl border transition-all duration-150 group ${
+            isActive
+              ? 'bg-white/20 border-white/30 text-white shadow-sm'
+              : 'bg-white/10 hover:bg-white/15 border-white/10 text-white'
+          }`
+        }
+      >
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1 rounded-lg bg-white/20 text-white shrink-0">
+              <Clock className="w-3.5 h-3.5" />
+            </span>
+            <div className="truncate">
+              <span className="text-xs font-bold leading-tight block truncate text-white">
+                Pascabayar (Unlimited)
+              </span>
+              <span className="text-[10px] text-blue-200 font-medium block truncate">
+                Tagihan di awal bulan
+              </span>
+            </div>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-blue-200 group-hover:text-white transition-colors shrink-0" />
+        </div>
+      </NavLink>
+    );
+  }
 
   return (
     <NavLink
