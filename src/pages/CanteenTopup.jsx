@@ -456,9 +456,9 @@ export default function CanteenTopup() {
           inkopasindo: inkopasindoNum,
           vendor: vendorNum,
         },
-        superadminPercent: Math.round((100 - koperasiNum) * 100) / 100,
-        canteenPercent: koperasiNum,
-        negotiationPercent: Math.round((100 - koperasiNum) * 100) / 100,
+        superadminPercent: vendorNum,
+        canteenPercent: Math.round((100 - vendorNum) * 100) / 100,
+        negotiationPercent: vendorNum,
         canteenName: editContractModal.canteenName,
         branchName: editContractModal.uptName,
       });
@@ -2265,11 +2265,11 @@ export default function CanteenTopup() {
                   <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between">
                     <div>
                       <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
-                        Total Tagihan Bersih (Disetor ke Superadmin / Pusat):
+                        Total Tagihan Bersih (Disetor Kantin ke Vendor / Superadmin):
                       </span>
                       <span className="text-[11px] text-blue-700 font-medium">
                         {detailModalItem.isContractSet
-                          ? `Subtotal × ${100 - Number(detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30)}% Porsi Non-Koperasi (Kepala UPT + Inkopasindo + Vendor)`
+                          ? `Total Penjualan ${formatRupiah(detailModalItem.subtotal)} × ${detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? detailModalItem.superadminPercent ?? 55}% Porsi Vendor (Sisa 45% Dikelola Internal UPT)`
                           : 'Menunggu pengaturan kontrak tarif'}
                       </span>
                     </div>

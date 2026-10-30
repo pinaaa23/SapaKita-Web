@@ -384,12 +384,12 @@ export default function TagihanPage() {
   // Pembayaran yang sedang PENDING menunggu ACC Admin Finance
   const pendingPayment = currentMonthPayments.find(
     (p) => p.status === 'PENDING' || p.status === 'Menunggu'
-  );
+  ) || (canteenBilling?.status === 'PENDING_CONFIRMATION' ? { status: 'PENDING' } : null);
 
   // Pembayaran yang Ditolak oleh Admin Finance
   const rejectedPayment = currentMonthPayments.find(
     (p) => p.status === 'REJECTED' || p.status === 'Ditolak'
-  );
+  ) || (canteenBilling?.status === 'REJECTED' ? { status: 'REJECTED', rejectReason: canteenBilling.rejectionReason } : null);
 
   // Tutup buku terjadi pada hari terakhir bulan berjalan
   const lastDayOfSelectedMonth = new Date(selectedYear, selectedMonth, 0).getDate();
@@ -1776,7 +1776,8 @@ export default function TagihanPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* =========================================================================
@@ -1865,7 +1866,8 @@ export default function TagihanPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

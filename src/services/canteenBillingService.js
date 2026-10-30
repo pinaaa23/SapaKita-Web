@@ -124,9 +124,9 @@ export async function getCanteenBillingNational(month, year) {
             branchName: fc.branchName,
             canteenName: fc.canteenName,
             ratePerSecond: Number(fc.ratePerSecond || 50),
-            superadminPercent: 100 - Number(kop),
-            canteenPercent: Number(kop),
-            negotiationPercent: 100 - Number(kop),
+            superadminPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
+            canteenPercent: fc.split?.vendor ? Math.max(0, 100 - Number(fc.split.vendor)) : 45,
+            negotiationPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
             isContractSet: true,
             split: fc.split,
           };
@@ -186,7 +186,7 @@ export async function getCanteenBillingNational(month, year) {
     // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin/Finance)
     const effectiveRate = isContractSet ? (contract?.ratePerSecond ?? beBranchInfo?.ratePerSecond ?? 15) : null;
     const effectiveSa = isContractSet
-      ? (contract?.superadminPercent ?? contract?.negotiationPercent ?? contract?.contractSharePercentage ?? (contract?.split?.koperasi ? 100 - contract.split.koperasi : null) ?? beBranchInfo?.passcallSharePercentage ?? beBranchInfo?.contractSharePercentage ?? 55)
+      ? (contract?.vendorPercent ?? contract?.split?.vendor ?? contract?.superadminPercent ?? contract?.negotiationPercent ?? contract?.contractSharePercentage ?? beBranchInfo?.vendorPercent ?? beBranchInfo?.split?.vendor ?? beBranchInfo?.passcallSharePercentage ?? beBranchInfo?.contractSharePercentage ?? 55)
       : null;
 
     const billingCalc = calculateUnifiedBilling({
@@ -962,9 +962,9 @@ export async function getAllCanteenContracts() {
             branchName: fc.branchName,
             canteenName: fc.canteenName,
             ratePerSecond: fc.ratePerSecond,
-            superadminPercent: 100 - Number(kop),
-            canteenPercent: Number(kop),
-            negotiationPercent: 100 - Number(kop),
+            superadminPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
+            canteenPercent: fc.split?.vendor ? Math.max(0, 100 - Number(fc.split.vendor)) : 45,
+            negotiationPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
             split: fc.split,
             isContractSet: true,
           };
