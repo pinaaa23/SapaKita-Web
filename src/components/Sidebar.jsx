@@ -7,8 +7,7 @@ import {
   ChevronRight,
   PhoneCall,
   X,
-  LayoutDashboard,
-  Wallet
+  LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
@@ -330,26 +329,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
             </div>
           )}
 
-          {effectiveRole === ROLES.FINANCE && (
-            <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
-              !isExpandedView 
-                ? 'w-11 h-11 justify-center p-0 mb-1' 
-                : 'mx-3 p-3 gap-2.5 mb-1.5'
-            }`}>
-               <div className="relative shrink-0">
-                 <Wallet className="w-5 h-5 text-emerald-300" />
-               </div>
-               {isExpandedView && (
-                 <div className="overflow-hidden whitespace-nowrap">
-                   <p className="text-xs font-semibold text-white truncate">{user?.name || 'Admin Finance'}</p>
-                   <div className="flex items-center gap-1.5 mt-0.5">
-                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
-                     <p className="text-[10px] text-emerald-200 font-medium">Divisi Keuangan</p>
-                   </div>
-                 </div>
-               )}
-            </div>
-          )}
+
 
           <button 
             type="button"

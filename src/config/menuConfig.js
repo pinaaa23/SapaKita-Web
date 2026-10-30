@@ -10,8 +10,7 @@ import {
   QrCode,
   Wallet,
   Landmark,
-  Receipt,
-  User
+  Receipt
 } from 'lucide-react';
 
 /**
@@ -180,14 +179,13 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Admin Finance (Dashboard Keuangan, Tagihan & Setoran, Kontrak Bagi Hasil, Laporan Keuangan, Profil)
+  // Menu untuk Admin Finance (Dashboard Keuangan, Tagihan & Setoran, Kontrak Bagi Hasil, Laporan Keuangan)
   if (normRole === ROLES.FINANCE) {
     return [
       { name: 'Dashboard Keuangan', icon: LayoutDashboard, path: '/finance/dashboard' },
       { name: 'Tagihan & Setoran', icon: Receipt, path: '/finance/billing' },
       { name: 'Kontrak Bagi Hasil', icon: Wallet, path: '/finance/contracts' },
       { name: 'Laporan Keuangan', icon: BarChart3, path: '/finance/reports' },
-      { name: 'Profil', icon: User, path: '/finance/profile' },
     ];
   }
 
