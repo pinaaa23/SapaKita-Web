@@ -64,6 +64,7 @@ export default function FinanceBilling() {
   const isSuperadmin = userRole === ROLES.SUPERADMIN;
   const isFinanceAdmin = userRole === ROLES.FINANCE;
   const canAccessBilling = isSuperadmin || isFinanceAdmin || user?.isSuperAdmin;
+  const canManageBilling = isSuperadmin || user?.isSuperAdmin;
 
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
@@ -384,14 +385,18 @@ export default function FinanceBilling() {
 
   // Handler Buka Modal Konfirmasi ACC
   const handleOpenApprove = (item) => {
+    if (!canManageBilling) {
+      showToast('Hanya Superadmin yang berwenang menyetujui (ACC) setoran ini', 'error');
+      return;
+    }
     setApproveModalItem(item);
-    setApproveNotes(detailActionNotes || 'Setoran kasir/kantin telah diverifikasi & disetujui (ACC) oleh Admin Keuangan.');
+    setApproveNotes(detailActionNotes || 'Setoran kasir/kantin telah diverifikasi & disetujui (ACC) oleh Super Administrator.');
   };
 
   // Handler Konfirmasi Eksekusi ACC
   const handleConfirmApprove = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
-    if (!approveModalItem) return;
+    if (!approveModalItem || !canManageBilling) return;
 
     setIsProcessingAction(true);
     try {
@@ -417,6 +422,10 @@ export default function FinanceBilling() {
 
   // Handler Buka Modal Tolak
   const handleOpenReject = (item) => {
+    if (!canManageBilling) {
+      showToast('Hanya Superadmin yang berwenang menolak setoran ini', 'error');
+      return;
+    }
     setRejectModalItem(item);
     setRejectReason('');
   };
@@ -424,7 +433,7 @@ export default function FinanceBilling() {
   // Handler Konfirmasi Tolak Setoran
   const handleConfirmReject = async (e) => {
     e.preventDefault();
-    if (!rejectModalItem) return;
+    if (!rejectModalItem || !canManageBilling) return;
     if (!rejectReason.trim()) {
       showToast('Alasan penolakan bukti setoran wajib diisi', 'error');
       return;
@@ -693,7 +702,7 @@ export default function FinanceBilling() {
             <div className="bg-white/15 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-emerald-400/40 text-center flex flex-col items-center justify-center min-w-0">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-0.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span className="font-extrabold text-emerald-300 text-[11px] truncate">3. Finance ACC</span>
+                <span className="font-extrabold text-emerald-300 text-[11px] truncate">3. Superadmin ACC</span>
               </div>
               <span className="text-[10px] text-emerald-200 block truncate">Lunas &amp; Bagi Hasil</span>
             </div>
@@ -1060,7 +1069,7 @@ export default function FinanceBilling() {
 
                           {/* Status Verifikasi & Aksi */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            {canAccessBilling ? (
+                            {canManageBilling ? (
                               <div className="flex items-center justify-center gap-1.5">
                                 <button
                                   type="button"
@@ -1335,7 +1344,7 @@ export default function FinanceBilling() {
                           {/* Aksi */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {isPending && canAccessBilling && (
+                              {isPending && canManageBilling && (
                                 <button
                                   type="button"
                                   onClick={() => openDetail(item)}
@@ -1564,8 +1573,8 @@ export default function FinanceBilling() {
         isOpen={Boolean(proofPreviewItem)}
         onClose={() => setProofPreviewItem(null)}
         item={proofPreviewItem}
-canApprove={canAccessBilling}
-        readOnly={!canAccessBilling}
+canApprove={canManageBilling}
+        readOnly={!canManageBilling}
         onApprove={(item) => handleOpenApprove(item)}
         onReject={(item, reason) => {
           setRejectModalItem(item);
@@ -1841,7 +1850,7 @@ canApprove={canAccessBilling}
 
                   {/* Bagian Aksi Verifikasi ACC / Tolak jika Berstatus Pending */}
                   {detailModalItem.statusPembayaran === 'Menunggu ACC' && (
-                    canAccessBilling ? (
+                    canManageBilling ? (
                     <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-3">
                       <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
                         <Clock className="w-4 h-4 text-amber-600" />
