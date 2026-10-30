@@ -90,6 +90,8 @@ export default function FinanceBilling() {
   const [detailModalItem, setDetailModalItem] = useState(null);
   const [proofPreviewItem, setProofPreviewItem] = useState(null);
   const [rejectModalItem, setRejectModalItem] = useState(null);
+  const [approveModalItem, setApproveModalItem] = useState(null);
+  const [approveNotes, setApproveNotes] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [isProcessingAction, setIsProcessingAction] = useState(false);
 
@@ -137,7 +139,60 @@ export default function FinanceBilling() {
       ]);
 
       const topupList = Array.isArray(topupsRes) ? topupsRes : [];
-      setAllHistoryTopups(topupList);
+
+      // Ambil riwayat lunas dan ditolak dari Finance Billings
+      const historyFromFinance = (Array.isArray(financeRes) ? financeRes : [])
+        .filter((b) => b.status === 'PAID' || b.status === 'REJECTED' || (b.rejectionReason && b.status !== 'PENDING_CONFIRMATION'))
+        .map((b) => {
+          const gross = Number(b.grossAmount || 0);
+          const keep = Number(b.canteenKeepAmount || Math.round(gross * 0.45));
+          const deposit = Number(b.depositAmountToFinance || Math.round(gross * 0.55));
+          const isRej = b.status === 'REJECTED' || (b.rejectionReason && b.status !== 'PAID');
+          return {
+            id: b.id,
+            paymentRef: b.paymentRef || b.proof?.transferId || `BILL-${b.id}`,
+            tanggal: b.paymentDate || b.rejectedAt || b.updatedAt || b.createdAt,
+            createdAt: b.paymentDate || b.rejectedAt || b.updatedAt || b.createdAt,
+            branchId: b.branchId,
+            uptName: b.branchName || b.uptName,
+            branchName: b.branchName || b.uptName,
+            canteenName: b.canteenName || (b.branchName ? `Kantin ${b.branchName}` : 'Kantin Lapas'),
+            kanwilName: b.kanwilName || 'Kantor Wilayah',
+            staffName: b.verifiedByName || b.rejectedByName || 'Kasir Kantin',
+            verifiedBy: b.verifiedByName || b.rejectedByName || (isRej ? (b.rejectedBy || 'Admin Finance') : 'Admin Finance'),
+            approvedAt: b.verifiedAt || b.rejectedAt || b.paymentDate,
+            nominal: deposit || gross,
+            totalBayar: deposit || gross,
+            depositAmountToFinance: deposit,
+            grossAmount: gross,
+            canteenKeepAmount: keep,
+            totalSeconds: Number(b.totalSeconds || 0),
+            ratePerSecond: Number(b.ratePerSecond || 50),
+            status: isRej ? 'Ditolak' : 'Berhasil',
+            rawStatus: b.status,
+            rejectionReason: b.rejectionReason || b.notes || null,
+            rejectReason: b.rejectionReason || b.notes || null,
+            proofUrl: b.proofUrl || b.paymentProofUrl || b.proof?.proofUrl,
+            proofStreamUrl: b.proofStreamUrl || b.proofUrl || b.paymentProofUrl,
+            bankTarget: b.bankName || 'Rekening Mandiri Finance',
+            accountNumber: b.accountNumber,
+            isFinanceBilling: true,
+            month: b.month,
+            year: b.year,
+          };
+        });
+
+      const combinedHistory = [...topupList];
+      historyFromFinance.forEach((hf) => {
+        const existingIdx = combinedHistory.findIndex((ch) => ch.id === hf.id || (ch.branchId && hf.branchId && ch.branchId === hf.branchId && ch.month === hf.month && ch.year === hf.year));
+        if (existingIdx === -1) {
+          combinedHistory.push(hf);
+        } else {
+          combinedHistory[existingIdx] = { ...combinedHistory[existingIdx], ...hf };
+        }
+      });
+
+      setAllHistoryTopups(combinedHistory);
 
       // 1. Ambil setoran pending dari API topup
       const pendingFromTopups = topupList.filter(
@@ -245,8 +300,8 @@ export default function FinanceBilling() {
             ratePerSecond: Number(fb.ratePerSecond || 15),
             totalAmount: Number(fb.grossAmount || fb.totalAmount || 0),
             grossAmount: Number(fb.grossAmount || fb.totalAmount || 0),
-            canteenKeepAmount: Number(fb.canteenKeepAmount || fb.shares?.koperasi?.amount || 0),
-            depositAmountToFinance: Number(fb.depositAmountToFinance || 0),
+            canteenKeepAmount: Number(fb.canteenKeepAmount || ((fb.shares?.koperasi?.amount || 0) + (fb.shares?.kepalaUpt?.amount || 0) + (fb.shares?.inkopasindo?.amount || 0)) || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.45)),
+            depositAmountToFinance: Number(fb.depositAmountToFinance || fb.shares?.vendor?.amount || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.55)),
             statusPembayaran,
             rawStatus: fb.status,
             isContractSet: true,
@@ -327,30 +382,36 @@ export default function FinanceBilling() {
     loadBranchCalls(item.branchId || item.id, targetMonth, targetYear, 1, '');
   };
 
-  // Handler Setujui (ACC) Setoran Kantin
-  const handleApprove = async (item, notes = '') => {
-    const accNotes = notes || detailActionNotes || 'Setoran kasir/kantin telah diverifikasi & disetujui (ACC) oleh Admin Keuangan.';
-    const nominalFormatted = formatRupiah(item.totalBayar || item.nominal || item.depositAmountToFinance || item.grossAmount);
+  // Handler Buka Modal Konfirmasi ACC
+  const handleOpenApprove = (item) => {
+    setApproveModalItem(item);
+    setApproveNotes(detailActionNotes || 'Setoran kasir/kantin telah diverifikasi & disetujui (ACC) oleh Admin Keuangan.');
+  };
 
-    if (window.confirm(`Setujui (ACC) setoran pembayaran dari ${item.canteenName || item.branchName} sebesar ${nominalFormatted}?`)) {
-      setIsProcessingAction(true);
-      try {
-        // Panggil API lama Superadmin (approveTopupTransaction) untuk sinkronisasi kasir kantin
-        await approveTopupTransaction(item.id, accNotes).catch(() => null);
+  // Handler Konfirmasi Eksekusi ACC
+  const handleConfirmApprove = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!approveModalItem) return;
 
-        // Panggil modul finance approve jika ada id billing finance
-        await approveCanteenDeposit(item.id, accNotes).catch(() => null);
+    setIsProcessingAction(true);
+    try {
+      const accNotes = approveNotes || 'Setoran kasir/kantin telah diverifikasi & disetujui (ACC) oleh Admin Keuangan.';
+      // Panggil API lama Superadmin (approveTopupTransaction) untuk sinkronisasi kasir kantin
+      await approveTopupTransaction(approveModalItem.id, accNotes).catch(() => null);
 
-        showToast(`Setoran ${item.canteenName || item.branchName} BERHASIL DISETUJUI (ACC).`);
-        if (proofPreviewItem?.id === item.id) setProofPreviewItem(null);
-        if (detailModalItem?.id === item.id || detailModalItem?.branchId === item.branchId) setDetailModalItem(null);
-        
-        loadData();
-      } catch (err) {
-        showToast(err.message || 'Gagal memproses persetujuan', 'error');
-      } finally {
-        setIsProcessingAction(false);
-      }
+      // Panggil modul finance approve jika ada id billing finance
+      await approveCanteenDeposit(approveModalItem.id, accNotes).catch(() => null);
+
+      showToast(`Setoran ${approveModalItem.canteenName || approveModalItem.branchName} BERHASIL DISETUJUI (ACC).`);
+      if (proofPreviewItem?.id === approveModalItem.id) setProofPreviewItem(null);
+      if (detailModalItem?.id === approveModalItem.id || detailModalItem?.branchId === approveModalItem.branchId) setDetailModalItem(null);
+      setApproveModalItem(null);
+
+      loadData();
+    } catch (err) {
+      showToast(err.message || 'Gagal memproses persetujuan', 'error');
+    } finally {
+      setIsProcessingAction(false);
     }
   };
 
@@ -997,12 +1058,35 @@ export default function FinanceBilling() {
                             </button>
                           </td>
 
-                          {/* Status Verifikasi (Read-Only) */}
+                          {/* Status Verifikasi & Aksi */}
                           <td className="py-3 px-4 text-center whitespace-nowrap">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
-                              <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-                              <span>Menunggu Superadmin</span>
-                            </span>
+                            {canAccessBilling ? (
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenApprove(item)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-xs cursor-pointer active:scale-95"
+                                  title="Setujui (ACC) Setoran Ini"
+                                >
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>ACC</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleOpenReject(item)}
+                                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs border border-rose-200 transition cursor-pointer active:scale-95"
+                                  title="Tolak Setoran Ini"
+                                >
+                                  <Ban className="w-3.5 h-3.5" />
+                                  <span>Tolak</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                                <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
+                                <span>Menunggu ACC</span>
+                              </span>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1251,7 +1335,7 @@ export default function FinanceBilling() {
                           {/* Aksi */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              {isPending && isSuperadmin && (
+                              {isPending && canAccessBilling && (
                                 <button
                                   type="button"
                                   onClick={() => openDetail(item)}
@@ -1449,10 +1533,17 @@ export default function FinanceBilling() {
                                 <span>Lunas (ACC)</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold" title={item.rejectReason || item.rejectionReason}>
-                                <Ban className="w-3.5 h-3.5 text-rose-600" />
-                                <span>Ditolak</span>
-                              </span>
+                              <div className="flex flex-col items-center">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 text-rose-700 border border-rose-200 text-xs font-bold" title={item.rejectReason || item.rejectionReason}>
+                                  <Ban className="w-3.5 h-3.5 text-rose-600" />
+                                  <span>Ditolak</span>
+                                </span>
+                                {(item.rejectReason || item.rejectionReason) && (
+                                  <span className="text-[10px] text-rose-600 font-medium max-w-[150px] truncate mt-1 text-center" title={item.rejectReason || item.rejectionReason}>
+                                    {item.rejectReason || item.rejectionReason}
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </td>
                         </tr>
@@ -1473,15 +1564,101 @@ export default function FinanceBilling() {
         isOpen={Boolean(proofPreviewItem)}
         onClose={() => setProofPreviewItem(null)}
         item={proofPreviewItem}
-canApprove={isSuperadmin}
-        readOnly={!isSuperadmin}
-        onApprove={(item) => handleApprove(item)}
+canApprove={canAccessBilling}
+        readOnly={!canAccessBilling}
+        onApprove={(item) => handleOpenApprove(item)}
         onReject={(item, reason) => {
           setRejectModalItem(item);
           setRejectReason(reason || '');
           setProofPreviewItem(null);
         }}
       />
+
+      {/* =========================================================================
+          MODAL POP UP KONFIRMASI PERSETUJUAN (ACC) SETORAN
+          ========================================================================= */}
+      {approveModalItem && (
+        <div className="fixed inset-0 z-[100000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-100 animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-100">
+              <div className="flex items-center gap-2.5 text-emerald-600">
+                <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-slate-900 text-base">Konfirmasi Persetujuan Setoran (ACC)</h3>
+                  <p className="text-[11px] text-slate-400">Verifikasi tanda terima transfer setoran Vendor</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApproveModalItem(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmApprove} className="py-4 space-y-4 text-xs">
+              <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2.5">
+                <div className="flex justify-between items-center text-slate-700">
+                  <span className="text-slate-500 font-medium">UPT &amp; Kantin:</span>
+                  <span className="font-bold text-slate-900 text-right">{approveModalItem.branchName || approveModalItem.uptName} &bull; {approveModalItem.canteenName || 'Kantin'}</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-700">
+                  <span className="text-slate-500 font-medium">Total Cash Bruto (100%):</span>
+                  <span className="font-bold text-slate-900">
+                    {formatRupiah(approveModalItem.grossAmount || approveModalItem.totalBayar || approveModalItem.nominal || 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sky-800">
+                  <span className="text-slate-500 font-medium">Hak Dikelola Kantin / UPT (45%):</span>
+                  <span className="font-bold text-sky-700">
+                    {formatRupiah(approveModalItem.canteenKeepAmount || Math.round((approveModalItem.grossAmount || approveModalItem.nominal || 0) * 0.45))}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-black">
+                  <span className="text-slate-900">Setoran Diterima Vendor (55%):</span>
+                  <span className="text-emerald-600 text-base">
+                    {formatRupiah(approveModalItem.depositAmountToFinance || approveModalItem.totalBayar || approveModalItem.nominal || Math.round((approveModalItem.grossAmount || 0) * 0.55))}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-700 font-bold mb-1.5">
+                  Catatan Verifikasi (Opsional):
+                </label>
+                <input
+                  type="text"
+                  value={approveNotes}
+                  onChange={(e) => setApproveNotes(e.target.value)}
+                  placeholder="Misal: Dana setoran telah diterima di rekening penampung resmi..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setApproveModalItem(null)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isProcessingAction}
+                  className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-md shadow-emerald-700/20 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{isProcessingAction ? 'Memproses...' : 'Ya, Setujui (ACC) Setoran Ini'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           MODAL TOLAK BUKTI SETORAN
@@ -1657,7 +1834,7 @@ canApprove={isSuperadmin}
 
                   {/* Bagian Aksi Verifikasi ACC / Tolak jika Berstatus Pending */}
                   {detailModalItem.statusPembayaran === 'Menunggu ACC' && (
-                    isSuperadmin ? (
+                    canAccessBilling ? (
                     <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-3">
                       <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
                         <Clock className="w-4 h-4 text-amber-600" />
@@ -1738,7 +1915,7 @@ canApprove={isSuperadmin}
                             <button
                               type="button"
                               disabled={isProcessingAction}
-                              onClick={() => handleApprove(detailModalItem, detailActionNotes)}
+                              onClick={() => handleOpenApprove(detailModalItem)}
                               className="px-5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                             >
                               <Check className="w-3.5 h-3.5" />

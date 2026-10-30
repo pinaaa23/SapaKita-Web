@@ -37,7 +37,9 @@ canApprove = true,
 
   if (!isOpen || !item) return null;
 
-  const depositAmount = item.depositAmountToFinance || (item.grossAmount - (item.canteenKeepAmount || item.shares?.koperasi?.amount || 0));
+  const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
+  const depositAmount = item.depositAmountToFinance || Math.round(gross * 0.55);
+  const canteenKeep = item.canteenKeepAmount || Math.round(gross * 0.45);
   const transferDate = item.paymentDate ? new Date(item.paymentDate) : new Date();
   const formattedDate = transferDate.toLocaleDateString('id-ID', {
     day: 'numeric',
@@ -150,7 +152,7 @@ canApprove = true,
     drawRow('Bank Penerima', 'Bank Mandiri (Rek Penampung)');
     drawRow('Nomor Rekening Penerima', '168-00-9988112-7');
     drawRow('Total Cash di Kantin', formatRupiah(item.grossAmount));
-    drawRow('Hak Internal UPT (45% Dikelola)', formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.grossAmount || item.nominal || 0) * 0.45)));
+    drawRow('Hak Internal UPT (45% Dikelola)', formatRupiah(canteenKeep));
     drawRow('Jenis Setoran', 'Setoran Bagi Hasil PasCall');
     drawRow('Catatan Petugas', 'Kewajiban setor periode ' + item.month + '/' + item.year);
 
@@ -389,12 +391,12 @@ canApprove = true,
                   </div>
                   <div className="flex justify-between text-sky-800">
                     <span>Hak Internal UPT (45% Dikelola UPT):</span>
-                    <span className="font-bold">-{formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.grossAmount || item.nominal || 0) * 0.45))}</span>
+                    <span className="font-bold">-{formatRupiah(canteenKeep)}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
                     <span className="font-bold text-slate-800">Harus Disetor ke Vendor (55%):</span>
                     <span className="font-black text-emerald-700 text-sm">
-                      {formatRupiah(depositAmount || Math.round((item.grossAmount || item.nominal || 0) * 0.55))}
+                      {formatRupiah(depositAmount)}
                     </span>
                   </div>
                 </div>
@@ -516,6 +518,18 @@ canApprove = true,
                 <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-bold text-emerald-800">
                   <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
                   <span>Setoran ini telah berstatus Lunas dan diverifikasi oleh Finance.</span>
+                </div>
+              )}
+
+              {(item.status === 'REJECTED' || item.status === 'Ditolak' || item.rejectionReason || item.rejectReason) && item.status !== 'PAID' && (
+                <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-300 flex items-start gap-2.5 text-xs text-rose-900">
+                  <Ban className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-rose-800 block">Setoran Ini Telah Ditolak</span>
+                    <p className="text-[11px] text-rose-700 mt-0.5">
+                      Alasan: <span className="font-semibold">{item.rejectionReason || item.rejectReason || 'Bukti transfer tidak valid atau belum sesuai.'}</span>
+                    </p>
+                  </div>
                 </div>
               )}
 
