@@ -175,10 +175,10 @@ export default function PaketPage() {
       )}
 
       {/* Section Heading & Kategori Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1 mb-2">
+        <div className="flex items-center gap-2.5">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-700">
+          <h2 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-700">
             Daftar Paket {kategori === 'video' ? 'Video Call' : (kategori === 'combo' ? 'Combo' : 'Suara / Telepon')} ({paketList.length})
           </h2>
         </div>
@@ -191,7 +191,7 @@ export default function PaketPage() {
             type="button"
             onClick={handleManualRefresh}
             disabled={isLoading || isRefreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-blue-600 text-xs font-semibold shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200/90 bg-white hover:bg-slate-50 text-slate-600 hover:text-blue-600 text-xs font-semibold shadow-2xs transition active:scale-95 cursor-pointer disabled:opacity-60"
             title="Segarkan daftar paket"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoading || isRefreshing ? 'animate-spin text-blue-600' : ''}`} />
@@ -202,7 +202,7 @@ export default function PaketPage() {
 
       {/* 4. Grid Kartu Paket */}
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7">
           {[1, 2, 3].map((n) => (
             <div
               key={n}
@@ -246,7 +246,7 @@ export default function PaketPage() {
       ) : (
         <div
           key={kategori}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 animate-in fade-in duration-200"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-7 animate-in fade-in duration-200"
         >
           {paketList.map((paket) => (
             <KartuPaket

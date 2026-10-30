@@ -405,60 +405,63 @@ export default function KantinLayout() {
       {/* AREA KONTEN UTAMA APLIKASI */}
       <div 
         ref={mainContentRef}
-        className={`flex-1 flex flex-col min-w-0 min-h-screen max-w-full transition-all duration-300 px-3.5 sm:px-6 py-4 md:py-6 md:pr-6 ${
-          isSidebarOpen ? 'md:pl-[272px]' : 'md:pl-[112px]'
+        className={`flex-1 flex flex-col min-w-0 min-h-screen max-w-full transition-all duration-300 px-4 sm:px-6 md:pr-8 lg:pr-12 py-5 md:py-8 ${
+          isSidebarOpen 
+            ? 'md:pl-[300px] lg:pl-[324px] xl:pl-[340px]' 
+            : 'md:pl-[128px] lg:pl-[144px]'
         }`}
       >
-        {/* HEADER JUDUL HALAMAN: Langsung judul bersih tanpa box background */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pt-1">
-          <div className="flex items-start sm:items-center gap-3">
-            {/* Hamburger Button untuk Mobile Drawer */}
-            <button
-              type="button"
-              onClick={() => setIsMobileMenuOpen(true)}
-              aria-label="Buka Menu"
-              className="md:hidden w-10 h-10 rounded-2xl bg-white text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-xs border border-slate-200/80 shrink-0 cursor-pointer transition-colors"
-            >
-              <Menu className="w-5 h-5 text-slate-700" />
-            </button>
-
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100/80 text-blue-800 border border-blue-200/60">
-                  {pageInfo.badge}
-                </span>
-                <span className="text-slate-400">•</span>
-                <span className="text-xs font-semibold text-slate-500">Kantin</span>
-              </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
-                {pageInfo.title}
-              </h1>
-              <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-                {pageInfo.subtitle}
-              </p>
-            </div>
-          </div>
-
-          {/* Fitur Tanggal & Notifikasi Bell (Sejajar dengan Judul) */}
-          <div className="flex items-center gap-2.5 self-start sm:self-center shrink-0">
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 px-3.5 py-2 rounded-2xl shadow-2xs">
-              <Calendar className="w-4 h-4 text-[#1565C0]" />
-              <span>{formatTanggal(new Date(), false)}</span>
-            </div>
-
-            {/* Notification Bell Popover */}
-            <div className="relative" ref={notifRef}>
+        <div className="w-full max-w-[1440px] flex-1 flex flex-col">
+          {/* HEADER JUDUL HALAMAN: Langsung judul bersih tanpa box background */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7 pt-1">
+            <div className="flex items-start sm:items-center gap-3.5">
+              {/* Hamburger Button untuk Mobile Drawer */}
               <button
                 type="button"
-                onClick={() => setIsNotifOpen(!isNotifOpen)}
-                title="Notifikasi"
-                className="relative w-10 h-10 rounded-2xl bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center shadow-2xs border border-slate-200/90 transition-all cursor-pointer"
+                onClick={() => setIsMobileMenuOpen(true)}
+                aria-label="Buka Menu"
+                className="md:hidden w-10 h-10 rounded-2xl bg-white text-slate-700 hover:text-blue-600 flex items-center justify-center shadow-xs border border-slate-200/80 shrink-0 cursor-pointer transition-colors"
               >
-                <Bell className="w-4 h-4" />
-                {unreadNotifCount > 0 && (
-                  <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
-                )}
+                <Menu className="w-5 h-5 text-slate-700" />
               </button>
+
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100/90 text-blue-800 border border-blue-200/70">
+                    {pageInfo.badge}
+                  </span>
+                  <span className="text-slate-400">•</span>
+                  <span className="text-xs font-semibold text-slate-500">Kantin</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                  {pageInfo.title}
+                </h1>
+                <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+                  {pageInfo.subtitle}
+                </p>
+              </div>
+            </div>
+
+            {/* Fitur Tanggal & Notifikasi Bell (Sejajar dengan Judul) */}
+            <div className="flex items-center gap-2.5 sm:gap-3 self-start sm:self-center shrink-0">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-white border border-slate-200/90 px-3.5 py-2.5 rounded-2xl shadow-2xs">
+                <Calendar className="w-4 h-4 text-[#1565C0]" />
+                <span>{formatTanggal(new Date(), false)}</span>
+              </div>
+
+              {/* Notification Bell Popover */}
+              <div className="relative" ref={notifRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsNotifOpen(!isNotifOpen)}
+                  title="Notifikasi"
+                  className="relative w-10 h-10 rounded-2xl bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-center shadow-2xs border border-slate-200/90 transition-all cursor-pointer"
+                >
+                  <Bell className="w-4 h-4" />
+                  {unreadNotifCount > 0 && (
+                    <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white animate-pulse" />
+                  )}
+                </button>
 
               {/* Notif Popover Panel */}
               {isNotifOpen && (
@@ -578,10 +581,11 @@ export default function KantinLayout() {
         </div>
 
         {/* OUTLET KONTEN */}
-        <main className="flex-1 w-full max-w-full">
+        <main className="flex-1 w-full max-w-full pb-8">
           <Outlet />
         </main>
       </div>
+    </div>
 
     </div>
   );
