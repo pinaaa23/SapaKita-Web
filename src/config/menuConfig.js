@@ -7,6 +7,7 @@ import {
   BarChart3, 
   Package, 
   UserCog,
+  QrCode,
   Wallet,
   Landmark,
   Receipt,
@@ -140,6 +141,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Katalog Paket', icon: Package, path: '/packages' },
       { name: 'Tagihan Kantin', icon: Receipt, path: '/canteen-topup' },
       { name: 'Laporan', icon: BarChart3, path: '/reports' },
+      { name: 'Aplikasi Mobile', icon: QrCode, path: '/app-releases' },
     ];
   }
 

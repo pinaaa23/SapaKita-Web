@@ -22,6 +22,8 @@ import Reports from './pages/Reports';
 import Profile from './pages/Profile';
 import PackagesList from './pages/Packages/List';
 import CanteenTopup from './pages/CanteenTopup';
+import AppReleasesPage from './pages/AppReleases/AppReleasesPage';
+import MobileDownloadPage from './pages/MobileDownload/MobileDownloadPage';
 
 // Branch Admin Pages
 import BranchDashboard from './pages/branch/Dashboard';
@@ -82,6 +84,8 @@ function App() {
           {/* Langsung redirect root ke halaman login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
+          {/* Public Mobile Download Gateway (Scan Barcode / Download Link) */}
+          <Route path="/download/:token" element={<MobileDownloadPage />} />
 
           {/* Admin Dashboard Routes wrapped in ProtectedRoute & Layout */}
           <Route element={<ProtectedRoute />}>
@@ -129,6 +133,7 @@ function App() {
 
                 <Route path="reports" element={<Reports />} />
                 <Route path="profile" element={<Profile />} />
+                <Route path="app-releases" element={<AppReleasesPage />} />
               </Route>
 
               {/* Branch Admin Routes (Kepala UPT & Supervisor) */}
