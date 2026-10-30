@@ -20,7 +20,6 @@ import { formatTanggal } from '../utils/formatKantin';
 import { getAuthToken } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
-import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
 import sadewaBlue from '../assets/sadewa_blue.png';
 import ikonSadewa from '../assets/ikon_sadewa.png';
 import { getUnreadApprovedTopupCountSync } from '../services/kantin/saldoService';
@@ -349,23 +348,14 @@ export default function KantinLayout() {
               );
             })}
 
-            {/* Badges Ringkas Kantin (Ketersediaan Unit & Tagihan Pascabayar) */}
+            {/* Badges Ringkas Kantin (Ketersediaan Unit) */}
             {isExpandedView && (
-              <>
-                <div className="pt-3 px-1">
-                  <div className="px-2 pb-1.5 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
-                    Ketersediaan Unit
-                  </div>
-                  <WartelBadgeSidebar isDarkTheme={true} />
+              <div className="pt-3 px-1">
+                <div className="px-2 pb-1.5 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
+                  Ketersediaan Unit
                 </div>
-
-                <div className="pt-2 px-1">
-                  <div className="px-2 pb-1.5 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
-                    Tagihan Pascabayar
-                  </div>
-                  <SaldoBadgeSidebar isDarkTheme={true} />
-                </div>
-              </>
+                <WartelBadgeSidebar isDarkTheme={true} />
+              </div>
             )}
           </nav>
 
