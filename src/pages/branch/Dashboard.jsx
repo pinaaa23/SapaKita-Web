@@ -681,7 +681,10 @@ const Dashboard = () => {
                             </td>
                             {/* Durasi & Biaya + Badge Jalur */}
                             <td className={`py-3.5 px-3 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                              <div className="font-semibold text-slate-800">{Math.floor(call.durationSeconds / 60)}m {call.durationSeconds % 60}s</div>
+                              {(() => {
+                                const sec = Number(call.durationSeconds ?? call.duration ?? call.durasiSeconds ?? 0) || 0;
+                                return <div className="font-semibold text-slate-800">{Math.floor(sec / 60)}m {sec % 60}s</div>;
+                              })()}
                               <div className="text-[11px] font-bold text-amber-600 mt-0.5">{formatCurrency(call.cost)}</div>
                               {activeTab === 'voice' && (
                                 <div className="mt-1">

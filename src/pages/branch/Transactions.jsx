@@ -366,11 +366,14 @@ const Transactions = () => {
                         <p className="text-xs text-slate-800 font-bold leading-snug line-clamp-1" title={trx.packageName}>
                           {trx.packageName}
                         </p>
-                        {trx.durationMinutes > 0 && (
-                          <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
-                            {trx.durationMinutes} Menit
-                          </span>
-                        )}
+                        {(() => {
+                          const dur = trx.durationMinutes || trx.package?.durationMinutes || trx.package?.durasi || trx.packageDuration || trx.durasi || (typeof trx.paket?.durasi === 'string' ? parseInt(trx.paket.durasi, 10) : trx.paket?.durasi) || 0;
+                          return dur > 0 ? (
+                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                              {dur} Menit
+                            </span>
+                          ) : null;
+                        })()}
                       </td>
 
                       {/* Kode Voucher & Status Pemakaian */}

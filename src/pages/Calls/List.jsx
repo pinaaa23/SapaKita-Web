@@ -560,7 +560,7 @@ const CallsList = () => {
                           {/* Durasi & Biaya + Badge Jalur */}
                           <td className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell'}`}>
                             <div className="font-semibold text-slate-800">
-                              {formatDuration(call.durationSeconds)}
+                              {formatDuration(call.durationSeconds ?? call.duration ?? call.durasiSeconds ?? (call.durationMinutes ? call.durationMinutes * 60 : 0))}
                             </div>
                             <div className="text-[11px] font-bold text-amber-600 mt-0.5">
                               {formatCurrency(call.cost)}

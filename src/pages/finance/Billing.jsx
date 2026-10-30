@@ -1993,18 +1993,61 @@ canApprove={canAccessBilling}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                          {modalCallsData.items.map((c, i) => (
-                            <tr key={c.id || i} className="hover:bg-slate-50">
-                              <td className="py-2 px-3 text-slate-500 font-mono text-[11px]">
-                                {c.startedAt ? formatTanggal(c.startedAt) : '-'}
-                              </td>
-                              <td className="py-2 px-3 font-semibold text-slate-800">{c.inmateName || 'WBP'}</td>
-                              <td className="py-2 px-3 font-mono text-slate-600">{c.targetPhone || c.destination || '-'}</td>
-                              <td className="py-2 px-3 text-right font-medium text-slate-800">{c.durationSeconds || 0} dtk</td>
-                              <td className="py-2 px-3 text-right font-bold text-[#0B3D91]">{formatRupiah(c.cost || 0)}</td>
-                            </tr>
-                          ))}
+                          {modalCallsData.items.map((c, i) => {
+                            const callDate = c.createdAt || c.startedAt || c.waktu;
+                            const formattedDate = callDate
+                              ? new Date(callDate).toLocaleString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                              : '-';
+                            const callDuration = Number(c.durationSeconds ?? c.duration ?? c.durasiSeconds ?? (c.durationMinutes ? c.durationMinutes * 60 : 0) ?? 0);
+                            const callCost = c.nominal ?? c.cost ?? c.totalAmount ?? 0;
+                            const tujuanOrPaket = c.packageName || c.targetPhone || c.destination || 'Paket Komunikasi';
+
+                            return (
+                              <tr key={c.id || i} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-2.5 px-3 text-slate-600 font-mono text-[11px] whitespace-nowrap">
+                                  {formattedDate}
+                                </td>
+                                <td className="py-2.5 px-3">
+                                  <div className="font-semibold text-slate-800">{c.inmateName || 'WBP'}</div>
+                                  {(c.inmateIdentifier || c.kodeVoucher) && (
+                                    <div className="text-[10px] text-slate-400 font-mono">
+                                      {c.inmateIdentifier ? `NIP: ${c.inmateIdentifier}` : `Kode: ${c.kodeVoucher}`}
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="py-2.5 px-3 font-medium text-slate-700">
+                                  {tujuanOrPaket}
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-medium text-slate-800 whitespace-nowrap">
+                                  {callDuration.toLocaleString('id-ID')} dtk
+                                </td>
+                                <td className="py-2.5 px-3 text-right font-bold text-[#0B3D91] whitespace-nowrap">
+                                  {formatRupiah(callCost)}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
+                        {modalCallsData.items?.length > 0 && (
+                          <tfoot>
+                            <tr className="bg-slate-50 border-t-2 border-slate-200 font-bold text-slate-900 text-xs">
+                              <td colSpan="3" className="py-2.5 px-3">
+                                Total Tagihan Sesi ({modalCallsData.totalItems || modalCallsData.items.length} panggilan)
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-emerald-700 whitespace-nowrap">
+                                {(modalCallsData.totalSeconds || modalCallsData.items.reduce((acc, c) => acc + (c.durationSeconds || 0), 0)).toLocaleString('id-ID')} dtk
+                              </td>
+                              <td className="py-2.5 px-3 text-right text-[#0B3D91] font-black whitespace-nowrap">
+                                {formatRupiah(modalCallsData.totalTagihan || modalCallsData.items.reduce((acc, c) => acc + (c.nominal ?? c.cost ?? 0), 0))}
+                              </td>
+                            </tr>
+                          </tfoot>
+                        )}
                       </table>
                     </div>
                   )}

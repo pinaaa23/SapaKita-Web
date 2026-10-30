@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   Check,
@@ -20,6 +20,38 @@ import {
   FileText
 } from 'lucide-react';
 import { formatRupiah } from '../../services/financeService';
+import { API_BASE_URL, getAuthToken } from '../../services/api';
+import { getTopupProofStreamUrl } from '../../services/canteenTopupService';
+
+
+const resolveModalProofUrl = (item) => {
+  if (!item) return null;
+  const token = getAuthToken();
+  const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+  const cleanBase = (API_BASE_URL || '').replace(/\/+$/, '');
+
+  let rawUrl = item.proofStreamUrl || item.proofUrl || item.proof?.proofStreamUrl || item.proof?.proofImage;
+  if (!rawUrl || rawUrl === 'virtual-proof') return null;
+
+  if (rawUrl.startsWith('data:') || rawUrl.startsWith('blob:')) {
+    return rawUrl;
+  }
+
+  if (item.id && !item.isFinanceBilling && !String(item.id).startsWith('TOPUP-') && !String(item.id).startsWith('BILL-') && !String(item.id).startsWith('INV-')) {
+    return `${cleanBase}/api/canteen/topups/${encodeURIComponent(item.id)}/proof${tokenQuery}`;
+  }
+
+  if (item.id && (item.isFinanceBilling || String(rawUrl).includes('/billings/'))) {
+    const billUrl = `${cleanBase}/api/finance/billings/${encodeURIComponent(item.id)}/proof`;
+    return token ? `${billUrl}${tokenQuery}` : billUrl;
+  }
+
+  let fullUrl = rawUrl.startsWith('http') ? rawUrl : `${cleanBase}/${rawUrl.replace(/^\/+/, '')}`;
+  if (token && !fullUrl.includes('token=')) {
+    fullUrl = `${fullUrl}${fullUrl.includes('?') ? '&' : '?'}${tokenQuery.replace('?', '')}`;
+  }
+  return fullUrl;
+};
 
 export default function TransferProofModal({
   isOpen,
@@ -34,6 +66,12 @@ canApprove = true,
   const [rotation, setRotation] = useState(0);
   const [isRejecting, setIsRejecting] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [imageError, setImageError] = useState(false);
+  const displayProofUrl = resolveModalProofUrl(item);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [item?.id, item?.proofUrl, item?.proofStreamUrl]);
 
   if (!isOpen || !item) return null;
 
@@ -271,17 +309,15 @@ canApprove = true,
                 }}
                 className="w-full max-w-[340px] shadow-2xl rounded-3xl overflow-hidden bg-white text-slate-900 border border-slate-700 select-none"
               >
-                {item.proofUrl || item.proof?.proofImage || (item.proof?.proofStreamUrl && item.proof?.proofStreamUrl !== 'virtual-proof') ? (
+                {displayProofUrl && !imageError ? (
                   <div className="bg-slate-950 p-2 text-center">
                     <img
-                      src={item.proofUrl || item.proof?.proofImage || item.proof?.proofStreamUrl}
+                      src={displayProofUrl}
                       alt={`Bukti Transfer dari ${item.canteenName}`}
                       className="w-full max-h-[440px] object-contain rounded-2xl mx-auto shadow-md"
                       crossOrigin="anonymous"
-                      onError={(e) => {
-                        if (item.id && !e.currentTarget.src.includes('/proof')) {
-                          e.currentTarget.src = `/api/canteen/topups/${item.id}/proof`;
-                        }
+                      onError={() => {
+                        setImageError(true);
                       }}
                     />
                     <div className="pt-2 text-[10px] text-slate-400 font-mono">
