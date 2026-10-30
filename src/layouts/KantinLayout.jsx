@@ -293,7 +293,13 @@ export default function KantinLayout() {
           </div>
 
           {/* 2. Menu Items Container */}
-          <nav className="flex-1 min-h-0 overflow-y-auto py-1 px-3 space-y-1.5 no-scrollbar">
+          <nav 
+            className="flex-1 min-h-0 overflow-y-auto py-1 px-3 space-y-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/20 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-white/35"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(255, 255, 255, 0.25) transparent'
+            }}
+          >
             {isExpandedView && (
               <div className="px-3 py-1 text-[10px] font-bold text-blue-200/70 uppercase tracking-wider">
                 Menu Petugas
@@ -364,9 +370,9 @@ export default function KantinLayout() {
           </nav>
 
           {/* 3. Footer Sidebar: Info Operator & Tombol Logout */}
-          <div className={`p-3.5 bg-black/10 border-t border-white/10 space-y-2 shrink-0 mt-auto ${!isExpandedView ? 'px-2' : ''}`}>
+          <div className={`pb-4 pt-2 mt-auto shrink-0 z-20 transition-all duration-300 flex flex-col gap-1.5 ${!isExpandedView ? 'px-2 items-center' : 'px-3'}`}>
             {isExpandedView ? (
-              <div className="p-2.5 bg-white/10 rounded-2xl border border-white/10">
+              <div className="p-2.5 bg-white/10 hover:bg-white/15 rounded-2xl border border-white/10 transition-colors">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-xl bg-white/20 text-white flex items-center justify-center font-bold shrink-0">
                     <User className="w-4 h-4" />
@@ -390,12 +396,14 @@ export default function KantinLayout() {
             <button
               type="button"
               onClick={handleLogout}
-              className={`flex items-center justify-center gap-2 py-2 text-xs font-bold text-rose-200 hover:text-white bg-rose-500/20 hover:bg-rose-500/30 rounded-xl transition cursor-pointer border border-rose-400/20 shadow-xs ${
-                !isExpandedView ? 'w-10 h-10 p-0 mx-auto' : 'w-full'
+              className={`flex items-center transition-colors rounded-2xl text-red-200 hover:bg-white/10 hover:text-red-100 cursor-pointer ${
+                !isExpandedView 
+                  ? 'w-10 h-10 justify-center p-0 mx-auto' 
+                  : 'px-3 py-2 gap-2.5 text-xs font-medium'
               }`}
               title="Keluar dari sesi kasir"
             >
-              <LogOut className="w-3.5 h-3.5" />
+              <LogOut className="w-4 h-4 shrink-0" />
               {isExpandedView && <span>Keluar</span>}
             </button>
           </div>
