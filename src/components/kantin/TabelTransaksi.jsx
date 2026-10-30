@@ -207,18 +207,18 @@ export default function TabelTransaksi({
           />
         </div>
       ) : (
-        <div className="overflow-x-auto w-full">
-          <table className="w-full min-w-[980px] text-left border-collapse text-xs">
+        <div className="overflow-x-auto w-full scrollbar-thin scrollbar-thumb-slate-200">
+          <table className="w-full min-w-[760px] text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-50/70 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                <th className="py-3.5 px-4 min-w-[140px]">ID Transaksi</th>
-                <th className="py-3.5 px-4 min-w-[130px]">Waktu</th>
-                <th className="py-3.5 px-4 min-w-[140px]">Nama Pelanggan</th>
-                <th className="py-3.5 px-4 min-w-[110px]">NIP WBP</th>
-                <th className="py-3.5 px-4 min-w-[150px]">Keterangan Paket</th>
-                <th className="py-3.5 px-4 min-w-[90px]">Metode</th>
-                <th className="py-3.5 px-4 text-right min-w-[110px]">Nominal</th>
-                <th className="py-3.5 px-4 text-center min-w-[150px]">Aksi</th>
+              <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <th className="py-3.5 px-3.5 sm:px-4">ID Transaksi</th>
+                <th className="py-3.5 px-3 sm:px-3.5">Waktu</th>
+                <th className="py-3.5 px-3 sm:px-3.5">Nama Pelanggan</th>
+                <th className="py-3.5 px-3 sm:px-3.5">NIP WBP</th>
+                <th className="py-3.5 px-3 sm:px-3.5">Keterangan Paket</th>
+                <th className="py-3.5 px-2.5 sm:px-3">Metode</th>
+                <th className="py-3.5 px-3.5 sm:px-4 text-right">Nominal</th>
+                <th className="py-3.5 px-3.5 sm:px-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -228,40 +228,47 @@ export default function TabelTransaksi({
                   onClick={() => item?.id && handleRowClick(item.id)}
                   className="hover:bg-blue-50/40 cursor-pointer transition-colors group"
                 >
-                  <td className="py-3.5 px-4 font-mono font-bold text-slate-800 whitespace-nowrap min-w-[140px]">
+                  <td className="py-3 px-3.5 sm:px-4 font-mono font-bold text-slate-800 whitespace-nowrap">
                     <div>{item?.id || '-'}</div>
                     <span className="text-[10px] text-slate-400 font-mono block">
                       {maskVoucher(item?.kodeVoucher)}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 text-slate-500 whitespace-nowrap min-w-[130px]">
-                    {formatTanggal(item?.waktu, true)}
+                  <td className="py-3 px-3 sm:px-3.5 text-slate-500 whitespace-nowrap">
+                    <div className="font-semibold text-slate-700">{formatTanggal(item?.waktu, false)}</div>
+                    <div className="text-[10px] text-slate-400">
+                      {item?.waktu ? new Date(item.waktu).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB' : '-'}
+                    </div>
                   </td>
-                  <td className="py-3.5 px-4 font-bold text-slate-800 whitespace-nowrap min-w-[140px]">
-                    {item?.napi?.nama || '-'}
+                  <td className="py-3 px-3 sm:px-3.5 font-bold text-slate-800 max-w-[150px]">
+                    <span className="truncate block" title={item?.napi?.nama}>
+                      {item?.napi?.nama || '-'}
+                    </span>
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap min-w-[110px]">
-                    <span className="font-mono text-slate-700 font-semibold block">
+                  <td className="py-3 px-3 sm:px-3.5 whitespace-nowrap">
+                    <span className="font-mono text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/60 text-[11px] font-semibold">
                       {item?.napi?.id || '-'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-medium text-slate-700 whitespace-nowrap min-w-[150px]">
-                    {item?.paket?.nama || '-'}
+                  <td className="py-3 px-3 sm:px-3.5 font-medium text-slate-700 max-w-[160px]">
+                    <span className="truncate block" title={item?.paket?.nama}>
+                      {item?.paket?.nama || '-'}
+                    </span>
                   </td>
-                  <td className="py-3.5 px-4 whitespace-nowrap min-w-[90px]">
+                  <td className="py-3 px-2.5 sm:px-3 whitespace-nowrap">
                     <span
-                      className={`inline-block px-2.5 py-0.5 rounded-md font-bold text-[11px] border ${getMetodeBadge(
+                      className={`inline-block px-2.5 py-0.5 rounded-md font-bold text-[10px] sm:text-[11px] border ${getMetodeBadge(
                         item?.metode
                       )}`}
                     >
                       {item?.metode || 'Tunai'}
                     </span>
                   </td>
-                  <td className="py-3.5 px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-sm min-w-[110px]">
+                  <td className="py-3 px-3.5 sm:px-4 font-extrabold text-[#1565C0] text-right whitespace-nowrap text-xs sm:text-sm">
                     {formatRupiah(item?.paket?.harga || item?.paket?.total || 0)}
                   </td>
-                  <td className="py-3.5 px-4 text-center whitespace-nowrap min-w-[150px]" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-center justify-center gap-1.5 shrink-0 whitespace-nowrap">
+                  <td className="py-3 px-3.5 sm:px-4 text-center whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => navigate(`/kantin/struk/${item.id}`)}
@@ -296,10 +303,10 @@ export default function TabelTransaksi({
                 >
                   Total Nominal ({transaksiList.length} Transaksi)
                 </td>
-                <td className="py-3.5 px-4 text-right text-[#1565C0] font-black text-sm whitespace-nowrap min-w-[110px]">
+                <td className="py-3.5 px-4 text-right text-[#1565C0] font-black text-xs sm:text-sm whitespace-nowrap">
                   {formatRupiah(totalNominal)}
                 </td>
-                <td className="py-3.5 px-4 min-w-[150px]"></td>
+                <td className="py-3.5 px-4"></td>
               </tr>
             </tfoot>
           </table>

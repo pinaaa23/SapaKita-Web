@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { History, RefreshCw } from 'lucide-react';
 import FilterPeriode from '../../components/kantin/FilterPeriode';
 import KartuRingkasan from '../../components/kantin/KartuRingkasan';
-import BarChartSederhana from '../../components/kantin/BarChartSederhana';
 import TabelTransaksi from '../../components/kantin/TabelTransaksi';
 import { getRekap, getRiwayat } from '../../services/kantin/kantinService';
 import {
@@ -205,15 +204,7 @@ export default function RiwayatPage() {
       {/* 2. Bagian Rekap Ringkasan (Selalu menampilkan kartu metrik tanpa kotak abu-abu mentah) */}
       <KartuRingkasan rekap={rekapData} isLoading={isLoading} />
 
-      {/* 3. Bar Chart Sederhana (div + Tailwind) */}
-      {rekapData && Array.isArray(rekapData.chartData) && rekapData.chartData.length > 0 && (
-        <BarChartSederhana
-          data={rekapData.chartData}
-          periode={periode}
-        />
-      )}
-
-      {/* 4. Tabel Riwayat Transaksi */}
+      {/* 3. Tabel Riwayat Transaksi */}
       <TabelTransaksi
         transaksiList={transaksiList}
         metodeFilter={metodeFilter}
