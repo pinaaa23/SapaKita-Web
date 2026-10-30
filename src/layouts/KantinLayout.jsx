@@ -163,9 +163,9 @@ export default function KantinLayout() {
             <img 
               src={ikonSadewaNew} 
               alt="Sadewa" 
-              className="w-[110px] h-auto object-contain object-left" 
+              className="w-[110px] h-auto object-contain object-left block" 
             />
-            <p className="text-[11px] text-[#64748B] font-semibold tracking-wide mt-1 truncate max-w-full">
+            <p className="text-[11px] text-[#64748B] font-semibold tracking-wide mt-1.5 truncate max-w-full text-left">
               Kantin
             </p>
           </div>
