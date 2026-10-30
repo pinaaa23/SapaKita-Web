@@ -19,7 +19,7 @@ import { getAuthToken } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import WartelBadgeSidebar from '../components/kantin/WartelBadgeSidebar';
 import SaldoBadgeSidebar from '../components/kantin/SaldoBadgeSidebar';
-import ikonSadewa from '../assets/ikon_sadewa.png';
+import ikonSadewaNew from '../assets/ikon_sadewa new.png';
 import { getUnreadApprovedTopupCountSync } from '../services/kantin/saldoService';
 import { 
   getNotifications, 
@@ -159,22 +159,15 @@ export default function KantinLayout() {
       <aside className="no-print hidden md:flex flex-col w-64 bg-white border-r border-[#E2E8F0] shrink-0 h-full max-h-screen z-30 overflow-hidden select-none">
         {/* Logo Header */}
         <div className="px-5 py-4 border-b border-[#E2E8F0] shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shrink-0 shadow-md overflow-hidden border border-slate-100">
-              <img 
-                src={ikonSadewa} 
-                alt="Sadewa" 
-                className="w-full h-full object-contain p-1" 
-              />
-            </div>
-            <div>
-              <div className="flex items-baseline font-black text-lg tracking-tight leading-none text-[#1E293B]">
-                Sadewa
-              </div>
-              <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider block mt-0.5">
-                Kantin
-              </span>
-            </div>
+          <div className="flex flex-col items-start min-w-0">
+            <img 
+              src={ikonSadewaNew} 
+              alt="Sadewa" 
+              className="w-[110px] h-auto object-contain object-left" 
+            />
+            <p className="text-[11px] text-[#64748B] font-semibold tracking-wide mt-1 truncate max-w-full">
+              Kantin
+            </p>
           </div>
         </div>
 
@@ -280,15 +273,13 @@ export default function KantinLayout() {
           <div className="flex items-center gap-3">
             {/* Brand icon on mobile */}
             <div className="md:hidden flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-slate-100">
-                <img 
-                  src={ikonSadewa} 
-                  alt="Sadewa" 
-                  className="w-full h-full object-contain p-0.5" 
-                />
-              </div>
-              <span className="font-bold text-base text-slate-800">
-                Sadewa
+              <img 
+                src={ikonSadewaNew} 
+                alt="Sadewa" 
+                className="h-6 w-auto object-contain" 
+              />
+              <span className="text-[11px] font-bold text-[#64748B] tracking-wide">
+                Kantin
               </span>
             </div>
             <h1 className="hidden sm:block text-base font-bold text-slate-800">

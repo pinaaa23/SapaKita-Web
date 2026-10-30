@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import PromoBanner from '../../components/kantin/PromoBanner';
 import KategoriTabs from '../../components/kantin/KategoriTabs';
 import KartuPaket from '../../components/kantin/KartuPaket';
 import ModalBeli from '../../components/kantin/ModalBeli';
@@ -203,10 +202,7 @@ export default function PaketPage() {
         </div>
       )}
 
-      {/* 2. Hero Promo Banner */}
-      <PromoBanner />
-
-      {/* 3. Section Heading Paket */}
+      {/* 2. Section Heading Paket */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-600" />
