@@ -122,18 +122,66 @@ export default function KantinLayout() {
     return true;
   });
 
-  // Tentukan judul halaman berdasarkan route saat ini
-  const getJudulHalaman = () => {
+  // Tentukan info halaman (badge, judul, dan subtitle/keterangan) berdasarkan route
+  const getPageInfo = () => {
     const path = location.pathname;
-    if (path === '/kantin' || path === '/kantin/') return 'Katalog Paket Komunikasi';
-    if (path.startsWith('/kantin/kontak')) return 'Kontak Keluarga WBP';
-    if (path.startsWith('/kantin/status-wartel')) return 'Status Wartel Lapas';
-    if (path.startsWith('/kantin/riwayat')) return 'Rekap & Riwayat Transaksi';
-    if (path.startsWith('/kantin/top-up-saldo')) return 'Top Up Saldo Kantin';
-    if (path.startsWith('/kantin/struk')) return 'Struk Bukti Transaksi';
-    if (path.startsWith('/kantin/voucher')) return 'Voucher Transaksi';
-    return 'PasCall Kantin';
+    if (path === '/kantin' || path === '/kantin/') {
+      return {
+        badge: 'Katalog Voucher',
+        title: 'Katalog Paket Komunikasi',
+        subtitle: 'Pilihan paket telepon dan video call resmi untuk warga binaan pemasyarakatan. Voucher langsung dicetak dan siap digunakan di bilik wartel.',
+      };
+    }
+    if (path.startsWith('/kantin/kontak')) {
+      return {
+        badge: 'Manajemen Kontak',
+        title: 'Kelola Kontak Keluarga WBP',
+        subtitle: 'Daftarkan dan tinjau nomor kontak keluarga yang diizinkan untuk setiap warga binaan (maksimal 10 kontak). Sistem otomatis mendeteksi kanal WhatsApp atau GSM Seluler.',
+      };
+    }
+    if (path.startsWith('/kantin/status-wartel')) {
+      return {
+        badge: 'Monitoring Bilik',
+        title: 'Status Ketersediaan Wartel',
+        subtitle: 'Pantau ketersediaan bilik wartel secara real-time. Anda dapat menambah, mengedit, atau menyesuaikan jumlah bilik sesuai kondisi fisik wartel cabang.',
+      };
+    }
+    if (path.startsWith('/kantin/riwayat')) {
+      return {
+        badge: 'Laporan Penjualan',
+        title: 'Rekap & Riwayat Penjualan',
+        subtitle: 'Laporan rekapitulasi pemasukan omzet penjualan voucher dan daftar riwayat transaksi kasir kantin.',
+      };
+    }
+    if (path.startsWith('/kantin/tagihan') || path.startsWith('/kantin/top-up-saldo')) {
+      return {
+        badge: 'Sistem Pascabayar',
+        title: 'Tagihan Bulanan Kantin',
+        subtitle: 'Tagihan bulanan dihitung dari akumulasi durasi paket/voucher yang dibeli WBP di kantin dikalikan tarif per detik dan porsi setoran ke Admin Finance.',
+      };
+    }
+    if (path.startsWith('/kantin/voucher')) {
+      return {
+        badge: 'Cetak Voucher',
+        title: 'Voucher Transaksi',
+        subtitle: 'Informasi kode voucher dan instruksi penggunaan bilik telepon wartel.',
+      };
+    }
+    if (path.startsWith('/kantin/struk')) {
+      return {
+        badge: 'Bukti Transaksi',
+        title: 'Struk Transaksi Kasir',
+        subtitle: 'Bukti pembelian resmi paket komunikasi kantin.',
+      };
+    }
+    return {
+      badge: 'Layanan Kantin',
+      title: 'PasCall Kantin',
+      subtitle: 'Sistem Layanan Komunikasi Wartel Pemasyarakatan.',
+    };
   };
+
+  const pageInfo = getPageInfo();
 
   const handleLogout = () => {
     logout();
@@ -158,14 +206,14 @@ export default function KantinLayout() {
       {/* SIDEBAR DESKTOP / TABLET (Hidden on Mobile) */}
       <aside className="no-print hidden md:flex flex-col w-64 bg-white border-r border-[#E2E8F0] shrink-0 h-full max-h-screen z-30 overflow-hidden select-none">
         {/* Logo Header */}
-        <div className="px-5 py-4 border-b border-[#E2E8F0] shrink-0">
+        <div className="px-6 py-4.5 border-b border-[#E2E8F0] shrink-0">
           <div className="flex flex-col items-start min-w-0">
             <img 
               src={ikonSadewaNew} 
               alt="Sadewa" 
-              className="w-[110px] h-auto object-contain object-left block" 
+              className="w-[112px] h-auto object-contain object-left block" 
             />
-            <p className="text-[11px] text-[#64748B] font-semibold tracking-wide mt-1.5 truncate max-w-full text-left">
+            <p className="text-[11px] text-slate-500 font-bold tracking-wider uppercase mt-1 pl-1 truncate max-w-full text-left">
               Kantin
             </p>
           </div>
@@ -268,32 +316,45 @@ export default function KantinLayout() {
         ref={mainContentRef}
         className="flex-1 flex flex-col min-w-0 h-full max-h-screen overflow-y-auto pb-20 md:pb-6 relative"
       >
-        {/* TOPBAR */}
-        <header className="no-print bg-white border-b border-[#E2E8F0] sticky top-0 z-20 px-4 sm:px-8 py-3.5 flex items-center justify-between shadow-2xs shrink-0">
-          <div className="flex items-center gap-3">
-            {/* Brand icon on mobile */}
-            <div className="md:hidden flex items-center gap-2">
-              <img 
-                src={ikonSadewaNew} 
-                alt="Sadewa" 
-                className="h-6 w-auto object-contain" 
-              />
-              <span className="text-[11px] font-bold text-[#64748B] tracking-wide">
-                Kantin
-              </span>
-            </div>
-            <h1 className="hidden sm:block text-base font-bold text-slate-800">
-              {getJudulHalaman()}
-            </h1>
-          </div>
+        {/* UNIFIED PAGE TOPBAR: Hanya 1 judul dengan keterangan di bawahnya, sejajar dengan tanggal & notifikasi */}
+        <header className="no-print bg-white border-b border-[#E2E8F0] px-4 sm:px-8 py-4.5 sm:py-5 shadow-2xs shrink-0">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 mb-1.5">
+                {/* Brand icon on mobile */}
+                <div className="md:hidden flex items-center gap-2 mr-2">
+                  <img 
+                    src={ikonSadewaNew} 
+                    alt="Sadewa" 
+                    className="h-5 w-auto object-contain" 
+                  />
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                    Kantin
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                  {pageInfo.badge}
+                </span>
+                <span className="text-slate-300">•</span>
+                <span className="text-xs font-semibold text-slate-500">Kantin</span>
+              </div>
 
-          <div className="flex items-center gap-2.5">
-            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-xl">
-              <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
-              <span>{formatTanggal(new Date(), false)}</span>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                {pageInfo.title}
+              </h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+                {pageInfo.subtitle}
+              </p>
             </div>
 
-            {/* Notification Bell Dropdown */}
+            {/* SEJAJAR: Fitur Notifikasi & Tanggal */}
+            <div className="flex items-center gap-2.5 self-start lg:self-center shrink-0">
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-200/90 px-3.5 py-2 rounded-xl shadow-2xs">
+                <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
+                <span>{formatTanggal(new Date(), false)}</span>
+              </div>
+
+              {/* Notification Bell Dropdown */}
             <div className="relative" ref={notifRef}>
               <button
                 type="button"
@@ -438,7 +499,8 @@ export default function KantinLayout() {
               <LogOut className="w-4 h-4" />
             </button>
           </div>
-        </header>
+        </div>
+      </header>
 
         {/* OUTLET KONTEN */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">

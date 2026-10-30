@@ -654,34 +654,24 @@ export default function TagihanPage() {
         </div>
       )}
 
-      {/* Header Halaman & Filter Controls */}
-      <div className="mb-6 flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-              <Receipt className="w-3.5 h-3.5 text-blue-600" />
-              Sistem Pascabayar
+      {/* Toolbar Filter & Cetak (Responsif) */}
+      <div className="mb-6 bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Receipt className="w-4 h-4 text-blue-600 shrink-0" />
+          <span className="text-xs font-bold text-slate-800">
+            Periode Tagihan Terpilih
+          </span>
+          {isRefreshing && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 ml-2 animate-pulse">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Sinkronisasi...
             </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin</span>
-            {isRefreshing && (
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 ml-2 animate-pulse">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                Sinkronisasi data...
-              </span>
-            )}
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Tagihan Bulanan Kantin
-          </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Tagihan bulanan dihitung dari akumulasi durasi paket/voucher yang dibeli WBP di kantin dikalikan tarif per detik dan porsi setoran ke Admin Finance (skema bagi hasil 4 pihak).
-          </p>
+          )}
         </div>
 
         {/* Toolbar Filter & Cetak */}
-        <div className="no-print flex flex-wrap items-center gap-2.5 self-start lg:self-center">
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs">
+        <div className="no-print flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200/90 shadow-2xs">
             <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
             <select
               value={selectedMonth}
@@ -694,7 +684,7 @@ export default function TagihanPage() {
                 </option>
               ))}
             </select>
-            <span className="text-slate-200">|</span>
+            <span className="text-slate-300">|</span>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}

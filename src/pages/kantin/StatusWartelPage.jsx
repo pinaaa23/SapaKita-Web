@@ -15,7 +15,8 @@ import {
   SlidersHorizontal,
   Info,
   RotateCcw,
-  Sparkles
+  Sparkles,
+  Clock
 } from 'lucide-react';
 import RingkasanWartel from '../../components/kantin/RingkasanWartel';
 import KartuWartel from '../../components/kantin/KartuWartel';
@@ -223,38 +224,22 @@ export default function StatusWartelPage() {
         </div>
       )}
 
-      {/* 1. Page Header Terpadu dengan Tombol Tambah Bilik & Segarkan */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-              <PhoneCall className="w-3.5 h-3.5 text-blue-600" />
-              Monitoring Bilik
-            </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Status Ketersediaan Wartel
-          </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Pantau ketersediaan bilik wartel secara real-time. Anda dapat menambah, mengedit, atau menyesuaikan jumlah bilik sesuai kondisi fisik wartel cabang.
-          </p>
+      {/* Toolbar Aksi Status Wartel (Responsif di semua ukuran layar) */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-semibold">
+          <Clock className="w-4 h-4 text-[#1565C0] shrink-0" />
+          <span>Waktu Pembaruan:</span>
+          <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-lg border border-slate-200/60">
+            {lastUpdatedTime || '-'}
+          </span>
         </div>
 
-        {/* Toolbar Tombol Aksi: Tambah Bilik, Refresh, Info Pembaruan */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-center">
-          {lastUpdatedTime && (
-            <div className="bg-white px-3 py-2 rounded-xl border border-slate-200/90 text-[11px] font-semibold text-slate-500 shadow-2xs">
-              Diperbarui: <strong className="text-slate-700 font-mono">{lastUpdatedTime}</strong>
-            </div>
-          )}
-
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={refetch}
             disabled={isRefreshing || isLoading}
-            className="inline-flex items-center gap-2 px-3 py-2 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs border border-slate-200 shadow-2xs hover:shadow-xs rounded-xl transition active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200 rounded-xl transition active:scale-95 disabled:opacity-50 cursor-pointer shadow-2xs"
             title="Muat ulang status bilik real-time"
           >
             <RefreshCw
@@ -265,7 +250,6 @@ export default function StatusWartelPage() {
             <span>{isRefreshing ? 'Memperbarui...' : 'Segarkan'}</span>
           </button>
 
-          {/* Tombol Utama: Tambah Bilik Baru */}
           <button
             type="button"
             onClick={handleOpenAddModal}
@@ -276,12 +260,11 @@ export default function StatusWartelPage() {
             <span>Tambah Bilik</span>
           </button>
 
-          {/* Opsi Reset ke 10 Bilik Standar */}
           {daftar.length !== 10 && (
             <button
               type="button"
               onClick={() => setIsResetConfirmOpen(true)}
-              className="p-2 bg-white hover:bg-slate-50 text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl shadow-2xs transition cursor-pointer"
+              className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-500 hover:text-slate-800 border border-slate-200 rounded-xl shadow-2xs transition cursor-pointer"
               title="Kembalikan ke 10 bilik standar"
             >
               <RotateCcw className="w-4 h-4" />

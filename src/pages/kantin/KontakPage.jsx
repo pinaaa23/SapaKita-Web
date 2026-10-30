@@ -315,50 +315,6 @@ export default function KontakPage() {
         </div>
       )}
 
-      {/* Unified Page Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-200/80">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
-              <Users className="w-3.5 h-3.5 text-blue-600" />
-              Manajemen Kontak
-            </span>
-            <span className="text-slate-300">•</span>
-            <span className="text-xs font-semibold text-slate-500">Kantin</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Kelola Kontak Keluarga WBP
-          </h1>
-          <p className="text-slate-500 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-            Daftarkan dan tinjau nomor kontak keluarga yang diizinkan untuk setiap warga binaan (maksimal 10 kontak).
-            Sistem otomatis mendeteksi kanal WhatsApp atau GSM Seluler.
-          </p>
-        </div>
-
-        {/* Quick Info Badges */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 self-start lg:self-center">
-          <div className="px-3.5 py-2 bg-white border border-slate-200/90 rounded-xl shadow-2xs flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
-              10
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">Batas Kuota</div>
-              <div className="text-xs font-bold text-slate-800">Maks. 10 Nomor/WBP</div>
-            </div>
-          </div>
-
-          <div className="px-3.5 py-2 bg-white border border-slate-200/90 rounded-xl shadow-2xs flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
-              <Video className="w-3.5 h-3.5" />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold uppercase text-slate-400">Kanal Panggilan</div>
-              <div className="text-xs font-bold text-slate-800">WA & GSM Seluler</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* KONTEN UTAMA: Jika belum memilih WBP, tampilkan HANYA Card Pilih Warga Binaan yang rapi dan clean */}
       {!selectedInmate ? (
         <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs p-5 sm:p-6 space-y-5">
