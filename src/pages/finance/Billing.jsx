@@ -1805,7 +1805,7 @@ canApprove={canAccessBilling}
                     <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B3D91]">
                       Kalkulasi Tagihan Berbasis Detik Panggilan
                     </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
                         <span className="text-slate-500 block">Total Durasi Bicara:</span>
                         <span className="font-bold text-slate-900 text-sm mt-1 block">
@@ -1816,18 +1816,25 @@ canApprove={canAccessBilling}
                         </span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-sky-700 block">Hak Internal UPT (45% Dikelola UPT):</span>
+                        <span className="text-slate-500 block">Total Penjualan (100%):</span>
+                        <span className="font-bold text-slate-900 text-sm mt-1 block">
+                          {formatRupiah(detailModalItem.grossAmount || detailModalItem.totalAmount || 0)}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-normal">Omset kotor voucher</span>
+                      </div>
+                      <div className="bg-white p-3 rounded-xl border border-slate-100">
+                        <span className="text-sky-700 block">Hak Internal UPT (45%):</span>
                         <span className="font-bold text-sky-900 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.totalAmount || 0) * 0.45))}
+                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.45))}
                         </span>
                         <span className="text-[10px] text-sky-600 font-normal">Dikelola internal UPT</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
                         <span className="text-emerald-700 block">Setor ke Vendor (55%):</span>
                         <span className="font-extrabold text-emerald-800 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.totalAmount || 0) * 0.55))}
+                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.55))}
                         </span>
-                        <span className="text-[10px] text-emerald-600 font-normal">Disetor ke penampung</span>
+                        <span className="text-[10px] text-emerald-600 font-normal">Disetor ke vendor</span>
                       </div>
                     </div>
                   </div>

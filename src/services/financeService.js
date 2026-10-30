@@ -448,9 +448,9 @@ export const saveFinanceContract = async (branchId, contractData) => {
   try {
     saveStoredContract(branchId, {
       ratePerSecond: rate,
-      superadminPercent: Math.max(0, 100 - Number(split.koperasi ?? 30)),
-      canteenPercent: Number(split.koperasi ?? 30),
-      negotiationPercent: Math.max(0, 100 - Number(split.koperasi ?? 30)),
+      superadminPercent: Number(split.vendor ?? 55),
+      canteenPercent: Math.max(0, 100 - Number(split.vendor ?? 55)),
+      negotiationPercent: Number(split.vendor ?? 55),
       branchName: contractData.branchName,
       canteenName: contractData.canteenName,
     });
