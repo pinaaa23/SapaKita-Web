@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { 
   BarChart, 
   Bar, 
@@ -41,13 +41,19 @@ const getCallDate = (call) => {
   return isNaN(d.getTime()) ? null : d;
 };
 
+const EMPTY_INITIAL_BRANCHES = [];
+
 export default function CallPerformanceComparisonChart({
   role = 'superadmin',
   kanwilId = null,
   kanwilName = 'Kantor Wilayah',
-  initialBranches = []
+  initialBranches = EMPTY_INITIAL_BRANCHES
 }) {
   const isKanwil = role === 'kanwil';
+  const initialBranchesRef = useRef(initialBranches);
+  useEffect(() => {
+    initialBranchesRef.current = initialBranches;
+  }, [initialBranches]);
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
@@ -92,8 +98,8 @@ export default function CallPerformanceComparisonChart({
         });
 
         // Fallback jika belum cocok dari kanwilId
-        if (scopedBranches.length === 0 && initialBranches && initialBranches.length > 0) {
-          scopedBranches = initialBranches;
+        if (scopedBranches.length === 0 && initialBranchesRef.current && initialBranchesRef.current.length > 0) {
+          scopedBranches = initialBranchesRef.current;
         } else if (scopedBranches.length === 0 && allBranches.length > 0) {
           scopedBranches = allBranches;
         }
@@ -150,7 +156,7 @@ export default function CallPerformanceComparisonChart({
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [isKanwil, kanwilId, kanwilName, initialBranches]);
+  }, [isKanwil, kanwilId, kanwilName]);
 
   useEffect(() => {
     fetchData();
@@ -189,7 +195,7 @@ export default function CallPerformanceComparisonChart({
         }
       }
     }
-  }, [rawCalls, monthCounts, selectedMonth]);
+  }, [rawCalls.length, selectedMonth]);
 
   // Format durasi detik ke teks rapi (misal: "12m 30s" atau "2j 15m")
   const formatDuration = (totalSeconds) => {
