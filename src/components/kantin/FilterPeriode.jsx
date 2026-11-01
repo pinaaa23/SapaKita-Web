@@ -27,26 +27,22 @@ export default function FilterPeriode({
   const handleDateChange = (e) => {
     const val = e.target.value;
     if (val) {
-      onUbahTanggal(new Date(val));
+      const [y, m, d] = val.split('-').map(Number);
+      onUbahTanggal(new Date(y, m - 1, d, 12, 0, 0));
     }
   };
 
   const handleMonthChange = (e) => {
     const val = e.target.value; // "YYYY-MM"
     if (val) {
-      const [y, m] = val.split('-');
-      const newD = new Date(tanggal);
-      newD.setFullYear(parseInt(y, 10));
-      newD.setMonth(parseInt(m, 10) - 1);
-      onUbahTanggal(new Date(newD));
+      const [y, m] = val.split('-').map(Number);
+      onUbahTanggal(new Date(y, m - 1, 1, 12, 0, 0));
     }
   };
 
   const handleYearChange = (e) => {
     const y = parseInt(e.target.value, 10);
-    const newD = new Date(tanggal);
-    newD.setFullYear(y);
-    onUbahTanggal(new Date(newD));
+    onUbahTanggal(new Date(y, 0, 1, 12, 0, 0));
   };
 
   const setHariIni = () => {
