@@ -288,7 +288,7 @@ export default function CallPerformanceComparisonChart({
       if (isAnswered) {
         stats.answeredCalls += 1;
         stats.totalSeconds += sec;
-        stats.totalMinutes = Number((stats.totalSeconds / 60).toFixed(1));
+        stats.totalMinutes = Number((stats.totalSeconds / 60).toFixed(2));
       } else {
         stats.missedCalls += 1;
       }
@@ -376,7 +376,7 @@ export default function CallPerformanceComparisonChart({
       if (isAnswered) {
         entry.answeredCalls += 1;
         entry.totalSeconds += sec;
-        entry.totalMinutes = Number((entry.totalSeconds / 60).toFixed(1));
+        entry.totalMinutes = Number((entry.totalSeconds / 60).toFixed(2));
       } else {
         entry.missedCalls += 1;
       }
