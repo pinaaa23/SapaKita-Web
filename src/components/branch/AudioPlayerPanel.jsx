@@ -19,7 +19,9 @@ import { useAuth } from '../../context/AuthContext';
 import { getAudioStreamUrl } from '../../services/callService';
 import { CallStatusBadge } from '../../utils/callStatus';
 
-const AudioPlayerPanel = ({ call, onClose }) => {
+const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript }) => {
+  const call = propCall || recording;
+  if (!call) return null;
   const { isSupervisor, uptName, userName, roleLabel } = useAuth();
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -261,7 +263,7 @@ const AudioPlayerPanel = ({ call, onClose }) => {
               Sedang Diputar
             </h3>
             <p className="text-[10px] text-slate-400 font-medium">
-              ID: {call.id}
+              ID: {call.id || call.recordingId || '-'}
             </p>
           </div>
         </div>
@@ -289,17 +291,17 @@ const AudioPlayerPanel = ({ call, onClose }) => {
               <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
             </div>
             
-            <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName}>
+            <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName || call.inmate?.name || 'WBP'}>
               {call.inmateName}
             </h4>
             {/* <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={`${call.familyName} (${call.familyPhone})`}>
               Tujuan: <span className="font-semibold text-slate-700">{call.familyName}</span> ({call.familyPhone})
             </p> */}
-            <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={call.familyPhone || '-'}>
+            <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={call.familyPhone || call.destinationPhone || call.targetPhone || '-'}>
               Tujuan: <span className="font-semibold text-slate-700">{call.familyPhone || '-'}</span>
             </p>
             <p className="text-[11px] text-slate-400 font-medium mt-1">
-              {new Date(call.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} • {new Date(call.date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+              {(() => { const rd = call.date || call.createdAt || call.connectedAt; return rd && !isNaN(new Date(rd).getTime()) ? (new Date(rd).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + ' • ' + new Date(rd).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) + ' WIB') : '-'; })()}
             </p>
           </div>
         </div>

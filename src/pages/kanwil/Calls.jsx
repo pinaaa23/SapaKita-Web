@@ -644,6 +644,7 @@ export default function KanwilCalls() {
         {isSplitView && (
           <div className="w-full lg:w-[35%] shrink-0 sticky top-4 animate-in slide-in-from-right-4 duration-300">
             <AudioPlayerPanel
+              call={selectedRecording}
               recording={selectedRecording}
               onClose={() => setSelectedRecording(null)}
               onOpenTranscript={() => setTranscriptModalCall(selectedRecording)}

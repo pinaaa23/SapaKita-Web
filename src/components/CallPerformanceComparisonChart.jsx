@@ -78,8 +78,8 @@ export default function CallPerformanceComparisonChart({
       // A. Ambil seluruh cabang
       let allBranches = [];
       try {
-        const bRes = await getBranches({ limit: 200 });
-        allBranches = Array.isArray(bRes?.items) ? bRes.items : (Array.isArray(bRes) ? bRes : []);
+        const bRes = await getBranches({ limit: 100 });
+        allBranches = Array.isArray(bRes?.items) ? bRes.items : (Array.isArray(bRes?.data) ? bRes.data : (Array.isArray(bRes) ? bRes : []));
       } catch (e) {
         console.warn('[CallPerformanceChart] Fallback getBranches:', e);
       }
@@ -109,19 +109,32 @@ export default function CallPerformanceComparisonChart({
       }
       setBranches(scopedBranches);
 
+      // Helper pagination aman dengan limit 100 sesuai batas Zod backend
+      const fetchAllCalls = async (fetcher) => {
+        let allItems = [];
+        let page = 1;
+        let totalPages = 1;
+        do {
+          const res = await fetcher({ page, limit: 100 });
+          const items = Array.isArray(res?.items) ? res.items : (Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []));
+          allItems = allItems.concat(items);
+          totalPages = Number(res?.totalPages) || (res?.total ? Math.ceil(res.total / 100) : 1);
+          page += 1;
+        } while (page <= totalPages && page <= 10);
+        return allItems;
+      };
+
       // B. Ambil riwayat panggilan riil
       let callList = [];
       if (isKanwil) {
         try {
-          const cRes = await getKanwilCalls({ limit: 2000 });
-          callList = Array.isArray(cRes?.items) ? cRes.items : [];
-        } catch {
-          const cRes = await getCallHistory({ limit: 2000 });
-          callList = Array.isArray(cRes?.items) ? cRes.items : [];
+          callList = await fetchAllCalls(getKanwilCalls);
+        } catch (e1) {
+          console.warn('[CallPerformanceChart] getKanwilCalls fallback:', e1);
+          callList = await fetchAllCalls(getCallHistory);
         }
       } else {
-        const cRes = await getCallHistory({ limit: 2000 });
-        callList = Array.isArray(cRes?.items) ? cRes.items : [];
+        callList = await fetchAllCalls(getCallHistory);
       }
 
       // Filter panggilan khusus Kanwil: Hanya panggilan milik UPT yang diampu Kanwil
