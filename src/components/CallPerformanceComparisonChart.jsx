@@ -6,7 +6,6 @@ import {
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  Legend, 
   ResponsiveContainer 
 } from 'recharts';
 import { 
@@ -295,7 +294,6 @@ export default function CallPerformanceComparisonChart({
       const successRate = item.totalCalls > 0 
         ? Number(((item.answeredCalls / item.totalCalls) * 100).toFixed(1)) 
         : 0;
-      // Gunakan nama lengkap jika cabang sedikit (<= 4) agar rapi, atau shortName jika banyak
       const displayLabel = isFewBranches ? item.branchName : item.shortName;
       return {
         ...item,
@@ -469,7 +467,7 @@ export default function CallPerformanceComparisonChart({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6 space-y-4">
       {/* 1. Header Komponen & Filter Navigasi */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
@@ -674,8 +672,28 @@ export default function CallPerformanceComparisonChart({
         </div>
       </div>
 
+      {/* 2.5 Header Legend Rapi & Sejajar (HTML-Based) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 px-1">
+        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+          <span className="w-1.5 h-3.5 bg-[#0B3D91] rounded-full"></span>
+          <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Lapas/UPT' : 'Tren Panggilan 12 Bulan'}</span>
+        </span>
+        <div className="flex items-center gap-4 text-xs font-semibold">
+          <span className="flex items-center gap-1.5 text-slate-700">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#0B3D91]"></span>
+            <span>{metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab'}</span>
+          </span>
+          {metricType === 'calls' && (
+            <span className="flex items-center gap-1.5 text-slate-600">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F43F5E]"></span>
+              <span>Tidak Terjawab / Gagal</span>
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* 3. Area Diagram Batang Recharts */}
-      <div className="h-72 sm:h-84 w-full pt-2">
+      <div className="h-72 sm:h-80 w-full pt-1">
         {isLoading ? (
           <div className="h-full w-full bg-slate-50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
             Memuat data performa panggilan...
@@ -684,39 +702,37 @@ export default function CallPerformanceComparisonChart({
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData}
-              margin={{ top: 12, right: 12, bottom: 20, left: -10 }}
-              barGap={6}
+              margin={{ top: 10, right: 16, bottom: 10, left: 0 }}
             >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
               <XAxis
                 dataKey="displayLabel"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fill: '#64748B', fontSize: 11, fontWeight: 700 }}
+                axisLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
+                tickLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
+                tick={{ fill: '#334155', fontSize: 12, fontWeight: 700 }}
                 dy={8}
                 interval={0}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#94A3B8', fontSize: 11 }}
+                width={36}
+                tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }}
+                allowDecimals={false}
+                domain={[0, 'auto']}
                 tickFormatter={(val) => metricType === 'calls' ? formatNumber(val) : `${val}m`}
               />
               <Tooltip 
                 content={<CustomTooltip />} 
                 cursor={false} 
               />
-              <Legend 
-                verticalAlign="top" 
-                align="right" 
-                iconType="circle"
-                wrapperStyle={{ paddingBottom: '16px', fontSize: '11px', fontWeight: 600 }}
-              />
+              {/* StackId menjamin kolom batang 100% tegak lurus presisi tepat di atas label & garis axis */}
               <Bar
                 name={metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab (Menit)'}
                 dataKey={metricType === 'calls' ? 'answeredCalls' : 'totalMinutes'}
                 fill="#0B3D91"
-                radius={[6, 6, 0, 0]}
+                stackId="callsStack"
+                radius={metricType === 'calls' ? [4, 4, 0, 0] : [6, 6, 0, 0]}
                 maxBarSize={55}
               />
               {metricType === 'calls' && (
@@ -724,6 +740,7 @@ export default function CallPerformanceComparisonChart({
                   name="Tidak Terjawab / Gagal"
                   dataKey="missedCalls"
                   fill="#F43F5E"
+                  stackId="callsStack"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={55}
                 />
@@ -739,20 +756,20 @@ export default function CallPerformanceComparisonChart({
       </div>
 
       {/* Footer Penjelas */}
-      <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-400 gap-1.5">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+      <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-2">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
           <span>
             {isKanwil 
               ? `Tersinkronisasi khusus UPT di lingkungan ${kanwilName}` 
               : 'Tersinkronisasi seluruh UPT/Lapas nasional'}
           </span>
-        </span>
-        <span className="text-slate-500">
+        </div>
+        <div className="text-slate-400 font-medium">
           {viewMode === 'by_branch' 
-            ? `Menampilkan ${comparisonByBranchData.length} Lapas (${activePeriodLabel})` 
-            : `Menampilkan tren bulanan 12 bulan (${selectedBranchId === 'all' ? (isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas') : 'Lapas Terpilih'})`}
-        </span>
+            ? `Menampilkan ${comparisonByBranchData.length} Lapas • ${activePeriodLabel}` 
+            : `Menampilkan tren 12 bulan • ${selectedBranchId === 'all' ? (isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas') : 'Lapas Terpilih'}`}
+        </div>
       </div>
     </div>
   );
