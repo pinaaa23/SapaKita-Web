@@ -61,6 +61,7 @@ export default function CallPerformanceComparisonChart({
   const [metricType, setMetricType] = useState('calls'); // 'calls' (Volume Panggilan) | 'duration' (Durasi Menit)
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedBranchId, setSelectedBranchId] = useState('all');
+  const [topLimit, setTopLimit] = useState('all'); // 'all' | '10' | '20'
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -309,8 +310,15 @@ export default function CallPerformanceComparisonChart({
     });
 
     // Urutkan dari Lapas dengan total panggilan tertinggi
-    return result.sort((a, b) => b.totalCalls - a.totalCalls);
-  }, [branches, rawCalls, selectedMonth]);
+    const sorted = result.sort((a, b) => b.totalCalls - a.totalCalls);
+    if (topLimit !== 'all' && viewMode === 'by_branch') {
+      const limitNum = parseInt(topLimit, 10);
+      if (!isNaN(limitNum) && limitNum > 0) {
+        return sorted.slice(0, limitNum);
+      }
+    }
+    return sorted;
+  }, [branches, rawCalls, selectedMonth, topLimit, viewMode]);
 
   // 2. PROSES DATA TREN BULANAN (View Mode: by_month)
   const monthlyTrendData = useMemo(() => {
@@ -680,10 +688,37 @@ export default function CallPerformanceComparisonChart({
 
       {/* 2.5 Header Legend Rapi & Sejajar (HTML-Based) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 px-1">
-        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-          <span className="w-1.5 h-3.5 bg-[#0B3D91] rounded-full"></span>
-          <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Lapas/UPT' : 'Tren Panggilan 12 Bulan'}</span>
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+            <span className="w-1.5 h-3.5 bg-[#0B3D91] rounded-full"></span>
+            <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Lapas/UPT' : 'Tren Panggilan 12 Bulan'}</span>
+          </span>
+          {viewMode === 'by_branch' && branches.length > 10 && (
+            <div className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
+              <button
+                type="button"
+                onClick={() => setTopLimit('all')}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === 'all' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Semua ({branches.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTopLimit('10')}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '10' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Top 10
+              </button>
+              <button
+                type="button"
+                onClick={() => setTopLimit('20')}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '20' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+              >
+                Top 20
+              </button>
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-4 text-xs font-semibold">
           <span className="flex items-center gap-1.5 text-slate-700">
             <span className="w-2.5 h-2.5 rounded-full bg-[#0B3D91]"></span>
@@ -698,27 +733,39 @@ export default function CallPerformanceComparisonChart({
         </div>
       </div>
 
-      {/* 3. Area Diagram Batang Recharts */}
-      <div className="h-72 sm:h-80 w-full pt-1">
-        {isLoading ? (
-          <div className="h-full w-full bg-slate-50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
-            Memuat data performa panggilan...
-          </div>
-        ) : (viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData).length > 0 ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData}
-              margin={{ top: 10, right: 16, bottom: 10, left: 0 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-              <XAxis
-                dataKey="displayLabel"
-                axisLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
-                tickLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
-                tick={{ fill: '#334155', fontSize: 12, fontWeight: 700 }}
-                dy={8}
-                interval={0}
-              />
+      {/* 3. Area Diagram Batang Recharts Responsif Dinamis (Mendukung hingga 60+ Lapas) */}
+      {(() => {
+        const currentData = viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData;
+        const itemCount = currentData.length;
+        const needsScroll = viewMode === 'by_branch' && itemCount > 12;
+        const dynamicMinWidth = needsScroll ? Math.max(900, itemCount * 65) : '100%';
+        const isAngled = viewMode === 'by_branch' && itemCount > 5;
+
+        return (
+          <div className="h-76 sm:h-84 w-full pt-1 overflow-x-auto custom-scrollbar">
+            <div style={{ minWidth: dynamicMinWidth, height: '100%' }}>
+              {isLoading ? (
+                <div className="h-full w-full bg-slate-50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
+                  Memuat data performa panggilan...
+                </div>
+              ) : itemCount > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={currentData}
+                    margin={{ top: 10, right: 16, bottom: isAngled ? 25 : 10, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                    <XAxis
+                      dataKey="displayLabel"
+                      axisLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
+                      tickLine={{ stroke: '#CBD5E1', strokeWidth: 1.5 }}
+                      tick={{ fill: '#334155', fontSize: itemCount > 8 ? 10 : 12, fontWeight: 700 }}
+                      angle={isAngled ? -25 : 0}
+                      textAnchor={isAngled ? 'end' : 'middle'}
+                      height={isAngled ? 50 : 30}
+                      dy={isAngled ? 4 : 8}
+                      interval={0}
+                    />
               <YAxis
                 axisLine={false}
                 tickLine={false}
@@ -759,7 +806,10 @@ export default function CallPerformanceComparisonChart({
             <span>Belum ada data panggilan pada periode ini</span>
           </div>
         )}
-      </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Footer Penjelas */}
       <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-500 gap-2">
