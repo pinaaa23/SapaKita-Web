@@ -98,7 +98,7 @@ export default function FinanceContracts() {
     id: 'default',
     bankName: 'Bank Mandiri',
     accountNumber: '168-00-9988112-7',
-    accountHolder: 'PT PasCall Solusi Indonesia',
+    accountHolder: 'PT Sadewa Solusi Indonesia',
     qrisImageUrl: null,
     qrisContent: null,
     instructions: 'Transfer tepat sesuai nominal tagihan dan unggah bukti transfer yang sah.',
@@ -511,7 +511,7 @@ export default function FinanceContracts() {
               <div className="flex flex-wrap items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
                   <Globe className="w-3.5 h-3.5" />
-                  Tarif Acuan Global PasCall
+                  Tarif Acuan Global Sadewa
                 </span>
                 <span className="text-xs text-slate-400 font-medium">
                   {isSuperadmin ? '(Superadmin Akses Penuh)' : '(Mode Pantau Finance)'}
@@ -887,7 +887,7 @@ export default function FinanceContracts() {
                       onChange={(e) => isSuperadmin && setPaymentSettings(p => ({ ...p, accountHolder: e.target.value }))}
                       disabled={!isSuperadmin}
                       readOnly={!isSuperadmin}
-                      placeholder="Contoh: PT PasCall Solusi Indonesia"
+                      placeholder="Contoh: PT Sadewa Solusi Indonesia"
                       className={`w-full px-3 py-2.5 border rounded-xl text-xs font-semibold shadow-2xs ${
                         isSuperadmin
                           ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white'

@@ -600,7 +600,7 @@ const Create = () => {
                   />
                 </div>
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Vendor PasCall (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Vendor Sadewa (%)</label>
                   <input
                     type="number"
                     min="0"

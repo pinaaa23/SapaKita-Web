@@ -460,7 +460,7 @@ const Detail = () => {
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareInkopasindoPercent || 10}%</span>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Vendor PasCall</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Vendor Sadewa</span>
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareVendorPercent || 55}%</span>
                   </div>
                 </div>

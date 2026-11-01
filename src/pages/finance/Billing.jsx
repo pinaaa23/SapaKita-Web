@@ -1806,7 +1806,7 @@ canApprove={canManageBilling}
                       <div>
                         <span className="text-slate-400 font-medium">Pengelola Kantin:</span>
                         <p className="font-bold text-slate-800 text-sm mt-0.5">{detailModalItem.canteenName}</p>
-                        <p className="text-slate-500">Rekening Tujuan: Bank Mandiri PasCall</p>
+                        <p className="text-slate-500">Rekening Tujuan: Bank Mandiri Sadewa</p>
                       </div>
                     </div>
                   </div>

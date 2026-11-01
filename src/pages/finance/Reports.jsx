@@ -157,7 +157,7 @@ export default function FinanceReports() {
     const csv = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const link = document.createElement('a');
     link.href = encodeURI(csv);
-    link.download = `Laporan_Keuangan_PasCall_${selectedYear}.csv`;
+    link.download = `Laporan_Keuangan_Sadewa_${selectedYear}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

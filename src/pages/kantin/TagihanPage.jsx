@@ -1070,7 +1070,7 @@ export default function TagihanPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-0.5">
-                Rekening resmi Finance PasCall untuk pembayaran setoran tagihan bulanan dan operasional kasir kantin.
+                Rekening resmi Finance Sadewa untuk pembayaran setoran tagihan bulanan dan operasional kasir kantin.
               </p>
             </div>
           </div>
@@ -1142,7 +1142,7 @@ export default function TagihanPage() {
                 <div>
                   <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
                   <span className="font-bold text-white text-xs">
-                    {financeSetting?.accountHolder || 'PT PasCall Solusi Indonesia'}
+                    {financeSetting?.accountHolder || 'PT Sadewa Solusi Indonesia'}
                   </span>
                 </div>
                 <CreditCard className="w-5 h-5 text-blue-400/60" />
@@ -1246,7 +1246,7 @@ export default function TagihanPage() {
 
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Barcode QRIS Nasional</h3>
             <p className="text-xs text-slate-500 mb-4">
-              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT PasCall Solusi Indonesia'}
+              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT Sadewa Solusi Indonesia'}
             </p>
 
             <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 border-slate-200/90 shadow-md flex items-center justify-center w-full max-w-[480px] mx-auto my-4 aspect-square">
@@ -1681,7 +1681,7 @@ export default function TagihanPage() {
                   Rumus: Total Detik × Tarif per Detik × Porsi Setoran Vendor (55%)
                 </div>
                 <p className="text-[11px] text-blue-800 leading-relaxed">
-                  Durasi detik terakumulasi dari voucher yang dibeli WBP. Kantin menyetor langsung porsi 55% untuk hak Vendor PasCall ke rekening penampung. Sisa 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) dikelola dan didistribusikan di tingkat internal UPT.
+                  Durasi detik terakumulasi dari voucher yang dibeli WBP. Kantin menyetor langsung porsi 55% untuk hak Vendor Sadewa ke rekening penampung. Sisa 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) dikelola dan didistribusikan di tingkat internal UPT.
                 </p>
               </div>
 
@@ -1730,7 +1730,7 @@ export default function TagihanPage() {
                 <div className="pt-3 flex justify-between items-center text-sm">
                   <div>
                     <span className="font-black text-slate-900 block">Total Setoran Bulan Ini:</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Rekening Vendor (Porsi {saPercent || 55}% Vendor PasCall)</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Rekening Vendor (Porsi {saPercent || 55}% Vendor Sadewa)</span>
                   </div>
                   <span className="font-black text-[#1565C0] text-base">
                     {isContractConfigured && newTotalTagihan !== null ? formatRupiah(newTotalTagihan) : '-'}
