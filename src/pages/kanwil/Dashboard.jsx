@@ -276,6 +276,7 @@ export default function KanwilDashboard() {
         role="kanwil" 
         kanwilId={kanwilId} 
         kanwilName={kanwilName} 
+        initialBranches={branches}
       />
 
       {/* Tabel UPT di Bawah Naungan Kanwil */}

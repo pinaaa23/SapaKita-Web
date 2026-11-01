@@ -22,7 +22,9 @@ import {
   Award,
   Layers,
   BarChart3,
-  ChevronDown
+  ChevronDown,
+  ShieldCheck,
+  Landmark
 } from 'lucide-react';
 import { getCallHistory, getKanwilCalls } from '../services/callService';
 import { getBranches } from '../services/branchService';
@@ -38,10 +40,20 @@ const MONTH_SHORT = [
   'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
 ];
 
+// Helper ekstraksi Date objek dari berbagai format respons panggilan
+const getCallDate = (call) => {
+  if (!call) return null;
+  const raw = call.date || call.startTime || call.createdAt || call.connectedAt || call.timestamp;
+  if (!raw) return null;
+  const d = new Date(raw);
+  return isNaN(d.getTime()) ? null : d;
+};
+
 export default function CallPerformanceComparisonChart({
   role = 'superadmin',
   kanwilId = null,
   kanwilName = 'Kantor Wilayah',
+  initialBranches = []
 }) {
   const isKanwil = role === 'kanwil';
   const now = new Date();
@@ -49,7 +61,7 @@ export default function CallPerformanceComparisonChart({
 
   const [viewMode, setViewMode] = useState('by_branch'); // 'by_branch' (Komparasi Antar Lapas) | 'by_month' (Tren Bulanan)
   const [metricType, setMetricType] = useState('calls'); // 'calls' (Volume Panggilan) | 'duration' (Durasi Menit)
-  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+  const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedBranchId, setSelectedBranchId] = useState('all');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -57,32 +69,76 @@ export default function CallPerformanceComparisonChart({
   const [branches, setBranches] = useState([]);
   const [rawCalls, setRawCalls] = useState([]);
 
-  // Fetch calls & branches data secara sinkron
+  // 1. Fetch calls & branches data secara sinkron
   const fetchData = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setIsRefreshing(true);
     else setIsLoading(true);
 
     try {
-      // 1. Ambil daftar cabang/Lapas
-      let branchList = [];
-      if (isKanwil) {
-        const bRes = await getKanwilBranches(kanwilId, { limit: 100 });
-        branchList = Array.isArray(bRes?.items) ? bRes.items : (Array.isArray(bRes) ? bRes : []);
-      } else {
-        const bRes = await getBranches({ limit: 100 });
-        branchList = Array.isArray(bRes?.items) ? bRes.items : (Array.isArray(bRes) ? bRes : []);
+      // A. Ambil seluruh cabang
+      let allBranches = [];
+      try {
+        const bRes = await getBranches({ limit: 200 });
+        allBranches = Array.isArray(bRes?.items) ? bRes.items : (Array.isArray(bRes) ? bRes : []);
+      } catch (e) {
+        console.warn('[CallPerformanceChart] Fallback getBranches:', e);
       }
-      setBranches(branchList);
 
-      // 2. Ambil riwayat panggilan riil
+      // Filter cabang berdasarkan hak akses:
+      // Superadmin: SEMUA Lapas se-Indonesia
+      // Kanwil: HANYA UPT / Lapas di bawah naungan Kanwil tersebut
+      let scopedBranches = allBranches;
+      if (isKanwil) {
+        scopedBranches = allBranches.filter((b) => {
+          if (kanwilId && (b.kanwilId === kanwilId || b.kanwil?.id === kanwilId)) return true;
+          if (kanwilName && kanwilName !== 'Kantor Wilayah') {
+            const cleanKanwil = kanwilName.toLowerCase().replace(/^(kanwil|kantor wilayah)\s+/gi, '').trim();
+            const bKanwil = (b.kanwilName || b.kanwil?.name || b.location || b.province || '').toLowerCase();
+            if (bKanwil.includes(cleanKanwil)) return true;
+          }
+          return false;
+        });
+
+        // Fallback jika belum cocok dari kanwilId
+        if (scopedBranches.length === 0 && initialBranches && initialBranches.length > 0) {
+          scopedBranches = initialBranches;
+        } else if (scopedBranches.length === 0 && allBranches.length > 0) {
+          // Jika di database hanya ada 1 cabang (misal Lapas Malang), ambil cabang tersebut untuk Kanwil Jatim
+          scopedBranches = allBranches;
+        }
+      }
+      setBranches(scopedBranches);
+
+      // B. Ambil riwayat panggilan riil
       let callList = [];
       if (isKanwil) {
-        const cRes = await getKanwilCalls({ limit: 2000 });
-        callList = Array.isArray(cRes?.items) ? cRes.items : [];
+        try {
+          const cRes = await getKanwilCalls({ limit: 2000 });
+          callList = Array.isArray(cRes?.items) ? cRes.items : [];
+        } catch {
+          const cRes = await getCallHistory({ limit: 2000 });
+          callList = Array.isArray(cRes?.items) ? cRes.items : [];
+        }
       } else {
         const cRes = await getCallHistory({ limit: 2000 });
         callList = Array.isArray(cRes?.items) ? cRes.items : [];
       }
+
+      // Filter panggilan khusus Kanwil: Hanya panggilan milik UPT yang diampu Kanwil
+      if (isKanwil && scopedBranches.length > 0) {
+        const kanwilBranchIdSet = new Set(scopedBranches.map((b) => b.id || b._id));
+        const kanwilBranchNameSet = new Set(
+          scopedBranches.map((b) => (b.name || b.branchName || '').toLowerCase().trim())
+        );
+
+        callList = callList.filter((c) => {
+          const bId = c.branchId || c.inmate?.branchId || c.branch?.id;
+          if (bId && kanwilBranchIdSet.has(bId)) return true;
+          const bName = (c.branchName || c.inmate?.branchName || c.branch?.name || '').toLowerCase().trim();
+          return bName && kanwilBranchNameSet.has(bName);
+        });
+      }
+
       setRawCalls(callList);
     } catch (err) {
       console.warn('[CallPerformanceChart] Gagal memuat data panggilan/cabang:', err);
@@ -90,29 +146,48 @@ export default function CallPerformanceComparisonChart({
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [isKanwil, kanwilId]);
+  }, [isKanwil, kanwilId, kanwilName, initialBranches]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Daftar bulan yang tersedia dari riwayat panggilan
-  const availableMonths = useMemo(() => {
-    const monthSet = new Set();
-    monthSet.add(currentMonthKey);
-
+  // Hitung jumlah panggilan per bulan untuk deteksi otomatis bulan aktif
+  const monthCounts = useMemo(() => {
+    const counts = {};
     rawCalls.forEach((call) => {
-      if (call.startTime || call.createdAt) {
-        const d = new Date(call.startTime || call.createdAt);
-        if (!isNaN(d.getTime())) {
-          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-          monthSet.add(key);
+      const d = getCallDate(call);
+      if (!d) return;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return counts;
+  }, [rawCalls]);
+
+  // Daftar bulan yang tersedia
+  const availableMonths = useMemo(() => {
+    const monthSet = new Set(Object.keys(monthCounts));
+    monthSet.add(currentMonthKey);
+    return Array.from(monthSet).sort().reverse();
+  }, [monthCounts, currentMonthKey]);
+
+  // Otomatis arahkan selectedMonth ke bulan yang memiliki data panggilan riil
+  useEffect(() => {
+    if (rawCalls.length > 0) {
+      // Jika bulan yang dipilih tidak memiliki data sama sekali dan bukan 'all',
+      // pindahkan ke bulan terbaru yang memiliki data panggilan!
+      if (selectedMonth !== 'all' && (!monthCounts[selectedMonth] || monthCounts[selectedMonth] === 0)) {
+        const activeMonths = Object.keys(monthCounts)
+          .filter((k) => monthCounts[k] > 0)
+          .sort()
+          .reverse();
+
+        if (activeMonths.length > 0) {
+          setSelectedMonth(activeMonths[0]);
         }
       }
-    });
-
-    return Array.from(monthSet).sort().reverse();
-  }, [rawCalls, currentMonthKey]);
+    }
+  }, [rawCalls, monthCounts, selectedMonth]);
 
   // Format durasi detik ke teks rapi (misal: "12m 30s" atau "2j 15m")
   const formatDuration = (totalSeconds) => {
@@ -128,21 +203,11 @@ export default function CallPerformanceComparisonChart({
 
   const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
 
-  // Mapping nama Lapas dari branchId / raw name
-  const branchMap = useMemo(() => {
-    const map = new Map();
-    branches.forEach((b) => {
-      if (b.id) map.set(b.id, b.name || b.branchName || 'Lapas');
-      if (b._id) map.set(b._id, b.name || b.branchName || 'Lapas');
-    });
-    return map;
-  }, [branches]);
-
   // 1. PROSES DATA KOMPARASI ANTAR LAPAS (View Mode: by_branch)
   const comparisonByBranchData = useMemo(() => {
-    // Siapkan wadah untuk setiap Lapas yang terdaftar
     const branchStats = new Map();
 
+    // Pastikan setiap cabang yang terdaftar di naungan ini muncul di diagram
     branches.forEach((b) => {
       const bId = b.id || b._id;
       const bName = b.name || b.branchName || 'Lapas';
@@ -158,24 +223,24 @@ export default function CallPerformanceComparisonChart({
       });
     });
 
-    // Loop semua panggilan dan akumulasikan sesuai bulan terpilih
+    // Akumulasikan data panggilan sesuai filter bulan
     rawCalls.forEach((call) => {
-      const callDate = new Date(call.startTime || call.createdAt);
-      if (isNaN(callDate.getTime())) return;
+      const callDate = getCallDate(call);
+      if (!callDate) return;
 
       const callMonthKey = `${callDate.getFullYear()}-${String(callDate.getMonth() + 1).padStart(2, '0')}`;
       if (selectedMonth !== 'all' && callMonthKey !== selectedMonth) {
         return;
       }
 
-      // Cari cabang asosiasi
-      const callBranchId = call.branchId || call.inmate?.branchId;
+      // Cocokkan cabang asosiasi
+      const callBranchId = call.branchId || call.inmate?.branchId || call.branch?.id;
       let matchedBranchId = null;
 
       if (callBranchId && branchStats.has(callBranchId)) {
         matchedBranchId = callBranchId;
-      } else if (call.branchName || call.inmate?.branchName) {
-        const rawName = (call.branchName || call.inmate?.branchName || '').toLowerCase();
+      } else if (call.branchName || call.inmate?.branchName || call.branch?.name) {
+        const rawName = (call.branchName || call.inmate?.branchName || call.branch?.name || '').toLowerCase();
         for (const [bId, b] of branchStats.entries()) {
           if (b.branchName.toLowerCase().includes(rawName) || rawName.includes(b.shortName.toLowerCase())) {
             matchedBranchId = bId;
@@ -184,10 +249,10 @@ export default function CallPerformanceComparisonChart({
         }
       }
 
-      // Jika belum terdaftar di map (misal cabang baru dari panggilan), tambahkan
+      // Jika cabang belum ada di map dan diperbolehkan
       if (!matchedBranchId) {
         matchedBranchId = callBranchId || 'unknown_branch';
-        const name = call.branchName || call.inmate?.branchName || 'Lapas Pemasyarakatan';
+        const name = call.branchName || call.inmate?.branchName || call.branch?.name || 'Lapas Pemasyarakatan';
         if (!branchStats.has(matchedBranchId)) {
           branchStats.set(matchedBranchId, {
             branchId: matchedBranchId,
@@ -204,8 +269,8 @@ export default function CallPerformanceComparisonChart({
 
       const stats = branchStats.get(matchedBranchId);
       const isAnswered = call.status === 'Answered' || 
-                         call.status === 'ENDED' || 
-                         call.status === 'COMPLETED' || 
+                         call.rawStatus === 'ENDED' || 
+                         call.rawStatus === 'COMPLETED' || 
                          Boolean(call.connectedAt) || 
                          (Number(call.durationSeconds) > 0);
 
@@ -231,16 +296,24 @@ export default function CallPerformanceComparisonChart({
       };
     });
 
-    // Urutkan berdasarkan total panggilan tertinggi
+    // Urutkan dari Lapas dengan total panggilan tertinggi
     return result.sort((a, b) => b.totalCalls - a.totalCalls);
   }, [branches, rawCalls, selectedMonth]);
 
   // 2. PROSES DATA TREN BULANAN (View Mode: by_month)
   const monthlyTrendData = useMemo(() => {
-    // Siapkan 12 bulan untuk tahun berjalan
-    const targetYear = selectedMonth !== 'all' ? parseInt(selectedMonth.split('-')[0], 10) : now.getFullYear();
-    const monthsMap = new Map();
+    // Tentukan tahun acuan
+    let targetYear = now.getFullYear();
+    if (selectedMonth !== 'all') {
+      const y = parseInt(selectedMonth.split('-')[0], 10);
+      if (!isNaN(y)) targetYear = y;
+    } else if (rawCalls.length > 0) {
+      // Ambil tahun dari panggilan terakhir
+      const lastCallDate = getCallDate(rawCalls[0]);
+      if (lastCallDate) targetYear = lastCallDate.getFullYear();
+    }
 
+    const monthsMap = new Map();
     for (let m = 1; m <= 12; m++) {
       const mKey = `${targetYear}-${String(m).padStart(2, '0')}`;
       monthsMap.set(mKey, {
@@ -256,15 +329,15 @@ export default function CallPerformanceComparisonChart({
     }
 
     rawCalls.forEach((call) => {
-      const callDate = new Date(call.startTime || call.createdAt);
-      if (isNaN(callDate.getTime())) return;
+      const callDate = getCallDate(call);
+      if (!callDate) return;
 
       const callYear = callDate.getFullYear();
       if (callYear !== targetYear) return;
 
-      // Filter cabang jika dipilih Lapas spesifik
+      // Filter spesifik Lapas jika dipilih
       if (selectedBranchId !== 'all') {
-        const callBranchId = call.branchId || call.inmate?.branchId;
+        const callBranchId = call.branchId || call.inmate?.branchId || call.branch?.id;
         if (callBranchId !== selectedBranchId) return;
       }
 
@@ -273,8 +346,8 @@ export default function CallPerformanceComparisonChart({
       if (!entry) return;
 
       const isAnswered = call.status === 'Answered' || 
-                         call.status === 'ENDED' || 
-                         call.status === 'COMPLETED' || 
+                         call.rawStatus === 'ENDED' || 
+                         call.rawStatus === 'COMPLETED' || 
                          Boolean(call.connectedAt) || 
                          (Number(call.durationSeconds) > 0);
 
@@ -310,7 +383,6 @@ export default function CallPerformanceComparisonChart({
     const totalSeconds = activeData.reduce((acc, d) => acc + d.totalSeconds, 0);
     const successRate = totalCalls > 0 ? Number(((answeredCalls / totalCalls) * 100).toFixed(1)) : 0;
 
-    // Cari Lapas dengan panggilan terbanyak (Top Performer)
     const topLapas = comparisonByBranchData.length > 0 && comparisonByBranchData[0].totalCalls > 0
       ? comparisonByBranchData[0]
       : null;
@@ -324,6 +396,14 @@ export default function CallPerformanceComparisonChart({
       topLapas,
     };
   }, [viewMode, comparisonByBranchData, monthlyTrendData]);
+
+  // Label periode yang sedang aktif ditampilkan
+  const activePeriodLabel = useMemo(() => {
+    if (selectedMonth === 'all') return 'Semua Periode (Akumulasi)';
+    const [y, m] = selectedMonth.split('-');
+    const mIdx = parseInt(m, 10) - 1;
+    return `${MONTH_NAMES[mIdx] || m} ${y}`;
+  }, [selectedMonth]);
 
   // Custom Tooltip Recharts
   const CustomTooltip = ({ active, payload, label }) => {
@@ -383,7 +463,7 @@ export default function CallPerformanceComparisonChart({
       {/* 1. Header Komponen & Filter Navigasi */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold">
               <BarChart3 className="w-4 h-4 text-[#0B3D91]" />
             </div>
@@ -392,11 +472,18 @@ export default function CallPerformanceComparisonChart({
                 ? `Performa Panggilan Lapas di ${kanwilName}` 
                 : 'Performa Panggilan Seluruh Lapas Nasional'}
             </h2>
+            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+              isKanwil 
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                : 'bg-blue-50 text-[#0B3D91] border-blue-200'
+            }`}>
+              {isKanwil ? `Wilayah ${kanwilName}` : 'Tingkat Nasional (Semua Lapas)'}
+            </span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-0.5 ml-10">
+          <p className="text-[11px] text-slate-400 mt-1 ml-10">
             {isKanwil
-              ? 'Komparasi performa panggilan antar-Lapas yang diampu Kanwil di setiap bulannya secara sinkron'
-              : 'Komparasi performa panggilan antar-Lapas nasional di setiap bulannya secara sinkron'}
+              ? `Khusus membandingkan performa ${branches.length} Lapas/UPT di bawah naungan ${kanwilName} di setiap bulannya secara sinkron`
+              : `Membandingkan performa panggilan seluruh ${branches.length} Lapas se-Indonesia di setiap bulannya secara sinkron`}
           </p>
         </div>
 
@@ -438,13 +525,14 @@ export default function CallPerformanceComparisonChart({
                 onChange={(e) => setSelectedMonth(e.target.value)}
                 className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer"
               >
-                <option value="all">Semua Bulan</option>
+                <option value="all">Semua Bulan ({rawCalls.length} Panggilan)</option>
                 {availableMonths.map((mKey) => {
                   const [y, m] = mKey.split('-');
                   const label = `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
+                  const count = monthCounts[mKey] || 0;
                   return (
                     <option key={mKey} value={mKey}>
-                      {label} {mKey === currentMonthKey ? '(Bulan Ini)' : ''}
+                      {label} ({count} Panggilan){mKey === currentMonthKey ? ' - Bulan Ini' : ''}
                     </option>
                   );
                 })}
@@ -459,7 +547,7 @@ export default function CallPerformanceComparisonChart({
                 onChange={(e) => setSelectedBranchId(e.target.value)}
                 className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer max-w-[200px] truncate"
               >
-                <option value="all">Semua Lapas</option>
+                <option value="all">{isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas Nasional'}</option>
                 {branches.map((b) => (
                   <option key={b.id || b._id} value={b.id || b._id}>
                     {b.name || b.branchName}
@@ -514,7 +602,7 @@ export default function CallPerformanceComparisonChart({
         <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
           <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
             <PhoneCall className="w-3 h-3 text-[#0B3D91]" />
-            Total Panggilan
+            Total Panggilan ({viewMode === 'by_branch' ? activePeriodLabel : 'Tahun Ini'})
           </p>
           <p className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
             {formatNumber(summaryMetrics.totalCalls)}
@@ -625,10 +713,16 @@ export default function CallPerformanceComparisonChart({
       <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between text-[11px] text-slate-400 gap-1.5">
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Data tersinkronisasi otomatis dengan basis data panggilan riil</span>
+          <span>
+            {isKanwil 
+              ? `Tersinkronisasi khusus UPT di lingkungan ${kanwilName}` 
+              : 'Tersinkronisasi seluruh UPT/Lapas nasional'}
+          </span>
         </span>
         <span className="text-slate-500">
-          Menampilkan {viewMode === 'by_branch' ? `${comparisonByBranchData.length} Lapas` : '12 Bulan'}
+          {viewMode === 'by_branch' 
+            ? `Menampilkan ${comparisonByBranchData.length} Lapas (${activePeriodLabel})` 
+            : `Menampilkan tren bulanan 12 bulan (${selectedBranchId === 'all' ? (isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas') : 'Lapas Terpilih'})`}
         </span>
       </div>
     </div>
