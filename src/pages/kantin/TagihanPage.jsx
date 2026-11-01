@@ -45,15 +45,23 @@ import {
 } from '../../services/canteenBillingService';
 import ModalPembayaranTagihan from '../../components/kantin/ModalPembayaranTagihan';
 import { getFinancePaymentSettings } from '../../services/financeService';
+import { API_BASE_URL, getAuthToken } from '../../services/api';
 
 function resolveImageUrl(url) {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }
-  return `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
+  let fullUrl = url.startsWith('http://') || url.startsWith('https://')
+    ? url
+    : `${(API_BASE_URL || '').replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
+
+  const token = getAuthToken();
+  if (token && !fullUrl.includes('token=')) {
+    fullUrl += (fullUrl.includes('?') ? '&' : '?') + `token=${encodeURIComponent(token)}`;
+  }
+  return fullUrl;
 }
-import { API_BASE_URL } from '../../services/api';
 
 export default function TagihanPage() {
   const now = new Date();
@@ -1778,11 +1786,7 @@ export default function TagihanPage() {
                       <p className="text-[11px] text-slate-400">Berkas dalam format dokumen PDF</p>
                     </div>
                     <a
-                      href={
-                        previewProofItem.proofUrl.startsWith('http') || previewProofItem.proofUrl.startsWith('data:')
-                          ? previewProofItem.proofUrl
-                          : `${(API_BASE_URL || '').replace(/\/+$/, '')}/${previewProofItem.proofUrl.replace(/^\/+/, '')}`
-                      }
+                      href={resolveImageUrl(previewProofItem.proofUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition"
@@ -1793,11 +1797,7 @@ export default function TagihanPage() {
                   </div>
                 ) : (
                   <img
-                    src={
-                      previewProofItem.proofUrl.startsWith('http') || previewProofItem.proofUrl.startsWith('data:')
-                        ? previewProofItem.proofUrl
-                        : `${(API_BASE_URL || '').replace(/\/+$/, '')}/${previewProofItem.proofUrl.replace(/^\/+/, '')}`
-                    }
+                    src={resolveImageUrl(previewProofItem.proofUrl)}
                     alt="Bukti Transfer"
                     className="max-h-80 max-w-full rounded-xl object-contain shadow-xs"
                   />

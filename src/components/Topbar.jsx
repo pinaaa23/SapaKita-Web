@@ -482,12 +482,10 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
           )}
         </div>
         
-        {!isFinanceUser && (
-          <>
-            <div className="h-6 w-px bg-slate-200/80 mx-1"></div>
-            
-            {/* Profile Dropdown Container */}
-            <div className="relative" ref={dropdownRef}>
+        <div className="h-6 w-px bg-slate-200/80 mx-1"></div>
+        
+        {/* Profile Dropdown Container */}
+        <div className="relative" ref={dropdownRef}>
           <div 
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className="flex items-center gap-2.5 bg-white hover:bg-slate-50 p-1.5 pl-3 pr-2.5 rounded-full transition-all border border-slate-200/80 shadow-sm cursor-pointer hover:shadow-md"
@@ -531,8 +529,6 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
             </div>
           )}
         </div>
-          </>
-        )}
       </div>
     </div>
   );
