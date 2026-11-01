@@ -194,7 +194,7 @@ export default function KantinLayout() {
     }
     return {
       badge: 'Layanan Kantin',
-      title: 'PasCall Kantin',
+      title: 'Sadewa Kantin',
       subtitle: 'Sistem Layanan Komunikasi Wartel Pemasyarakatan.',
     };
   };
