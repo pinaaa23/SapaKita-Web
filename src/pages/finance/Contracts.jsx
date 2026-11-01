@@ -43,7 +43,8 @@ function resolveImageUrl(url) {
     return url;
   }
   if (url.includes(':9000') || url.includes('finance-settings') || url.includes('/payment-settings/qris-image')) {
-    return `${API_BASE_URL}/api/finance/payment-settings/qris-image`;
+    const queryString = url.includes('?') ? url.substring(url.indexOf('?')) : '';
+    return `${API_BASE_URL}/api/finance/payment-settings/qris-image${queryString}`;
   }
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
@@ -328,21 +329,34 @@ export default function FinanceContracts() {
         formData.append('qrisFile', qrisFile);
 
         const saved = await updateFinancePaymentSettings(formData);
-        if (saved?.qrisImageUrl) {
-          setPaymentSettings(prev => ({ ...prev, qrisImageUrl: saved.qrisImageUrl, isBankActive, isQrisActive }));
-          setQrisPreview(saved.qrisImageUrl);
+        const cacheBuster = Date.now();
+        const updatedQrisUrl = saved?.qrisImageUrl || `/api/finance/payment-settings/qris-image?v=${cacheBuster}`;
+        setPaymentSettings(prev => ({ ...prev, qrisImageUrl: updatedQrisUrl, isBankActive, isQrisActive }));
+        setQrisPreview(updatedQrisUrl);
+        setQrisFile(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
         }
       } else {
-        await updateFinancePaymentSettings({
+        const isRemove = !paymentSettings.qrisImageUrl;
+        const saved = await updateFinancePaymentSettings({
           bankName: (paymentSettings.bankName || '').trim(),
           accountNumber: (paymentSettings.accountNumber || '').trim(),
           accountHolder: (paymentSettings.accountHolder || '').trim(),
-          qrisImageUrl: paymentSettings.qrisImageUrl || null,
+          qrisImageUrl: isRemove ? null : paymentSettings.qrisImageUrl,
           instructions: paymentSettings.instructions?.trim() || null,
           isActive: paymentSettings.isActive !== false,
           isBankActive,
           isQrisActive,
+          removeQris: isRemove,
         });
+        if (isRemove) {
+          setQrisPreview(null);
+          setPaymentSettings(prev => ({ ...prev, qrisImageUrl: null }));
+        } else if (saved?.qrisImageUrl) {
+          setPaymentSettings(prev => ({ ...prev, qrisImageUrl: saved.qrisImageUrl, isBankActive, isQrisActive }));
+          setQrisPreview(saved.qrisImageUrl);
+        }
       }
       setPaymentSuccess(true);
       showToast('Pengaturan rekening & QRIS berhasil disimpan dan tersinkronisasi ke kasir kantin!');

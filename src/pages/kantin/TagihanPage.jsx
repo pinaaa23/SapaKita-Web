@@ -53,7 +53,8 @@ function resolveImageUrl(url) {
     return url;
   }
   if (url.includes(':9000') || url.includes('finance-settings') || url.includes('/payment-settings/qris-image')) {
-    return `${(API_BASE_URL || '').replace(/\/+$/, '')}/api/finance/payment-settings/qris-image`;
+    const queryString = url.includes('?') ? url.substring(url.indexOf('?')) : '';
+    return `${(API_BASE_URL || '').replace(/\/+$/, '')}/api/finance/payment-settings/qris-image${queryString}`;
   }
   let fullUrl = url.startsWith('http://') || url.startsWith('https://')
     ? url
