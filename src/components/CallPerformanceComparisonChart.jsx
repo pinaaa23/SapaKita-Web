@@ -122,17 +122,15 @@ export default function CallPerformanceComparisonChart({
         return allItems;
       };
 
-      // B. Ambil riwayat panggilan riil
+      // B. Ambil riwayat panggilan riil (Gunakan /api/calls untuk memuat seluruh sesi panggilan: terjawab & tidak terjawab)
       let callList = [];
-      if (isKanwil) {
-        try {
-          callList = await fetchAllCalls(getKanwilCalls);
-        } catch (e1) {
-          console.warn('[CallPerformanceChart] getKanwilCalls fallback:', e1);
-          callList = await fetchAllCalls(getCallHistory);
-        }
-      } else {
+      try {
         callList = await fetchAllCalls(getCallHistory);
+      } catch (errCalls) {
+        console.warn('[CallPerformanceChart] getCallHistory fallback:', errCalls);
+        if (isKanwil) {
+          callList = await fetchAllCalls(getKanwilCalls).catch(() => []);
+        }
       }
 
       // Filter panggilan khusus Kanwil: Hanya panggilan milik UPT yang diampu Kanwil
