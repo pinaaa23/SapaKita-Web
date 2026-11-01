@@ -98,7 +98,7 @@ export default function FinanceContracts() {
     id: 'default',
     bankName: 'Bank Mandiri',
     accountNumber: '168-00-9988112-7',
-    accountHolder: 'PT Sadewa Solusi Indonesia',
+    accountHolder: 'PT Station Technology',
     qrisImageUrl: null,
     qrisContent: null,
     instructions: 'Transfer tepat sesuai nominal tagihan dan unggah bukti transfer yang sah.',
@@ -887,7 +887,7 @@ export default function FinanceContracts() {
                       onChange={(e) => isSuperadmin && setPaymentSettings(p => ({ ...p, accountHolder: e.target.value }))}
                       disabled={!isSuperadmin}
                       readOnly={!isSuperadmin}
-                      placeholder="Contoh: PT Sadewa Solusi Indonesia"
+                      placeholder="Contoh: PT Station Technology"
                       className={`w-full px-3 py-2.5 border rounded-xl text-xs font-semibold shadow-2xs ${
                         isSuperadmin
                           ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 bg-white'

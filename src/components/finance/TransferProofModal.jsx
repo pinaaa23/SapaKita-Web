@@ -186,7 +186,7 @@ canApprove = true,
     drawRow('Nomor Referensi', refNumber, true);
     drawRow('Pengirim (Kantin UPT)', item.canteenName);
     drawRow('Rekening Pengirim', `${item.accountNumber} (${item.bankName})`);
-    drawRow('Penerima', 'PT Sadewa Solusi Indonesia', true);
+    drawRow('Penerima', 'PT Station Technology', true);
     drawRow('Bank Penerima', 'Bank Mandiri (Rek Penampung)');
     drawRow('Nomor Rekening Penerima', '168-00-9988112-7');
     drawRow('Total Cash di Kantin', formatRupiah(item.grossAmount));
@@ -367,7 +367,7 @@ canApprove = true,
                       <div className="flex justify-between pb-1.5 border-b border-slate-200/70">
                         <span className="text-slate-500">Rekening Penerima:</span>
                         <div className="text-right">
-                          <span className="font-bold text-slate-800 block">PT Sadewa Solusi Indonesia</span>
+                          <span className="font-bold text-slate-800 block">PT Station Technology</span>
                           <span className="text-[10px] text-slate-500 font-mono">168-00-9988112-7 (Bank Mandiri)</span>
                         </div>
                       </div>
@@ -444,7 +444,7 @@ canApprove = true,
                     <span>Rekening Penampung Finance Sadewa</span>
                   </div>
                   <p className="text-slate-600">
-                    Bank Mandiri No. <strong>168-00-9988112-7</strong> a.n. <strong>PT Sadewa Solusi Indonesia</strong>
+                    Bank Mandiri No. <strong>168-00-9988112-7</strong> a.n. <strong>PT Station Technology</strong>
                   </p>
                 </div>
 

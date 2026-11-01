@@ -216,7 +216,7 @@ export default function ModalPembayaranTagihan({
   const renderPetunjukBayar = () => {
     const bankName = financeSetting?.bankName || 'Bank Mandiri';
     const accNum = financeSetting?.accountNumber || '168-00-9988112-7';
-    const accHolder = financeSetting?.accountHolder || 'PT Sadewa Solusi Indonesia';
+    const accHolder = financeSetting?.accountHolder || 'PT Station Technology';
     const qrisUrl = financeSetting?.qrisImageUrl;
 
     // JIKA METODE DIPILIH: QRIS
@@ -631,7 +631,7 @@ export default function ModalPembayaranTagihan({
             </div>
 
             <p className="text-xs font-semibold text-slate-700">
-              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT Sadewa Solusi Indonesia'}
+              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT Station Technology'}
             </p>
 
             <button

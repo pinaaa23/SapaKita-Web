@@ -1142,7 +1142,7 @@ export default function TagihanPage() {
                 <div>
                   <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
                   <span className="font-bold text-white text-xs">
-                    {financeSetting?.accountHolder || 'PT Sadewa Solusi Indonesia'}
+                    {financeSetting?.accountHolder || 'PT Station Technology'}
                   </span>
                 </div>
                 <CreditCard className="w-5 h-5 text-blue-400/60" />
@@ -1246,7 +1246,7 @@ export default function TagihanPage() {
 
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Barcode QRIS Nasional</h3>
             <p className="text-xs text-slate-500 mb-4">
-              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT Sadewa Solusi Indonesia'}
+              {financeSetting.bankName || 'Bank Mandiri'} • a.n. {financeSetting.accountHolder || 'PT Station Technology'}
             </p>
 
             <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 border-slate-200/90 shadow-md flex items-center justify-center w-full max-w-[480px] mx-auto my-4 aspect-square">

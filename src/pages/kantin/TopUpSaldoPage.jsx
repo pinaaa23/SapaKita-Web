@@ -80,7 +80,7 @@ export default function TopUpSaldoPage() {
         const s = await getFinancePaymentSettings();
         if (s) {
           setFinanceSetting(s);
-          const defaultOpt = `${s.bankName || 'Bank Mandiri'} - ${s.accountNumber || '168-00-9988112-7'} (a.n. ${s.accountHolder || 'PT Sadewa Solusi Indonesia'})`;
+          const defaultOpt = `${s.bankName || 'Bank Mandiri'} - ${s.accountNumber || '168-00-9988112-7'} (a.n. ${s.accountHolder || 'PT Station Technology'})`;
           setBankTarget(defaultOpt);
         }
       } catch (err) {
@@ -97,7 +97,7 @@ export default function TopUpSaldoPage() {
     const handleFinanceUpdate = (e) => {
       if (e?.detail) {
         setFinanceSetting(e.detail);
-        const opt = `${e.detail.bankName || 'Bank Mandiri'} - ${e.detail.accountNumber || '168-00-9988112-7'} (a.n. ${e.detail.accountHolder || 'PT Sadewa Solusi Indonesia'})`;
+        const opt = `${e.detail.bankName || 'Bank Mandiri'} - ${e.detail.accountNumber || '168-00-9988112-7'} (a.n. ${e.detail.accountHolder || 'PT Station Technology'})`;
         setBankTarget(opt);
       }
     };
@@ -526,7 +526,7 @@ export default function TopUpSaldoPage() {
                         {financeSetting.accountNumber || '168-00-9988112-7'}
                       </p>
                       <p className="text-[11px] text-slate-700 font-semibold mt-0.5">
-                        a.n. {financeSetting.accountHolder || 'PT Sadewa Solusi Indonesia'}
+                        a.n. {financeSetting.accountHolder || 'PT Station Technology'}
                       </p>
                     </div>
                     <button
@@ -579,7 +579,7 @@ export default function TopUpSaldoPage() {
                   className="w-full text-xs font-semibold px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
                   {financeSetting && (
-                    <option value={`${financeSetting.bankName || 'Bank Mandiri'} - ${financeSetting.accountNumber || '168-00-9988112-7'} (a.n. ${financeSetting.accountHolder || 'PT Sadewa Solusi Indonesia'})`}>
+                    <option value={`${financeSetting.bankName || 'Bank Mandiri'} - ${financeSetting.accountNumber || '168-00-9988112-7'} (a.n. ${financeSetting.accountHolder || 'PT Station Technology'})`}>
                       ⭐ Rekening Default: {financeSetting.bankName} - {financeSetting.accountNumber} ({financeSetting.accountHolder})
                     </option>
                   )}
