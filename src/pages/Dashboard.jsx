@@ -19,6 +19,7 @@ import {
   Bar
 } from 'recharts';
 import StatCard from '../components/StatCard';
+import CallPerformanceComparisonChart from '../components/CallPerformanceComparisonChart';
 import { getDashboardSummary } from '../services/dashboardService';
 import { logout } from '../services/api';
 import { USE_MOCK_SUPERADMIN } from '../services/mockStorage';
@@ -279,6 +280,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Diagram Batang Performa Panggilan Antar-Lapas & Bulanan */}
+      <CallPerformanceComparisonChart role="superadmin" />
     </div>
   );
 };

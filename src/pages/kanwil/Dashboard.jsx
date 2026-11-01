@@ -26,6 +26,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { getKanwilDashboardSummary, getKanwilBranches } from '../../services/kanwilService';
+import CallPerformanceComparisonChart from '../../components/CallPerformanceComparisonChart';
 
 export default function KanwilDashboard() {
   const { user } = useAuth();
@@ -269,6 +270,13 @@ export default function KanwilDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Diagram Batang Performa Panggilan Antar-Lapas & Bulanan */}
+      <CallPerformanceComparisonChart 
+        role="kanwil" 
+        kanwilId={kanwilId} 
+        kanwilName={kanwilName} 
+      />
 
       {/* Tabel UPT di Bawah Naungan Kanwil */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
