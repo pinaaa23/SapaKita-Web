@@ -52,6 +52,9 @@ function resolveImageUrl(url) {
   if (url.startsWith('data:') || url.startsWith('blob:')) {
     return url;
   }
+  if (url.includes(':9000') || url.includes('finance-settings') || url.includes('/payment-settings/qris-image')) {
+    return `${(API_BASE_URL || '').replace(/\/+$/, '')}/api/finance/payment-settings/qris-image`;
+  }
   let fullUrl = url.startsWith('http://') || url.startsWith('https://')
     ? url
     : `${(API_BASE_URL || '').replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
@@ -1078,130 +1081,140 @@ export default function TagihanPage() {
 
         {/* Grid 2 Kolom: Rekening Bank & QRIS Barcode */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2">
-          {/* Kolom Kiri: Kartu Rekening Bank Modern (7 Kolom) */}
-          <div className="lg:col-span-7 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 border border-blue-900/40 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px]">
-            {/* Background Pattern */}
-            <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-4 translate-y-4">
-              <Building2 className="w-48 h-48 text-blue-200" />
-            </div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="flex items-center gap-2">
-                <span className="px-2.5 py-1 bg-blue-500/30 text-blue-200 text-xs font-black uppercase tracking-wider rounded-lg border border-blue-400/30">
-                  {financeSetting?.bankName || 'Bank Mandiri'}
-                </span>
-                <span className="text-[11px] text-slate-300 font-medium">Rekening Tujuan Setoran</span>
-              </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-400/30">
-                Default Aktif
-              </span>
-            </div>
-
-            <div className="my-3.5 relative z-10">
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block mb-1">
-                Nomor Rekening Tujuan
-              </span>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-xl sm:text-2xl font-mono font-black text-white tracking-widest select-all">
-                  {financeSetting?.accountNumber || '168-00-9988112-7'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const num = financeSetting?.accountNumber || '168-00-9988112-7';
-                    navigator.clipboard.writeText(num);
-                    setCopiedRekening(true);
-                    setTimeout(() => setCopiedRekening(false), 2000);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer"
-                  title="Salin nomor rekening"
-                >
-                  {copiedRekening ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-300">Tersalin</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-blue-300" />
-                      <span>Salin No. Rekening</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 relative z-10">
-              <div>
-                <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
-                <span className="font-bold text-white text-xs">
-                  {financeSetting?.accountHolder || 'PT PasCall Solusi Indonesia'}
-                </span>
-              </div>
-              <CreditCard className="w-5 h-5 text-blue-400/60" />
-            </div>
-          </div>
-
-          {/* Kolom Kanan: Barcode QRIS Resmi (5 Kolom) */}
-          <div className="lg:col-span-5 bg-gradient-to-br from-blue-50/70 to-indigo-50/50 rounded-2xl p-4 sm:p-5 border border-blue-200/80 flex flex-col justify-between">
-            <div className="flex items-start gap-4">
-              <div
-                onClick={() => financeSetting?.qrisImageUrl && setPreviewQrisModal(true)}
-                className={`relative group shrink-0 ${financeSetting?.qrisImageUrl ? 'cursor-pointer' : ''}`}
-                title={financeSetting?.qrisImageUrl ? 'Klik untuk memperbesar barcode QRIS' : ''}
-              >
-                {financeSetting?.qrisImageUrl ? (
-                  <div className="relative">
-                    <img
-                      src={resolveImageUrl(financeSetting.qrisImageUrl)}
-                      alt="QRIS Resmi Penampung"
-                      className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-xl bg-white border border-blue-200 shadow-xs p-1.5 group-hover:scale-105 transition-transform"
-                    />
-                    <div className="absolute inset-0 bg-slate-900/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1">
-                      <Eye className="w-4 h-4" />
-                      <span>Perbesar</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-white border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-[10px] p-2 text-center">
-                    <QrCode className="w-6 h-6 mb-1 text-slate-400" />
-                    <span>QRIS Belum Tersedia</span>
-                  </div>
-                )}
+          {/* Kolom Kiri: Kartu Rekening Bank Modern (Jika Aktif) */}
+          {financeSetting?.isBankActive !== false && (
+            <div className={`${
+              financeSetting?.isQrisActive !== false && financeSetting?.qrisImageUrl ? 'lg:col-span-7' : 'lg:col-span-12'
+            } bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 border border-blue-900/40 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px]`}>
+              {/* Background Pattern */}
+              <div className="absolute right-0 bottom-0 opacity-10 pointer-events-none translate-x-4 translate-y-4">
+                <Building2 className="w-48 h-48 text-blue-200" />
               </div>
 
-              <div className="space-y-1.5 flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <QrCode className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span className="text-xs font-bold text-slate-900">Scan Barcode QRIS</span>
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-blue-500/30 text-blue-200 text-xs font-black uppercase tracking-wider rounded-lg border border-blue-400/30">
+                    {financeSetting?.bankName || 'Bank Mandiri'}
+                  </span>
+                  <span className="text-[11px] text-slate-300 font-medium">Metode 1: Transfer Rekening Bank</span>
                 </div>
-                <p className="text-[11px] text-slate-600 leading-relaxed">
-                  Pindai barcode menggunakan aplikasi m-Banking (Mandiri Livin, BCA, BRImo, BNI) atau E-Wallet (GoPay, OVO, DANA).
-                </p>
-                {financeSetting?.qrisImageUrl && (
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-400/30">
+                  Tersedia di Kasir
+                </span>
+              </div>
+
+              <div className="my-3.5 relative z-10">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block mb-1">
+                  Nomor Rekening Tujuan
+                </span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xl sm:text-2xl font-mono font-black text-white tracking-widest select-all">
+                    {financeSetting?.accountNumber || '168-00-9988112-7'}
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setPreviewQrisModal(true)}
-                    className="inline-flex items-center gap-1 text-xs font-bold text-blue-700 hover:text-blue-900 transition pt-1 cursor-pointer"
+                    onClick={() => {
+                      const num = financeSetting?.accountNumber || '168-00-9988112-7';
+                      navigator.clipboard.writeText(num);
+                      setCopiedRekening(true);
+                      setTimeout(() => setCopiedRekening(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer"
+                    title="Salin nomor rekening"
                   >
-                    <Eye className="w-3.5 h-3.5 text-blue-600" />
-                    <span>Perbesar Barcode QRIS</span>
-                    <ArrowRight className="w-3 h-3 ml-0.5" />
+                    {copiedRekening ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">Tersalin</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-blue-300" />
+                        <span>Salin No. Rekening</span>
+                      </>
+                    )}
                   </button>
-                )}
+                </div>
+              </div>
+
+              <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 relative z-10">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
+                  <span className="font-bold text-white text-xs">
+                    {financeSetting?.accountHolder || 'PT PasCall Solusi Indonesia'}
+                  </span>
+                </div>
+                <CreditCard className="w-5 h-5 text-blue-400/60" />
               </div>
             </div>
+          )}
 
-            {/* Petunjuk Pembayaran Tambahan */}
-            {financeSetting?.instructions && (
-              <div className="mt-3 pt-2.5 border-t border-blue-200/60 text-[11px] text-slate-600 flex items-start gap-1.5">
-                <Info className="w-3.5 h-3.5 text-blue-600 shrink-0 mt-0.5" />
-                <span>
-                  <strong>Petunjuk:</strong> {financeSetting.instructions}
-                </span>
+          {/* Kolom Kanan: Barcode QRIS Resmi (Jika Aktif) */}
+          {financeSetting?.isQrisActive !== false && (
+            <div className={`${
+              financeSetting?.isBankActive !== false ? 'lg:col-span-5' : 'lg:col-span-12'
+            } bg-gradient-to-br from-indigo-50/80 to-blue-50/60 rounded-2xl p-4 sm:p-5 border border-indigo-200/80 flex flex-col justify-between`}>
+              <div className="flex items-start gap-4">
+                <div
+                  onClick={() => financeSetting?.qrisImageUrl && setPreviewQrisModal(true)}
+                  className={`relative group shrink-0 ${financeSetting?.qrisImageUrl ? 'cursor-pointer' : ''}`}
+                  title={financeSetting?.qrisImageUrl ? 'Klik untuk memperbesar barcode QRIS' : ''}
+                >
+                  {financeSetting?.qrisImageUrl ? (
+                    <div className="relative">
+                      <img
+                        src={resolveImageUrl(financeSetting.qrisImageUrl)}
+                        alt="QRIS Resmi Penampung"
+                        className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-xl bg-white border border-indigo-200 shadow-xs p-1.5 group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1">
+                        <Eye className="w-4 h-4" />
+                        <span>Perbesar</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-white border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-[10px] p-2 text-center">
+                      <QrCode className="w-6 h-6 mb-1 text-slate-400" />
+                      <span>QRIS Belum Diunggah</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900">
+                      {financeSetting?.isBankActive !== false ? 'Metode 2: Scan QRIS (ATAU)' : 'Metode: Scan QRIS Resmi'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Pindai barcode menggunakan aplikasi m-Banking (Mandiri Livin, BCA, BRImo, BNI) atau E-Wallet (GoPay, OVO, DANA).
+                  </p>
+                  {financeSetting?.qrisImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewQrisModal(true)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 transition pt-1 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Perbesar Barcode QRIS</span>
+                      <ArrowRight className="w-3 h-3 ml-0.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Petunjuk Pembayaran Tambahan */}
+              {financeSetting?.instructions && (
+                <div className="mt-3 pt-2.5 border-t border-indigo-200/60 text-[11px] text-slate-600 flex items-start gap-1.5">
+                  <Info className="w-3.5 h-3.5 text-indigo-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Petunjuk:</strong> {financeSetting.instructions}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

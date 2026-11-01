@@ -39,7 +39,13 @@ import {
 
 function resolveImageUrl(url) {
   if (!url) return '';
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:') || url.startsWith('blob:')) {
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  if (url.includes(':9000') || url.includes('finance-settings') || url.includes('/payment-settings/qris-image')) {
+    return `${API_BASE_URL}/api/finance/payment-settings/qris-image`;
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
   return `${API_BASE_URL}${url.startsWith('/') ? url : `/${url}`}`;
@@ -96,6 +102,8 @@ export default function FinanceContracts() {
     qrisContent: null,
     instructions: 'Transfer tepat sesuai nominal tagihan dan unggah bukti transfer yang sah.',
     isActive: true,
+    isBankActive: true,
+    isQrisActive: true,
   });
   const [qrisFile, setQrisFile] = useState(null);
   const [qrisPreview, setQrisPreview] = useState(null);
@@ -137,7 +145,11 @@ export default function FinanceContracts() {
     try {
       const res = await getFinancePaymentSettings();
       if (res) {
-        setPaymentSettings(res);
+        setPaymentSettings({
+          ...res,
+          isBankActive: res.isBankActive !== false,
+          isQrisActive: res.isQrisActive !== false,
+        });
         if (res.qrisImageUrl) setQrisPreview(res.qrisImageUrl);
       }
     } catch (err) {
@@ -279,43 +291,57 @@ export default function FinanceContracts() {
     setPaymentError('');
     setPaymentSuccess(false);
 
-    if (!paymentSettings.bankName?.trim()) {
-      setPaymentError('Nama bank penerima wajib diisi');
+    const isBankActive = paymentSettings.isBankActive !== false;
+    const isQrisActive = paymentSettings.isQrisActive !== false;
+
+    if (!isBankActive && !isQrisActive) {
+      setPaymentError('Minimal satu metode pembayaran (Transfer Bank atau Scan QRIS) harus diaktifkan!');
       return;
     }
-    if (!paymentSettings.accountNumber?.trim()) {
-      setPaymentError('Nomor rekening penampung wajib diisi');
-      return;
-    }
-    if (!paymentSettings.accountHolder?.trim()) {
-      setPaymentError('Nama pemilik rekening wajib diisi');
-      return;
+
+    if (isBankActive) {
+      if (!paymentSettings.bankName?.trim()) {
+        setPaymentError('Nama bank penerima wajib diisi');
+        return;
+      }
+      if (!paymentSettings.accountNumber?.trim()) {
+        setPaymentError('Nomor rekening penampung wajib diisi');
+        return;
+      }
+      if (!paymentSettings.accountHolder?.trim()) {
+        setPaymentError('Nama pemilik rekening wajib diisi');
+        return;
+      }
     }
 
     setIsSavingPayment(true);
     try {
       if (qrisFile) {
         const formData = new FormData();
-        formData.append('bankName', paymentSettings.bankName.trim());
-        formData.append('accountNumber', paymentSettings.accountNumber.trim());
-        formData.append('accountHolder', paymentSettings.accountHolder.trim());
+        formData.append('bankName', (paymentSettings.bankName || '').trim());
+        formData.append('accountNumber', (paymentSettings.accountNumber || '').trim());
+        formData.append('accountHolder', (paymentSettings.accountHolder || '').trim());
         if (paymentSettings.instructions) formData.append('instructions', paymentSettings.instructions.trim());
-        formData.append('isActive', String(paymentSettings.isActive));
+        formData.append('isActive', String(paymentSettings.isActive !== false));
+        formData.append('isBankActive', String(isBankActive));
+        formData.append('isQrisActive', String(isQrisActive));
         formData.append('qrisFile', qrisFile);
 
         const saved = await updateFinancePaymentSettings(formData);
         if (saved?.qrisImageUrl) {
-          setPaymentSettings(prev => ({ ...prev, qrisImageUrl: saved.qrisImageUrl }));
+          setPaymentSettings(prev => ({ ...prev, qrisImageUrl: saved.qrisImageUrl, isBankActive, isQrisActive }));
           setQrisPreview(saved.qrisImageUrl);
         }
       } else {
         await updateFinancePaymentSettings({
-          bankName: paymentSettings.bankName.trim(),
-          accountNumber: paymentSettings.accountNumber.trim(),
-          accountHolder: paymentSettings.accountHolder.trim(),
+          bankName: (paymentSettings.bankName || '').trim(),
+          accountNumber: (paymentSettings.accountNumber || '').trim(),
+          accountHolder: (paymentSettings.accountHolder || '').trim(),
           qrisImageUrl: paymentSettings.qrisImageUrl || null,
           instructions: paymentSettings.instructions?.trim() || null,
-          isActive: paymentSettings.isActive,
+          isActive: paymentSettings.isActive !== false,
+          isBankActive,
+          isQrisActive,
         });
       }
       setPaymentSuccess(true);
@@ -857,21 +883,26 @@ export default function FinanceContracts() {
                     />
                   </div>
 
-                  {/* Checkbox Status Aktif */}
-                  <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-                    <label className="flex items-center gap-2.5 cursor-pointer">
+                  {/* Checkbox Status Aktif Rekening Bank */}
+                  <div className="p-3 bg-blue-50/50 rounded-xl border border-blue-200/80">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={paymentSettings.isActive}
-                        onChange={(e) => isSuperadmin && setPaymentSettings(p => ({ ...p, isActive: e.target.checked }))}
+                        checked={paymentSettings.isBankActive !== false}
+                        onChange={(e) => isSuperadmin && setPaymentSettings(p => ({ ...p, isBankActive: e.target.checked }))}
                         disabled={!isSuperadmin}
-                        className={`w-4 h-4 rounded border-slate-300 ${
+                        className={`w-4 h-4 mt-0.5 rounded border-slate-300 ${
                           isSuperadmin ? 'text-blue-600 focus:ring-blue-500 cursor-pointer' : 'text-slate-400 cursor-not-allowed'
                         }`}
                       />
-                      <span className="text-xs font-bold text-slate-800">
-                        Aktifkan Rekening Ini sebagai Rekening Tujuan Default Kantin
-                      </span>
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">
+                          Aktifkan Metode Pembayaran Transfer Rekening Bank
+                        </span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          Kasir kantin dapat memilih transfer rekening bank penampung resmi ini saat menyetor tagihan.
+                        </span>
+                      </div>
                     </label>
                   </div>
                 </div>
@@ -951,6 +982,29 @@ export default function FinanceContracts() {
                     </div>
                   </div>
 
+                  {/* Checkbox Status Aktif QRIS */}
+                  <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-200/80">
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={paymentSettings.isQrisActive !== false}
+                        onChange={(e) => isSuperadmin && setPaymentSettings(p => ({ ...p, isQrisActive: e.target.checked }))}
+                        disabled={!isSuperadmin}
+                        className={`w-4 h-4 mt-0.5 rounded border-slate-300 ${
+                          isSuperadmin ? 'text-indigo-600 focus:ring-indigo-500 cursor-pointer' : 'text-slate-400 cursor-not-allowed'
+                        }`}
+                      />
+                      <div>
+                        <span className="text-xs font-bold text-slate-800 block">
+                          Aktifkan Metode Pembayaran Scan QRIS Resmi
+                        </span>
+                        <span className="text-[11px] text-slate-500 block mt-0.5">
+                          Kasir kantin dapat memilih dan memindai barcode QRIS resmi ini saat menyetor tagihan.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+
                   {/* Instruksi Transfer */}
                   <div className="space-y-1.5">
                     <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
@@ -974,44 +1028,102 @@ export default function FinanceContracts() {
               </div>
 
               {/* LIVE PREVIEW KASIR KANTIN */}
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                  <span>Pratinjau Langsung Tampilan di Kasir Kantin UPT</span>
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Pratinjau Langsung Pilihan Metode Pembayaran di Kasir Kantin</span>
+                  </div>
+                  <span className="text-[11px] text-slate-500 font-medium">
+                    {paymentSettings.isBankActive !== false && paymentSettings.isQrisActive !== false
+                      ? 'Kasir dapat memilih: Transfer Rekening Bank ATAU Scan QRIS'
+                      : paymentSettings.isBankActive !== false
+                      ? 'Metode aktif: Transfer Rekening Bank Saja'
+                      : 'Metode aktif: Scan QRIS Resmi Saja'}
+                  </span>
                 </div>
 
-                <div className="p-4 bg-gradient-to-br from-slate-900 to-blue-950 rounded-2xl text-white shadow-lg space-y-3 border border-slate-800 max-w-xl">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-blue-500/30 text-blue-300 flex items-center justify-center font-bold text-xs">
-                        {paymentSettings.bankName ? paymentSettings.bankName.slice(0, 3).toUpperCase() : 'BNK'}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl">
+                  {/* Pratinjau Opsi 1: Rekening Bank */}
+                  <div className={`p-4 rounded-2xl border transition relative flex flex-col justify-between ${
+                    paymentSettings.isBankActive !== false
+                      ? 'bg-gradient-to-br from-slate-900 to-blue-950 text-white border-blue-800 shadow-md'
+                      : 'bg-slate-100 text-slate-400 border-slate-200 opacity-60'
+                  }`}>
+                    <div>
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-blue-500/30 text-blue-300 flex items-center justify-center font-bold text-xs">
+                            <CreditCard className="w-4 h-4 text-blue-300" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold leading-none">{paymentSettings.bankName || 'Nama Bank'}</p>
+                            <p className="text-[10px] text-blue-300">Pilihan 1: Transfer Bank</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                          paymentSettings.isBankActive !== false
+                            ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/30'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          {paymentSettings.isBankActive !== false ? 'Aktif di Kasir' : 'Dinonaktifkan'}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-white leading-none">{paymentSettings.bankName || 'Nama Bank'}</p>
-                        <p className="text-[10px] text-blue-300 font-medium">Rekening Penampung Finance PasCall</p>
+
+                      <div className="space-y-1">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Nomor Rekening Tujuan:</p>
+                        <p className="text-base font-black font-mono tracking-wider text-amber-300">
+                          {paymentSettings.accountNumber || '-'}
+                        </p>
+                        <p className="text-[11px] text-slate-200">
+                          a.n. <span className="font-bold">{paymentSettings.accountHolder || '-'}</span>
+                        </p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/30 text-emerald-300 border border-emerald-400/30">
-                      Default Aktif
-                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between">
+                  {/* Pratinjau Opsi 2: Scan QRIS */}
+                  <div className={`p-4 rounded-2xl border transition relative flex flex-col justify-between ${
+                    paymentSettings.isQrisActive !== false
+                      ? 'bg-gradient-to-br from-indigo-950 to-slate-900 text-white border-indigo-800 shadow-md'
+                      : 'bg-slate-100 text-slate-400 border-slate-200 opacity-60'
+                  }`}>
                     <div>
-                      <p className="text-[10px] text-slate-400">Nomor Rekening Tujuan:</p>
-                      <p className="text-sm font-black font-mono tracking-wider text-amber-300">
-                        {paymentSettings.accountNumber || '-'}
-                      </p>
-                      <p className="text-[11px] text-slate-200 mt-0.5">
-                        a.n. <span className="font-bold">{paymentSettings.accountHolder || '-'}</span>
-                      </p>
-                    </div>
-
-                    {qrisPreview && (
-                      <div className="p-1.5 bg-white rounded-xl shadow-md shrink-0">
-                        <img src={resolveImageUrl(qrisPreview)} alt="QRIS" className="w-12 h-12 object-contain" />
+                      <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-lg bg-indigo-500/30 text-indigo-300 flex items-center justify-center font-bold text-xs">
+                            <QrCode className="w-4 h-4 text-indigo-300" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-bold leading-none">QRIS Resmi Sadewa</p>
+                            <p className="text-[10px] text-indigo-300">Pilihan 2: Scan Barcode QRIS</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold ${
+                          paymentSettings.isQrisActive !== false
+                            ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-400/30'
+                            : 'bg-slate-200 text-slate-500'
+                        }`}>
+                          {paymentSettings.isQrisActive !== false ? 'Aktif di Kasir' : 'Dinonaktifkan'}
+                        </span>
                       </div>
-                    )}
+
+                      <div className="flex items-center gap-3">
+                        {qrisPreview ? (
+                          <div className="p-1 bg-white rounded-xl shadow-md shrink-0">
+                            <img src={resolveImageUrl(qrisPreview)} alt="QRIS" className="w-14 h-14 object-contain" />
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 bg-white/10 border border-dashed border-white/20 rounded-xl flex items-center justify-center text-slate-400 text-[10px] shrink-0">
+                            Belum Ada
+                          </div>
+                        )}
+                        <div className="text-[11px] text-slate-300 leading-snug">
+                          <p className="font-semibold text-white">Scan Barcode Instan</p>
+                          <p className="text-[10px] text-slate-400">Kasir memindai QRIS via m-Banking atau E-Wallet.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
