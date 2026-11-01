@@ -105,13 +105,13 @@ export const mapCallItem = (item) => {
     (v) => (typeof v === 'number' && v > 0) || (typeof v === 'string' && !isNaN(Number(v)) && Number(v) > 0)
   );
 
-  // Tarif per detik jika disertakan dari branch/kontrak (default tarif panggilan Rp 50 / detik)
+  // Tarif per detik jika disertakan dari branch/kontrak (default tarif panggilan nasional Rp 15 / detik)
   const ratePerSec = Number(
-    item.ratePerSecond ||
-    call.ratePerSecond ||
-    branchObj?.contractRatePerSecond ||
-    call.inmate?.branch?.contractRatePerSecond ||
-    50
+    (item.ratePerSecond && Number(item.ratePerSecond) > 0)
+      ? item.ratePerSecond
+      : (call.ratePerSecond && Number(call.ratePerSecond) > 0)
+        ? call.ratePerSecond
+        : (branchObj?.contractRatePerSecond || call.inmate?.branch?.contractRatePerSecond || 15)
   );
 
   // Jika backend sudah mengirim nilai biaya riil (> 0), gunakan nilai tersebut.
