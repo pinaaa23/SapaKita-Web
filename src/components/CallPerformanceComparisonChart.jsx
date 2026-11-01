@@ -7,28 +7,21 @@ import {
   CartesianGrid, 
   Tooltip, 
   Legend, 
-  ResponsiveContainer,
-  Cell
+  ResponsiveContainer 
 } from 'recharts';
 import { 
   Building2, 
   PhoneCall, 
-  CheckCircle2, 
-  XCircle, 
   Clock, 
   TrendingUp, 
   Calendar, 
   RefreshCw, 
   Award,
-  Layers,
   BarChart3,
-  ChevronDown,
-  ShieldCheck,
-  Landmark
+  ChevronDown
 } from 'lucide-react';
 import { getCallHistory, getKanwilCalls } from '../services/callService';
 import { getBranches } from '../services/branchService';
-import { getKanwilBranches } from '../services/kanwilService';
 
 const MONTH_NAMES = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -103,7 +96,6 @@ export default function CallPerformanceComparisonChart({
         if (scopedBranches.length === 0 && initialBranches && initialBranches.length > 0) {
           scopedBranches = initialBranches;
         } else if (scopedBranches.length === 0 && allBranches.length > 0) {
-          // Jika di database hanya ada 1 cabang (misal Lapas Malang), ambil cabang tersebut untuk Kanwil Jatim
           scopedBranches = allBranches;
         }
       }
@@ -187,8 +179,6 @@ export default function CallPerformanceComparisonChart({
   // Otomatis arahkan selectedMonth ke bulan yang memiliki data panggilan riil
   useEffect(() => {
     if (rawCalls.length > 0) {
-      // Jika bulan yang dipilih tidak memiliki data sama sekali dan bukan 'all',
-      // pindahkan ke bulan terbaru yang memiliki data panggilan!
       if (selectedMonth !== 'all' && (!monthCounts[selectedMonth] || monthCounts[selectedMonth] === 0)) {
         const activeMonths = Object.keys(monthCounts)
           .filter((k) => monthCounts[k] > 0)
@@ -227,7 +217,7 @@ export default function CallPerformanceComparisonChart({
       branchStats.set(bId, {
         branchId: bId,
         branchName: bName,
-        shortName: bName.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, ''),
+        shortName: bName.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim() || bName,
         totalCalls: 0,
         answeredCalls: 0,
         missedCalls: 0,
@@ -270,7 +260,7 @@ export default function CallPerformanceComparisonChart({
           branchStats.set(matchedBranchId, {
             branchId: matchedBranchId,
             branchName: name,
-            shortName: name.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, ''),
+            shortName: name.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim() || name,
             totalCalls: 0,
             answeredCalls: 0,
             missedCalls: 0,
@@ -282,6 +272,7 @@ export default function CallPerformanceComparisonChart({
 
       const stats = branchStats.get(matchedBranchId);
       const isAnswered = call.status === 'Answered' || 
+                         call.status === 'COMPLETED' ||
                          call.rawStatus === 'ENDED' || 
                          call.rawStatus === 'COMPLETED' || 
                          Boolean(call.connectedAt) || 
@@ -299,12 +290,16 @@ export default function CallPerformanceComparisonChart({
       }
     });
 
+    const isFewBranches = branchStats.size <= 4;
     const result = Array.from(branchStats.values()).map((item) => {
       const successRate = item.totalCalls > 0 
         ? Number(((item.answeredCalls / item.totalCalls) * 100).toFixed(1)) 
         : 0;
+      // Gunakan nama lengkap jika cabang sedikit (<= 4) agar rapi, atau shortName jika banyak
+      const displayLabel = isFewBranches ? item.branchName : item.shortName;
       return {
         ...item,
+        displayLabel,
         successRate,
       };
     });
@@ -359,6 +354,7 @@ export default function CallPerformanceComparisonChart({
       if (!entry) return;
 
       const isAnswered = call.status === 'Answered' || 
+                         call.status === 'COMPLETED' ||
                          call.rawStatus === 'ENDED' || 
                          call.rawStatus === 'COMPLETED' || 
                          Boolean(call.connectedAt) || 
@@ -382,6 +378,7 @@ export default function CallPerformanceComparisonChart({
         : 0;
       return {
         ...entry,
+        displayLabel: entry.monthName,
         successRate,
       };
     });
@@ -418,7 +415,7 @@ export default function CallPerformanceComparisonChart({
     return `${MONTH_NAMES[mIdx] || m} ${y}`;
   }, [selectedMonth]);
 
-  // Custom Tooltip Recharts
+  // Custom Tooltip Recharts tanpa background abu-abu gelap
   const CustomTooltip = ({ active, payload, label }) => {
     if (!active || !payload || !payload.length) return null;
     const data = payload[0]?.payload || {};
@@ -433,7 +430,7 @@ export default function CallPerformanceComparisonChart({
           <div className="w-6 h-6 rounded-lg bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold">
             {viewMode === 'by_branch' ? <Building2 className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
           </div>
-          <span className="font-extrabold text-slate-800 text-xs truncate max-w-[180px]">
+          <span className="font-extrabold text-slate-800 text-xs truncate max-w-[200px]">
             {title}
           </span>
         </div>
@@ -476,34 +473,38 @@ export default function CallPerformanceComparisonChart({
       {/* 1. Header Komponen & Filter Navigasi */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold">
-              <BarChart3 className="w-4 h-4 text-[#0B3D91]" />
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold shadow-2xs">
+              <BarChart3 className="w-4.5 h-4.5 text-[#0B3D91]" />
             </div>
-            <h2 className="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight">
-              {isKanwil 
-                ? `Performa Panggilan Lapas di ${kanwilName}` 
-                : 'Performa Panggilan Seluruh Lapas Nasional'}
-            </h2>
-            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
-              isKanwil 
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                : 'bg-blue-50 text-[#0B3D91] border-blue-200'
-            }`}>
-              {isKanwil ? `Wilayah ${kanwilName}` : 'Tingkat Nasional (Semua Lapas)'}
-            </span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
+                  {isKanwil 
+                    ? `Performa Panggilan Lapas di ${kanwilName}` 
+                    : 'Performa Panggilan Seluruh Lapas Nasional'}
+                </h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                  isKanwil 
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                    : 'bg-blue-50 text-[#0B3D91] border-blue-200'
+                }`}>
+                  {isKanwil ? `Wilayah ${kanwilName}` : 'Tingkat Nasional (Semua Lapas)'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isKanwil
+                  ? `Sinkronisasi performa panggilan ${branches.length} Lapas/UPT di bawah naungan ${kanwilName}`
+                  : `Sinkronisasi performa panggilan seluruh ${branches.length} Lapas se-Indonesia`}
+              </p>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1 ml-10">
-            {isKanwil
-              ? `Khusus membandingkan performa ${branches.length} Lapas/UPT di bawah naungan ${kanwilName} di setiap bulannya secara sinkron`
-              : `Membandingkan performa panggilan seluruh ${branches.length} Lapas se-Indonesia di setiap bulannya secara sinkron`}
-          </p>
         </div>
 
         {/* Action Controls & Filters */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          {/* Switcher Tampilan (Lapas vs Bulanan) */}
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          {/* Switcher Tampilan (Komparasi Lapas vs Tren Bulanan) */}
+          <div className="inline-flex p-1 bg-slate-100/90 rounded-xl text-xs font-semibold border border-slate-200/50">
             <button
               type="button"
               onClick={() => setViewMode('by_branch')}
@@ -514,7 +515,7 @@ export default function CallPerformanceComparisonChart({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Komparasi Antar Lapas</span>
+              <span>Komparasi Lapas</span>
             </button>
             <button
               type="button"
@@ -530,15 +531,15 @@ export default function CallPerformanceComparisonChart({
             </button>
           </div>
 
-          {/* Filter Bulan (Aktif jika View Mode: by_branch) */}
+          {/* Filter Periode Bulan (by_branch) atau Cabang (by_month) */}
           {viewMode === 'by_branch' ? (
             <div className="relative">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer"
+                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer shadow-2xs"
               >
-                <option value="all">Semua Bulan ({rawCalls.length} Panggilan)</option>
+                <option value="all">Semua Periode ({rawCalls.length} Panggilan)</option>
                 {availableMonths.map((mKey) => {
                   const [y, m] = mKey.split('-');
                   const label = `${MONTH_NAMES[parseInt(m, 10) - 1]} ${y}`;
@@ -553,12 +554,11 @@ export default function CallPerformanceComparisonChart({
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           ) : (
-            /* Filter Cabang (Aktif jika View Mode: by_month) */
             <div className="relative">
               <select
                 value={selectedBranchId}
                 onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-1.5 pl-3 pr-7 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer max-w-[200px] truncate"
+                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer max-w-[200px] truncate shadow-2xs"
               >
                 <option value="all">{isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas Nasional'}</option>
                 {branches.map((b) => (
@@ -571,8 +571,8 @@ export default function CallPerformanceComparisonChart({
             </div>
           )}
 
-          {/* Switcher Metrik (Panggilan vs Menit) */}
-          <div className="inline-flex p-1 bg-slate-100 rounded-xl text-xs font-semibold">
+          {/* Switcher Metrik (Panggilan vs Durasi) */}
+          <div className="inline-flex p-1 bg-slate-100/90 rounded-xl text-xs font-semibold border border-slate-200/50">
             <button
               type="button"
               onClick={() => setMetricType('calls')}
@@ -597,13 +597,13 @@ export default function CallPerformanceComparisonChart({
             </button>
           </div>
 
-          {/* Tombol Sinkronisasi Data Riil */}
+          {/* Tombol Segarkan */}
           <button
             type="button"
             onClick={() => fetchData(true)}
             disabled={isLoading || isRefreshing}
-            title="Sinkronkan data panggilan terbaru dari database"
-            className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#0B3D91] border border-slate-200 transition-all cursor-pointer disabled:opacity-50"
+            title="Segarkan data panggilan terbaru"
+            className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#0B3D91] border border-slate-200 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#0B3D91]' : ''}`} />
           </button>
@@ -612,110 +612,126 @@ export default function CallPerformanceComparisonChart({
 
       {/* 2. KPI Cards Mini di Atas Diagram */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-          <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
-            <PhoneCall className="w-3 h-3 text-[#0B3D91]" />
-            Total Panggilan ({viewMode === 'by_branch' ? activePeriodLabel : 'Tahun Ini'})
-          </p>
-          <p className="text-base sm:text-lg font-black text-slate-900 mt-0.5">
+        <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100/90 hover:bg-slate-50 transition-colors">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold mb-1">
+            <span className="flex items-center gap-1.5">
+              <PhoneCall className="w-3.5 h-3.5 text-[#0B3D91]" />
+              Total Panggilan
+            </span>
+            <span className="text-[9px] font-bold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded-md">
+              {viewMode === 'by_branch' ? (selectedMonth === 'all' ? 'Akumulasi' : activePeriodLabel) : 'Tahun Ini'}
+            </span>
+          </div>
+          <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
             {formatNumber(summaryMetrics.totalCalls)}
           </p>
-          <p className="text-[10px] text-slate-400">
-            {formatNumber(summaryMetrics.answeredCalls)} terjawab • {formatNumber(summaryMetrics.missedCalls)} gagal
+          <p className="text-[11px] text-slate-400 mt-0.5">
+            <span className="text-emerald-600 font-semibold">{formatNumber(summaryMetrics.answeredCalls)} terjawab</span>
+            <span className="mx-1">•</span>
+            <span className="text-rose-500 font-medium">{formatNumber(summaryMetrics.missedCalls)} gagal</span>
           </p>
         </div>
 
-        <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-          <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
-            <Clock className="w-3 h-3 text-emerald-600" />
-            Total Durasi Bicara
-          </p>
-          <p className="text-base sm:text-lg font-black text-emerald-700 mt-0.5">
+        <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100/90 hover:bg-slate-50 transition-colors">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold mb-1">
+            <span className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-emerald-600" />
+              Total Durasi Bicara
+            </span>
+          </div>
+          <p className="text-xl sm:text-2xl font-black text-emerald-700 tracking-tight">
             {formatDuration(summaryMetrics.totalSeconds)}
           </p>
-          <p className="text-[10px] text-slate-400">Durasi riil terhubung</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Durasi riil terhubung</p>
         </div>
 
-        <div className="p-3 bg-slate-50/80 rounded-xl border border-slate-100">
-          <p className="text-[10px] text-slate-500 font-semibold flex items-center gap-1">
-            <TrendingUp className="w-3 h-3 text-blue-600" />
-            Success Rate
-          </p>
-          <p className="text-base sm:text-lg font-black text-blue-700 mt-0.5">
+        <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100/90 hover:bg-slate-50 transition-colors">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold mb-1">
+            <span className="flex items-center gap-1.5">
+              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+              Success Rate
+            </span>
+          </div>
+          <p className="text-xl sm:text-2xl font-black text-blue-700 tracking-tight">
             {summaryMetrics.successRate}%
           </p>
-          <p className="text-[10px] text-slate-400">Rasio panggilan sukses</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Rasio panggilan berhasil</p>
         </div>
 
-        <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/60">
-          <p className="text-[10px] text-amber-800 font-semibold flex items-center gap-1 truncate">
-            <Award className="w-3 h-3 text-amber-600 shrink-0" />
-            Lapas Teraktif
+        <div className="p-3.5 bg-amber-50/50 rounded-2xl border border-amber-200/50 hover:bg-amber-50/80 transition-colors">
+          <div className="flex items-center justify-between text-[11px] text-amber-800 font-semibold mb-1 truncate">
+            <span className="flex items-center gap-1.5">
+              <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              Lapas Teraktif
+            </span>
+          </div>
+          <p className="text-sm sm:text-base font-black text-amber-900 tracking-tight truncate mt-0.5" title={summaryMetrics.topLapas?.branchName || '-'}>
+            {summaryMetrics.topLapas ? summaryMetrics.topLapas.branchName : '-'}
           </p>
-          <p className="text-xs sm:text-sm font-black text-amber-900 mt-0.5 truncate" title={summaryMetrics.topLapas?.branchName || '-'}>
-            {summaryMetrics.topLapas ? summaryMetrics.topLapas.shortName : '-'}
-          </p>
-          <p className="text-[10px] text-amber-700/80 truncate">
-            {summaryMetrics.topLapas ? `${formatNumber(summaryMetrics.topLapas.totalCalls)} panggilan` : 'Belum ada panggilan'}
+          <p className="text-[11px] text-amber-700/80 mt-0.5 truncate">
+            {summaryMetrics.topLapas ? `${formatNumber(summaryMetrics.topLapas.totalCalls)} sesi panggilan` : 'Belum ada panggilan'}
           </p>
         </div>
       </div>
 
       {/* 3. Area Diagram Batang Recharts */}
-      <div className="h-72 sm:h-80 w-full pt-2">
+      <div className="h-72 sm:h-84 w-full pt-2">
         {isLoading ? (
-          <div className="h-full w-full bg-slate-50 rounded-xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
+          <div className="h-full w-full bg-slate-50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
             Memuat data performa panggilan...
           </div>
         ) : (viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData).length > 0 ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
               data={viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData}
-              margin={{ top: 10, right: 10, bottom: 25, left: -10 }}
-              barGap={4}
+              margin={{ top: 12, right: 12, bottom: 20, left: -10 }}
+              barGap={6}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
               <XAxis
-                dataKey={viewMode === 'by_branch' ? 'shortName' : 'monthName'}
+                dataKey="displayLabel"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }}
+                tick={{ fill: '#64748B', fontSize: 11, fontWeight: 700 }}
                 dy={8}
                 interval={0}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: '#64748B', fontSize: 11 }}
+                tick={{ fill: '#94A3B8', fontSize: 11 }}
                 tickFormatter={(val) => metricType === 'calls' ? formatNumber(val) : `${val}m`}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={false} 
+              />
               <Legend 
                 verticalAlign="top" 
                 align="right" 
                 iconType="circle"
-                wrapperStyle={{ paddingBottom: '12px', fontSize: '11px', fontWeight: 600 }}
+                wrapperStyle={{ paddingBottom: '16px', fontSize: '11px', fontWeight: 600 }}
               />
               <Bar
                 name={metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab (Menit)'}
                 dataKey={metricType === 'calls' ? 'answeredCalls' : 'totalMinutes'}
                 fill="#0B3D91"
-                radius={[4, 4, 0, 0]}
-                maxBarSize={45}
+                radius={[6, 6, 0, 0]}
+                maxBarSize={55}
               />
               {metricType === 'calls' && (
                 <Bar
                   name="Tidak Terjawab / Gagal"
                   dataKey="missedCalls"
                   fill="#F43F5E"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={45}
+                  radius={[6, 6, 0, 0]}
+                  maxBarSize={55}
                 />
               )}
             </BarChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+          <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
             <PhoneCall className="w-8 h-8 text-slate-300 mb-2" />
             <span>Belum ada data panggilan pada periode ini</span>
           </div>
