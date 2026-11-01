@@ -206,7 +206,7 @@ export default function KanwilBranches() {
 
             <div className="px-3.5 py-1.5 bg-slate-100 border border-slate-200/80 rounded-xl text-slate-500 font-semibold text-xs flex items-center gap-1.5">
               <Eye className="w-3.5 h-3.5 text-slate-400" />
-              <span>Akses Hanya Lihat</span>
+              <span>Mode Pemantauan Wilayah</span>
             </div>
           </div>
         </div>

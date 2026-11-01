@@ -366,7 +366,7 @@ export default function PackagesList() {
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-[11px] font-bold text-slate-600">
                     <Eye className="w-3.5 h-3.5 text-slate-500" />
-                    Mode: Hanya Lihat
+                    Mode: Pemantauan Nasional
                   </span>
                 </div>
               </div>

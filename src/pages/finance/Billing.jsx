@@ -623,23 +623,25 @@ export default function FinanceBilling() {
         </div>
       )}
 
-      {/* Read-Only Notice Banner */}
-      <div className="rounded-2xl p-4 bg-blue-50/80 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
-            <Eye className="w-5 h-5" />
+      {/* Read-Only Notice Banner Khusus Role Finance (Superadmin memiliki hak akses penuh verifikasi ACC) */}
+      {!canManageBilling && (
+        <div className="rounded-2xl p-4 bg-blue-50/80 border border-blue-200 text-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
+              <Eye className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-xs text-blue-950 sm:text-sm">Mode Pemantauan Finance (Hanya Lihat)</h4>
+              <p className="text-[11px] text-blue-800 leading-relaxed mt-0.5">
+                Role Finance berhak meninjau rekapitulasi data tagihan dan riwayat setoran secara transparan. Verifikasi bukti transfer dan persetujuan (ACC) setoran kasir dikelola langsung oleh Superadmin.
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-bold text-xs text-blue-950 sm:text-sm">Akses Hanya Lihat (Read-Only)</h4>
-            <p className="text-[11px] text-blue-800 leading-relaxed mt-0.5">
-              Seluruh verifikasi bukti transfer, persetujuan (ACC), dan penolakan pembayaran dikelola terpusat oleh Superadmin. Role Finance hanya berhak meninjau data tagihan dan riwayat setoran.
-            </p>
-          </div>
+          <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-bold text-xs self-start sm:self-auto shrink-0">
+            Mode Pemantauan
+          </span>
         </div>
-        <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 border border-blue-300 font-bold text-xs self-start sm:self-auto shrink-0">
-          Mode Read-Only
-        </span>
-      </div>
+      )}
 
       {/* Top Action Bar: Tombol Ekspor CSV dan Refresh di Sisi Kanan */}
       <div className="flex items-center justify-end gap-2 -mt-1">
