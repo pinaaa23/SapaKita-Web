@@ -373,6 +373,10 @@ export default function CallPerformanceComparisonChart({
       const sec = Number(call.durationSeconds) || 0;
 
       entry.totalCalls += 1;
+      if (!entry.branchMap) entry.branchMap = {};
+      const bName = call.branchName || call.inmate?.branchName || call.branch?.name || 'Lapas';
+      entry.branchMap[bName] = (entry.branchMap[bName] || 0) + 1;
+
       if (isAnswered) {
         entry.answeredCalls += 1;
         entry.totalSeconds += sec;
@@ -473,6 +477,20 @@ export default function CallPerformanceComparisonChart({
               {data.successRate}%
             </span>
           </div>
+
+          {viewMode === 'by_month' && data.branchMap && Object.keys(data.branchMap).length > 0 && selectedBranchId === 'all' && (
+            <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-500">
+              <span className="font-bold text-slate-700 block mb-1">Rincian Kontribusi Lapas:</span>
+              <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                {Object.entries(data.branchMap).map(([name, count]) => (
+                  <div key={name} className="flex justify-between items-center text-slate-600">
+                    <span className="truncate max-w-[140px]">• {name}</span>
+                    <span className="font-semibold text-slate-800">{count} pgl</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
