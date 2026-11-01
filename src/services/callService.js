@@ -30,54 +30,9 @@ export const mapCallItem = (item) => {
     ? call.durationSeconds 
     : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
 
-  // Ekstraksi nilai biaya eksplisit dari berbagai kemungkinan nama field respons backend
-  const explicitCostCandidates = [
-    item.cost,
-    call.cost,
-    item.totalCost,
-    call.totalCost,
-    item.amount,
-    call.amount,
-    item.nominal,
-    call.nominal,
-    item.billingAmount,
-    call.billingAmount,
-    item.totalPrice,
-    call.totalPrice,
-    item.price,
-    call.price,
-  ];
-
-  const validPositiveCost = explicitCostCandidates.find(
-    (v) => (typeof v === 'number' && v > 0) || (typeof v === 'string' && !isNaN(Number(v)) && Number(v) > 0)
-  );
-
-  // Tarif per detik jika disertakan dari branch/kontrak (default tarif panggilan Rp 50 / detik)
-  const ratePerSec = Number(
-    item.ratePerSecond ||
-    call.ratePerSecond ||
-    branchObj?.contractRatePerSecond ||
-    call.inmate?.branch?.contractRatePerSecond ||
-    50
-  );
-
-  // Jika backend sudah mengirim nilai biaya riil (> 0), gunakan nilai tersebut.
-  // Jika backend belum menghitung biaya (mengirim 0 / null) namun panggilan terjawab (durasi > 0),
-  // hitung estimasi biaya riil: durasi detik x tarif per detik.
-  // Jika panggilan tidak terjawab / ditolak (durasi 0), biaya tetap 0.
-  const resolvedCost = validPositiveCost !== undefined
-    ? Number(validPositiveCost)
-    : (durationSec > 0 && normalizedStatus === 'Answered' ? Math.round(durationSec * ratePerSec) : 0);
-
-  let hasRecording = Boolean(
-    storageUrl || 
-    recordingObj?.storageUrl ||
-    item.recordingUrl || 
-    call.recordingUrl || 
-    item.hasRecording || 
-    call.hasRecording ||
-    (isDemo && durationSec > 0)
-  );
+  const branchObj = item.branch || call.branch || call.inmate?.branch || null;
+  const resolvedBranchId = branchObj?.id || call.inmate?.branchId || item.branchId || call.branchId || '';
+  const resolvedBranchName = branchObj?.name || call.inmate?.branch?.name || item.branchName || call.branchName || '-';
 
   const rawStatus = String(
     call.rawStatus ||
@@ -128,10 +83,54 @@ export const mapCallItem = (item) => {
     statusText = 'Tidak Terjawab';
   }
 
-  // Jika memang ada objek rekaman atau storageUrl, hasRecording tetap TRUE agar bisa diputar
-  if (storageUrl || recordingObj?.storageUrl || item.recordingUrl || call.recordingUrl) {
-    hasRecording = true;
-  }
+  // Ekstraksi nilai biaya eksplisit dari berbagai kemungkinan nama field respons backend
+  const explicitCostCandidates = [
+    item.cost,
+    call.cost,
+    item.totalCost,
+    call.totalCost,
+    item.amount,
+    call.amount,
+    item.nominal,
+    call.nominal,
+    item.billingAmount,
+    call.billingAmount,
+    item.totalPrice,
+    call.totalPrice,
+    item.price,
+    call.price,
+  ];
+
+  const validPositiveCost = explicitCostCandidates.find(
+    (v) => (typeof v === 'number' && v > 0) || (typeof v === 'string' && !isNaN(Number(v)) && Number(v) > 0)
+  );
+
+  // Tarif per detik jika disertakan dari branch/kontrak (default tarif panggilan Rp 50 / detik)
+  const ratePerSec = Number(
+    item.ratePerSecond ||
+    call.ratePerSecond ||
+    branchObj?.contractRatePerSecond ||
+    call.inmate?.branch?.contractRatePerSecond ||
+    50
+  );
+
+  // Jika backend sudah mengirim nilai biaya riil (> 0), gunakan nilai tersebut.
+  // Jika backend belum menghitung biaya (mengirim 0 / null) namun panggilan terjawab (durasi > 0),
+  // hitung estimasi biaya riil: durasi detik x tarif per detik.
+  // Jika panggilan tidak terjawab / ditolak (durasi 0), biaya tetap 0.
+  const resolvedCost = validPositiveCost !== undefined
+    ? Number(validPositiveCost)
+    : (durationSec > 0 && normalizedStatus === 'Answered' ? Math.round(durationSec * ratePerSec) : 0);
+
+  let hasRecording = Boolean(
+    storageUrl || 
+    recordingObj?.storageUrl ||
+    item.recordingUrl || 
+    call.recordingUrl || 
+    item.hasRecording || 
+    call.hasRecording ||
+    (isDemo && durationSec > 0)
+  );
 
   const rawType = (call.type || call.callType || item.callType || 'AUDIO').toUpperCase();
   const isVideo = rawType.includes('VIDEO');
@@ -185,10 +184,6 @@ export const mapCallItem = (item) => {
     const charCode = idStr.charCodeAt(idStr.length - 1) || 0;
     channel = charCode % 2 === 0 ? 'web' : 'gsm';
   }
-
-  const branchObj = item.branch || call.branch || call.inmate?.branch || null;
-  const resolvedBranchId = branchObj?.id || call.inmate?.branchId || item.branchId || call.branchId || '';
-  const resolvedBranchName = branchObj?.name || call.inmate?.branch?.name || item.branchName || call.branchName || '-';
 
   const resolvedPhone = item.targetPhone || item.destinationPhone || item.familyPhone || item.call?.family?.phone || '-';
 
