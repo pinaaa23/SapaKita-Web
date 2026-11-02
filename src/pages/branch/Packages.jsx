@@ -476,7 +476,7 @@ export default function BranchPackages() {
       {/* Banner Informasi Tarif Acuan & Batas Penjualan Maksimal SPV (+Rp 2/detik) */}
       <div className="bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-blue-50/90 rounded-2xl p-4 border border-blue-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
             <Coins className="w-5 h-5" />
           </div>
           <div>
@@ -484,7 +484,7 @@ export default function BranchPackages() {
               <span className="font-black text-slate-800 text-sm tracking-tight">
                 Ketentuan Tarif & Batas Maksimal Harga Paket SPV
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-200/80 text-blue-900 border border-blue-300">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-primary/10 text-primary border border-primary/20">
                 Aturan Maksimal +Rp 2/detik
               </span>
             </div>
@@ -501,8 +501,8 @@ export default function BranchPackages() {
           </div>
           <div className="h-6 w-px bg-slate-200" />
           <div>
-            <span className="text-[10px] text-blue-700 font-bold block uppercase tracking-wider">Batas Maksimal (+2)</span>
-            <span className="text-xs font-mono font-black text-blue-900">{formatRupiah(maxRate)}/detik</span>
+            <span className="text-[10px] text-primary font-bold block uppercase tracking-wider">Batas Maksimal (+2)</span>
+            <span className="text-xs font-mono font-black text-primary">{formatRupiah(maxRate)}/detik</span>
           </div>
         </div>
       </div>
@@ -516,7 +516,7 @@ export default function BranchPackages() {
             onClick={() => setSelectedCategory('semua')}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'semua'
-                ? 'bg-white text-[#1565C0] shadow-xs'
+                ? 'bg-white text-primary shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -527,7 +527,7 @@ export default function BranchPackages() {
             onClick={() => setSelectedCategory('telepon')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'telepon'
-                ? 'bg-[#1565C0] text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -539,7 +539,7 @@ export default function BranchPackages() {
             onClick={() => setSelectedCategory('video')}
             className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedCategory === 'video'
-                ? 'bg-[#1565C0] text-white shadow-xs'
+                ? 'bg-primary text-white shadow-xs'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -557,7 +557,7 @@ export default function BranchPackages() {
               placeholder="Cari nama paket..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#1565C0] transition shadow-2xs"
+              className="w-full pl-9 pr-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition shadow-2xs"
             />
           </div>
 
@@ -579,7 +579,7 @@ export default function BranchPackages() {
           <button
             type="button"
             onClick={handleOpenCreateModal}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] active:scale-95 text-white font-bold text-xs shadow-xs hover:shadow transition-all cursor-pointer shrink-0"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark active:scale-95 text-white font-bold text-xs shadow-md shadow-primary/20 hover:shadow transition-all cursor-pointer shrink-0"
           >
             <Plus className="w-4 h-4" />
             <span>Tambah Paket</span>
@@ -592,7 +592,7 @@ export default function BranchPackages() {
         {/* Table Subheader */}
         <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-2">
-            <Package className="w-4 h-4 text-[#1565C0]" />
+            <Package className="w-4 h-4 text-primary" />
             <h3 className="text-xs font-bold text-slate-800">
               Daftar Paket Terdaftar
             </h3>
@@ -609,7 +609,7 @@ export default function BranchPackages() {
 
         {isLoading ? (
           <div className="p-12 text-center text-slate-400">
-            <div className="animate-spin w-6 h-6 border-2 border-[#1565C0] border-t-transparent rounded-full mx-auto mb-2" />
+            <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
             <p className="text-xs font-medium">Memuat data paket...</p>
           </div>
         ) : displayedBranchPackages.length === 0 ? (
@@ -638,7 +638,7 @@ export default function BranchPackages() {
                 <button
                   type="button"
                   onClick={handleOpenCreateModal}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs shadow-md shadow-primary/20 transition-all cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Tambah Paket Baru</span>
@@ -685,7 +685,7 @@ export default function BranchPackages() {
                               isInactive
                                 ? 'bg-slate-200/70 text-slate-400 border-slate-300'
                                 : isTelepon
-                                ? 'bg-blue-50/80 text-[#1565C0] border-blue-100'
+                                ? 'bg-primary/10 text-primary border-primary/20'
                                 : 'bg-purple-50/80 text-purple-700 border-purple-100'
                             }`}
                           >
@@ -717,7 +717,7 @@ export default function BranchPackages() {
                             isInactive
                               ? 'bg-slate-100 text-slate-500 border border-slate-200'
                               : isTelepon
-                              ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                              ? 'bg-primary/10 text-primary border border-primary/20'
                               : 'bg-purple-50 text-purple-700 border border-purple-200/60'
                           }`}
                         >
@@ -739,7 +739,7 @@ export default function BranchPackages() {
                         className={`py-3.5 px-4 text-right text-sm ${
                           isInactive
                             ? 'text-slate-400 font-bold line-through decoration-slate-300'
-                            : 'font-extrabold text-[#1565C0]'
+                            : 'font-extrabold text-primary'
                         }`}
                       >
                         {formatRupiah(pkg.harga || pkg.price)}
@@ -777,7 +777,7 @@ export default function BranchPackages() {
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(pkg)}
-                            className="p-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1565C0] transition cursor-pointer border border-blue-200/60 shadow-2xs hover:scale-105"
+                            className="p-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition cursor-pointer border border-primary/20 shadow-2xs hover:scale-105"
                             title="Ubah Paket"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -877,7 +877,7 @@ export default function BranchPackages() {
                       <span
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           isTelepon
-                            ? 'bg-blue-50 text-blue-700 border border-blue-200/60'
+                            ? 'bg-primary/10 text-primary border border-primary/20'
                             : 'bg-purple-50 text-purple-700 border border-purple-200/60'
                         }`}
                       >
@@ -895,7 +895,7 @@ export default function BranchPackages() {
                       <h4 className="text-xs font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">
                         {tpl.nama}
                       </h4>
-                      <p className="text-base font-black text-[#1565C0] mt-1">
+                      <p className="text-base font-black text-primary mt-1">
                         {formatRupiah(tpl.harga)}
                       </p>
                     </div>
@@ -923,12 +923,12 @@ export default function BranchPackages() {
 
       {/* Modal Tambah / Edit Paket */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/50 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
                   <Package className="w-4 h-4" />
                 </div>
                 <div>
@@ -960,7 +960,7 @@ export default function BranchPackages() {
               const isOverPrice = currentDurasi > 0 && formData.harga !== '' && currentHarga > modalMaxPrice;
 
               return (
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleFormSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />
@@ -978,7 +978,7 @@ export default function BranchPackages() {
                   placeholder="Contoh: Paket Telepon 15 Menit"
                   value={formData.nama}
                   onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                 />
               </div>
 
@@ -993,7 +993,7 @@ export default function BranchPackages() {
                     onClick={() => setFormData({ ...formData, kategori: 'telepon' })}
                     className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-bold transition cursor-pointer ${
                       formData.kategori === 'telepon'
-                        ? 'bg-blue-50 border-[#1565C0] text-[#1565C0]'
+                        ? 'bg-primary/10 border-primary text-primary'
                         : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                     }`}
                   >
@@ -1029,7 +1029,7 @@ export default function BranchPackages() {
                       placeholder="15"
                       value={formData.durasi}
                       onChange={(e) => setFormData({ ...formData, durasi: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-medium pointer-events-none">
                       Mnt
@@ -1051,7 +1051,7 @@ export default function BranchPackages() {
                     className={`w-full px-3.5 py-2.5 bg-slate-50 border rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 ${
                       isOverPrice
                         ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-500 bg-rose-50/20'
-                        : 'border-slate-200 focus:border-[#1565C0] focus:ring-blue-500'
+                        : 'border-slate-200 focus:border-primary focus:ring-primary/20'
                     }`}
                   />
                 </div>
@@ -1061,7 +1061,7 @@ export default function BranchPackages() {
               {currentDurasi > 0 && (
                 <div className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl text-[11px] text-slate-600 flex items-center justify-between">
                   <span>Tarif Dasar: <strong>{formatRupiah(modalBasePrice)}</strong> ({formatRupiah(baseRate)}/dtk)</span>
-                  <span className={isOverPrice ? 'text-rose-600 font-extrabold' : 'text-blue-700 font-bold'}>
+                  <span className={isOverPrice ? 'text-rose-600 font-extrabold' : 'text-primary font-bold'}>
                     Batas Maksimal (+2): {formatRupiah(modalMaxPrice)} ({formatRupiah(maxRate)}/dtk)
                   </span>
                 </div>
@@ -1113,7 +1113,7 @@ export default function BranchPackages() {
                   value={isOverPrice ? 'Nonaktif' : formData.status}
                   disabled={isOverPrice}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-[#1565C0] focus:ring-1 focus:ring-blue-500 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 cursor-pointer disabled:bg-slate-100 disabled:text-slate-400"
                 >
                   <option value="Aktif" disabled={isOverPrice}>
                     {isOverPrice ? 'Aktif (Dilarang: Melebihi Batas Harga)' : 'Aktif (Tampil di Kasir Kantin)'}
@@ -1122,7 +1122,7 @@ export default function BranchPackages() {
                 </select>
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2.5">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2.5 shrink-0 bg-white sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
@@ -1133,7 +1133,7 @@ export default function BranchPackages() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2.5 rounded-xl bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-xs transition shadow-md shadow-blue-600/20 disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white font-bold text-xs transition shadow-md shadow-primary/20 disabled:opacity-50 cursor-pointer"
                 >
                   {isSubmitting ? 'Menyimpan...' : editingPackage ? 'Simpan Perubahan' : 'Tambah Paket'}
                 </button>

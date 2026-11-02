@@ -104,6 +104,50 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
       };
     }
 
+    // Kantin Page Details (Operator Kantin)
+    if (pathname.startsWith('/kantin/kontak')) {
+      return {
+        title: 'Kelola Kontak Keluarga WBP',
+        subtitle: 'Daftarkan dan tinjau nomor kontak keluarga yang diizinkan untuk setiap warga binaan',
+      };
+    }
+    if (pathname.startsWith('/kantin/status-wartel')) {
+      return {
+        title: 'Status Ketersediaan Wartel',
+        subtitle: 'Pantau ketersediaan bilik wartel secara real-time di UPT',
+      };
+    }
+    if (pathname.startsWith('/kantin/riwayat')) {
+      return {
+        title: 'Rekap & Riwayat Penjualan',
+        subtitle: 'Laporan pemasukan omzet penjualan voucher dan transaksi kasir kantin',
+      };
+    }
+    if (pathname.startsWith('/kantin/tagihan') || pathname.startsWith('/kantin/top-up-saldo')) {
+      return {
+        title: 'Tagihan Bulanan Kantin',
+        subtitle: 'Rekapitulasi tagihan bulanan penggunaan menit dan porsi setoran ke Admin Finance',
+      };
+    }
+    if (pathname.startsWith('/kantin/voucher')) {
+      return {
+        title: 'Voucher Transaksi',
+        subtitle: 'Informasi kode voucher dan instruksi penggunaan bilik telepon wartel',
+      };
+    }
+    if (pathname.startsWith('/kantin/struk')) {
+      return {
+        title: 'Struk Transaksi Kasir',
+        subtitle: 'Bukti pembelian resmi paket komunikasi kantin',
+      };
+    }
+    if (pathname === '/kantin' || pathname === '/kantin/') {
+      return {
+        title: 'Katalog Paket Komunikasi',
+        subtitle: 'Pilihan paket telepon dan video call resmi untuk warga binaan pemasyarakatan',
+      };
+    }
+
     return { title: 'Dashboard Overview', subtitle: 'Ringkasan operasional Sadewa seluruh UPT' };
   };
 

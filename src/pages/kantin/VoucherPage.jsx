@@ -86,13 +86,13 @@ export default function VoucherPage() {
   }
 
   return (
-    <div className="w-full max-w-lg mx-auto py-0 sm:py-1 animate-in fade-in duration-300">
+    <div className="w-full max-w-lg mx-auto py-1 pb-12 sm:pb-16 animate-in fade-in duration-300">
       {/* Header Halaman (Judul, Subjudul) */}
-      <div className="text-center mb-4 sm:mb-5">
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
+      <div className="text-center mb-3 sm:mb-4">
+        <h2 className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">
           Pembayaran Berhasil
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1 font-medium">
+        <p className="text-xs text-slate-500 mt-0.5 font-medium">
           Berikan kode ini kepada warga binaan.
         </p>
       </div>
@@ -100,16 +100,16 @@ export default function VoucherPage() {
       {/* Kartu Voucher Tengah (ID: voucher-cetak untuk cetak khusus) */}
       <div
         id="voucher-cetak"
-        className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200 shadow-sm overflow-hidden"
+        className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden"
       >
         {/* TAMPILAN KHUSUS LAYAR (WEB) - warna gradien biru modern */}
         <div className="voucher-screen-view print:hidden">
           {/* Bagian Atas: Gradien Biru dengan Kode Voucher Sangat Besar (1 Baris) */}
-          <div className="bg-gradient-to-br from-[#1565C0] via-[#1976D2] to-[#0D47A1] text-white p-4 sm:p-5 text-center relative overflow-hidden">
+          <div className="bg-gradient-to-br from-[#0B3D91] via-[#1565C0] to-[#072B69] text-white p-4 sm:p-5 text-center relative overflow-hidden">
             <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
             <div className="absolute -left-6 -top-6 w-24 h-24 bg-white/10 rounded-full blur-xl pointer-events-none" />
 
-            <span className="inline-block text-[11px] uppercase font-bold tracking-widest text-blue-200 mb-1 px-3 py-0.5 bg-white/10 rounded-full">
+            <span className="inline-block text-[10px] uppercase font-bold tracking-widest text-blue-200 mb-1 px-3 py-0.5 bg-white/10 rounded-full">
               KODE VOUCHER
             </span>
 
@@ -118,21 +118,21 @@ export default function VoucherPage() {
                 <span
                   className={`font-black font-mono text-white whitespace-nowrap drop-shadow-xs select-all ${
                     kodeVoucher.length > VOUCHER_CODE_LENGTH
-                      ? 'text-xl xs:text-2xl sm:text-3xl md:text-[38px] tracking-wider'
-                      : 'text-2xl xs:text-3xl sm:text-4xl md:text-[44px] tracking-wider sm:tracking-widest'
+                      ? 'text-xl xs:text-2xl sm:text-3xl tracking-wider'
+                      : 'text-2xl xs:text-3xl sm:text-4xl tracking-wider sm:tracking-widest'
                   }`}
                 >
                   {kodeVoucher}
                 </span>
               ) : (
-                <div className="py-2.5 px-4 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs sm:text-sm font-semibold flex items-center gap-2">
+                <div className="py-2 px-3.5 rounded-xl bg-amber-500/20 border border-amber-300/40 text-amber-100 text-xs sm:text-sm font-semibold flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-amber-300 shrink-0" />
                   <span>Kode voucher tidak tersedia, hubungi admin</span>
                 </div>
               )}
             </div>
 
-            <p className="text-[10px] sm:text-[11px] text-blue-100/80">
+            <p className="text-[10px] text-blue-100/90">
               {isVoucherAvailable
                 ? 'Gunakan kode ini pada bilik KBU Sadewa. Kode berlaku selama 1 hari selama kuota paket masih tersedia.'
                 : 'Transaksi berhasil tercatat, namun kode voucher belum diterbitkan'}
@@ -140,7 +140,7 @@ export default function VoucherPage() {
           </div>
 
           {/* Bagian Bawah: No. Transaksi, Nama Pelanggan, dan Nama Paket */}
-          <div className="p-4 sm:p-5 space-y-2.5 bg-white text-xs">
+          <div className="p-4 sm:p-5 space-y-2 bg-white text-xs">
             <div className="flex justify-between items-center py-1 border-b border-slate-100">
               <span className="text-slate-500 font-medium">No. Transaksi</span>
               <span className="font-mono font-bold text-slate-800">
@@ -157,7 +157,7 @@ export default function VoucherPage() {
 
             <div className="flex justify-between items-center py-1">
               <span className="text-slate-500 font-medium">Nama Paket</span>
-              <span className="font-bold text-[#1565C0] text-sm">
+              <span className="font-bold text-primary text-sm">
                 {transaksi.paket?.nama || '-'}
               </span>
             </div>
@@ -269,7 +269,7 @@ export default function VoucherPage() {
         <button
           type="button"
           onClick={() => navigate(`/kantin/struk/${transaksi.id}`)}
-          className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 bg-[#1565C0] hover:bg-[#0D47A1] text-white font-bold text-sm rounded-xl shadow-sm transition cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 bg-primary hover:bg-primary-dark text-white font-bold text-sm rounded-xl shadow-md shadow-primary/20 transition cursor-pointer"
         >
           <span>Lanjut ke Struk</span>
           <ArrowRight className="w-4 h-4" />

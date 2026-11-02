@@ -567,18 +567,9 @@ export default function BranchUsers() {
                         <Users className="w-6 h-6" />
                       </div>
                       <p className="text-slate-800 font-bold text-sm">Belum ada pengguna</p>
-                      <p className="text-slate-400 text-xs mt-1 mb-4">
+                      <p className="text-slate-400 text-xs mt-1">
                         {search ? 'Tidak ditemukan data pengguna yang cocok dengan pencarian.' : 'Tambahkan akun staf Supervisor atau Operator Kantin untuk UPT Anda.'}
                       </p>
-                      {canManageUsers && (
-                        <Link
-                          to="/branch/users/create"
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs shadow-md shadow-primary/20 hover:bg-primary-dark transition cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Tambah Pengguna</span>
-                        </Link>
-                      )}
                     </div>
                   </td>
                 </tr>
