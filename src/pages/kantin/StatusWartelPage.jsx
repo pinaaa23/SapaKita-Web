@@ -451,10 +451,10 @@ export default function StatusWartelPage() {
       {/* MODAL: TAMBAH / SESUAIKAN BILIK WARTEL                                     */}
       {/* ========================================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+            <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center font-bold">
                   {editingBooth ? <Edit3 className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
@@ -480,7 +480,7 @@ export default function StatusWartelPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleSaveBooth} className="p-5 space-y-4">
+            <form onSubmit={handleSaveBooth} className="p-5 space-y-4 overflow-y-auto flex-1">
               {formError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium rounded-xl flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 text-rose-600" />
@@ -603,7 +603,7 @@ export default function StatusWartelPage() {
               </div>
 
               {/* Modal Footer Action */}
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 shrink-0 bg-white sticky bottom-0">
                 {editingBooth ? (
                   <button
                     type="button"

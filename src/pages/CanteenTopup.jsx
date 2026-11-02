@@ -1750,7 +1750,7 @@ export default function CanteenTopup() {
           ========================================================================= */}
       {editContractModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
-          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-8">
+          <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -2073,8 +2073,8 @@ export default function CanteenTopup() {
           : (detailModalItem.proofUrl ? resolveProofUrl(detailModalItem.proofUrl, detailModalItem) : null);
 
         return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-            <div className="relative w-full max-w-2xl lg:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] overflow-hidden">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+            <div className="relative w-full max-w-2xl lg:max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 text-left animate-in zoom-in-95 duration-200 flex flex-col max-h-[92vh] my-auto overflow-hidden">
               
               {/* Header Modal */}
               <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-white shrink-0">
@@ -2778,8 +2778,8 @@ export default function CanteenTopup() {
           MODAL 3: APPROVE / REJECT TOPUP MODAL
           ========================================================================= */}
       {topupActionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <h4 className="text-base font-bold text-slate-900">
                 {topupActionModal.action === 'approve'
@@ -2874,8 +2874,8 @@ export default function CanteenTopup() {
           MODAL 4: PREVIEW BUKTI TRANSFER PEMBAYARAN
           ========================================================================= */}
       {proofPreviewUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] my-auto flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-blue-600" />
@@ -2960,8 +2960,8 @@ export default function CanteenTopup() {
           MODAL 5: DETAIL RIWAYAT PEMBAYARAN
           ========================================================================= */}
       {historyDetailModalItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-bold text-slate-800">Detail Riwayat Pembayaran</h4>

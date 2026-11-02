@@ -751,7 +751,7 @@ export default function AppReleasesPage() {
           ========================================================================= */}
       {showUploadModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowUploadModal(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-all"
@@ -910,7 +910,7 @@ export default function AppReleasesPage() {
           ========================================================================= */}
       {showTokenModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowTokenModal(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-all"
@@ -1019,7 +1019,7 @@ export default function AppReleasesPage() {
           ========================================================================= */}
       {showQrModal && activeQrData && (
         <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative text-center animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative text-center animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setShowQrModal(false)}
               className="absolute right-4 top-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-all"
@@ -1099,7 +1099,7 @@ export default function AppReleasesPage() {
           ========================================================================= */}
       {confirmDialog.isOpen && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative text-left animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative text-left animate-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
             <button
               onClick={closeConfirmDialog}
               disabled={confirmDialog.isProcessing}

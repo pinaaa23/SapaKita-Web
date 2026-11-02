@@ -1653,7 +1653,7 @@ export default function TagihanPage() {
           className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
         >
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -1773,7 +1773,7 @@ export default function TagihanPage() {
           className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
         >
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-5 border border-slate-100 text-left animate-in zoom-in-95 duration-200">
+          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-5 border border-slate-100 text-left animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div>
                 <h4 className="text-sm font-bold text-slate-800">Bukti Pembayaran Tagihan</h4>

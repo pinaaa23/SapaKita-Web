@@ -654,9 +654,9 @@ export default function KanwilManagement() {
 
       {/* MODAL TETAPKAN PROVINSI & KANWIL */}
       {isAssignModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/70">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/70 shrink-0">
               <div className="flex items-center gap-2 text-amber-900">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 <h2 className="text-sm font-bold">Tetapkan Provinsi & Kantor Wilayah UPT</h2>
@@ -669,7 +669,7 @@ export default function KanwilManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleAssignSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleAssignSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   UPT / Lapas yang Ditetapkan

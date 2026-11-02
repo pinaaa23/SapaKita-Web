@@ -1770,10 +1770,10 @@ export default function Login() {
               setIsForgotModalOpen(false);
             }
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 select-none"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 select-none overflow-y-auto"
         >
           {/* Modal Container with blue light reflection */}
-          <div className="relative w-full max-w-[440px] my-auto">
+          <div className="relative w-full max-w-[440px] my-auto max-h-[90vh] overflow-y-auto">
             {/* Luminous blue glow reflection under modal card */}
             <div
               aria-hidden="true"

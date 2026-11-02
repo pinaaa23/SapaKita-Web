@@ -622,8 +622,8 @@ export default function KanwilBranchCreate() {
 
       {/* Success Modal (Shows credentials ONCE, exactly as in Superadmin) */}
       {createdCredentials && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] overflow-y-auto flex flex-col">
             {/* Header */}
             <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white relative">
               <button

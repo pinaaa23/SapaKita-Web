@@ -581,8 +581,8 @@ export default function BranchUsers() {
 
       {/* MODAL 1: Detail Lengkap Pengguna (Ikon Mata) */}
       {detailUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
             <div className="p-5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -694,8 +694,8 @@ export default function BranchUsers() {
 
       {/* MODAL 2: Edit Pengguna (Nama & Role saja) */}
       {isEditModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             {/* Header Modal */}
             <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
               <div className="flex items-center gap-3">

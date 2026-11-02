@@ -704,13 +704,13 @@ const InmatesList = () => {
 
       {/* MODAL EDIT NARAPIDANA (Khusus SPV) */}
       {isEditModalOpen && isSupervisor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div 
             className="absolute inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity"
             onClick={() => !isSubmittingEdit && setIsEditModalOpen(false)}
           ></div>
           
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl relative z-10 overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 max-h-[90vh] my-auto flex flex-col">
             <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-blue-50 text-primary">

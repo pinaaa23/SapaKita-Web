@@ -457,9 +457,9 @@ export default function FinanceAccounts() {
 
       {/* MODAL 1: Form Tambah Akun Finance */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <h2 className="text-base font-bold text-slate-800">Tambah Akun Finance</h2>
               <button
                 onClick={() => setIsAddModalOpen(false)}
@@ -469,7 +469,7 @@ export default function FinanceAccounts() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               {addFormError && (
                 <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -621,7 +621,7 @@ export default function FinanceAccounts() {
               </div>
 
               {/* Tombol Aksi */}
-              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100">
+              <div className="pt-3 flex items-center justify-end gap-2 border-t border-slate-100 shrink-0 bg-white sticky bottom-0">
                 <button
                   type="button"
                   disabled={isSubmittingAdd}
@@ -645,8 +645,8 @@ export default function FinanceAccounts() {
 
       {/* MODAL 2: Hasil Pembuatan Akun (Password Sekali Tampil dengan Tombol Salin) */}
       {isCreateSuccessModalOpen && newlyCreatedAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             <div className="p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
@@ -733,8 +733,8 @@ export default function FinanceAccounts() {
 
       {/* MODAL 3: Konfirmasi Reset Password */}
       {isResetConfirmModalOpen && selectedAccountForReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             <div className="p-6 text-center space-y-4">
               <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 mx-auto flex items-center justify-center">
                 <KeyRound className="w-6 h-6" />
@@ -776,8 +776,8 @@ export default function FinanceAccounts() {
 
       {/* MODAL 4: Hasil Reset Password (Password Baru Sekali Tampil dengan Tombol Salin) */}
       {isResetResultModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             <div className="p-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30">
@@ -834,8 +834,8 @@ export default function FinanceAccounts() {
 
       {/* MODAL 5: Konfirmasi Toggle Status (Aktifkan / Nonaktifkan) */}
       {isStatusModalOpen && selectedAccountForStatus && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden border border-slate-100 my-auto animate-in zoom-in-95 duration-200">
             <div className="p-6 text-center space-y-4">
               <div className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center ${
                 selectedAccountForStatus.isActive 

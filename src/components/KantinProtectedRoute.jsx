@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { getAuthToken, getAuthUser } from '../services/api';
 import { normalizeRole, ROLES } from '../config/menuConfig';
-import { Loader2 } from 'lucide-react';
 
 /**
  * KantinProtectedRoute - Proteksi route khusus untuk halaman Kantin (/kantin/*).

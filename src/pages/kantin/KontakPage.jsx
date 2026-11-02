@@ -750,10 +750,10 @@ export default function KontakPage() {
       {/* MODAL: Tambah Kontak Keluarga */}
       {/* ========================================================================= */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
               <div>
                 <h3 className="font-black text-slate-900 text-base">Tambah Kontak Keluarga</h3>
                 <p className="text-slate-500 text-xs mt-0.5">
@@ -769,7 +769,7 @@ export default function KontakPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleFormSubmit} className="p-6 space-y-4 text-xs">
+            <form onSubmit={handleFormSubmit} className="p-6 space-y-4 text-xs overflow-y-auto flex-1">
               {formError && (
                 <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 font-semibold flex items-start gap-2.5">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -837,7 +837,7 @@ export default function KontakPage() {
               </div>
 
               {/* Tombol Modal */}
-              <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100">
+              <div className="pt-3 flex items-center justify-end gap-2.5 border-t border-slate-100 shrink-0 bg-white sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { PackageOpen, AlertCircle, FileSearch, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 
 export default function EmptyState({
   title = 'Data Tidak Ditemukan',

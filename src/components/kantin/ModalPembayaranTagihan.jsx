@@ -341,7 +341,7 @@ export default function ModalPembayaranTagihan({
       className="fixed inset-0 z-[99999] w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto transition-opacity animate-in fade-in duration-200"
       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh', margin: 0 }}
     >
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] my-auto flex flex-col">
         {/* Header Modal */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -601,11 +601,11 @@ export default function ModalPembayaranTagihan({
       {/* Modal Perbesar QRIS */}
       {previewQrisModal && financeSetting?.qrisImageUrl && (
         <div 
-          className="fixed inset-0 z-[100000] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100000] bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
           onClick={() => setPreviewQrisModal(false)}
         >
           <div 
-            className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150"
+            className="bg-white rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 my-auto max-h-[90vh] flex flex-col overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
