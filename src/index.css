@@ -4,6 +4,7 @@
 @theme {
   --color-primary: #0B3D91;
   --color-primary-light: #1E5FCC;
+  --color-primary-dark: #072B69;
   --color-accent-DEFAULT: #F59E0B;
   --color-accent-hover: #D97706;
 }

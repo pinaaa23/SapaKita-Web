@@ -61,6 +61,7 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
     if (pathname.startsWith('/branches')) return { title: 'Manajemen UPT', subtitle: 'Kelola data operasional lapas dan rutan yang terdaftar' };
 
     if (pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Kantor Wilayah (Kanwil)', subtitle: 'Kelola Kantor Wilayah sebagai koordinator UPT dan pastikan pembagian wilayah UPT sesuai standar' };
+    if (pathname.startsWith('/finance-accounts')) return { title: 'Akun Finance', subtitle: 'Kelola akun tim keuangan pusat (Role: Finance) untuk pemantauan billing, setoran, dan bagi hasil' };
 
     if (pathname.startsWith('/inmates/')) return { title: 'Detail WBP', subtitle: 'Informasi lengkap data warga binaan' };
     if (pathname.startsWith('/inmates')) return { title: 'Data WBP', subtitle: 'Seluruh warga binaan di semua UPT' };
@@ -178,6 +179,7 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
     { title: 'Laporan Wilayah', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh UPT' },
   ] : [
     { title: 'Kantor Wilayah (Kanwil)', category: 'Halaman', link: '/kanwil-management', desc: 'Kelola koordinator UPT dan audit wilayah' },
+    { title: 'Akun Finance', category: 'Halaman', link: '/finance-accounts', desc: 'Kelola akun tim Finance pusat' },
     { title: 'Kelola UPT', category: 'Halaman', link: '/branches', desc: 'Daftar & status UPT Sadewa nasional' },
     { title: 'Data WBP', category: 'Halaman', link: '/inmates', desc: 'Daftar warga binaan seluruh UPT' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh UPT' },

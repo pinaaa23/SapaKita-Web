@@ -10,7 +10,8 @@ import {
   QrCode,
   Wallet,
   Landmark,
-  Receipt
+  Receipt,
+  CircleDollarSign
 } from 'lucide-react';
 
 /**
@@ -132,6 +133,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { name: 'Kanwil', icon: Landmark, path: '/kanwil-management' },
       { name: 'UPT', icon: Building2, path: '/branches' },
+      { name: 'Akun Finance', icon: CircleDollarSign, path: '/finance-accounts' },
       { name: 'Data WBP', icon: Users, path: '/inmates' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
       { name: 'Transaksi', icon: CreditCard, path: '/transactions' },

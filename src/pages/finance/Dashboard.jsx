@@ -122,7 +122,7 @@ export default function FinanceDashboard() {
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Omset Kotor</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#1565C0] shrink-0 border border-blue-100/60">
+              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-primary shrink-0 border border-blue-100/60">
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function FinanceDashboard() {
           <button
             type="button"
             onClick={() => navigate('/finance/contracts')}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Lihat Kontrak Bagi Hasil</span>
@@ -344,7 +344,7 @@ export default function FinanceDashboard() {
                   onClick={() => setStatusFilter(item.key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     statusFilter === item.key
-                      ? 'bg-white text-[#1565C0] shadow-2xs'
+                      ? 'bg-white text-primary shadow-2xs'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -394,7 +394,7 @@ export default function FinanceDashboard() {
                   <tr key={b.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* No. Tagihan & Periode */}
                     <td className="py-3 px-4">
-                      <div className="font-bold text-[#1565C0]">{b.id}</div>
+                      <div className="font-bold text-primary">{b.id}</div>
                       <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Calendar className="w-3 h-3 text-slate-400" />
                         <span>{MONTH_NAMES[b.month - 1]} {b.year}</span>
@@ -436,7 +436,7 @@ export default function FinanceDashboard() {
                     <td className="py-3 px-4 text-right">
                       <Link
                         to={`/finance/billing?id=${b.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] text-xs font-bold transition shadow-2xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer"
                         title="Buka rincian tagihan & setoran"
                       >
                         <Eye className="w-3.5 h-3.5" />

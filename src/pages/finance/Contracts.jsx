@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Sliders,
   Search,
@@ -428,7 +428,7 @@ export default function FinanceContracts() {
           onClick={() => setActiveTab('contracts')}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'contracts'
-              ? 'bg-[#1565C0] text-white shadow-sm shadow-blue-500/20'
+              ? 'bg-primary text-white shadow-sm shadow-primary/20'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
           }`}
         >
@@ -441,7 +441,7 @@ export default function FinanceContracts() {
           onClick={() => setActiveTab('payment-settings')}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'payment-settings'
-              ? 'bg-[#1565C0] text-white shadow-sm shadow-blue-500/20'
+              ? 'bg-primary text-white shadow-sm shadow-primary/20'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
           }`}
         >
@@ -630,7 +630,7 @@ export default function FinanceContracts() {
                         {searchQuery && (
                           <button
                             onClick={() => setSearchQuery('')}
-                            className="text-xs text-[#1565C0] font-bold hover:underline mt-1 cursor-pointer"
+                            className="text-xs text-primary font-bold hover:underline mt-1 cursor-pointer"
                           >
                             Reset pencarian
                           </button>
@@ -663,7 +663,7 @@ export default function FinanceContracts() {
                           {/* Tarif */}
                           <td className="py-3.5 px-4 text-center">
                             <div className="flex items-center justify-center gap-1.5">
-                              <span className="font-bold text-[#1565C0]">Rp {c.ratePerSecond}/dtk</span>
+                              <span className="font-bold text-primary">Rp {c.ratePerSecond}/dtk</span>
                               {isMatchingGlobal ? (
                                 <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="Menggunakan tarif global nasional">
                                   Global
@@ -725,7 +725,7 @@ export default function FinanceContracts() {
                             {isSuperadmin ? (
                               <button
                                 onClick={() => openEditModal(c)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] text-xs font-bold transition shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer"
                                 title="Ubah persentase & tarif kontrak UPT ini"
                               >
                                 <Sliders className="w-3.5 h-3.5" />
@@ -962,7 +962,7 @@ export default function FinanceContracts() {
                               <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-primary border border-blue-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                               >
                                 <Upload className="w-3.5 h-3.5" />
                                 <span>{qrisPreview ? 'Ganti Barcode QRIS...' : 'Unggah Barcode QRIS...'}</span>
@@ -1148,7 +1148,7 @@ export default function FinanceContracts() {
                   <button
                     type="submit"
                     disabled={isSavingPayment}
-                    className="px-6 py-2.5 bg-[#1565C0] hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="px-6 py-2.5 bg-primary hover:bg-primary-dark text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
                   >
                     <Check className="w-4 h-4" />
                     <span>{isSavingPayment ? 'Menyimpan Pengaturan...' : 'Simpan & Terapkan ke Kantin'}</span>
@@ -1285,7 +1285,7 @@ export default function FinanceContracts() {
           <div className="bg-white rounded-2xl max-w-2xl w-full p-5 sm:p-6 shadow-2xl relative border border-slate-200/90 my-8">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-[#1565C0]">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-primary">
                   <Sliders className="w-5 h-5" />
                 </div>
                 <div>
@@ -1496,7 +1496,7 @@ export default function FinanceContracts() {
               <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/40 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <Calculator className="w-4 h-4 text-[#1565C0]" />
+                    <Calculator className="w-4 h-4 text-primary" />
                     <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       Simulasi Pembagian Hasil Real-Time
                     </h4>
@@ -1557,7 +1557,7 @@ export default function FinanceContracts() {
                   <button
                     type="submit"
                     disabled={!isPercentValid}
-                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#1565C0] hover:bg-blue-700 text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="w-4 h-4" />
                     <span>Simpan Kontrak Bagi Hasil</span>

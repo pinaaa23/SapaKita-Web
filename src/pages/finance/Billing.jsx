@@ -597,7 +597,7 @@ export default function FinanceBilling() {
         </p>
         <button
           onClick={() => navigate('/dashboard')}
-          className="px-4 py-2 bg-[#1565C0] text-white text-xs font-bold rounded-xl shadow-xs"
+          className="px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl shadow-xs"
         >
           Kembali ke Dashboard
         </button>
@@ -660,7 +660,7 @@ export default function FinanceBilling() {
           disabled={isLoading}
           className="p-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
         >
-          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-[#1565C0]' : 'text-slate-600'}`} />
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-primary' : 'text-slate-600'}`} />
         </button>
       </div>
 
@@ -721,7 +721,7 @@ export default function FinanceBilling() {
             onClick={() => setActiveSubTab('konfirmasi')}
             className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeSubTab === 'konfirmasi'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-primary text-white shadow-md shadow-primary/25 ring-2 ring-primary/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -746,7 +746,7 @@ export default function FinanceBilling() {
             onClick={() => setActiveSubTab('rekap')}
             className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeSubTab === 'rekap'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-primary text-white shadow-md shadow-primary/25 ring-2 ring-primary/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -769,7 +769,7 @@ export default function FinanceBilling() {
             onClick={() => setActiveSubTab('riwayat')}
             className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeSubTab === 'riwayat'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-primary text-white shadow-md shadow-primary/25 ring-2 ring-primary/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -793,7 +793,7 @@ export default function FinanceBilling() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Filter Periode Bulan & Tahun */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50/80 hover:bg-slate-50 border border-slate-200/80 rounded-xl text-xs font-semibold text-slate-700 shadow-2xs">
-            <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+            <Calendar className="w-3.5 h-3.5 text-primary shrink-0" />
             <span className="text-slate-500 font-medium">Periode:</span>
             <select
               value={selectedMonth}
@@ -1008,7 +1008,7 @@ export default function FinanceBilling() {
                       <th className="py-3 px-4">Nama UPT &amp; Kantin</th>
                       <th className="py-3 px-4 text-right">Cash Bruto (100%)</th>
                       <th className="py-3 px-4 text-right">Hak Internal UPT (45%)</th>
-                      <th className="py-3 px-4 text-right font-bold text-[#1565C0]">Setoran Vendor (55%)</th>
+                      <th className="py-3 px-4 text-right font-bold text-primary">Setoran Vendor (55%)</th>
                       <th className="py-3 px-4 text-center">Bukti Transfer</th>
                       <th className="py-3 px-4 text-center">Status Verifikasi</th>
                     </tr>
@@ -1023,7 +1023,7 @@ export default function FinanceBilling() {
                         <tr key={item.id} className="hover:bg-amber-50/25 transition-colors">
                           {/* No Pengajuan */}
                           <td className="py-3 px-4 font-mono whitespace-nowrap">
-                            <div className="font-bold text-[#1565C0]">{item.id}</div>
+                            <div className="font-bold text-primary">{item.id}</div>
                             <div className="text-[11px] text-slate-400">{formatTanggal(item.createdAt || item.tanggal)}</div>
                           </td>
 
@@ -1062,9 +1062,9 @@ export default function FinanceBilling() {
                                 grossAmount: gross,
                                 canteenKeepAmount: keep,
                               })}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] font-bold text-xs border border-blue-200 transition-all shadow-2xs cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary font-bold text-xs border border-blue-200 transition-all shadow-2xs cursor-pointer"
                             >
-                              <Eye className="w-3.5 h-3.5 text-[#1565C0]" />
+                              <Eye className="w-3.5 h-3.5 text-primary" />
                               <span>Lihat Struk</span>
                             </button>
                           </td>
@@ -1123,14 +1123,14 @@ export default function FinanceBilling() {
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                   Total Tagihan Bulan Ini
                 </span>
-                <div className="text-2xl font-black text-[#1565C0] tracking-tight">
+                <div className="text-2xl font-black text-primary tracking-tight">
                   {formatRupiah(totalTagihanBulanIni)}
                 </div>
                 <span className="text-[11px] font-medium text-slate-500 block">
                   Rumus: Detik × Tarif × % Porsi
                 </span>
               </div>
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-primary flex items-center justify-center shrink-0 border border-blue-100">
                 <Receipt className="w-6 h-6" />
               </div>
             </div>
@@ -1260,7 +1260,7 @@ export default function FinanceBilling() {
                           {/* Nama Kantin */}
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-primary border border-blue-100 flex items-center justify-center shrink-0">
                                 <Store className="w-4 h-4" />
                               </div>
                               <div>
@@ -1292,7 +1292,7 @@ export default function FinanceBilling() {
 
                           {/* Total Tagihan */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <div className="font-extrabold text-[#1565C0] text-sm">
+                            <div className="font-extrabold text-primary text-sm">
                               {formatRupiah(item.totalAmount || item.grossAmount || 0)}
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">
@@ -1361,10 +1361,10 @@ export default function FinanceBilling() {
                               <button
                                 type="button"
                                 onClick={() => openDetail(item)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-[#1565C0] font-bold text-xs border border-blue-200 transition-all shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary font-bold text-xs border border-blue-200 transition-all shadow-2xs cursor-pointer"
                                 title="Lihat Rincian Tagihan & Log Panggilan"
                               >
-                                <Eye className="w-3.5 h-3.5 text-[#1565C0]" />
+                                <Eye className="w-3.5 h-3.5 text-primary" />
                                 <span>Detail</span>
                               </button>
                             </div>

@@ -52,6 +52,7 @@ import FinanceDashboard from './pages/finance/Dashboard';
 import FinanceBilling from './pages/finance/Billing';
 import FinanceContracts from './pages/finance/Contracts';
 import FinanceReports from './pages/finance/Reports';
+import FinanceAccounts from './pages/finance/FinanceAccounts';
 
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
@@ -127,6 +128,7 @@ function App() {
                 <Route path="kanwil-management/create" element={<KanwilCreate />} />
                 <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />
                 <Route path="kanwil-admins" element={<KanwilAdmins />} />
+                <Route path="finance-accounts" element={<FinanceAccounts />} />
                 <Route path="billing" element={<FinanceBilling />} />
                 <Route path="contracts" element={<FinanceContracts />} />
 

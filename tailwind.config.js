@@ -10,6 +10,7 @@ export default {
         primary: {
           DEFAULT: '#0B3D91',
           light: '#1E5FCC',
+          dark: '#072B69',
         },
         accent: {
           DEFAULT: '#F59E0B',
