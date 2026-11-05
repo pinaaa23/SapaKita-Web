@@ -533,8 +533,10 @@ export const getAllFinanceBillings = async () => {
   try {
     const res = await apiFetch('/api/finance/billings');
     const data = res?.data || (Array.isArray(res) ? res : null);
-    if (Array.isArray(data) && data.length > 0) {
-      localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(data));
+    if (Array.isArray(data)) {
+      if (data.length > 0) {
+        localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(data));
+      }
       return data;
     }
   } catch (err) {

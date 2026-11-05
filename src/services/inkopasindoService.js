@@ -18,6 +18,7 @@ import {
   getFinanceBillings,
   getAllFinanceBillings,
   getFinanceSummary,
+  getFinanceContracts,
   formatRupiah,
   MONTH_NAMES
 } from './financeService';
@@ -297,19 +298,44 @@ export const getInkopasindoBillings = async ({
  */
 export const getInkopasindoFilterOptions = async () => {
   try {
-    const [kanwilsRes, branchesRes] = await Promise.all([
-      getAllKanwilsForSuperadmin().catch(() => []),
-      getBranches({ limit: 100 }).catch(() => ({ branches: [] })),
+    // Ambil data dari endpoint finance yang resmi diizinkan untuk INKOPASINDO
+    const [billingsRes, contractsRes] = await Promise.all([
+      getFinanceBillings().catch(() => []),
+      getFinanceContracts().catch(() => []),
     ]);
 
-    const kanwilList = Array.isArray(kanwilsRes) ? kanwilsRes : [];
-    const branchList = Array.isArray(branchesRes?.branches)
-      ? branchesRes.branches
-      : (Array.isArray(branchesRes) ? branchesRes : []);
+    const kanwilMap = new Map();
+    const branchMap = new Map();
+
+    const processItem = (item) => {
+      const kName = item.kanwilName || item.kanwil?.name;
+      const kId = item.kanwilId || item.kanwil?.id || kName;
+      if (kName && !kanwilMap.has(kName)) {
+        kanwilMap.set(kName, { id: kId, name: kName });
+      }
+
+      const bId = item.branchId || item.branch?.id || item.id;
+      const bName = item.branchName || item.branch?.name || item.name;
+      if (bId && bName && !branchMap.has(bId)) {
+        branchMap.set(bId, {
+          id: bId,
+          name: bName,
+          kanwilName: kName || '',
+          kanwilId: kId || '',
+        });
+      }
+    };
+
+    if (Array.isArray(billingsRes)) {
+      billingsRes.forEach(processItem);
+    }
+    if (Array.isArray(contractsRes)) {
+      contractsRes.forEach(processItem);
+    }
 
     return {
-      kanwils: kanwilList,
-      branches: branchList,
+      kanwils: Array.from(kanwilMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      branches: Array.from(branchMap.values()).sort((a, b) => a.name.localeCompare(b.name)),
     };
   } catch (err) {
     console.warn('[InkopasindoService] Fallback filter options:', err);

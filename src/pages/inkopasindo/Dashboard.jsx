@@ -59,60 +59,42 @@ export default function InkopasindoDashboard() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Header Banner (Kompak, Ramping, & Sejajar) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3D91] via-[#154db3] to-[#1E5FCC] p-4 sm:p-5 text-white shadow-xs">
-        <div className="absolute right-0 top-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute left-1/3 bottom-0 -mb-8 w-48 h-48 rounded-full bg-blue-300/10 blur-2xl pointer-events-none"></div>
+      {/* 1. Top Action Bar: Akses Read-Only & Quick Filter Periode (Rapi, Sejajar, Tanpa Duplikasi Judul) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-1">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-200/80 text-xs font-bold whitespace-nowrap">
+            Akses: Read-Only
+          </span>
+          <span className="text-xs text-slate-500 font-medium hidden sm:inline">
+            Monitoring perputaran omset kotor nasional &amp; hak bagi hasil 3 pihak seluruh UPT
+          </span>
+        </div>
 
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white shrink-0">
-              <Wallet className="w-4 h-4 text-blue-200" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 border border-white/25">
-                  Koperasi Inkopasindo
-                </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/15 text-blue-100 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 border border-white/20">
-                  Akses: Read-Only
-                </span>
-                <span className="text-xs font-semibold text-white/90 whitespace-nowrap hidden md:inline">
-                  • 3 Pihak (Vendor {vendorPct}%, UPT {uptPct}%, Inkopasindo {inkopasindoPct}%)
-                </span>
-              </div>
-              <p className="text-blue-100/90 text-xs leading-relaxed mt-0.5 truncate">
-                Monitoring perputaran omset kotor nasional dan hak bagi hasil 3 pihak seluruh UPT.
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Filter Bulan & Tahun (Sejajar Satu Baris) */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-xl text-xs font-semibold text-white shadow-2xs shrink-0 self-start sm:self-center">
-            <Calendar className="w-3.5 h-3.5 text-blue-200 shrink-0" />
-            <span className="text-blue-200 font-medium">Periode:</span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent font-bold text-white focus:outline-none cursor-pointer"
-            >
-              <option value="semua" className="text-slate-800">Semua Bulan</option>
-              {MONTH_NAMES.map((m, idx) => (
-                <option key={idx + 1} value={String(idx + 1)} className="text-slate-800">
-                  {m}
-                </option>
-              ))}
-            </select>
-            <span className="text-white/40">|</span>
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-transparent font-bold text-white focus:outline-none cursor-pointer"
-            >
-              <option value="2026" className="text-slate-800">2026</option>
-              <option value="2025" className="text-slate-800">2025</option>
-            </select>
-          </div>
+        {/* Quick Filter Bulan & Tahun */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200/90 bg-white text-xs font-bold text-slate-800 shadow-2xs self-start sm:self-auto">
+          <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+          <span className="text-slate-500 font-medium">Periode:</span>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+          >
+            <option value="semua">Semua Bulan</option>
+            {MONTH_NAMES.map((m, idx) => (
+              <option key={idx + 1} value={String(idx + 1)}>
+                {m}
+              </option>
+            ))}
+          </select>
+          <span className="text-slate-300 font-light">|</span>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-800"
+          >
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+          </select>
         </div>
       </div>
 
