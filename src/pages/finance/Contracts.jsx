@@ -68,10 +68,10 @@ export default function FinanceContracts() {
   const [globalSettings, setGlobalSettings] = useState({
     id: 'default',
     defaultRatePerSecond: 15,
-    shareKepalaUptPercent: 5,
+    shareKepalaUptPercent: 0,
     shareKoperasiPercent: 30,
     shareInkopasindoPercent: 10,
-    shareVendorPercent: 55,
+    shareVendorPercent: 60,
     totalBranches: 0,
     matchingBranches: 0,
   });
@@ -86,7 +86,8 @@ export default function FinanceContracts() {
   const [kepalaUptPct, setKepalaUptPct] = useState(5);
   const [koperasiPct, setKoperasiPct] = useState(30);
   const [inkopasindoPct, setInkopasindoPct] = useState(10);
-  const [vendorPct, setVendorPct] = useState(55);
+  const [vendorPct, setVendorPct] = useState(60);
+  const [hasKepalaUpt, setHasKepalaUpt] = useState(false);
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [accountHolder, setAccountHolder] = useState('');
@@ -225,11 +226,14 @@ export default function FinanceContracts() {
 
   const openEditModal = (contract) => {
     setEditModalItem(contract);
-    setRatePerSecond(contract.ratePerSecond || 50);
-    setKepalaUptPct(contract.split?.kepalaUpt ?? DEFAULT_REVENUE_SPLIT.kepalaUpt);
-    setKoperasiPct(contract.split?.koperasi ?? DEFAULT_REVENUE_SPLIT.koperasi);
-    setInkopasindoPct(contract.split?.inkopasindo ?? DEFAULT_REVENUE_SPLIT.inkopasindo);
-    setVendorPct(contract.split?.vendor ?? DEFAULT_REVENUE_SPLIT.vendor);
+    setRatePerSecond(contract.ratePerSecond || 15);
+    const kuVal = Number(contract.split?.kepalaUpt ?? 0);
+    const isKu = kuVal > 0;
+    setHasKepalaUpt(isKu);
+    setKepalaUptPct(kuVal);
+    setKoperasiPct(contract.split?.koperasi ?? 30);
+    setInkopasindoPct(contract.split?.inkopasindo ?? 10);
+    setVendorPct(contract.split?.vendor ?? (isKu ? 55 : 60));
     setBankName(contract.bankName || 'Bank Mandiri');
     setAccountNumber(contract.accountNumber || '');
     setAccountHolder(contract.accountHolder || '');
@@ -476,30 +480,30 @@ export default function FinanceContracts() {
                   <span>Standar Pembagian Hasil Nasional</span>
                 </div>
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
-                  Formula Resmi 4 Pihak (Total 100%)
+                  Formula Resmi 3 Bagian (Inkopasindo 10%, UPT 30%, Vendor 60%)
                 </h2>
                 <p className="text-blue-100/90 text-xs leading-relaxed">
-                  Persentase per UPT dapat disesuaikan sewaktu-waktu oleh Superadmin sesuai adendum kerja sama. Perubahan persentase akan langsung mengkalkulasi ulang tagihan berjalan.
+                  Skema pembagian resmi: Inkopasindo 10%, UPT 30%, dan Vendor 60%. Jika UPT tertentu menyertakan porsi Kepala UPT (5%), maka porsi tersebut dialokasikan dari hak 60% Vendor (Vendor 55% + Kepala UPT 5%).
                 </p>
               </div>
 
-              {/* 4 Pihak Quick Cards */}
+              {/* Quick Cards 3 Pihak + Opsional Kepala UPT */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 shrink-0">
                 <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
-                  <span className="text-[10px] text-purple-200 block font-semibold uppercase tracking-wider">1. Kepala UPT</span>
-                  <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareKepalaUptPercent ?? 5}%</span>
-                </div>
-                <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
-                  <span className="text-[10px] text-sky-200 block font-semibold uppercase tracking-wider">2. Koperasi</span>
-                  <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareKoperasiPercent ?? 30}%</span>
-                </div>
-                <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
-                  <span className="text-[10px] text-amber-200 block font-semibold uppercase tracking-wider">3. Inkopasindo</span>
+                  <span className="text-[10px] text-amber-200 block font-semibold uppercase tracking-wider">1. Inkopasindo</span>
                   <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareInkopasindoPercent ?? 10}%</span>
                 </div>
                 <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
-                  <span className="text-[10px] text-indigo-200 block font-semibold uppercase tracking-wider">4. Vendor</span>
-                  <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareVendorPercent ?? 55}%</span>
+                  <span className="text-[10px] text-sky-200 block font-semibold uppercase tracking-wider">2. UPT</span>
+                  <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareKoperasiPercent ?? 30}%</span>
+                </div>
+                <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
+                  <span className="text-[10px] text-indigo-200 block font-semibold uppercase tracking-wider">3. Vendor</span>
+                  <span className="text-lg font-black text-white mt-0.5 block">{globalSettings?.shareVendorPercent ?? 60}%</span>
+                </div>
+                <div className="bg-white/15 backdrop-blur-md rounded-xl p-2.5 border border-white/20 text-center min-w-[90px]">
+                  <span className="text-[10px] text-purple-200 block font-semibold uppercase tracking-wider">Kepala UPT</span>
+                  <span className="text-lg font-black text-white mt-0.5 block">5% <span className="text-[9px] block font-normal text-purple-200">(Opsional Vendor)</span></span>
                 </div>
               </div>
             </div>
@@ -607,18 +611,38 @@ export default function FinanceContracts() {
 
             {/* Tabel Data */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs md:text-sm min-w-[760px]">
+              <table className="w-full text-left text-xs md:text-sm min-w-[780px]">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-500 font-semibold bg-slate-50/70">
-                    <th className="py-3 px-4 rounded-l-xl">Nama UPT &amp; Wilayah</th>
-                    <th className="py-3 px-4">Pengelola &amp; Rekening</th>
-                    <th className="py-3 px-4 text-center">Tarif Panggilan</th>
-                    <th className="py-3 px-4 text-center">Kepala UPT</th>
-                    <th className="py-3 px-4 text-center">Koperasi</th>
-                    <th className="py-3 px-4 text-center">Inkopasindo</th>
-                    <th className="py-3 px-4 text-center">Vendor</th>
-                    <th className="py-3 px-4 text-center">Total</th>
-                    <th className="py-3 px-4 text-right rounded-r-xl">Aksi</th>
+                  <tr className="border-b border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-wider bg-slate-50/90">
+                    <th className="py-3.5 px-4 rounded-l-xl">Nama UPT &amp; Wilayah</th>
+                    <th className="py-3.5 px-4">Pengelola &amp; Rekening</th>
+                    <th className="py-3.5 px-4 text-center">Tarif Panggilan</th>
+                    <th className="py-3.5 px-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 text-amber-900">
+                        <span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+                        Inkopasindo
+                      </span>
+                    </th>
+                    <th className="py-3.5 px-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 text-sky-900">
+                        <span className="w-2 h-2 rounded-full bg-sky-500 inline-block"></span>
+                        UPT
+                      </span>
+                    </th>
+                    <th className="py-3.5 px-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 text-indigo-900">
+                        <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block"></span>
+                        Vendor
+                      </span>
+                    </th>
+                    <th className="py-3.5 px-3 text-center">
+                      <span className="inline-flex items-center gap-1.5 text-purple-900">
+                        <span className="w-2 h-2 rounded-full bg-purple-600 inline-block"></span>
+                        Kepala UPT
+                      </span>
+                    </th>
+                    <th className="py-3.5 px-3 text-center">Total</th>
+                    <th className="py-3.5 px-4 text-right rounded-r-xl">Aksi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -660,72 +684,120 @@ export default function FinanceContracts() {
                             </div>
                           </td>
 
-                          {/* Tarif */}
-                          <td className="py-3.5 px-4 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              <span className="font-bold text-primary">Rp {c.ratePerSecond}/dtk</span>
-                              {isMatchingGlobal ? (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="Menggunakan tarif global nasional">
-                                  Global
+                          {/* Tarif Panggilan */}
+                          <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center">
+                              <div className="inline-flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs">
+                                <span className="font-extrabold text-slate-900 text-xs">
+                                  Rp {Number(c.ratePerSecond || 0).toLocaleString('id-ID')}
                                 </span>
-                              ) : (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Tarif khusus cabang ini">
-                                  Kustom
+                                <span className="text-[10px] text-slate-400 font-medium">/dtk</span>
+                                <span
+                                  className={`text-[9px] font-bold px-1.5 py-0.2 rounded-md ${
+                                    isMatchingGlobal
+                                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                      : 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  }`}
+                                  title={isMatchingGlobal ? 'Menggunakan tarif acuan global' : 'Tarif khusus cabang ini'}
+                                >
+                                  {isMatchingGlobal ? 'Global' : 'Kustom'}
                                 </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-normal">
-                              (Rp {(c.ratePerSecond * 60).toLocaleString('id-ID')}/mnt)
-                            </div>
-                          </td>
-
-                          {/* 1. Kepala UPT */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/80 font-bold text-xs whitespace-nowrap">
-                              {s.kepalaUpt}%
-                            </span>
-                          </td>
-
-                          {/* 2. Koperasi */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200/80 font-bold text-xs whitespace-nowrap">
-                              {s.koperasi}%
-                            </span>
-                          </td>
-
-                          {/* 3. Inkopasindo */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200/80 font-bold text-xs whitespace-nowrap">
-                              {s.inkopasindo}%
-                            </span>
-                          </td>
-
-                          {/* 4. Vendor */}
-                          <td className="py-3.5 px-4 text-center">
-                            <span className="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/80 font-bold text-xs whitespace-nowrap">
-                              {s.vendor}%
-                            </span>
-                          </td>
-
-                          {/* Total % */}
-                          <td className="py-3.5 px-4 text-center">
-                            {total === 100 ? (
-                              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-extrabold text-xs whitespace-nowrap">
-                                100%
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-medium mt-1">
+                                (Rp {((Number(c.ratePerSecond) || 0) * 60).toLocaleString('id-ID')} / mnt)
                               </span>
+                            </div>
+                          </td>
+
+                          {/* 1. Inkopasindo */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 font-extrabold text-xs shadow-2xs">
+                                {s.inkopasindo}%
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400 mt-1">
+                                Pusat
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 2. UPT */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 font-extrabold text-xs shadow-2xs">
+                                {s.koperasi}%
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400 mt-1">
+                                Koperasi
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 3. Vendor */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center">
+                              <span className="inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200 font-extrabold text-xs shadow-2xs">
+                                {s.vendor}%
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400 mt-1">
+                                {s.kepalaUpt > 0 ? 'Bersih (60%-5%)' : 'Utuh 60%'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* 4. Kepala UPT */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            {s.kepalaUpt > 0 ? (
+                              <div className="inline-flex flex-col items-center">
+                                <span
+                                  className="inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-200 font-extrabold text-xs shadow-2xs"
+                                  title="Alokasi 5% Kepala UPT diambil dari bagian 60% Vendor"
+                                >
+                                  {s.kepalaUpt}%
+                                </span>
+                                <span className="text-[10px] font-semibold text-purple-600 mt-1 whitespace-nowrap">
+                                  dari Vendor
+                                </span>
+                              </div>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200/80 font-extrabold text-xs whitespace-nowrap">
-                                {total}%
-                              </span>
+                              <div className="inline-flex flex-col items-center">
+                                <span
+                                  className="inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg bg-slate-50 text-slate-400 border border-slate-200/80 font-semibold text-xs"
+                                  title="Tidak ada alokasi Kepala UPT (Standar 3 Pihak)"
+                                >
+                                  0%
+                                </span>
+                                <span className="text-[10px] font-medium text-slate-400 mt-1">
+                                  Nonaktif
+                                </span>
+                              </div>
                             )}
                           </td>
 
+                          {/* Total % */}
+                          <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                            <div className="inline-flex flex-col items-center">
+                              <span className={`inline-flex items-center justify-center min-w-[54px] px-2.5 py-1 rounded-lg font-black text-xs shadow-2xs ${
+                                total === 100
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                  : 'bg-rose-50 text-rose-700 border border-rose-200'
+                              }`}>
+                                {total}%
+                              </span>
+                              <span className={`text-[10px] font-medium mt-1 ${
+                                total === 100 ? 'text-emerald-600 font-semibold' : 'text-rose-600 font-semibold'
+                              }`}>
+                                {total === 100 ? 'Valid' : 'Periksa'}
+                              </span>
+                            </div>
+                          </td>
+
                           {/* Aksi */}
-                          <td className="py-3.5 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             {isSuperadmin ? (
                               <button
                                 onClick={() => openEditModal(c)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer border border-blue-200/60 hover:border-blue-300"
                                 title="Ubah persentase & tarif kontrak UPT ini"
                               >
                                 <Sliders className="w-3.5 h-3.5" />
@@ -734,7 +806,7 @@ export default function FinanceContracts() {
                             ) : (
                               <button
                                 onClick={() => openEditModal(c)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition shadow-2xs cursor-pointer border border-slate-200"
                                 title="Lihat rincian persentase & tarif kontrak UPT ini"
                               >
                                 <Eye className="w-3.5 h-3.5 text-slate-500" />
@@ -1386,59 +1458,133 @@ export default function FinanceContracts() {
                 </div>
               </div>
 
-              {/* 4 Pihak Persentase Input */}
-              <div className="p-4 rounded-xl border border-slate-200/90 bg-slate-50/60 space-y-3.5">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                    Konfigurasi Persentase Bagi Hasil 4 Pihak
-                  </h4>
-                  <div className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                    isPercentValid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                  }`}>
-                    Total: {totalPercent}% / 100%
+              {/* Pembagian Hasil Utama & Klausul Opsional Kepala UPT */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/70 space-y-4">
+                {/* Modern Interactive Toggle Card untuk Kepala UPT */}
+                <div className={`p-3.5 rounded-2xl border transition-all ${
+                  hasKepalaUpt 
+                    ? 'bg-gradient-to-r from-purple-50/90 via-purple-50/50 to-indigo-50/40 border-purple-200 shadow-xs' 
+                    : 'bg-white border-slate-200'
+                }`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        hasKepalaUpt ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-800">
+                            Porsi Tambahan Kepala UPT (5%)
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            hasKepalaUpt 
+                              ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                              : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {hasKepalaUpt ? 'Aktif (5% dari Vendor)' : 'Nonaktif (0%)'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                          {hasKepalaUpt ? (
+                            <span className="text-purple-900 font-medium">
+                              Lapas ini meminta bagian Kepala UPT. Porsi <strong>5%</strong> dialokasikan dari hak Vendor (Vendor menjadi <strong>55%</strong>, Kepala UPT <strong>5%</strong>). Total setoran UPT tetap <strong>60%</strong>.
+                            </span>
+                          ) : (
+                            <span>
+                              Skema standar aktif: Inkopasindo 10%, UPT 30%, dan Vendor 60% utuh. Aktifkan toggle di sebelah kanan jika UPT ini meminta alokasi 5% untuk Kepala UPT.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* iOS-Style Toggle Switch */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={hasKepalaUpt}
+                      onClick={() => {
+                        if (!isSuperadmin) return;
+                        const next = !hasKepalaUpt;
+                        setHasKepalaUpt(next);
+                        if (next) {
+                          setKepalaUptPct(5);
+                          setVendorPct(55);
+                        } else {
+                          setKepalaUptPct(0);
+                          setVendorPct(60);
+                        }
+                      }}
+                      disabled={!isSuperadmin}
+                      title={hasKepalaUpt ? 'Nonaktifkan porsi Kepala UPT' : 'Aktifkan porsi Kepala UPT (5% dari Vendor)'}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        hasKepalaUpt ? 'bg-purple-600' : 'bg-slate-300'
+                      } ${!isSuperadmin ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          hasKepalaUpt ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
 
+                {/* Header Rincian & Visual Segmented Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                        Rincian Alokasi Bagi Hasil
+                      </h4>
+                      <span className="text-[11px] text-slate-500">
+                        {hasKepalaUpt ? 'Skema 4 Pihak (dengan klausul Kepala UPT)' : 'Skema Standar 3 Pihak Resmi'}
+                      </span>
+                    </div>
+                    <div className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                      isPercentValid ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}>
+                      Total: {totalPercent}% / 100%
+                    </div>
+                  </div>
+
+                  {/* Segmented Visual Progress Bar */}
+                  <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                    <div 
+                      style={{ width: `${inkopasindoPct}%` }} 
+                      className="bg-amber-500 h-full transition-all duration-300" 
+                      title={`Inkopasindo: ${inkopasindoPct}%`} 
+                    />
+                    <div 
+                      style={{ width: `${koperasiPct}%` }} 
+                      className="bg-sky-500 h-full transition-all duration-300" 
+                      title={`UPT: ${koperasiPct}%`} 
+                    />
+                    <div 
+                      style={{ width: `${vendorPct}%` }} 
+                      className="bg-indigo-600 h-full transition-all duration-300" 
+                      title={`Vendor: ${vendorPct}%`} 
+                    />
+                    {Number(kepalaUptPct) > 0 && (
+                      <div 
+                        style={{ width: `${kepalaUptPct}%` }} 
+                        className="bg-purple-600 h-full transition-all duration-300" 
+                        title={`Kepala UPT: ${kepalaUptPct}%`} 
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* 4 Cards Alokasi */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                  {/* 1. Kepala UPT */}
-                  <div className="bg-white p-2.5 rounded-xl border border-purple-200 shadow-2xs">
-                    <label className="block text-purple-900 font-bold mb-1">1. Kepala UPT</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={kepalaUptPct}
-                        onChange={(e) => isSuperadmin && setKepalaUptPct(e.target.value)}
-                        disabled={!isSuperadmin}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
-                        required
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                  {/* 1. Inkopasindo */}
+                  <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-amber-900 font-bold text-[11px]">1. Inkopasindo</label>
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">Hak 10%</span>
                     </div>
-                  </div>
-
-                  {/* 2. Koperasi */}
-                  <div className="bg-white p-2.5 rounded-xl border border-sky-200 shadow-2xs">
-                    <label className="block text-sky-900 font-bold mb-1">2. Koperasi</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={koperasiPct}
-                        onChange={(e) => isSuperadmin && setKoperasiPct(e.target.value)}
-                        disabled={!isSuperadmin}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
-                        required
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
-                    </div>
-                  </div>
-
-                  {/* 3. Inkopasindo */}
-                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs">
-                    <label className="block text-amber-900 font-bold mb-1">3. Inkopasindo</label>
                     <div className="relative">
                       <input
                         type="number"
@@ -1447,16 +1593,44 @@ export default function FinanceContracts() {
                         value={inkopasindoPct}
                         onChange={(e) => isSuperadmin && setInkopasindoPct(e.target.value)}
                         disabled={!isSuperadmin}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
                         required
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                   </div>
 
-                  {/* 4. Vendor */}
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-2xs">
-                    <label className="block text-indigo-900 font-bold mb-1">4. Vendor</label>
+                  {/* 2. UPT */}
+                  <div className="bg-white p-3 rounded-2xl border border-sky-200 shadow-2xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sky-900 font-bold text-[11px]">2. UPT (Koperasi)</label>
+                      <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">Hak 30%</span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={koperasiPct}
+                        onChange={(e) => isSuperadmin && setKoperasiPct(e.target.value)}
+                        disabled={!isSuperadmin}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                        required
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Vendor */}
+                  <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
+                    hasKepalaUpt ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-indigo-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-indigo-900 font-bold text-[11px]">3. Vendor</label>
+                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
+                        {hasKepalaUpt ? '55% Bersih' : '60% Utuh'}
+                      </span>
+                    </div>
                     <div className="relative">
                       <input
                         type="number"
@@ -1465,7 +1639,39 @@ export default function FinanceContracts() {
                         value={vendorPct}
                         onChange={(e) => isSuperadmin && setVendorPct(e.target.value)}
                         disabled={!isSuperadmin}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
+                        required
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Kepala UPT */}
+                  <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
+                    hasKepalaUpt ? 'bg-purple-50/60 border-purple-300 ring-2 ring-purple-500/20' : 'bg-slate-100/60 border-slate-200 opacity-60'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-purple-900 font-bold text-[11px]">Kepala UPT</label>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                        hasKepalaUpt ? 'text-purple-700 bg-purple-100 font-bold' : 'text-slate-400'
+                      }`}>
+                        {hasKepalaUpt ? 'Dari Vendor' : 'Opsional'}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={kepalaUptPct}
+                        onChange={(e) => {
+                          if (!isSuperadmin) return;
+                          const val = Number(e.target.value);
+                          setKepalaUptPct(e.target.value);
+                          setHasKepalaUpt(val > 0);
+                        }}
+                        disabled={!isSuperadmin}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400 disabled:bg-slate-50 disabled:cursor-not-allowed"
                         required
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
@@ -1485,7 +1691,7 @@ export default function FinanceContracts() {
                     <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
                       <CheckCircle2 className="w-4 h-4 shrink-0" />
                       <span>
-                        Total persentase valid (100%). Skema bagi hasil siap diaplikasikan.
+                        Total persentase valid (100%). {hasKepalaUpt ? 'Skema menyertakan 5% Kepala UPT dari vendor.' : 'Skema standar 3 pihak siap diterapkan.'}
                       </span>
                     </div>
                   )
@@ -1515,35 +1721,36 @@ export default function FinanceContracts() {
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-purple-800 font-semibold block text-[11px]">Kepala UPT ({kepalaUptPct}%):</span>
-                    <span className="font-black text-purple-950 text-sm mt-0.5 block">
-                      {formatRupiah(((Number(simulationRevenue) || 0) * (Number(kepalaUptPct) || 0)) / 100)}
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-sky-800 font-semibold block text-[11px]">Koperasi ({koperasiPct}%):</span>
-                    <span className="font-black text-sky-950 text-sm mt-0.5 block">
-                      {formatRupiah(((Number(simulationRevenue) || 0) * (Number(koperasiPct) || 0)) / 100)}
-                    </span>
-                  </div>
-
-                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-amber-800 font-semibold block text-[11px]">Inkopasindo ({inkopasindoPct}%):</span>
+                    <span className="text-amber-800 font-semibold block text-[11px]">1. Inkopasindo ({inkopasindoPct}%):</span>
                     <span className="font-black text-amber-950 text-sm mt-0.5 block">
                       {formatRupiah(((Number(simulationRevenue) || 0) * (Number(inkopasindoPct) || 0)) / 100)}
                     </span>
                   </div>
 
                   <div className="bg-white p-2.5 rounded-xl border border-slate-100">
-                    <span className="text-indigo-800 font-semibold block text-[11px]">Vendor ({vendorPct}%):</span>
+                    <span className="text-sky-800 font-semibold block text-[11px]">2. UPT ({koperasiPct}%):</span>
+                    <span className="font-black text-sky-950 text-sm mt-0.5 block">
+                      {formatRupiah(((Number(simulationRevenue) || 0) * (Number(koperasiPct) || 0)) / 100)}
+                    </span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                    <span className="text-indigo-800 font-semibold block text-[11px]">3. Vendor ({vendorPct}%):</span>
                     <span className="font-black text-indigo-950 text-sm mt-0.5 block">
                       {formatRupiah(((Number(simulationRevenue) || 0) * (Number(vendorPct) || 0)) / 100)}
                     </span>
                   </div>
+
+                  <div className={`p-2.5 rounded-xl border transition-all ${
+                    Number(kepalaUptPct) > 0 ? 'bg-purple-50/60 border-purple-200' : 'bg-white border-slate-100'
+                  }`}>
+                    <span className="text-purple-800 font-semibold block text-[11px]">Kepala UPT ({kepalaUptPct}%):</span>
+                    <span className="font-black text-purple-950 text-sm mt-0.5 block">
+                      {formatRupiah(((Number(simulationRevenue) || 0) * (Number(kepalaUptPct) || 0)) / 100)}
+                    </span>
+                  </div>
                 </div>
               </div>
-
               {/* Modal Footer */}
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
                 <button

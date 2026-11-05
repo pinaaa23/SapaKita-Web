@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wallet,
+  ShieldCheck,
   Receipt,
   Search,
   CheckCircle2,
@@ -122,6 +123,7 @@ export default function CanteenTopup() {
   // 6. Modal Edit Kontrak Tarif 4 Pihak (Khusus Superadmin)
   const [editContractModal, setEditContractModal] = useState(null); // item objek kantin
   const [editRate, setEditRate] = useState('');
+  const [editHasKepalaUpt, setEditHasKepalaUpt] = useState(false);
   const [editKepalaUptPercent, setEditKepalaUptPercent] = useState('');
   const [editKoperasiPercent, setEditKoperasiPercent] = useState('');
   const [editInkopasindoPercent, setEditInkopasindoPercent] = useState('');
@@ -373,23 +375,26 @@ export default function CanteenTopup() {
       const inko = target.inkopasindoPercent ?? target.split?.inkopasindo;
       const ven = target.vendorPercent ?? target.split?.vendor;
 
-      setEditKepalaUptPercent(ku !== '' && ku !== null && ku !== undefined ? String(ku) : '');
-      setEditKoperasiPercent(kop !== '' && kop !== null && kop !== undefined ? String(kop) : '');
-      setEditInkopasindoPercent(inko !== '' && inko !== null && inko !== undefined ? String(inko) : '');
-      setEditVendorPercent(ven !== '' && ven !== null && ven !== undefined ? String(ven) : '');
+      const hasKu = Number(ku) > 0;
+      setEditHasKepalaUpt(hasKu);
+      setEditKepalaUptPercent(ku !== '' && ku !== null && ku !== undefined ? String(ku) : '0');
+      setEditKoperasiPercent(kop !== '' && kop !== null && kop !== undefined ? String(kop) : '30');
+      setEditInkopasindoPercent(inko !== '' && inko !== null && inko !== undefined ? String(inko) : '10');
+      setEditVendorPercent(ven !== '' && ven !== null && ven !== undefined ? String(ven) : (hasKu ? '55' : '60'));
     } else {
-      // TIDAK BOLEH ADA NILAI BAWAAN (kolom kosong kalau kontrak belum diatur)
       setEditRate('');
-      setEditKepalaUptPercent('');
-      setEditKoperasiPercent('');
-      setEditInkopasindoPercent('');
-      setEditVendorPercent('');
+      setEditHasKepalaUpt(false);
+      setEditKepalaUptPercent('0');
+      setEditKoperasiPercent('30');
+      setEditInkopasindoPercent('10');
+      setEditVendorPercent('60');
     }
   };
 
   const handleCloseEditContract = () => {
     setEditContractModal(null);
     setEditRate('');
+    setEditHasKepalaUpt(false);
     setEditKepalaUptPercent('');
     setEditKoperasiPercent('');
     setEditInkopasindoPercent('');
@@ -1813,103 +1818,220 @@ export default function CanteenTopup() {
                 )}
               </div>
 
-              {/* Input Bagi Hasil 4 Pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) */}
-              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/60 space-y-3.5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <div>
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                      Bagi Hasil 4 Pihak <span className="text-rose-500">*</span>
-                    </h4>
-                    <p className="text-[11px] text-slate-500 mt-0.5">
-                      Total persentase harus tepat 100% (Kepala UPT + Koperasi + Inkopasindo + Vendor)
-                    </p>
-                  </div>
-                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold w-fit ${
-                    isPercentSumValid ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
-                  }`}>
-                    Total: {totalSplitPercent}% / 100%
+              {/* Pembagian Hasil Utama & Klausul Opsional Kepala UPT */}
+              <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/70 space-y-4">
+                {/* Modern Interactive Toggle Card untuk Kepala UPT */}
+                <div className={`p-3.5 rounded-2xl border transition-all ${
+                  editHasKepalaUpt 
+                    ? 'bg-gradient-to-r from-purple-50/90 via-purple-50/50 to-indigo-50/40 border-purple-200 shadow-xs' 
+                    : 'bg-white border-slate-200'
+                }`}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        editHasKepalaUpt ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        <ShieldCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-slate-800">
+                            Porsi Tambahan Kepala UPT (5%)
+                          </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                            editHasKepalaUpt 
+                              ? 'bg-purple-100 text-purple-700 border border-purple-200' 
+                              : 'bg-slate-100 text-slate-500'
+                          }`}>
+                            {editHasKepalaUpt ? 'Aktif (5% dari Vendor)' : 'Nonaktif (0%)'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
+                          {editHasKepalaUpt ? (
+                            <span className="text-purple-900 font-medium">
+                              Lapas ini meminta bagian Kepala UPT. Porsi <strong>5%</strong> dialokasikan dari hak Vendor (Vendor menjadi <strong>55%</strong>, Kepala UPT <strong>5%</strong>). Total setoran UPT tetap <strong>60%</strong>.
+                            </span>
+                          ) : (
+                            <span>
+                              Skema standar aktif: Inkopasindo 10%, UPT 30%, dan Vendor 60% utuh. Aktifkan toggle jika UPT ini meminta alokasi 5% untuk Kepala UPT.
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* iOS-Style Toggle Switch */}
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={editHasKepalaUpt}
+                      onClick={() => {
+                        const next = !editHasKepalaUpt;
+                        setEditHasKepalaUpt(next);
+                        if (next) {
+                          setEditKepalaUptPercent('5');
+                          setEditVendorPercent('55');
+                        } else {
+                          setEditKepalaUptPercent('0');
+                          setEditVendorPercent('60');
+                        }
+                      }}
+                      title={editHasKepalaUpt ? 'Nonaktifkan porsi Kepala UPT' : 'Aktifkan porsi Kepala UPT (5% dari Vendor)'}
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                        editHasKepalaUpt ? 'bg-purple-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                          editHasKepalaUpt ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
                   </div>
                 </div>
 
+                {/* Header Rincian & Visual Segmented Bar */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                        Rincian Alokasi Bagi Hasil
+                      </h4>
+                      <span className="text-[11px] text-slate-500">
+                        {editHasKepalaUpt ? 'Skema 4 Pihak (dengan klausul Kepala UPT)' : 'Skema Standar 3 Pihak Resmi'}
+                      </span>
+                    </div>
+                    <div className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
+                      isPercentSumValid ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-rose-100 text-rose-800 border border-rose-200'
+                    }`}>
+                      Total: {totalSplitPercent}% / 100%
+                    </div>
+                  </div>
+
+                  {/* Segmented Visual Progress Bar */}
+                  <div className="h-2 w-full rounded-full bg-slate-200 overflow-hidden flex shadow-inner">
+                    <div 
+                      style={{ width: `${editInkopasindoPercent || 0}%` }} 
+                      className="bg-amber-500 h-full transition-all duration-300" 
+                      title={`Inkopasindo: ${editInkopasindoPercent}%`} 
+                    />
+                    <div 
+                      style={{ width: `${editKoperasiPercent || 0}%` }} 
+                      className="bg-sky-500 h-full transition-all duration-300" 
+                      title={`UPT: ${editKoperasiPercent}%`} 
+                    />
+                    <div 
+                      style={{ width: `${editVendorPercent || 0}%` }} 
+                      className="bg-indigo-600 h-full transition-all duration-300" 
+                      title={`Vendor: ${editVendorPercent}%`} 
+                    />
+                    {Number(editKepalaUptPercent) > 0 && (
+                      <div 
+                        style={{ width: `${editKepalaUptPercent}%` }} 
+                        className="bg-purple-600 h-full transition-all duration-300" 
+                        title={`Kepala UPT: ${editKepalaUptPercent}%`} 
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* 4 Cards Alokasi */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                  {/* 1. Kepala UPT */}
-                  <div className="bg-white p-2.5 rounded-xl border border-purple-200 shadow-2xs">
-                    <label className="block text-purple-900 font-bold mb-1">1. Kepala UPT</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        required
-                        placeholder="0"
-                        value={editKepalaUptPercent}
-                        onChange={(e) => setEditKepalaUptPercent(e.target.value)}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                  {/* 1. Inkopasindo */}
+                  <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-amber-900 font-bold text-[11px]">1. Inkopasindo</label>
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">Hak 10%</span>
                     </div>
-                  </div>
-
-                  {/* 2. Koperasi */}
-                  <div className="bg-white p-2.5 rounded-xl border border-sky-200 shadow-2xs">
-                    <label className="block text-sky-900 font-bold mb-1">2. Koperasi</label>
                     <div className="relative">
                       <input
                         type="number"
                         min="0"
                         max="100"
-                        step="1"
-                        required
-                        placeholder="0"
-                        value={editKoperasiPercent}
-                        onChange={(e) => setEditKoperasiPercent(e.target.value)}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                      />
-                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
-                    </div>
-                  </div>
-
-                  {/* 3. Inkopasindo */}
-                  <div className="bg-white p-2.5 rounded-xl border border-amber-200 shadow-2xs">
-                    <label className="block text-amber-900 font-bold mb-1">3. Inkopasindo</label>
-                    <div className="relative">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        required
-                        placeholder="0"
                         value={editInkopasindoPercent}
                         onChange={(e) => setEditInkopasindoPercent(e.target.value)}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-amber-950 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        required
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                   </div>
 
-                  {/* 4. Vendor */}
-                  <div className="bg-white p-2.5 rounded-xl border border-indigo-200 shadow-2xs">
-                    <label className="block text-indigo-900 font-bold mb-1">4. Vendor</label>
+                  {/* 2. UPT */}
+                  <div className="bg-white p-3 rounded-2xl border border-sky-200 shadow-2xs">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-sky-900 font-bold text-[11px]">2. UPT (Koperasi)</label>
+                      <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">Hak 30%</span>
+                    </div>
                     <div className="relative">
                       <input
                         type="number"
                         min="0"
                         max="100"
-                        step="1"
+                        value={editKoperasiPercent}
+                        onChange={(e) => setEditKoperasiPercent(e.target.value)}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-sky-950 focus:outline-none focus:ring-2 focus:ring-sky-400"
                         required
-                        placeholder="0"
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 3. Vendor */}
+                  <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
+                    editHasKepalaUpt ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-indigo-200'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-indigo-900 font-bold text-[11px]">3. Vendor</label>
+                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
+                        {editHasKepalaUpt ? '55% Bersih' : '60% Utuh'}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
                         value={editVendorPercent}
                         onChange={(e) => setEditVendorPercent(e.target.value)}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-lg border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        required
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
+                    </div>
+                  </div>
+
+                  {/* 4. Kepala UPT */}
+                  <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
+                    editHasKepalaUpt ? 'bg-purple-50/60 border-purple-300 ring-2 ring-purple-500/20' : 'bg-slate-100/60 border-slate-200 opacity-60'
+                  }`}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-purple-900 font-bold text-[11px]">Kepala UPT</label>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
+                        editHasKepalaUpt ? 'text-purple-700 bg-purple-100 font-bold' : 'text-slate-400'
+                      }`}>
+                        {editHasKepalaUpt ? 'Dari Vendor' : 'Opsional'}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editKepalaUptPercent}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setEditKepalaUptPercent(e.target.value);
+                          setEditHasKepalaUpt(val > 0);
+                        }}
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-purple-950 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                        required
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Validation Indicator */}
                 {!isPercentSumValid ? (
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1922,7 +2044,9 @@ export default function CanteenTopup() {
                 ) : (
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
-                    <span>Total persentase valid (100%). Skema bagi hasil siap disimpan.</span>
+                    <span>
+                      Total persentase valid (100%). {editHasKepalaUpt ? 'Skema menyertakan 5% Kepala UPT dari vendor.' : 'Skema standar 3 pihak siap diterapkan.'}
+                    </span>
                   </div>
                 )}
               </div>
