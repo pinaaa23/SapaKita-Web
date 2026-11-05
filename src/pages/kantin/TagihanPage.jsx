@@ -303,9 +303,11 @@ export default function TagihanPage() {
   const ratePerSec = isContractConfigured && effectiveContract?.ratePerSecond !== null && effectiveContract?.ratePerSecond !== undefined
     ? Number(effectiveContract.ratePerSecond)
     : null;
-  const saPercent = isContractConfigured && (effectiveContract?.superadminPercent ?? effectiveContract?.negotiationPercent) !== null && (effectiveContract?.superadminPercent ?? effectiveContract?.negotiationPercent) !== undefined
-    ? Number(effectiveContract.superadminPercent ?? effectiveContract.negotiationPercent)
-    : null;
+  // Porsi setoran UPT/Kantin ke rekening vendor tetap 60% utuh mulai November 2026.
+  // Pemutihan periode lampau (sebelum Nov 2026): tetap 55% sesuai kontrak lama saat pembayaran disetujui.
+  // (Jika ada alokasi 5% Kepala UPT, itu dipotong dari jatah 60% vendor di internal Superadmin & Finance)
+  const isHistoricalPeriod = selectedYear < 2026 || (selectedYear === 2026 && selectedMonth < 11);
+  const saPercent = isHistoricalPeriod ? 55 : 60;
 
   // Daftar Transaksi Riil (Diperbarui nilai detik x tarif x persen SA)
   const transactions = useMemo(() => {
@@ -1658,7 +1660,7 @@ export default function TagihanPage() {
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <Calculator className="w-5 h-5 text-blue-600" />
-                  Rincian Perhitungan Tagihan Kantin
+                  Rincian Setoran Tagihan Vendor
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear} • {canteenBilling?.uptName || 'Kantin'}
@@ -1674,18 +1676,7 @@ export default function TagihanPage() {
             </div>
 
             <div className="space-y-4">
-              {/* Rumus Penjelasan */}
-              <div className="p-3.5 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs text-blue-950">
-                <div className="font-bold flex items-center gap-1.5 mb-1 text-blue-900">
-                  <Coins className="w-4 h-4 text-blue-600" />
-                  Rumus: Total Detik × Tarif per Detik × Porsi Setoran Vendor (55%)
-                </div>
-                <p className="text-[11px] text-blue-800 leading-relaxed">
-                  Durasi detik terakumulasi dari voucher yang dibeli WBP. Kantin menyetor langsung porsi 55% untuk hak Vendor Sadewa ke rekening penampung. Sisa 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) dikelola dan didistribusikan di tingkat internal UPT.
-                </p>
-              </div>
-
-              {/* Tabel Rincian Angka */}
+              {/* Tabel Rincian Angka (Gambar 2) */}
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 divide-y divide-slate-200/70 text-xs">
                 <div className="pb-2.5 flex justify-between">
                   <span className="text-slate-500">1. Total Detik Panggilan (Otomatis):</span>
@@ -1713,24 +1704,17 @@ export default function TagihanPage() {
                   </span>
                 </div>
 
-                <div className="py-2.5 flex justify-between">
+                <div className="py-2.5 flex justify-between items-center">
                   <span className="text-slate-500">4. Porsi Setoran ke Rekening Vendor:</span>
-                  <div className="text-right">
-                    <span className="font-bold text-blue-700 block">
-                      {isContractConfigured && saPercent !== null ? `${saPercent}%` : 'Belum diatur'}
-                    </span>
-                    {isContractConfigured && saPercent !== null && (
-                      <span className="text-[11px] text-slate-500 font-normal block">
-                        Hak Internal UPT (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%): {100 - saPercent}% ({formatRupiah(canteenBilling?.canteenShare || Math.round((subtotalTagihan || 0) * ((100 - saPercent) / 100)))}) dikelola UPT.
-                      </span>
-                    )}
-                  </div>
+                  <span className="font-bold text-blue-700">
+                    {saPercent || 60}%
+                  </span>
                 </div>
 
                 <div className="pt-3 flex justify-between items-center text-sm">
                   <div>
                     <span className="font-black text-slate-900 block">Total Setoran Bulan Ini:</span>
-                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Rekening Vendor (Porsi {saPercent || 55}% Vendor Sadewa)</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Disetor ke Rekening Vendor (Porsi {saPercent || 60}% Vendor Sadewa)</span>
                   </div>
                   <span className="font-black text-[#1565C0] text-base">
                     {isContractConfigured && newTotalTagihan !== null ? formatRupiah(newTotalTagihan) : '-'}
@@ -1738,7 +1722,6 @@ export default function TagihanPage() {
                 </div>
               </div>
             </div>
-
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
