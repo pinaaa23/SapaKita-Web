@@ -24,6 +24,7 @@ export const ROLES = {
   SUPERVISOR: 'supervisor',
   OPERATOR_KANTIN: 'operator_kantin',
   FINANCE: 'finance',
+  INKOPASINDO: 'inkopasindo',
 };
 
 /**
@@ -36,6 +37,7 @@ export const ROLE_LABELS = {
   [ROLES.SUPERVISOR]: 'Supervisor',
   [ROLES.OPERATOR_KANTIN]: 'Operator Kantin',
   [ROLES.FINANCE]: 'Admin Finance',
+  [ROLES.INKOPASINDO]: 'Inkopasindo',
 };
 
 /**
@@ -83,6 +85,12 @@ export const normalizeRole = (rawRole) => {
     str === 'admin_keuangan' ||
     str === 'fin'
   ) return ROLES.FINANCE;
+  if (
+    str === 'inkopasindo' ||
+    str === 'inkop' ||
+    str === 'koperasi_inkopasindo' ||
+    str === 'admin_inkopasindo'
+  ) return ROLES.INKOPASINDO;
 
   return '';
 };
@@ -109,10 +117,10 @@ export const permissions = {
     return norm === ROLES.SUPERVISOR;
   },
 
-  // Role Kanwil dan Finance bersifat statis (read-only): tidak dapat menambah, mengedit, atau menghapus data
+  // Role Kanwil, Finance, dan Inkopasindo bersifat statis (read-only): tidak dapat menambah, mengedit, atau menghapus data
   isReadOnlyRole: (role) => {
     const norm = normalizeRole(role);
-    return norm === ROLES.ADMIN_KANWIL || norm === ROLES.FINANCE;
+    return norm === ROLES.ADMIN_KANWIL || norm === ROLES.FINANCE || norm === ROLES.INKOPASINDO;
   },
 
   // Seluruh pembayaran & verifikasi setoran dikembalikan ke Superadmin
@@ -189,6 +197,15 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Tagihan & Setoran', icon: Receipt, path: '/finance/billing' },
       { name: 'Kontrak Bagi Hasil', icon: Wallet, path: '/finance/contracts' },
       { name: 'Laporan Keuangan', icon: BarChart3, path: '/finance/reports' },
+    ];
+  }
+
+  // Menu untuk Inkopasindo (3 menu: Dashboard, Tagihan, Laporan)
+  if (normRole === ROLES.INKOPASINDO) {
+    return [
+      { name: 'Dashboard', icon: LayoutDashboard, path: '/inkopasindo/dashboard' },
+      { name: 'Tagihan', icon: Receipt, path: '/inkopasindo/billing' },
+      { name: 'Laporan', icon: BarChart3, path: '/inkopasindo/reports' },
     ];
   }
 

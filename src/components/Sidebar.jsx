@@ -23,6 +23,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
   const isBranchAdmin = location.pathname === '/branch' || location.pathname.startsWith('/branch/');
   const isKanwilAdmin = location.pathname === '/kanwil' || location.pathname.startsWith('/kanwil/');
   const isFinance = location.pathname === '/finance' || location.pathname.startsWith('/finance/');
+  const isInkopasindo = location.pathname === '/inkopasindo' || location.pathname.startsWith('/inkopasindo/');
   
   const { role: currentRole, roleLabel, uptName, user, logout } = useAuth();
   const uptDisplayName = uptName || user?.branch?.name || user?.branchName || 'UPT Pemasyarakatan';
@@ -120,13 +121,15 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
 
   const effectiveRole = normalizedCurrent || 
     normalizedStored || 
-    (isFinance
-      ? ROLES.FINANCE
-      : isBranchAdmin 
-        ? (storedRole?.toLowerCase().includes('spv') || storedRole?.toLowerCase().includes('supervisor') 
-            ? ROLES.SUPERVISOR 
-            : ROLES.KEPALA_UPT) 
-        : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
+    (isInkopasindo
+      ? ROLES.INKOPASINDO
+      : isFinance
+        ? ROLES.FINANCE
+        : isBranchAdmin 
+          ? (storedRole?.toLowerCase().includes('spv') || storedRole?.toLowerCase().includes('supervisor') 
+              ? ROLES.SUPERVISOR 
+              : ROLES.KEPALA_UPT) 
+          : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
   
   const effectiveRoleLabel = roleLabel || 
     ROLE_LABELS[effectiveRole] || 
@@ -220,7 +223,8 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                                (item.path !== '/dashboard' || location.pathname === '/dashboard') && 
                                (item.path !== '/branch/dashboard' || location.pathname === '/branch/dashboard') &&
                                (item.path !== '/kanwil/dashboard' || location.pathname === '/kanwil/dashboard') &&
-                               (item.path !== '/finance/dashboard' || location.pathname === '/finance/dashboard');
+                               (item.path !== '/finance/dashboard' || location.pathname === '/finance/dashboard') &&
+                               (item.path !== '/inkopasindo/dashboard' || location.pathname === '/inkopasindo/dashboard');
               
               const isCanteenTopupMenu = item.path === '/canteen-topup';
               const isFinanceBillingMenu = item.path === '/finance/billing';
@@ -323,6 +327,27 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
                    <div className="flex items-center gap-1.5 mt-0.5">
                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400"></div>
                      <p className="text-[10px] text-blue-200">Online</p>
+                   </div>
+                 </div>
+               )}
+            </div>
+          )}
+
+          {effectiveRole === ROLES.INKOPASINDO && (
+            <div className={`bg-white/10 rounded-2xl flex items-center transition-all duration-300 ${
+              !isExpandedView 
+                ? 'w-11 h-11 justify-center p-0 mb-1' 
+                : 'mx-3 p-3 gap-2.5 mb-1.5'
+            }`}>
+               <div className="relative shrink-0">
+                 <Building2 className="w-5 h-5 text-white" />
+               </div>
+               {isExpandedView && (
+                 <div className="overflow-hidden whitespace-nowrap">
+                   <p className="text-xs font-semibold text-white truncate">Koperasi Inkopasindo</p>
+                   <div className="flex items-center gap-1.5 mt-0.5">
+                     <div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                     <p className="text-[10px] text-blue-200">Hak Bagi Hasil 10%</p>
                    </div>
                  </div>
                )}

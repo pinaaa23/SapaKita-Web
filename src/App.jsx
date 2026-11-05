@@ -54,6 +54,11 @@ import FinanceContracts from './pages/finance/Contracts';
 import FinanceReports from './pages/finance/Reports';
 import FinanceAccounts from './pages/finance/FinanceAccounts';
 
+// Inkopasindo Pages (Role: INKOPASINDO)
+import InkopasindoDashboard from './pages/inkopasindo/Dashboard';
+import InkopasindoBilling from './pages/inkopasindo/Billing';
+import InkopasindoReports from './pages/inkopasindo/Reports';
+
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
 
@@ -244,6 +249,14 @@ function App() {
                 <Route path="billing" element={<FinanceBilling />} />
                 <Route path="contracts" element={<FinanceContracts />} />
                 <Route path="reports" element={<FinanceReports />} />
+              </Route>
+
+              {/* Inkopasindo Routes (Role: INKOPASINDO & SUPERADMIN) */}
+              <Route path="inkopasindo" element={<ProtectedRoute allowedRoles={[ROLES.INKOPASINDO, ROLES.SUPERADMIN]} />}>
+                <Route index element={<Navigate to="/inkopasindo/dashboard" replace />} />
+                <Route path="dashboard" element={<InkopasindoDashboard />} />
+                <Route path="billing" element={<InkopasindoBilling />} />
+                <Route path="reports" element={<InkopasindoReports />} />
               </Route>
             </Route>
           </Route>

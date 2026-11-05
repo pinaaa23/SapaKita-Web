@@ -4,19 +4,24 @@
  * Digunakan oleh Superadmin untuk mengelola akun dengan role 'FINANCE'.
  *
  * STATUS KETERSEDIAAN ENDPOINT BACKEND (BE):
- * 1. Daftar Akun (GET):
- *    - Tersambung ke GET /api/users?role=FINANCE.
- *    - Fallback ke data mock lokal jika offline.
- * 2. Pembuatan Akun (POST):
- *    - MENUNGGU BE: POST /api/users menolak role 'FINANCE' (validasi Zod hanya BRANCH_ADMIN, SUPERVISOR, CANTEEN_STAFF).
- *    - Belum ada endpoint khusus seperti POST /api/finance/admins.
- *    - Menggunakan penyimpanan mock lokal sementara agar fitur FE dapat diuji sepenuhnya.
- * 3. Toggle Status (Aktif/Nonaktif):
- *    - MENUNGGU BE: PATCH /api/users/:id/status menolak role selain staf UPT dengan pesan error.
- *    - Disimulasikan secara mulus di FE via mock storage.
- * 4. Reset Password:
- *    - Endpoint BE POST /api/users/:id/reset-password dapat digunakan untuk akun yang sudah ada di database.
- *    - Didukung fallback mock generator untuk akun lokal.
+ * 1. GET /api/finance/admins
+ *    - Mengambil seluruh daftar akun dengan role 'FINANCE' (Pusat / branchId null).
+ *    - Query parameters: search, status (Aktif/Nonaktif).
+ * 2. POST /api/finance/admins
+ *    - Mendaftarkan akun Admin Finance baru.
+ *    - Payload: { name, email, phone, password, status, isActive }.
+ * 3. PATCH /api/finance/admins/:id/status
+ *    - Mengubah status aktif / nonaktif akun Admin Finance.
+ *    - Payload: { status: 'Aktif' | 'Nonaktif', isActive: boolean }.
+ * 4. POST /api/finance/admins/:id/reset-password
+ *    - Mereset kata sandi akun Admin Finance.
+ *    - Payload: { newPassword: '...' }.
+ * 5. PATCH /api/finance/admins/:id
+ *    - Memperbarui data profil akun Admin Finance (nama, email, telepon, status).
+ * 6. DELETE /api/finance/admins/:id
+ *    - Menghapus akun Admin Finance (soft-delete bila ada riwayat audit).
+ *
+ * Dilengkapi fallback offline / local mock jika server backend sedang tidak aktif.
  */
 
 import { apiFetch } from './api';
@@ -67,154 +72,192 @@ const saveLocalAccounts = (accounts) => {
 };
 
 /**
- * Ambil daftar akun Finance
- * Tersambung ke GET /api/users?role=FINANCE, digabung dengan akun mock lokal
+ * 1. Ambil daftar akun Finance
+ * Endpoint BE: GET /api/finance/admins?search=...&status=...
  */
 export const getFinanceAccounts = async ({ search = '', status = 'All' } = {}) => {
-  let backendAccounts = [];
+  const params = new URLSearchParams();
+  if (search && search.trim()) {
+    params.append('search', search.trim());
+  }
+  if (status && status !== 'All') {
+    params.append('status', status);
+  }
+  const queryString = params.toString() ? `?${params.toString()}` : '';
 
   try {
-    const res = await apiFetch('/api/users?role=FINANCE');
-    if (res && res.data && Array.isArray(res.data)) {
-      backendAccounts = res.data.map((u) => ({
+    const res = await apiFetch(`/api/finance/admins${queryString}`);
+    const rawList = res?.data || (Array.isArray(res) ? res : []);
+
+    const items = rawList.map((u) => {
+      const isActive = u.isActive !== undefined ? Boolean(u.isActive) : u.status === 'Aktif';
+      return {
         id: u.id,
         name: u.name,
         email: u.email,
         phone: u.phone || '-',
         role: 'finance',
         roleLabel: 'Admin Finance',
-        isActive: u.isActive !== undefined ? Boolean(u.isActive) : u.status === 'Aktif',
-        status: (u.isActive !== undefined ? u.isActive : u.status === 'Aktif') ? 'Aktif' : 'Nonaktif',
+        isActive,
+        status: u.status || (isActive ? 'Aktif' : 'Nonaktif'),
         createdAt: u.createdAt || new Date().toISOString(),
+        updatedAt: u.updatedAt,
         isLocalMock: false,
-      }));
-    }
+      };
+    });
+
+    return {
+      items,
+      total: items.length,
+      source: 'backend',
+    };
   } catch (err) {
-    console.warn('[FinanceAccountService] Menggunakan fallback lokal untuk daftar Finance:', err?.message || err);
-    backendAccounts = [...DEFAULT_FINANCE_ACCOUNTS];
+    console.warn('[FinanceAccountService] Gagal menghubungi GET /api/finance/admins, beralih ke fallback lokal:', err?.message || err);
+
+    // Fallback data lokal jika backend tidak terhubung / offline
+    let results = [...DEFAULT_FINANCE_ACCOUNTS];
+    const localAccounts = getLocalAccounts();
+    const map = new Map();
+    results.forEach((acc) => map.set(acc.id, acc));
+    localAccounts.forEach((acc) => map.set(acc.id, acc));
+    results = Array.from(map.values());
+
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      results = results.filter((acc) =>
+        acc.name.toLowerCase().includes(q) ||
+        acc.email.toLowerCase().includes(q) ||
+        (acc.phone && acc.phone.toLowerCase().includes(q))
+      );
+    }
+
+    if (status && status !== 'All') {
+      results = results.filter((acc) => acc.status === status);
+    }
+
+    return {
+      items: results,
+      total: results.length,
+      source: 'mock',
+    };
   }
-
-  // Gabungkan dengan akun yang baru dibuat secara lokal (mock)
-  const localAccounts = getLocalAccounts();
-  const combinedMap = new Map();
-
-  // Masukkan data backend terlebih dahulu
-  backendAccounts.forEach((acc) => combinedMap.set(acc.id, acc));
-
-  // Override / append akun lokal
-  localAccounts.forEach((acc) => combinedMap.set(acc.id, acc));
-
-  let results = Array.from(combinedMap.values());
-
-  // Filter pencarian
-  if (search && search.trim()) {
-    const q = search.trim().toLowerCase();
-    results = results.filter((acc) =>
-      acc.name.toLowerCase().includes(q) ||
-      acc.email.toLowerCase().includes(q) ||
-      (acc.phone && acc.phone.toLowerCase().includes(q))
-    );
-  }
-
-  // Filter status
-  if (status && status !== 'All') {
-    results = results.filter((acc) => acc.status === status);
-  }
-
-  return {
-    items: results,
-    total: results.length,
-  };
 };
 
 /**
- * Tambah Akun Finance Baru
- * MENUNGGU BE: Saat ini BE belum memiliki endpoint pembuatan akun role FINANCE.
- * Password dapat diisi otomatis atau disesuaikan secara manual oleh Superadmin.
+ * 2. Tambah Akun Finance Baru
+ * Endpoint BE: POST /api/finance/admins
  */
 export const createFinanceAccount = async ({ name, email, phone = '', status = 'Aktif', password = null }) => {
   const finalPassword = password && password.trim() ? password.trim() : generateRandomPassword();
+  const normalizedEmail = email.trim().toLowerCase();
+  const targetIsActive = status === 'Aktif';
 
-  // MENUNGGU BE: Coba panggil BE jika di masa depan endpoint sudah tersedia
   try {
     const res = await apiFetch('/api/finance/admins', {
       method: 'POST',
       body: JSON.stringify({
-        name,
-        email,
-        phone,
+        name: name.trim(),
+        email: normalizedEmail,
+        phone: phone?.trim() || undefined,
         password: finalPassword,
-        role: 'FINANCE',
         status,
+        isActive: targetIsActive,
       }),
     });
 
     if (res?.data) {
+      const u = res.data;
+      const isActive = u.isActive !== undefined ? Boolean(u.isActive) : u.status === 'Aktif';
       return {
         success: true,
-        data: res.data,
+        data: {
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone || '-',
+          role: 'finance',
+          roleLabel: 'Admin Finance',
+          isActive,
+          status: u.status || (isActive ? 'Aktif' : 'Nonaktif'),
+          createdAt: u.createdAt || new Date().toISOString(),
+          isLocalMock: false,
+        },
         password: finalPassword,
+        message: res.message || 'Akun Admin Finance berhasil dibuat',
         source: 'backend',
       };
     }
-  } catch (beErr) {
-    // MENUNGGU BE: Endpoint BE belum tersedia atau menolak role FINANCE.
-    // Lanjutkan dengan penyimpanan lokal mock agar antarmuka Superadmin berfungsi mulus.
-    console.warn('[FinanceAccountService] MENUNGGU BE: Endpoint POST /api/finance/admins belum tersedia, menggunakan mock lokal:', beErr?.message);
+  } catch (err) {
+    // Jika server merespons dengan kode HTTP error (misal 400: Email sudah digunakan), lemparkan error ke form
+    if (err.status) {
+      console.error('[FinanceAccountService] Error validasi dari server:', err.message);
+      throw err;
+    }
+
+    // Jika terjadi kegagalan jaringan murni / offline (server belum aktif), simpan di local storage
+    console.warn('[FinanceAccountService] Backend offline saat POST /api/finance/admins, menyimpan ke mock lokal:', err.message);
+    const newAccount = {
+      id: `fin-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      name: name.trim(),
+      email: normalizedEmail,
+      phone: phone?.trim() || '-',
+      role: 'finance',
+      roleLabel: 'Admin Finance',
+      isActive: targetIsActive,
+      status: targetIsActive ? 'Aktif' : 'Nonaktif',
+      createdAt: new Date().toISOString(),
+      isLocalMock: true,
+    };
+
+    const localAccounts = getLocalAccounts();
+    localAccounts.unshift(newAccount);
+    saveLocalAccounts(localAccounts);
+
+    return {
+      success: true,
+      data: newAccount,
+      password: finalPassword,
+      message: 'Akun Admin Finance berhasil disimpan (Mode Offline)',
+      source: 'mock',
+    };
   }
-
-  // Mock Fallback: Buat ID unik dan simpan ke localStorage
-  const newAccount = {
-    id: `fin-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    name: name.trim(),
-    email: email.trim(),
-    phone: phone.trim() || '-',
-    role: 'finance',
-    roleLabel: 'Admin Finance',
-    isActive: status === 'Aktif',
-    status: status === 'Aktif' ? 'Aktif' : 'Nonaktif',
-    createdAt: new Date().toISOString(),
-    isLocalMock: true,
-  };
-
-  const localAccounts = getLocalAccounts();
-  localAccounts.unshift(newAccount);
-  saveLocalAccounts(localAccounts);
-
-  return {
-    success: true,
-    data: newAccount,
-    password: finalPassword,
-    source: 'mock',
-  };
 };
 
 /**
- * Toggle Status Akun Finance (Aktifkan / Nonaktifkan)
- * MENUNGGU BE: Endpoint PATCH /api/users/:id/status di BE saat ini melempar error
- * jika role bukan BRANCH_ADMIN, SUPERVISOR, atau CANTEEN_STAFF.
+ * 3. Toggle Status Akun Finance (Aktifkan / Nonaktifkan)
+ * Endpoint BE: PATCH /api/finance/admins/:id/status
  */
 export const toggleFinanceAccountStatus = async (id, targetStatus) => {
   const isTargetActive = targetStatus === 'Aktif';
 
-  // MENUNGGU BE: Coba panggil endpoint BE jika di masa depan sudah mendukung role FINANCE
   try {
-    const res = await apiFetch(`/api/users/${id}/status`, {
+    const res = await apiFetch(`/api/finance/admins/${id}/status`, {
       method: 'PATCH',
       body: JSON.stringify({
         status: targetStatus,
         isActive: isTargetActive,
       }),
     });
-    if (res?.success) {
-      return { success: true, status: targetStatus, isActive: isTargetActive, source: 'backend' };
+
+    if (res?.success || res?.data) {
+      return {
+        success: true,
+        status: targetStatus,
+        isActive: isTargetActive,
+        source: 'backend',
+        data: res?.data,
+      };
     }
-  } catch (beErr) {
-    // MENUNGGU BE: Endpoint menolak role FINANCE, lakukan update lokal
-    console.warn('[FinanceAccountService] MENUNGGU BE: Toggle status gagal di BE, menerapkan update ke mock lokal:', beErr?.message);
+  } catch (err) {
+    if (err.status) {
+      console.error('[FinanceAccountService] Error toggle status dari server:', err.message);
+      throw err;
+    }
+
+    console.warn('[FinanceAccountService] Backend offline saat toggle status, memperbarui mock lokal:', err.message);
   }
 
-  // Update di local storage mock
+  // Update fallback di local storage jika backend offline
   const localAccounts = getLocalAccounts();
   const existingIndex = localAccounts.findIndex((a) => a.id === id);
 
@@ -223,7 +266,6 @@ export const toggleFinanceAccountStatus = async (id, targetStatus) => {
     localAccounts[existingIndex].status = targetStatus;
     saveLocalAccounts(localAccounts);
   } else {
-    // Jika belum ada di local, catat override status untuk akun backend (misal Dewi Lestari)
     localAccounts.push({
       id,
       name: 'Admin Finance',
@@ -246,16 +288,14 @@ export const toggleFinanceAccountStatus = async (id, targetStatus) => {
 };
 
 /**
- * Reset Password Akun Finance
- * Menggunakan password acak baru.
- * Berfungsi langsung ke BE jika akun terdaftar di database, didukung fallback mock.
+ * 4. Reset Password Akun Finance
+ * Endpoint BE: POST /api/finance/admins/:id/reset-password
  */
 export const resetFinanceAccountPassword = async (id, customPassword = null) => {
   const newPassword = customPassword || generateRandomPassword();
 
-  // Coba panggil BE POST /api/users/:id/reset-password
   try {
-    const res = await apiFetch(`/api/users/${id}/reset-password`, {
+    const res = await apiFetch(`/api/finance/admins/${id}/reset-password`, {
       method: 'POST',
       body: JSON.stringify({ newPassword }),
     });
@@ -268,17 +308,44 @@ export const resetFinanceAccountPassword = async (id, customPassword = null) => 
         source: 'backend',
       };
     }
-  } catch (beErr) {
-    // MENUNGGU BE: Jika akun bersifat mock atau BE tidak dapat mereset
-    console.warn('[FinanceAccountService] Reset password via BE gagal/mock:', beErr?.message);
+  } catch (err) {
+    if (err.status) {
+      console.error('[FinanceAccountService] Error reset password dari server:', err.message);
+      throw err;
+    }
+
+    console.warn('[FinanceAccountService] Backend offline saat reset password, menggunakan mock lokal:', err.message);
   }
 
   return {
     success: true,
     password: newPassword,
-    message: 'Password akun Finance berhasil direset (Mode Lokal)',
+    message: 'Password akun Finance berhasil direset (Mode Offline)',
     source: 'mock',
   };
+};
+
+/**
+ * 5. Update Data Akun Finance (Nama, Email, Telepon, Status)
+ * Endpoint BE: PATCH /api/finance/admins/:id
+ */
+export const updateFinanceAccount = async (id, payload) => {
+  const res = await apiFetch(`/api/finance/admins/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+  return res;
+};
+
+/**
+ * 6. Hapus Akun Finance
+ * Endpoint BE: DELETE /api/finance/admins/:id
+ */
+export const deleteFinanceAccount = async (id) => {
+  const res = await apiFetch(`/api/finance/admins/${id}`, {
+    method: 'DELETE',
+  });
+  return res;
 };
 
 export default {
@@ -286,4 +353,6 @@ export default {
   createFinanceAccount,
   toggleFinanceAccountStatus,
   resetFinanceAccountPassword,
+  updateFinanceAccount,
+  deleteFinanceAccount,
 };

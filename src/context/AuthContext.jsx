@@ -36,13 +36,27 @@ export const AuthProvider = ({ children }) => {
       const n = normalizeRole(tokenPayload.role || tokenPayload.userRole);
       if (n) return n;
     }
-    // Fallback berdasarkan route aktif jika di bawah /branch/
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/branch')) {
-      const hint = (user?.email || tokenPayload?.email || '').toLowerCase();
-      if (hint.includes('spv') || hint.includes('supervisor')) {
-        return ROLES.SUPERVISOR;
+    // Fallback berdasarkan route aktif jika di bawah /branch/, /inkopasindo/, /finance/, dsb.
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/inkopasindo')) {
+        return ROLES.INKOPASINDO;
       }
-      return ROLES.KEPALA_UPT;
+      if (window.location.pathname.startsWith('/finance')) {
+        return ROLES.FINANCE;
+      }
+      if (window.location.pathname.startsWith('/kanwil')) {
+        return ROLES.ADMIN_KANWIL;
+      }
+      if (window.location.pathname.startsWith('/kantin')) {
+        return ROLES.OPERATOR_KANTIN;
+      }
+      if (window.location.pathname.startsWith('/branch')) {
+        const hint = (user?.email || tokenPayload?.email || '').toLowerCase();
+        if (hint.includes('spv') || hint.includes('supervisor')) {
+          return ROLES.SUPERVISOR;
+        }
+        return ROLES.KEPALA_UPT;
+      }
     }
     return '';
   }, [user, tokenPayload]);
@@ -200,6 +214,8 @@ export const AuthProvider = ({ children }) => {
     isSupervisor: Boolean(isAuthenticated && role === ROLES.SUPERVISOR),
     isKepalaUpt: Boolean(isAuthenticated && role === ROLES.KEPALA_UPT),
     isSuperadmin: Boolean(isAuthenticated && role === ROLES.SUPERADMIN),
+    isFinance: Boolean(isAuthenticated && role === ROLES.FINANCE),
+    isInkopasindo: Boolean(isAuthenticated && role === ROLES.INKOPASINDO),
     isOperatorKantin: Boolean(isAuthenticated && role === ROLES.OPERATOR_KANTIN),
     canViewRecordings,
     canManageUsers,

@@ -39,6 +39,9 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
       if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
         return <Navigate to="/branch/dashboard" replace />;
       }
+      if (currentRole === ROLES.INKOPASINDO) {
+        return <Navigate to="/inkopasindo/dashboard" replace />;
+      }
       return <Navigate to="/login" replace />;
     }
   }

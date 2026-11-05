@@ -264,7 +264,7 @@ const getFinanceContractsFromStorage = () => {
   } catch (e) {
     console.warn('[FinanceService] Fallback storage contracts error:', e);
   }
-  return [];
+  return INITIAL_BRANCH_CONTRACTS;
 };
 
 // Fallback Helper: Get All Billings from localStorage
@@ -278,7 +278,11 @@ const getAllFinanceBillingsFromStorage = () => {
   } catch (e) {
     console.warn('[FinanceService] Fallback storage billings error:', e);
   }
-  return [];
+  const initial = generateInitialBillings();
+  try {
+    localStorage.setItem(BILLINGS_STORAGE_KEY, JSON.stringify(initial));
+  } catch (_) {}
+  return initial;
 };
 
 // Fallback Helper: Filter Billings from localStorage

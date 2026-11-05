@@ -981,15 +981,30 @@ export default function Login() {
 
     try {
       let responseData;
-      try {
-        responseData = await loginApi(identifier, password);
-      } catch (apiErr) {
-        if (apiErr.status === 401 || apiErr.status === 400) {
-          throw apiErr;
-        }
+      const idLower = identifier.trim().toLowerCase();
 
-        const idLower = identifier.trim().toLowerCase();
-        if (import.meta.env.DEV) {
+      // Khusus role Inkopasindo:
+      // Karena role Inkopasindo baru dibuat di FE saja (tidak ada di database backend),
+      // kita tangani langsung agar bisa login tanpa ditolak 401 oleh backend.
+      if (idLower.includes('inkopasindo') || idLower.includes('inkop')) {
+        responseData = {
+          token: 'mock-jwt-token-inkopasindo-' + Date.now(),
+          user: {
+            id: 'u-inkopasindo-demo',
+            name: 'Pengurus Inkopasindo',
+            email: idLower.includes('@') ? idLower : 'inkopasindo@sadewa.id',
+            role: 'inkopasindo',
+          },
+        };
+      } else {
+        try {
+          responseData = await loginApi(identifier, password);
+        } catch (apiErr) {
+          if (apiErr.status === 401 || apiErr.status === 400) {
+            throw apiErr;
+          }
+
+          if (import.meta.env.DEV) {
           if (idLower.includes('kantin') || idLower.includes('kasir')) {
             responseData = {
               token: 'mock-jwt-token-kantin-' + Date.now(),
@@ -1059,6 +1074,16 @@ export default function Login() {
                 role: 'finance',
               },
             };
+          } else if (idLower.includes('inkopasindo') || idLower.includes('inkop')) {
+            responseData = {
+              token: 'mock-jwt-token-inkopasindo-' + Date.now(),
+              user: {
+                id: 'u-inkopasindo-demo',
+                name: 'Pengurus Inkopasindo',
+                email: idLower.includes('@') ? idLower : 'inkopasindo@sadewa.id',
+                role: 'inkopasindo',
+              },
+            };
           } else {
             throw apiErr;
           }
@@ -1066,6 +1091,7 @@ export default function Login() {
           throw apiErr;
         }
       }
+    }
 
       const token = responseData?.token ||
         responseData?.data?.token ||
@@ -1133,6 +1159,9 @@ export default function Login() {
       } else if (normalizedRole === 'finance' || normalizedRole === 'admin_finance' || normalizedRole === 'keuangan') {
         setAuthContextSession(token, { ...user, role: 'finance' });
         navigate('/finance/dashboard');
+      } else if (normalizedRole === 'inkopasindo' || normalizedRole === 'inkop' || normalizedRole === 'koperasi_inkopasindo') {
+        setAuthContextSession(token, { ...user, role: 'inkopasindo' });
+        navigate('/inkopasindo/dashboard');
       } else {
         clearAuthSession();
         setError('Akun ini tidak memiliki hak akses ke dashboard ini.');

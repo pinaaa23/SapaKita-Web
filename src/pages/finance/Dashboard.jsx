@@ -64,23 +64,23 @@ export default function FinanceDashboard() {
         <div className="absolute left-1/3 bottom-0 -mb-8 w-48 h-48 rounded-full bg-blue-300/10 blur-2xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 max-w-xl">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white shrink-0">
               <Wallet className="w-4 h-4 text-blue-200" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-blue-200">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-blue-200 whitespace-nowrap shrink-0 border border-white/20">
                   Rekapitulasi Pascabayar
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-white/20 text-blue-100 text-[10px] font-bold uppercase tracking-wider border border-white/25">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-blue-100 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 border border-white/25">
                   Akses: Read-Only
                 </span>
-                <span className="text-xs font-semibold text-white/90 hidden sm:inline">
+                <span className="text-xs font-semibold text-white/90 whitespace-nowrap hidden md:inline">
                   • 4 Pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor)
                 </span>
               </div>
-              <p className="text-blue-100/90 text-xs leading-relaxed mt-0.5">
+              <p className="text-blue-100/90 text-xs leading-relaxed mt-0.5 truncate">
                 Monitoring perputaran omset kotor nasional dan status setoran UPT berdasarkan periode buku.
               </p>
             </div>

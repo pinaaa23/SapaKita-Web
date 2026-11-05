@@ -195,12 +195,18 @@ Jika tim BE memilih untuk menyatukan seluruh pengelolaan akun di bawah `/api/use
 
 ---
 
-## 5. Status Kesiapan di Frontend (FE)
+## 5. Status Integrasi di Frontend (FE) - TERHUBUNG ✅
 
-Sisi Frontend Sadewa sudah **100% selesai dan siap**:
+Sisi Frontend Sadewa sudah **100% terhubung secara langsung** ke endpoint backend:
 * **Halaman**: `PasCall/src/pages/finance/FinanceAccounts.jsx` (Akses URL: `/finance-accounts` khusus Superadmin).
 * **Service**: `PasCall/src/services/financeAccountService.js`.
-* **Mekanisme Fallback**:
-  * FE memprioritaskan endpoint BE yang sudah jalan (`GET /api/users?role=FINANCE` dan `POST /api/users/:id/reset-password`).
-  * Jika endpoint penambahan (`POST`) atau pengubahan status (`PATCH`) menghasilkan error dari BE, service FE secara cerdas beralih ke cache data lokal mock (disertai penanda komentar `// MENUNGGU BE`).
-  * Ketika tim BE telah menyelesaikan Opsi A atau Opsi B, FE cukup disesuaikan pada file `financeAccountService.js` tanpa perlu mengubah tampilan UI.
+* **Status Koneksi Endpoint**:
+  1. `GET /api/finance/admins`: ✅ **Terhubung langsung** (mendukung query filter `search` & `status`).
+  2. `POST /api/finance/admins`: ✅ **Terhubung langsung** (payload `{ name, email, phone, password, status, isActive }`).
+  3. `PATCH /api/finance/admins/:id/status`: ✅ **Terhubung langsung** (payload `{ status, isActive }`).
+  4. `POST /api/finance/admins/:id/reset-password`: ✅ **Terhubung langsung** (payload `{ newPassword }`).
+  5. `PATCH /api/finance/admins/:id`: ✅ **Tersedia** untuk update data admin.
+  6. `DELETE /api/finance/admins/:id`: ✅ **Tersedia** untuk hapus akun admin.
+* **Mekanisme Ketahanan (Resilience)**:
+  * Dilengkapi validasi penangkapan error server langsung dari backend (seperti error email duplikat atau password kurang dari 6 karakter).
+  * Dilengkapi fallback data lokal/offline bila server backend sedang dalam maintenance.

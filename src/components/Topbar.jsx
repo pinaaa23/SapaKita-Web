@@ -18,6 +18,7 @@ const Topbar = ({ toggleMobileMenu }) => {
   const { role: normRole, roleLabel: userRole, userName, uptName, user, logout } = useAuth();
   const isKanwilUser = normRole === ROLES.ADMIN_KANWIL || location.pathname.startsWith('/kanwil');
   const isFinanceUser = normRole === ROLES.FINANCE || location.pathname.startsWith('/finance');
+  const isInkopasindoUser = normRole === ROLES.INKOPASINDO || location.pathname.startsWith('/inkopasindo');
 const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil/profile' : '/profile');
 
   const getPageDetails = (pathname) => {
@@ -101,6 +102,26 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
       return { 
         title: 'Dashboard Keuangan', 
         subtitle: 'Ringkasan performa finansial, omset tagihan, dan status setoran UPT' 
+      };
+    }
+
+    // Inkopasindo Page Details
+    if (pathname.startsWith('/inkopasindo/billing')) {
+      return {
+        title: 'Tagihan UPT',
+        subtitle: 'Rekapitulasi tagihan dan hak pembagian hasil Inkopasindo seluruh UPT nasional',
+      };
+    }
+    if (pathname.startsWith('/inkopasindo/reports')) {
+      return {
+        title: 'Laporan Finansial',
+        subtitle: 'Akumulasi tahunan, rekapitulasi hak finansial, dan rincian omset bulanan',
+      };
+    }
+    if (pathname.startsWith('/inkopasindo/dashboard') || pathname === '/inkopasindo' || pathname === '/inkopasindo/') {
+      return {
+        title: 'Dashboard Inkopasindo',
+        subtitle: 'Ringkasan operasional omset kotor, status tagihan, dan alokasi bagi hasil 3 pihak',
       };
     }
 
@@ -552,7 +573,7 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
                 <p className="text-sm font-semibold text-slate-800">{userName}</p>
                 <p className="text-xs text-slate-500">{userRole}</p>
               </div>
-              {!isFinanceUser && (
+              {!isFinanceUser && !isInkopasindoUser && (
                 <>
                   <Link 
                     to={profileLink}
