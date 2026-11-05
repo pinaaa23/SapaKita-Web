@@ -171,13 +171,22 @@ export const getBalanceTransactions = async ({
 
     // Sinkronkan status voucher dari riwayat panggilan riil di backend
     try {
-      // 1. Ambil data rekaman panggilan untuk memeriksa voucher terpakai
+      // 1. Ambil data rekaman panggilan untuk memeriksa voucher terpakai (HANYA jika role memiliki hak akses rekaman)
       let recordingList = [];
-      try {
-        const recRes = await apiFetch('/api/recordings?limit=100');
-        recordingList = Array.isArray(recRes) ? recRes : (recRes?.items || recRes?.data || []);
-      } catch {
-        // Abaikan jika belum ada rekaman
+      const storedRole = localStorage.getItem('role') || localStorage.getItem('user_role');
+      const canAccessRecordings = storedRole && (
+        storedRole.toLowerCase().includes('kepala') || 
+        storedRole.toLowerCase().includes('branch') || 
+        storedRole.toLowerCase().includes('superadmin') || 
+        storedRole.toLowerCase().includes('kanwil')
+      );
+      if (canAccessRecordings) {
+        try {
+          const recRes = await apiFetch('/api/recordings?limit=100');
+          recordingList = Array.isArray(recRes) ? recRes : (recRes?.items || recRes?.data || []);
+        } catch {
+          // Abaikan jika belum ada rekaman
+        }
       }
 
       const allCalls = recordingList;

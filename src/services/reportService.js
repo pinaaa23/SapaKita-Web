@@ -150,10 +150,18 @@ export const getBranchReport = async ({ period = '30' } = {}) => {
   const url = `${BRANCH_REPORT_ENDPOINT}?period=${normPeriod}`;
 
   try {
+    const storedRole = localStorage.getItem('role') || localStorage.getItem('user_role');
+    const canAccessRecordings = storedRole && (
+      storedRole.toLowerCase().includes('kepala') || 
+      storedRole.toLowerCase().includes('branch') || 
+      storedRole.toLowerCase().includes('superadmin') || 
+      storedRole.toLowerCase().includes('kanwil')
+    );
+
     const [reportRes, canteenRes, recordingsRes] = await Promise.allSettled([
       apiFetch(url),
-      apiFetch('/api/canteen/transactions?page=1&limit=200'),
-      apiFetch('/api/recordings?page=1&limit=200'),
+      apiFetch('/api/canteen/transactions?page=1&limit=100'),
+      canAccessRecordings ? apiFetch('/api/recordings?page=1&limit=100') : Promise.resolve({ items: [] }),
     ]);
 
     const rawReport = reportRes.status === 'fulfilled' ? reportRes.value : {};

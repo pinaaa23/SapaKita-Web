@@ -146,8 +146,8 @@ export default function FinanceBilling() {
         .filter((b) => b.status === 'PAID' || b.status === 'REJECTED' || (b.rejectionReason && b.status !== 'PENDING_CONFIRMATION'))
         .map((b) => {
           const gross = Number(b.grossAmount || 0);
-          const keep = Number(b.canteenKeepAmount || Math.round(gross * 0.45));
-          const deposit = Number(b.depositAmountToFinance || Math.round(gross * 0.55));
+          const keep = Number(b.canteenKeepAmount || Math.round(gross * 0.40));
+          const deposit = Number(b.depositAmountToFinance || Math.round(gross * 0.60));
           const isRej = b.status === 'REJECTED' || (b.rejectionReason && b.status !== 'PAID');
           return {
             id: b.id,
@@ -253,8 +253,8 @@ export default function FinanceBilling() {
           branchName: b.uptName || b.branchName || 'Cabang Lapas',
           canteenName: b.canteenName || (b.uptName ? `Kantin ${b.uptName}` : 'Kantin Lapas'),
           staffName: b.paymentProof?.staffName || 'Kasir Kantin',
-          nominal: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55 || 50000,
-          totalBayar: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55 || 50000,
+          nominal: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.60 || 50000,
+          totalBayar: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.60 || 50000,
           status: 'Menunggu',
           rawStatus: 'PENDING',
           proofUrl: b.paymentProof?.proofUrl || b.paymentProof?.proofStreamUrl || null,
@@ -264,8 +264,8 @@ export default function FinanceBilling() {
           month: b.month || Number(selectedMonth),
           year: b.year || Number(selectedYear),
           grossAmount: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) || 71428,
-          canteenKeepAmount: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.45) || 21428,
-          depositAmountToFinance: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.55) || 50000,
+          canteenKeepAmount: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.40) || 21428,
+          depositAmountToFinance: Math.round(Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.60) || 50000,
         }));
 
       // Gabungkan & deduplikasi ID
@@ -301,8 +301,8 @@ export default function FinanceBilling() {
             ratePerSecond: Number(fb.ratePerSecond || 15),
             totalAmount: Number(fb.grossAmount || fb.totalAmount || 0),
             grossAmount: Number(fb.grossAmount || fb.totalAmount || 0),
-            canteenKeepAmount: Number(fb.canteenKeepAmount || ((fb.shares?.koperasi?.amount || 0) + (fb.shares?.kepalaUpt?.amount || 0) + (fb.shares?.inkopasindo?.amount || 0)) || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.45)),
-            depositAmountToFinance: Number(fb.depositAmountToFinance || fb.shares?.vendor?.amount || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.55)),
+            canteenKeepAmount: Number(fb.canteenKeepAmount || ((fb.shares?.koperasi?.amount || 0) + (fb.shares?.kepalaUpt?.amount || 0) + (fb.shares?.inkopasindo?.amount || 0)) || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.40)),
+            depositAmountToFinance: Number(fb.depositAmountToFinance || fb.shares?.vendor?.amount || Math.round(Number(fb.grossAmount || fb.totalAmount || 0) * 0.60)),
             statusPembayaran,
             rawStatus: fb.status,
             isContractSet: true,
@@ -479,8 +479,8 @@ export default function FinanceBilling() {
       'Total Menit',
       'Total Detik',
       'Total Cash Kantin (Rp)',
-      'Hak Internal UPT 45% (Rp)',
-      'Setoran ke Vendor 55% (Rp)',
+      'Hak Internal UPT 40% (Rp)',
+      'Setoran ke Vendor 60% (Rp)',
       'Status Pembayaran',
       'Tanggal Verifikasi',
       'No Referensi',
@@ -495,8 +495,8 @@ export default function FinanceBilling() {
       Math.floor((b.totalSeconds || (b.menit ? b.menit * 60 : 0)) / 60),
       b.totalSeconds || (b.menit ? b.menit * 60 : 0),
       b.grossAmount || b.totalAmount || b.totalBayar || 0,
-      b.canteenKeepAmount || b.shares?.koperasi?.amount || Math.round((b.totalAmount || b.totalBayar || 0) * 0.45),
-      b.depositAmountToFinance || Math.round((b.totalAmount || b.totalBayar || 0) * 0.55),
+      b.canteenKeepAmount || b.shares?.koperasi?.amount || Math.round((b.totalAmount || b.totalBayar || 0) * 0.40),
+      b.depositAmountToFinance || Math.round((b.totalAmount || b.totalBayar || 0) * 0.60),
       `"${b.statusPembayaran || (b.status === 'APPROVED' ? 'Lunas' : b.status === 'PENDING' ? 'Menunggu ACC' : b.status)}"`,
       `"${b.approvedAt || b.verifiedAt || b.paymentDate || '-'}"`,
       `"${b.paymentRef || b.proof?.transferId || '-'}"`,
@@ -569,12 +569,12 @@ export default function FinanceBilling() {
   const pendingGrossTotal = pendingRequestsList.reduce((acc, item) => acc + (item.grossAmount || item.totalBayar || item.nominal || 0), 0);
   const pendingKeepTotal = pendingRequestsList.reduce((acc, item) => {
     const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-    return acc + (item.canteenKeepAmount || Math.round(gross * 0.45));
+    return acc + (item.canteenKeepAmount || Math.round(gross * 0.40));
   }, 0);
   const pendingDepositTotal = pendingRequestsList.reduce((acc, item) => {
     const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-    const keep = item.canteenKeepAmount || Math.round(gross * 0.45);
-    return acc + (item.depositAmountToFinance || Math.round(gross * 0.55));
+    const keep = item.canteenKeepAmount || Math.round(gross * 0.40);
+    return acc + (item.depositAmountToFinance || Math.round(gross * 0.60));
   }, 0);
 
   // Statistik Tab 3 (Riwayat Setoran)
@@ -673,11 +673,11 @@ export default function FinanceBilling() {
                 Alur Pascabayar
               </span>
               <h3 className="text-xs sm:text-sm font-bold text-white">
-                Kantin Pegang Cash 100% → Setor 55% ke Vendor
+                Kantin Pegang Cash 100% → Setor 60% ke Vendor
               </h3>
             </div>
             <p className="text-[11px] text-blue-100/90 leading-relaxed">
-              Kasir kantin menahan porsi 45% (Koperasi 30%, Inkopasindo 10%, Kepala UPT 5%) di UPT, lalu mentransfer 55% porsi Vendor ke rekening penampung resmi dan mengunggah struk transfer untuk diverifikasi (ACC).
+              Kasir kantin mengelola porsi 40% (UPT 30%, Inkopasindo 10%) di UPT, lalu mentransfer 60% porsi Vendor ke rekening penampung resmi dan mengunggah struk transfer untuk diverifikasi (ACC).
             </p>
           </div>
 
@@ -695,7 +695,7 @@ export default function FinanceBilling() {
             <div className="bg-white/10 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-0.5">
                 <Store className="w-3.5 h-3.5 text-sky-300 shrink-0" />
-                <span className="font-extrabold text-white text-[11px] truncate">2. Setor 55%</span>
+                <span className="font-extrabold text-white text-[11px] truncate">2. Setor 60%</span>
               </div>
               <span className="text-[10px] text-blue-200 block truncate">Upload bukti bayar</span>
             </div>
@@ -934,7 +934,7 @@ export default function FinanceBilling() {
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Hak Internal UPT (45% Dikelola UPT)
+                  Hak Internal UPT (40% Dikelola UPT)
                 </span>
                 <div className="text-2xl font-black text-sky-700 tracking-tight">
                   {formatRupiah(pendingKeepTotal)}
@@ -952,7 +952,7 @@ export default function FinanceBilling() {
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Setoran Masuk Vendor (55%)
+                  Setoran Masuk Vendor (60%)
                 </span>
                 <div className="text-2xl font-black text-emerald-600 tracking-tight">
                   {formatRupiah(pendingDepositTotal)}
@@ -1007,8 +1007,8 @@ export default function FinanceBilling() {
                       <th className="py-3 px-4">No. Pengajuan &amp; Tanggal</th>
                       <th className="py-3 px-4">Nama UPT &amp; Kantin</th>
                       <th className="py-3 px-4 text-right">Cash Bruto (100%)</th>
-                      <th className="py-3 px-4 text-right">Hak Internal UPT (45%)</th>
-                      <th className="py-3 px-4 text-right font-bold text-primary">Setoran Vendor (55%)</th>
+                      <th className="py-3 px-4 text-right">Hak Internal UPT (40%)</th>
+                      <th className="py-3 px-4 text-right font-bold text-primary">Setoran Vendor (60%)</th>
                       <th className="py-3 px-4 text-center">Bukti Transfer</th>
                       <th className="py-3 px-4 text-center">Status Verifikasi</th>
                     </tr>
@@ -1016,8 +1016,8 @@ export default function FinanceBilling() {
                   <tbody className="divide-y divide-slate-100">
                     {pendingRequestsList.map((item) => {
                       const gross = item.grossAmount || item.totalBayar || item.nominal || 0;
-                      const keep = item.canteenKeepAmount || Math.round(gross * 0.45);
-                      const deposit = item.depositAmountToFinance || Math.round(gross * 0.55);
+                      const keep = item.canteenKeepAmount || Math.round(gross * 0.40);
+                      const deposit = item.depositAmountToFinance || Math.round(gross * 0.60);
 
                       return (
                         <tr key={item.id} className="hover:bg-amber-50/25 transition-colors">
@@ -1042,13 +1042,13 @@ export default function FinanceBilling() {
                           {/* Porsi Koperasi Ditahan (30%) */}
                           <td className="py-3 px-4 text-right font-semibold text-sky-800 whitespace-nowrap">
                             {formatRupiah(keep)}
-                            <span className="text-[10px] text-sky-600 block font-normal">Hak internal UPT (45%)</span>
+                            <span className="text-[10px] text-sky-600 block font-normal">Hak internal UPT (40%)</span>
                           </td>
 
                           {/* Nominal Disetor ke Finance (70%) */}
                           <td className="py-3 px-4 text-right font-extrabold text-emerald-700 whitespace-nowrap">
                             {formatRupiah(deposit)}
-                            <span className="text-[10px] text-emerald-600 block font-normal">Disetor ke Rekening Vendor (55%)</span>
+                            <span className="text-[10px] text-emerald-600 block font-normal">Disetor ke Rekening Vendor (60%)</span>
                           </td>
 
                           {/* Bukti Transfer */}
@@ -1306,13 +1306,13 @@ export default function FinanceBilling() {
                               <div className="flex justify-between bg-sky-50 text-sky-900 px-2 py-0.5 rounded">
                                 <span>Hak UPT (45% Dikelola UPT):</span>
                                 <span className="font-bold">
-                                  {formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.totalAmount || 0) * 0.45))}
+                                  {formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.totalAmount || 0) * 0.40))}
                                 </span>
                               </div>
                               <div className="flex justify-between bg-emerald-50 text-emerald-900 px-2 py-0.5 rounded">
-                                <span>Setor ke Vendor (55%):</span>
+                                <span>Setor ke Vendor (60%):</span>
                                 <span className="font-bold">
-                                  {formatRupiah(item.depositAmountToFinance || Math.round((item.totalAmount || 0) * 0.55))}
+                                  {formatRupiah(item.depositAmountToFinance || Math.round((item.totalAmount || 0) * 0.60))}
                                 </span>
                               </div>
                             </div>
@@ -1623,15 +1623,15 @@ canApprove={canManageBilling}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sky-800">
-                  <span className="text-slate-500 font-medium">Hak Dikelola Kantin / UPT (45%):</span>
+                  <span className="text-slate-500 font-medium">Hak Dikelola UPT (40%):</span>
                   <span className="font-bold text-sky-700">
-                    {formatRupiah(approveModalItem.canteenKeepAmount || Math.round((approveModalItem.grossAmount || approveModalItem.nominal || 0) * 0.45))}
+                    {formatRupiah(approveModalItem.canteenKeepAmount || Math.round((approveModalItem.grossAmount || approveModalItem.nominal || 0) * 0.40))}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-black">
-                  <span className="text-slate-900">Setoran Diterima Vendor (55%):</span>
+                  <span className="text-slate-900">Setoran Diterima Vendor (60%):</span>
                   <span className="text-emerald-600 text-base">
-                    {formatRupiah(approveModalItem.depositAmountToFinance || approveModalItem.totalBayar || approveModalItem.nominal || Math.round((approveModalItem.grossAmount || 0) * 0.55))}
+                    {formatRupiah(approveModalItem.depositAmountToFinance || approveModalItem.totalBayar || approveModalItem.nominal || Math.round((approveModalItem.grossAmount || 0) * 0.60))}
                   </span>
                 </div>
               </div>
@@ -1834,16 +1834,16 @@ canApprove={canManageBilling}
                         <span className="text-[10px] text-slate-400 font-normal">Omset kotor voucher</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-sky-700 block">Hak Internal UPT (45%):</span>
+                        <span className="text-sky-700 block">Hak Internal UPT (40%):</span>
                         <span className="font-bold text-sky-900 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.45))}
+                          {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.40))}
                         </span>
                         <span className="text-[10px] text-sky-600 font-normal">Dikelola internal UPT</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-emerald-700 block">Setor ke Vendor (55%):</span>
+                        <span className="text-emerald-700 block">Setor ke Vendor (60%):</span>
                         <span className="font-extrabold text-emerald-800 text-sm mt-1 block">
-                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.55))}
+                          {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.60))}
                         </span>
                         <span className="text-[10px] text-emerald-600 font-normal">Disetor ke vendor</span>
                       </div>
