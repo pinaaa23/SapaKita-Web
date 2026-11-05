@@ -166,7 +166,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Kelola Pengguna', icon: UserCog, path: '/branch/users' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
-      { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
+            { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];
   }
 
@@ -177,6 +177,7 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Data WBP', icon: Users, path: '/branch/inmates' },
       { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
+      { name: 'Tagihan Bulanan', icon: Receipt, path: '/branch/billing' },
       { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];
   }

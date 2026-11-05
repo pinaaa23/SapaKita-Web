@@ -211,6 +211,14 @@ function App() {
                 /> */}
                 <Route path="contacts" element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="transactions" element={<BranchTransactions />} />
+                <Route
+                  path="billing"
+                  element={
+                    <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
+                      <KantinTagihan />
+                    </RoleGuard>
+                  }
+                />
                 <Route path="reports" element={<BranchReports />} />
                 <Route path="profile" element={<BranchProfile />} />
               </Route>
@@ -251,8 +259,8 @@ function App() {
               <Route path="/kantin/kontak" element={<KantinKontak />} />
               <Route path="/kantin/status-wartel" element={<KantinStatusWartel />} />
               <Route path="/kantin/riwayat" element={<KantinRiwayat />} />
-              <Route path="/kantin/tagihan" element={<KantinTagihan />} />
-              <Route path="/kantin/top-up-saldo" element={<KantinTagihan />} />
+              <Route path="/kantin/tagihan" element={<Navigate to="/kantin" replace />} />
+              <Route path="/kantin/top-up-saldo" element={<Navigate to="/kantin" replace />} />
               <Route path="/kantin/voucher/:id" element={<KantinVoucher />} />
               <Route path="/kantin/struk/:id" element={<KantinStruk />} />
               {/* Fallback di dalam kantin -> kembali ke paket */}

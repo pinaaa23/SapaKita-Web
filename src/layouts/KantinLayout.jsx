@@ -53,8 +53,7 @@ export default function KantinLayout() {
     { to: '/kantin/kontak', label: 'Kontak WBP', icon: Users, end: false },
     { to: '/kantin/status-wartel', label: 'Status Wartel', icon: PhoneCall, end: false },
     { to: '/kantin/riwayat', label: 'Riwayat Penjualan', icon: History, end: false },
-    { to: '/kantin/tagihan', label: 'Tagihan Bulanan', icon: Wallet, end: false },
-  ];
+      ];
 
   const displayName = userName || user?.name || user?.email || 'Operator Kantin';
   const displayEmail = user?.email || '';
