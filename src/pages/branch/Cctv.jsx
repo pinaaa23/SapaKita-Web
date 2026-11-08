@@ -12,7 +12,6 @@ import {
   Clock,
   Calendar,
   Layers,
-  ShieldCheck,
   CheckCircle2,
   Plus,
   Edit3,
@@ -20,13 +19,11 @@ import {
   RefreshCw,
   FastForward,
   Rewind,
-  HardDrive,
-  Info,
   SlidersHorizontal,
   X,
-  Film,
   FileVideo,
-  FolderArchive
+  FolderArchive,
+  ChevronRight
 } from 'lucide-react';
 import { cctvService, SAMPLE_CCTV_STREAMS } from '../../services/cctvService';
 import { getAuthUser } from '../../services/api';
@@ -40,7 +37,7 @@ export default function BranchCctv() {
   const isKepalaUpt = currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERADMIN;
   const isSupervisor = currentRole === ROLES.SUPERVISOR;
 
-  // Mode Tampilan Utama: 'live' | 'playback'
+  // Mode Tampilan: 'live' | 'playback'
   const [activeTab, setActiveTab] = useState('live');
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,20 +55,20 @@ export default function BranchCctv() {
   const todayStr = new Date().toISOString().split('T')[0];
   const [playbackDate, setPlaybackDate] = useState(todayStr);
   const [playbackChannel, setPlaybackChannel] = useState(1);
-  const [playbackSec, setPlaybackSec] = useState(36000); // 10:00:00 WIB (36000 detik)
+  const [playbackSec, setPlaybackSec] = useState(36000); // 10:00:00 WIB
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
   const [playbackMuted, setPlaybackMuted] = useState(true);
   const playbackVideoRef = useRef(null);
 
-  // Modal Konfigurasi 4 Slot (Kepala UPT)
+  // Modal Pengaturan Slot (Kepala UPT)
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState(0);
   const [formSlots, setFormSlots] = useState([]);
   const [saveLoading, setSaveLoading] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
 
-  // Modal Download Klip Rekaman (Dari Menit Berapa ke Menit Berapa)
+  // Modal Unduh Klip Rekaman
   const [showClipModal, setShowClipModal] = useState(false);
   const [clipStartTime, setClipStartTime] = useState('10:00');
   const [clipEndTime, setClipEndTime] = useState('10:15');
@@ -84,7 +81,6 @@ export default function BranchCctv() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Format detik menjadi string jam HH:mm:ss
   const formatSecondsToHms = (sec) => {
     const s = Math.max(0, Math.min(86399, Math.floor(sec)));
     const h = Math.floor(s / 3600);
@@ -93,7 +89,6 @@ export default function BranchCctv() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
   };
 
-  // Format detik menjadi HH:mm
   const formatSecondsToHm = (sec) => {
     const s = Math.max(0, Math.min(86399, Math.floor(sec)));
     const h = Math.floor(s / 3600);
@@ -101,13 +96,13 @@ export default function BranchCctv() {
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
   };
 
-  // Update jam realtime setiap detik
+  // Jam lokal berjalan
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // Load CCTV slots dari backend / database
+  // Muat daftar kamera CCTV
   const loadCctvSlots = async () => {
     setLoading(true);
     try {
@@ -116,7 +111,7 @@ export default function BranchCctv() {
       setFormSlots(
         data.map((s, idx) => ({
           channel: s.channel || idx + 1,
-          name: s.name || `CCTV Slot ${idx + 1}`,
+          name: s.name || `Kamera ${idx + 1}`,
           location: s.location || '',
           streamUrl: s.streamUrl || '',
           status: s.status || 'ACTIVE',
@@ -135,25 +130,23 @@ export default function BranchCctv() {
     loadCctvSlots();
   }, [user?.branchId]);
 
-  // Kamera aktif untuk Playback (berdasarkan playbackChannel)
+  // Kamera aktif untuk pemutaran rekaman
   const activePlaybackCamera = useMemo(() => {
     return (
       slots.find((s) => (s.channel || 1) === playbackChannel) ||
       slots[0] || {
         channel: 1,
-        name: 'CCTV 01 - Portir & Pintu Utama',
-        location: 'Gerbang Utama Lapas',
+        name: 'Kamera 01',
+        location: 'Pos Pengawasan',
       }
     );
   }, [slots, playbackChannel]);
 
-  // Sumber URL Video Rekaman Berdasarkan Channel
+  // URL Video Rekaman
   const getPlaybackVideoUrl = useCallback((camera, channel) => {
-    // Jika kamera memiliki stream URL direct MP4/WebM, gunakan itu
     if (camera?.streamUrl && !camera.streamUrl.includes('.m3u8')) {
       return camera.streamUrl;
     }
-    // Berkas video rekaman terpisah per channel untuk investigasi replay
     const sampleClips = [
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
       'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
@@ -163,19 +156,18 @@ export default function BranchCctv() {
     return sampleClips[(channel - 1) % sampleClips.length];
   }, []);
 
-  // SINKRONISASI WAKTU MUNDUR / MAJU (SEEKING VIDEO SECARA REALTIME)
+  // Sinkronisasi pemutar video saat waktu digeser
   const syncVideoToPlaybackSec = (targetSec) => {
     if (playbackVideoRef.current) {
       const video = playbackVideoRef.current;
       if (Number.isFinite(video.duration) && video.duration > 0) {
-        // Petakan detik 0..86399 ke durasi berkas video di player
         const targetVideoTime = targetSec % Math.floor(video.duration);
         video.currentTime = targetVideoTime;
       }
     }
   };
 
-  // Timer playback saat 'isPlaying' aktif
+  // Timer playback saat tombol play ditekan
   useEffect(() => {
     let interval = null;
     if (activeTab === 'playback' && isPlaying) {
@@ -194,14 +186,12 @@ export default function BranchCctv() {
     };
   }, [activeTab, isPlaying, playbackSpeed]);
 
-  // Segmen Rekaman Bersih (Menunjukkan jam rekaman yang tersedia di storage Biznet)
+  // Segmen ketersediaan rekaman
   const recordingSegments = useMemo(() => {
-    return [
-      { startSec: 0, endSec: 86400 }, // Rekaman kontinu 24 jam penuh di storage
-    ];
+    return [{ startSec: 0, endSec: 86400 }];
   }, []);
 
-  // Daftar Arsip Rekaman Berdasarkan Jam (Hourly Archives) untuk Panel Samping
+  // Daftar berkas rekaman per sesi jam
   const hourlyArchives = useMemo(() => {
     const hours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
     return hours.map((h) => {
@@ -214,14 +204,12 @@ export default function BranchCctv() {
         startSec,
         endSec,
         timeLabel: `${startStr} - ${endStr} WIB`,
-        title: `Rekaman Sesi Jam ${startStr}`,
-        fileSize: '450 MB',
-        format: 'MP4',
+        title: `Rekaman Jam ${startStr}`,
+        fileSize: '420 MB',
       };
     });
   }, []);
 
-  // Handle Play/Pause
   const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
     if (playbackVideoRef.current) {
@@ -233,7 +221,6 @@ export default function BranchCctv() {
     }
   };
 
-  // Handle Frame Step (-1s atau +1s)
   const handleStepFrame = (deltaSec) => {
     setIsPlaying(false);
     setPlaybackSec((prev) => {
@@ -243,32 +230,27 @@ export default function BranchCctv() {
     });
   };
 
-  // Handle Jump (-10s atau +10s)
   const handleJump = (deltaSec) => {
     setPlaybackSec((prev) => {
       const next = Math.max(0, Math.min(86399, prev + deltaSec));
       syncVideoToPlaybackSec(next);
       return next;
     });
-    showToast(deltaSec < 0 ? 'Mundur 10 Detik' : 'Maju 10 Detik');
+    showToast(deltaSec < 0 ? 'Mundur 10 detik' : 'Maju 10 detik');
   };
 
-  // Handle Timeline Scrubbing (Klik / Drag Waktu 24 Jam)
   const handleTimeChange = (sec) => {
     setPlaybackSec(sec);
     syncVideoToPlaybackSec(sec);
   };
 
-  // Handle Ganti Kecepatan Putar
   const handleChangeSpeed = (speed) => {
     setPlaybackSpeed(speed);
     if (playbackVideoRef.current) {
       playbackVideoRef.current.playbackRate = speed;
     }
-    showToast(`Kecepatan putar ${speed}x`);
   };
 
-  // Handle Klik Arsip Jam di Panel Samping
   const handleSelectArchive = (archive) => {
     setPlaybackSec(archive.startSec);
     syncVideoToPlaybackSec(archive.startSec);
@@ -276,19 +258,17 @@ export default function BranchCctv() {
     if (playbackVideoRef.current) {
       playbackVideoRef.current.play().catch(() => {});
     }
-    showToast(`Memutar rekaman sesi: ${archive.timeLabel}`);
+    showToast(`Memutar rekaman ${archive.timeLabel}`);
   };
 
-  // Handle Buka Modal Download Klip (Otomatis mengisi jam posisi playhead)
   const handleOpenClipModal = () => {
     const startHm = formatSecondsToHm(playbackSec);
-    const endHm = formatSecondsToHm(Math.min(86399, playbackSec + 900)); // +15 menit default
+    const endHm = formatSecondsToHm(Math.min(86399, playbackSec + 900));
     setClipStartTime(startHm);
     setClipEndTime(endHm);
     setShowClipModal(true);
   };
 
-  // Hitung durasi unduhan klip dalam menit
   const calculatedClipDurationMin = useMemo(() => {
     try {
       const [sh, sm] = clipStartTime.split(':').map(Number);
@@ -301,22 +281,20 @@ export default function BranchCctv() {
     }
   }, [clipStartTime, clipEndTime]);
 
-  // Handle Unduh Berkas Video dari Menit Berapa ke Menit Berapa
   const handleDownloadClip = () => {
     setClipDownloading(true);
     setTimeout(() => {
       setClipDownloading(false);
       setShowClipModal(false);
-      showToast(`Video rekaman (${clipStartTime} - ${clipEndTime} WIB) berhasil diunduh!`);
+      showToast(`Rekaman (${clipStartTime} - ${clipEndTime} WIB) berhasil diunduh.`);
       const a = document.createElement('a');
       a.href = getPlaybackVideoUrl(activePlaybackCamera, playbackChannel);
       a.download = `REKAMAN_CCTV_CH${playbackChannel}_${playbackDate}_${clipStartTime.replace(':', '')}-${clipEndTime.replace(':', '')}.mp4`;
       a.target = '_blank';
       a.click();
-    }, 1200);
+    }, 1000);
   };
 
-  // Snapshot Gambar Playback dengan Watermark
   const takePlaybackSnapshot = () => {
     const video = playbackVideoRef.current;
     if (!video) return;
@@ -327,35 +305,23 @@ export default function BranchCctv() {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-      ctx.fillRect(20, canvas.height - 70, 520, 50);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(20, canvas.height - 60, 480, 40);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText(
-        `REKAMAN HISTORI • ${activePlaybackCamera.name.toUpperCase()}`,
-        35,
-        canvas.height - 46
-      );
-      ctx.font = '13px sans-serif';
-      ctx.fillStyle = '#38BDF8';
-      ctx.fillText(
-        `WAKTU: ${playbackDate} ${formatSecondsToHms(playbackSec)} WIB`,
-        35,
-        canvas.height - 28
-      );
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(`${activePlaybackCamera.name.toUpperCase()} • ${playbackDate} ${formatSecondsToHms(playbackSec)} WIB`, 30, canvas.height - 35);
 
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
-      a.download = `BUKTI_FRAME_CH${playbackChannel}_${playbackDate}_${formatSecondsToHms(playbackSec).replace(/:/g, '')}.png`;
+      a.download = `SNAPSHOT_CH${playbackChannel}_${playbackDate}_${formatSecondsToHms(playbackSec).replace(/:/g, '')}.png`;
       a.click();
-      showToast('Tangkapan gambar rekaman berhasil disimpan!');
+      showToast('Gambar snapshot berhasil disimpan.');
     } catch (e) {
-      alert('Tidak dapat mengambil snapshot CORS.');
+      alert('Gagal mengambil snapshot gambar.');
     }
   };
 
-  // Snapshot Gambar Live View
   const takeLiveSnapshot = (ch, cameraName) => {
     const video = videoRefs.current[ch];
     if (!video) return;
@@ -366,31 +332,23 @@ export default function BranchCctv() {
       const ctx = canvas.getContext('2d');
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
-      ctx.fillRect(20, canvas.height - 70, 520, 50);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      ctx.fillRect(20, canvas.height - 60, 480, 40);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText(`PASCALL CCTV LIVE • ${cameraName.toUpperCase()}`, 35, canvas.height - 46);
-      ctx.font = '13px sans-serif';
-      ctx.fillStyle = '#4ADE80';
-      ctx.fillText(
-        `${currentTime.toLocaleDateString('id-ID')} ${currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB`,
-        35,
-        canvas.height - 28
-      );
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText(`${cameraName.toUpperCase()} • ${currentTime.toLocaleDateString('id-ID')} ${currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB`, 30, canvas.height - 35);
 
       const dataUrl = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = dataUrl;
       a.download = `LIVE_SNAPSHOT_${cameraName.replace(/\s+/g, '_')}_${Date.now()}.png`;
       a.click();
-      showToast(`Snapshot ${cameraName} tersimpan!`);
+      showToast('Gambar snapshot berhasil disimpan.');
     } catch (e) {
-      alert('Gagal mengambil snapshot CORS.');
+      alert('Gagal mengambil snapshot gambar.');
     }
   };
 
-  // Fullscreen Playback Player
   const togglePlaybackFullscreen = () => {
     const el = playbackVideoRef.current;
     if (el) {
@@ -402,7 +360,6 @@ export default function BranchCctv() {
     }
   };
 
-  // Fullscreen Live Camera
   const toggleLiveFullscreen = (ch) => {
     const el = videoRefs.current[ch];
     if (el) {
@@ -414,7 +371,6 @@ export default function BranchCctv() {
     }
   };
 
-  // Toggle Mute Live Camera
   const toggleLiveMute = (ch) => {
     setMutedStates((prev) => {
       const newMuted = !prev[ch];
@@ -425,543 +381,474 @@ export default function BranchCctv() {
     });
   };
 
-  // Simpan Form 4 Slot CCTV
   const handleSaveAllSlots = async () => {
     setSaveLoading(true);
     setSaveSuccessMsg('');
     try {
       await cctvService.saveBulkCctv(formSlots);
-      setSaveSuccessMsg('Konfigurasi 4 Slot CCTV berhasil disimpan!');
+      setSaveSuccessMsg('Pengaturan kamera berhasil disimpan.');
       await loadCctvSlots();
       setTimeout(() => {
         setShowConfigModal(false);
         setSaveSuccessMsg('');
-      }, 1200);
+      }, 1000);
     } catch (e) {
-      alert('Gagal menyimpan slot CCTV: ' + (e.message || 'Terjadi kesalahan'));
+      alert('Gagal menyimpan: ' + (e.message || 'Terjadi kesalahan'));
     } finally {
       setSaveLoading(false);
     }
   };
 
   return (
-    <div className="space-y-4 max-w-7xl mx-auto pb-12">
+    <div className="space-y-4 max-w-7xl mx-auto pb-10">
       {/* Toast Notifikasi */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* 1. Header & Switcher Mode */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-xs">
-            <Video className="w-5 h-5 text-blue-400" />
+      {/* 1. Header Halaman */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-lg font-bold text-slate-800">Monitoring CCTV</h1>
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600 border border-slate-200">
+              {isKepalaUpt ? 'Kepala UPT' : 'Supervisor'}
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-base font-bold text-slate-800">Sistem Pengawasan CCTV Lapas</h1>
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                {isKepalaUpt ? 'Kepala UPT' : 'Supervisor (View Only)'}
-              </span>
-            </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500 mt-0.5">
-              <span className="flex items-center gap-1">
-                <HardDrive className="w-3 h-3 text-emerald-600" />
-                <span>Storage: Biznet Object Storage</span>
-              </span>
-              <span className="text-slate-300">•</span>
-              <span className="flex items-center gap-1 font-mono text-slate-600">
-                <Clock className="w-3 h-3 text-slate-400" />
-                {currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB
-              </span>
-            </div>
-          </div>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Pantau tayangan 4 titik kamera lapas dan pemutaran rekaman pengawasan.
+          </p>
         </div>
 
-        {/* Tab Switcher & Pengaturan */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
-            <button
-              onClick={() => setActiveTab('live')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'live'
-                  ? 'bg-red-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-80" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-              </span>
-              <span>Live Monitor</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('playback')}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                activeTab === 'playback'
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-              }`}
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Playback Rekaman</span>
-            </button>
+        <div className="flex items-center gap-2">
+          {/* Jam Realtime */}
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 font-medium shadow-2xs">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span className="font-mono">{currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB</span>
           </div>
 
+          {/* Tombol Atur Kamera (Kepala UPT Only) */}
           {isKepalaUpt && (
             <button
               onClick={() => setShowConfigModal(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
-              <span>Atur URL Kamera</span>
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Atur Kamera</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 2. Notice Mode Supervisor */}
-      {isSupervisor && (
-        <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-start sm:items-center gap-3 text-xs shadow-2xs">
-          <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
-          <p className="text-amber-950 font-medium">
-            <strong className="font-bold text-amber-950">Mode Supervisor:</strong> Anda dapat memantau tayangan langsung 4 kamera dan memutar rekaman waktu kebelakang. Penambahan atau perubahan URL stream CCTV dikelola oleh Kepala UPT.
-          </p>
-        </div>
-      )}
-
-      {/* 3. TAB 1: LIVE MONITORING */}
-      {activeTab === 'live' && (
-        <div className="space-y-3">
-          {/* Toolbar Live */}
-          <div className="bg-white border border-slate-200/80 rounded-xl px-4 py-2 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-slate-600">
-              <span className="font-semibold text-slate-400 text-[11px]">Tampilan Layar:</span>
-              <button
-                onClick={() => setGridLayout('2x2')}
-                className={`px-3 py-1 rounded-lg font-bold transition ${
-                  gridLayout === '2x2' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                Grid 2x2 (4 Kamera)
-              </button>
-              <button
-                onClick={() => setGridLayout('focus')}
-                className={`px-3 py-1 rounded-lg font-bold transition ${
-                  gridLayout === 'focus' ? 'bg-slate-900 text-white' : 'hover:bg-slate-100 text-slate-700'
-                }`}
-              >
-                Layar Tunggal (CH #{selectedChannel})
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="hidden sm:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                4 Kamera Terhubung
-              </span>
-              <button
-                onClick={loadCctvSlots}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition"
-                title="Segarkan feed kamera"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Grid 4 Kamera */}
-          <div
-            className={`grid gap-3.5 ${
-              gridLayout === '2x2' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+      {/* 2. Tab Navigasi: Live Monitor & Pemutaran Rekaman */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+          <button
+            onClick={() => setActiveTab('live')}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeTab === 'live'
+                ? 'bg-white text-slate-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            {slots.map((camera, index) => {
-              const ch = camera.channel || index + 1;
-              if (gridLayout === 'focus' && ch !== selectedChannel) return null;
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+            </span>
+            <span>Live Monitor</span>
+          </button>
 
-              const isMuted = mutedStates[ch] ?? true;
-              const hasUrl = Boolean(camera.streamUrl && camera.streamUrl.trim() !== '');
-              const isSelected = selectedChannel === ch;
+          <button
+            onClick={() => setActiveTab('playback')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+              activeTab === 'playback'
+                ? 'bg-white text-slate-800 shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-blue-600" />
+            <span>Pemutaran Rekaman</span>
+          </button>
+        </div>
 
-              return (
-                <div
-                  key={camera.id || `cam-${ch}`}
-                  onClick={() => setSelectedChannel(ch)}
-                  className={`bg-slate-950 rounded-2xl overflow-hidden shadow-lg border-2 transition group relative flex flex-col ${
-                    isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-800 hover:border-slate-700'
-                  }`}
-                >
-                  <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+        {/* Pilihan Grid Tampilan (Tab Live) */}
+        {activeTab === 'live' && (
+          <div className="flex items-center gap-1 text-xs">
+            <button
+              onClick={() => setGridLayout('2x2')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+                gridLayout === '2x2'
+                  ? 'bg-slate-800 text-white border-slate-800'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Grid 2x2
+            </button>
+            <button
+              onClick={() => setGridLayout('focus')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+                gridLayout === 'focus'
+                  ? 'bg-slate-800 text-white border-slate-800'
+                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              Fokus CH #{selectedChannel}
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* 3. TAB 1: LIVE MONITOR (GRID 4 KAMERA) */}
+      {activeTab === 'live' && (
+        <div
+          className={`grid gap-4 ${
+            gridLayout === '2x2' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+          }`}
+        >
+          {slots.map((camera, index) => {
+            const ch = camera.channel || index + 1;
+            if (gridLayout === 'focus' && ch !== selectedChannel) return null;
+
+            const isMuted = mutedStates[ch] ?? true;
+            const hasUrl = Boolean(camera.streamUrl && camera.streamUrl.trim() !== '');
+            const isSelected = selectedChannel === ch;
+
+            return (
+              <div
+                key={camera.id || `cam-${ch}`}
+                onClick={() => setSelectedChannel(ch)}
+                className={`bg-white border rounded-2xl overflow-hidden shadow-2xs transition flex flex-col ${
+                  isSelected ? 'border-blue-400 ring-1 ring-blue-400' : 'border-slate-200/90'
+                }`}
+              >
+                {/* Header Card */}
+                <div className="px-4 py-2.5 bg-white border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                      CH {ch}
+                    </span>
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-800 leading-tight">
+                        {camera.name || `Kamera ${ch}`}
+                      </h3>
+                      <p className="text-[11px] text-slate-400">
+                        {camera.location || 'Lokasi belum disetel'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
                     {hasUrl ? (
-                      <>
-                        <CctvPlayer
-                          src={camera.streamUrl}
-                          muted={isMuted}
-                          autoPlay={true}
-                          loop={true}
-                          playsInline={true}
-                          onVideoRef={(el) => {
-                            if (el) videoRefs.current[ch] = el;
-                          }}
-                        />
-
-                        {/* OSD Atas */}
-                        <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none z-10">
-                          <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md border border-white/10 text-white shadow-md">
-                            <span className="font-mono text-[10px] font-extrabold text-blue-400">
-                              CH{String(ch).padStart(2, '0')}
-                            </span>
-                            <span className="text-[11px] font-bold truncate max-w-[170px]">
-                              {camera.name}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2 py-1 rounded-md border border-white/10 text-white text-[10px] font-mono">
-                            <div className="flex items-center gap-1 text-red-400 font-bold">
-                              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                              <span>REC</span>
-                            </div>
-                            <span className="text-slate-400">|</span>
-                            <span className="text-slate-300 font-semibold">1080p</span>
-                          </div>
-                        </div>
-
-                        {/* OSD Waktu Bawah */}
-                        <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10">
-                          <div className="bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md border border-white/10 text-[11px] font-mono text-emerald-400 shadow-md">
-                            {currentTime.toLocaleDateString('id-ID')} {currentTime.toLocaleTimeString('id-ID', { hour12: false })}
-                          </div>
-                        </div>
-
-                        {/* Quick Action Tools */}
-                        <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition z-20">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleLiveMute(ch);
-                            }}
-                            className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title={isMuted ? 'Nyalakan Audio' : 'Bisukan'}
-                          >
-                            {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              takeLiveSnapshot(ch, camera.name);
-                            }}
-                            className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title="Ambil Foto Snapshot"
-                          >
-                            <Camera className="w-3.5 h-3.5 text-slate-200" />
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedChannel(ch);
-                              setGridLayout(gridLayout === 'focus' ? '2x2' : 'focus');
-                            }}
-                            className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title={gridLayout === 'focus' ? 'Grid 2x2' : 'Layar Tunggal'}
-                          >
-                            <Layers className="w-3.5 h-3.5 text-slate-200" />
-                          </button>
-
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleLiveFullscreen(ch);
-                            }}
-                            className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title="Layar Penuh"
-                          >
-                            <Maximize2 className="w-3.5 h-3.5 text-slate-200" />
-                          </button>
-                        </div>
-                      </>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Online
+                      </span>
                     ) : (
-                      <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-2">
-                          <VideoOff className="w-6 h-6" />
-                        </div>
-                        <h4 className="text-xs font-bold text-slate-300">
-                          Kamera #{ch} Belum Dikonfigurasi
-                        </h4>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          {isKepalaUpt ? 'Masukkan URL RTSP/HLS kamera' : 'Belum diaktifkan'}
-                        </p>
-                        {isKepalaUpt && (
-                          <button
-                            onClick={() => {
-                              setEditingSlotIndex(ch - 1);
-                              setShowConfigModal(true);
-                            }}
-                            className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                            Atur Kamera #{ch}
-                          </button>
-                        )}
-                      </div>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-500">
+                        Nonaktif
+                      </span>
+                    )}
+
+                    {isKepalaUpt && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingSlotIndex(ch - 1);
+                          setShowConfigModal(true);
+                        }}
+                        className="p-1 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                        title="Ubah URL Kamera"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
-
-                  {/* Card Footer: Lokasi & Tombol Putar Rekaman Kamera Ini */}
-                  <div className="px-3.5 py-1.5 bg-slate-900 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                    <span className="truncate max-w-[220px]">
-                      📍 {camera.location || 'Lokasi belum disetel'}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPlaybackChannel(ch);
-                        setActiveTab('playback');
-                        showToast(`Beralih ke rekaman: ${camera.name}`);
-                      }}
-                      className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition"
-                    >
-                      <RotateCcw className="w-3 h-3" />
-                      <span>Putar Rekaman CH {ch}</span>
-                    </button>
-                  </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Layar Video */}
+                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                  {hasUrl ? (
+                    <>
+                      <CctvPlayer
+                        src={camera.streamUrl}
+                        muted={isMuted}
+                        autoPlay={true}
+                        loop={true}
+                        playsInline={true}
+                        onVideoRef={(el) => {
+                          if (el) videoRefs.current[ch] = el;
+                        }}
+                      />
+
+                      {/* OSD Mini */}
+                      <div className="absolute top-2.5 left-2.5 pointer-events-none">
+                        <span className="bg-black/60 backdrop-blur-xs text-white text-[10px] px-2 py-0.5 rounded font-mono">
+                          LIVE
+                        </span>
+                      </div>
+
+                      {/* Tombol Aksi Cepat In-Frame */}
+                      <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLiveMute(ch);
+                          }}
+                          className="p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition"
+                          title={isMuted ? 'Nyalakan Audio' : 'Bisukan'}
+                        >
+                          {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            takeLiveSnapshot(ch, camera.name);
+                          }}
+                          className="p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition"
+                          title="Ambil Foto Snapshot"
+                        >
+                          <Camera className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleLiveFullscreen(ch);
+                          }}
+                          className="p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition"
+                          title="Layar Penuh"
+                        >
+                          <Maximize2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500">
+                      <VideoOff className="w-6 h-6 mb-2 text-slate-600" />
+                      <p className="text-xs font-semibold text-slate-400">
+                        Kamera Belum Dikonfigurasi
+                      </p>
+                      {isKepalaUpt && (
+                        <button
+                          onClick={() => {
+                            setEditingSlotIndex(ch - 1);
+                            setShowConfigModal(true);
+                          }}
+                          className="mt-2.5 text-xs font-semibold text-blue-400 hover:text-blue-300 underline"
+                        >
+                          Atur URL Kamera #{ch}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Card */}
+                <div className="px-4 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+                  <span className="truncate max-w-[200px]">
+                    {camera.location || 'Pos Kamera'}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPlaybackChannel(ch);
+                      setActiveTab('playback');
+                    }}
+                    className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+                  >
+                    <span>Putar Rekaman</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* 4. TAB 2: PLAYBACK REKAMAN CCTV (TIMELINE 24 JAM & ARSIP REKAMAN REAL) */}
+      {/* 4. TAB 2: PEMUTARAN REKAMAN (PLAYBACK) */}
       {activeTab === 'playback' && (
-        <div className="space-y-3.5">
-          {/* Bar Filter & Pilihan Kamera Playback (Tab Cepat 4 Kamera) */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              {/* Tab Selector Pindah Kamera Cepat CH 1, 2, 3, 4 */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
-                  Pilih Kamera:
-                </span>
-                {slots.map((s, idx) => {
-                  const ch = s.channel || idx + 1;
-                  const isCurrent = playbackChannel === ch;
-                  return (
-                    <button
-                      key={s.id || ch}
-                      onClick={() => {
-                        setPlaybackChannel(ch);
-                        showToast(`Memuat rekaman: CH ${ch} - ${s.name}`);
-                      }}
-                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
-                        isCurrent
-                          ? 'bg-blue-600 text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200/70 border border-slate-200/60'
-                      }`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          isCurrent ? 'bg-white' : 'bg-emerald-500'
-                        }`}
-                      />
-                      <span>CH {String(ch).padStart(2, '0')}: {s.name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Tanggal Rekaman & Tombol Download Klip */}
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
-                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                  <input
-                    type="date"
-                    value={playbackDate}
-                    onChange={(e) => setPlaybackDate(e.target.value)}
-                    max={todayStr}
-                    className="bg-transparent text-slate-800 font-bold outline-none text-xs"
-                  />
+        <div className="space-y-4">
+          {/* Bar Filter Sederhana */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs flex flex-wrap items-center justify-between gap-3">
+            {/* Pilihan Kamera (Tab Ringkas) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto">
+              <span className="text-[11px] font-semibold text-slate-400 mr-1">Kamera:</span>
+              {slots.map((s, idx) => {
+                const ch = s.channel || idx + 1;
+                const isCurrent = playbackChannel === ch;
+                return (
                   <button
-                    onClick={() => setPlaybackDate(todayStr)}
-                    className={`ml-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
-                      playbackDate === todayStr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-800'
+                    key={s.id || ch}
+                    onClick={() => {
+                      setPlaybackChannel(ch);
+                      showToast(`Memuat rekaman CH ${ch}`);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition whitespace-nowrap border ${
+                      isCurrent
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                     }`}
                   >
-                    Hari Ini
+                    CH {ch}: {s.name || `Kamera ${ch}`}
                   </button>
-                </div>
+                );
+              })}
+            </div>
 
-                <button
-                  onClick={handleOpenClipModal}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
-                >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download Klip Video</span>
-                </button>
+            {/* Pilihan Tanggal & Tombol Unduh */}
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
+                <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="date"
+                  value={playbackDate}
+                  onChange={(e) => setPlaybackDate(e.target.value)}
+                  max={todayStr}
+                  className="bg-transparent text-slate-800 font-semibold outline-none text-xs"
+                />
               </div>
+
+              <button
+                onClick={handleOpenClipModal}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh Video</span>
+              </button>
             </div>
           </div>
 
-          {/* Area Player Viewport & Arsip Rekaman */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3.5">
-            {/* Viewport & Timeline (3 Kolom) */}
-            <div className="lg:col-span-3 bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
-              {/* OSD Header Viewport Playback */}
-              <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-white text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded font-mono text-[10px] font-extrabold bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                    PLAYBACK CH{String(playbackChannel).padStart(2, '0')}
-                  </span>
-                  <span className="font-bold text-slate-200">
-                    {activePlaybackCamera.name}
-                  </span>
-                  <span className="text-slate-400 text-[11px] hidden sm:inline">
-                    ({activePlaybackCamera.location || 'Lokasi'})
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="font-mono text-emerald-400 font-bold text-xs flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span>{playbackDate}</span>
-                    <span>•</span>
-                    <span>{formatSecondsToHms(playbackSec)} WIB</span>
+          {/* Area Video Player & Arsip */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            {/* Player Viewport (3 Kolom) */}
+            <div className="lg:col-span-3 space-y-3">
+              <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-2xs">
+                {/* Header Viewport */}
+                <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-800">
+                      CH {playbackChannel}: {activePlaybackCamera.name}
+                    </span>
+                    <span className="text-slate-400">({activePlaybackCamera.location || 'Lokasi'})</span>
                   </div>
 
-                  {/* Snapshot Button in Playback */}
-                  <button
-                    onClick={takePlaybackSnapshot}
-                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                    title="Simpan Frame Bukti Rekaman"
-                  >
-                    <Camera className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span className="font-mono font-medium">{playbackDate}</span>
+                    <button
+                      onClick={takePlaybackSnapshot}
+                      className="p-1 rounded hover:bg-slate-200 transition"
+                      title="Ambil Foto Snapshot"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={togglePlaybackFullscreen}
+                      className="p-1 rounded hover:bg-slate-200 transition"
+                      title="Layar Penuh"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
 
-                  {/* Fullscreen Button */}
+                {/* Layar Video Playback */}
+                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
+                  <video
+                    ref={playbackVideoRef}
+                    key={`playback-ch-${playbackChannel}-${playbackDate}`}
+                    src={getPlaybackVideoUrl(activePlaybackCamera, playbackChannel)}
+                    className="w-full h-full object-contain"
+                    playsInline
+                    muted={playbackMuted}
+                    loop
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                  />
+
+                  {/* Tombol Play Besar jika sedang jeda */}
+                  {!isPlaying && (
+                    <button
+                      onClick={handleTogglePlay}
+                      className="absolute inset-0 m-auto w-14 h-14 rounded-full bg-blue-600/90 hover:bg-blue-600 text-white flex items-center justify-center shadow-lg transition transform hover:scale-105"
+                    >
+                      <Play className="w-6 h-6 fill-white ml-0.5" />
+                    </button>
+                  )}
+
+                  {/* Audio Mute */}
                   <button
-                    onClick={togglePlaybackFullscreen}
-                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
-                    title="Layar Penuh"
+                    onClick={() => {
+                      const newMuted = !playbackMuted;
+                      setPlaybackMuted(newMuted);
+                      if (playbackVideoRef.current) {
+                        playbackVideoRef.current.muted = newMuted;
+                      }
+                    }}
+                    className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-black/60 text-white hover:bg-black/80 transition"
+                    title={playbackMuted ? 'Nyalakan Audio' : 'Bisukan'}
                   >
-                    <Maximize2 className="w-3.5 h-3.5" />
+                    {playbackMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
                   </button>
                 </div>
               </div>
 
-              {/* Video Player Display */}
-              <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
-                <video
-                  ref={playbackVideoRef}
-                  key={`playback-video-ch-${playbackChannel}-${playbackDate}`}
-                  src={getPlaybackVideoUrl(activePlaybackCamera, playbackChannel)}
-                  className="w-full h-full object-contain"
-                  playsInline
-                  muted={playbackMuted}
-                  loop
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
-                />
-
-                {/* Big Center Play Button saat pause */}
-                {!isPlaying && (
-                  <button
-                    onClick={handleTogglePlay}
-                    className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl transition transform hover:scale-110 z-10"
-                  >
-                    <Play className="w-8 h-8 fill-white ml-1" />
-                  </button>
-                )}
-
-                {/* Indikator Kecepatan di Layar */}
-                <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md text-white text-[11px] font-mono flex items-center gap-2 pointer-events-none z-10">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span>PUTAR: {playbackSpeed}x</span>
-                </div>
-
-                {/* Audio Toggle in Playback */}
-                <button
-                  onClick={() => {
-                    const newMuted = !playbackMuted;
-                    setPlaybackMuted(newMuted);
-                    if (playbackVideoRef.current) {
-                      playbackVideoRef.current.muted = newMuted;
-                    }
-                  }}
-                  className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10 z-10"
-                  title={playbackMuted ? 'Nyalakan Audio' : 'Bisukan'}
-                >
-                  {playbackMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
-                </button>
-              </div>
-
-              {/* TIMELINE 24 JAM INTERAKTIF */}
-              <div className="p-3 bg-slate-950 border-t border-slate-800">
-                <CctvTimeline
-                  selectedDate={playbackDate}
-                  currentTimeSec={playbackSec}
-                  onTimeChange={handleTimeChange}
-                  isPlaying={isPlaying}
-                  onTogglePlay={handleTogglePlay}
-                  playbackSpeed={playbackSpeed}
-                  onChangeSpeed={handleChangeSpeed}
-                  onStepFrame={handleStepFrame}
-                  onJump={handleJump}
-                  recordingSegments={recordingSegments}
-                  onOpenClipExporter={handleOpenClipModal}
-                />
-              </div>
+              {/* Timeline 24 Jam Bersih */}
+              <CctvTimeline
+                selectedDate={playbackDate}
+                currentTimeSec={playbackSec}
+                onTimeChange={handleTimeChange}
+                isPlaying={isPlaying}
+                onTogglePlay={handleTogglePlay}
+                playbackSpeed={playbackSpeed}
+                onChangeSpeed={handleChangeSpeed}
+                onStepFrame={handleStepFrame}
+                onJump={handleJump}
+                recordingSegments={recordingSegments}
+                onOpenClipExporter={handleOpenClipModal}
+              />
             </div>
 
-            {/* Panel Samping (1 Kolom): Daftar Arsip Rekaman Per Jam (Real Storage Files) */}
+            {/* Panel Samping: Daftar Rekaman Per Jam (1 Kolom) */}
             <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col h-full">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                <div className="flex items-center gap-2">
-                  <FolderArchive className="w-4 h-4 text-blue-600" />
-                  <h3 className="text-xs font-bold text-slate-800">Arsip Rekaman ({playbackDate})</h3>
-                </div>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700">
-                  Storage S3
-                </span>
+              <div className="flex items-center gap-2 pb-2.5 border-b border-slate-100 mb-2.5">
+                <FolderArchive className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs font-bold text-slate-800">Daftar Rekaman Sesi</h3>
               </div>
 
               <p className="text-[11px] text-slate-400 mb-3">
-                Pilih sesi rekaman untuk memutar langsung dari jam tersebut:
+                Pilih jam di bawah untuk langsung memutar:
               </p>
 
-              <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1 flex-1">
+              <div className="space-y-1.5 overflow-y-auto max-h-[520px] pr-1 flex-1">
                 {hourlyArchives.map((arc) => {
-                  const isCurrentSession = playbackSec >= arc.startSec && playbackSec < arc.endSec;
+                  const isCurrent = playbackSec >= arc.startSec && playbackSec < arc.endSec;
                   return (
                     <div
                       key={arc.id}
                       onClick={() => handleSelectArchive(arc)}
-                      className={`p-3 rounded-xl border cursor-pointer transition ${
-                        isCurrentSession
-                          ? 'bg-blue-50/90 border-blue-400 shadow-2xs'
-                          : 'bg-slate-50 border-slate-200 hover:border-slate-300 hover:bg-slate-100/70'
+                      className={`p-2.5 rounded-xl border cursor-pointer transition text-xs flex items-center justify-between ${
+                        isCurrent
+                          ? 'bg-blue-50/90 border-blue-300 text-blue-900 font-semibold'
+                          : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-mono font-bold text-blue-700">
+                      <div>
+                        <div className="font-mono font-bold text-slate-800">
                           {arc.timeLabel}
-                        </span>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          {arc.format}
-                        </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400">
+                          {arc.title}
+                        </div>
                       </div>
-                      <h4 className="text-xs font-bold text-slate-800 leading-snug">
-                        {arc.title}
-                      </h4>
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
-                        <span className="truncate max-w-[130px]">{activePlaybackCamera.name}</span>
-                        <span className="font-semibold text-slate-500">{arc.fileSize}</span>
-                      </div>
+
+                      <span className="text-[11px] text-blue-600 font-semibold">
+                        Putar
+                      </span>
                     </div>
                   );
                 })}
@@ -971,94 +858,69 @@ export default function BranchCctv() {
         </div>
       )}
 
-      {/* 5. MODAL DOWNLOAD KLIP VIDEO (DARI MENIT BERAPA KE MENIT BERAPA) */}
+      {/* 5. MODAL UNDUH VIDEO (DARI MENIT BERAPA KE MENIT BERAPA) */}
       {showClipModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                  <Download className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-800">
-                    Download Berkas Video Rekaman CCTV
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Tentukan rentang jam/menit video yang ingin diunduh.
-                  </p>
-                </div>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <h2 className="text-sm font-bold text-slate-800">
+                Unduh Rekaman Video
+              </h2>
               <button
                 onClick={() => setShowClipModal(false)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
-              {/* Kamera Terpilih */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Kamera CCTV
-                </label>
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 flex items-center justify-between">
-                  <span>CH {playbackChannel}: {activePlaybackCamera.name}</span>
-                  <span className="text-[11px] text-slate-500 font-normal">{playbackDate}</span>
-                </div>
+            <div className="p-5 space-y-3.5">
+              <div className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
+                <span className="font-semibold text-slate-700">CH {playbackChannel}: {activePlaybackCamera.name}</span>
+                <span className="text-slate-500 font-mono">{playbackDate}</span>
               </div>
 
-              {/* Rentang Waktu: Dari Menit Berapa ke Menit Berapa */}
-              <div className="grid grid-cols-2 gap-3.5">
+              {/* Input Jam Mulai dan Jam Selesai */}
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Dari Jam / Menit (WIB)
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Waktu Mulai
                   </label>
                   <input
                     type="time"
                     value={clipStartTime}
                     onChange={(e) => setClipStartTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold rounded-xl px-3 py-2.5 outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold rounded-xl px-3 py-2 outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Sampai Jam / Menit (WIB)
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Waktu Selesai
                   </label>
                   <input
                     type="time"
                     value={clipEndTime}
                     onChange={(e) => setClipEndTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold rounded-xl px-3 py-2.5 outline-none focus:border-blue-500"
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs font-mono font-bold rounded-xl px-3 py-2 outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              {/* Ringkasan Estimasi Durasi */}
-              <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between text-xs text-blue-900">
+              {/* Durasi */}
+              <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl flex items-center justify-between text-xs text-blue-900">
                 <span className="flex items-center gap-1.5">
                   <FileVideo className="w-4 h-4 text-blue-600 shrink-0" />
-                  <span>Durasi Berkas:</span>
+                  <span>Durasi Terpilih:</span>
                 </span>
-                <span className="font-bold font-mono">
-                  {calculatedClipDurationMin} Menit Video
-                </span>
-              </div>
-
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 flex items-start gap-2">
-                <HardDrive className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>
-                  Berkas video diunduh langsung dari <strong>Object Storage Biznet GIO</strong> dalam format MP4 (tanpa membebani penyimpanan VPS).
-                </span>
+                <span className="font-bold">{calculatedClipDurationMin} Menit</span>
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setShowClipModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/60 transition"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition"
               >
                 Batal
               </button>
@@ -1066,52 +928,47 @@ export default function BranchCctv() {
                 type="button"
                 onClick={handleDownloadClip}
                 disabled={clipDownloading}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                <span>{clipDownloading ? 'Menyiapkan Unduhan...' : 'Download Video (MP4)'}</span>
+                <Download className="w-3.5 h-3.5" />
+                <span>{clipDownloading ? 'Mengunduh...' : 'Download Video (MP4)'}</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* 6. MODAL KONFIGURASI 4 SLOT CCTV (Khusus Kepala UPT) */}
+      {/* 6. MODAL PENGATURAN KAMERA (Khusus Kepala UPT) */}
       {showConfigModal && isKepalaUpt && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
-            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-                  <SlidersHorizontal className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-sm font-bold text-slate-800">
-                    Pengaturan 4 Slot Kamera CCTV UPT
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Konfigurasi URL streaming dan lokasi kamera pengawasan lapas.
-                  </p>
-                </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-bold text-slate-800">
+                  Pengaturan 4 Slot Kamera CCTV
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Masukkan nama lokasi dan URL stream video kamera.
+                </p>
               </div>
               <button
                 onClick={() => setShowConfigModal(false)}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto space-y-4">
+            <div className="p-5 overflow-y-auto space-y-4">
               {saveSuccessMsg && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-emerald-800 text-xs">
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-emerald-800 text-xs">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                   <span>{saveSuccessMsg}</span>
                 </div>
               )}
 
               {/* Tab Slot 1..4 */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {[1, 2, 3, 4].map((ch, idx) => {
                   const currentForm = formSlots[idx] || {};
                   const isCurrent = editingSlotIndex === idx;
@@ -1122,66 +979,30 @@ export default function BranchCctv() {
                       key={ch}
                       type="button"
                       onClick={() => setEditingSlotIndex(idx)}
-                      className={`p-3 rounded-xl border text-left transition ${
+                      className={`p-2.5 rounded-xl border text-left transition ${
                         isCurrent
-                          ? 'bg-blue-50 border-blue-500 shadow-2xs'
+                          ? 'bg-blue-50 border-blue-500 text-slate-800'
                           : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-[11px] font-extrabold text-blue-700">SLOT {ch}</span>
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            hasUrl ? 'bg-emerald-500' : 'bg-slate-300'
-                          }`}
-                        />
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span>SLOT {ch}</span>
+                        <span className={`w-2 h-2 rounded-full ${hasUrl ? 'bg-emerald-500' : 'bg-slate-300'}`} />
                       </div>
-                      <div className="text-xs font-bold text-slate-800 truncate">
+                      <div className="text-xs font-semibold text-slate-800 truncate mt-0.5">
                         {currentForm.name || `Kamera ${ch}`}
-                      </div>
-                      <div className="text-[10px] text-slate-400 truncate">
-                        {currentForm.location || 'Lokasi belum disetel'}
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Form Input Detail Slot */}
+              {/* Form Input Slot Terpilih */}
               {formSlots[editingSlotIndex] && (
-                <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4.5 space-y-3.5">
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-                    <h3 className="text-xs font-bold text-slate-800">
-                      Rincian Slot Kamera #{editingSlotIndex + 1}
-                    </h3>
-                    {SAMPLE_CCTV_STREAMS[editingSlotIndex] && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const s = SAMPLE_CCTV_STREAMS[editingSlotIndex];
-                          setFormSlots((prev) => {
-                            const u = [...prev];
-                            u[editingSlotIndex] = {
-                              ...u[editingSlotIndex],
-                              name: s.name,
-                              location: s.location,
-                              streamUrl: s.url,
-                              status: 'ACTIVE',
-                              isRecording: true,
-                            };
-                            return u;
-                          });
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-bold underline"
-                      >
-                        Gunakan Contoh Stream Demo
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
                         Nama Kamera <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -1195,14 +1016,14 @@ export default function BranchCctv() {
                             return u;
                           });
                         }}
-                        placeholder="Contoh: CCTV 01 - Portir & Gerbang Depan"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-medium rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-500"
+                        placeholder="Contoh: CCTV 01 - Portir Depan"
+                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-2 outline-none focus:border-blue-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Lokasi / Titik Penempatan
+                      <label className="block text-xs font-medium text-slate-700 mb-1">
+                        Lokasi Kamera
                       </label>
                       <input
                         type="text"
@@ -1215,16 +1036,15 @@ export default function BranchCctv() {
                             return u;
                           });
                         }}
-                        placeholder="Contoh: Pintu Utama Gerbang Depan"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-medium rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-500"
+                        placeholder="Contoh: Gerbang Pintu Utama"
+                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl px-3 py-2 outline-none focus:border-blue-500"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      URL Stream Kamera (HLS .m3u8 / RTSP Proxy / Web Stream){' '}
-                      <span className="text-red-500">*</span>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      URL Stream Kamera (RTSP Proxy / HLS / MP4) <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -1237,79 +1057,30 @@ export default function BranchCctv() {
                           return u;
                         });
                       }}
-                      placeholder="https://domain/stream.m3u8 atau http://ip-camera:8080/live"
-                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-mono rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-500"
+                      placeholder="https://.../stream.m3u8 atau http://..."
+                      className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-mono rounded-xl px-3 py-2 outline-none focus:border-blue-500"
                     />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Status Kamera
-                      </label>
-                      <select
-                        value={formSlots[editingSlotIndex].status}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormSlots((prev) => {
-                            const u = [...prev];
-                            u[editingSlotIndex].status = val;
-                            return u;
-                          });
-                        }}
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-medium rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-500"
-                      >
-                        <option value="ACTIVE">Aktif (Live Feed)</option>
-                        <option value="INACTIVE">Nonaktif (Standby)</option>
-                        <option value="MAINTENANCE">Perbaikan / Maintenance</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">
-                        Catatan Pengawasan
-                      </label>
-                      <input
-                        type="text"
-                        value={formSlots[editingSlotIndex].notes}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormSlots((prev) => {
-                            const u = [...prev];
-                            u[editingSlotIndex].notes = val;
-                            return u;
-                          });
-                        }}
-                        placeholder="Keterangan opsional"
-                        className="w-full bg-white border border-slate-200 text-slate-800 text-xs font-medium rounded-xl px-3.5 py-2.5 outline-none focus:border-blue-500"
-                      />
-                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500">
-                Penyimpanan rekaman otomatis diarahkan ke Object Storage Biznet.
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfigModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200/60 transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSaveAllSlots}
-                  disabled={saveLoading}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition disabled:opacity-50"
-                >
-                  {saveLoading ? 'Menyimpan...' : 'Simpan Semua 4 Slot'}
-                </button>
-              </div>
+            <div className="px-5 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(false)}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveAllSlots}
+                disabled={saveLoading}
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs transition disabled:opacity-50"
+              >
+                {saveLoading ? 'Menyimpan...' : 'Simpan Semua Slot'}
+              </button>
             </div>
           </div>
         </div>
