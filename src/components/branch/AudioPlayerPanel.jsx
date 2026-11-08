@@ -21,7 +21,6 @@ import { CallStatusBadge } from '../../utils/callStatus';
 
 const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript }) => {
   const call = propCall || recording;
-  if (!call) return null;
   const { isSupervisor, uptName, userName, roleLabel } = useAuth();
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -123,6 +122,8 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
       isMounted = false;
     };
   }, [call?.id]);
+
+  if (!call) return null;
 
   const togglePlay = () => {
     if (!audioRef.current || !audioSrc) return;

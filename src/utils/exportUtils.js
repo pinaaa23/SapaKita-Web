@@ -717,9 +717,273 @@ export const exportToCSV = (data, filename = 'export_sadewa.csv') => {
   return true;
 };
 
+
+/**
+ * Utility to export a Clean, Simple Invoice PDF (Faktur Tagihan Layanan Komunikasi)
+ * Focus:
+ * 1. Total Omset Pemasukan (100%)
+ * 2. Hak Internal Lapas / UPT (40%)
+ * 3. Total Kewajiban Setoran ke Rekening Vendor (60%)
+ */
+export const exportInvoicePDF = ({
+  invoiceNumber = 'INV-TAGIHAN',
+  period = 'November 2026',
+  branchName = 'Cabang Lapas',
+  canteenName = 'Koperasi Lapas',
+  totalGross = 0,
+  canteenKeepAmount = 0,
+  vendorDepositAmount = 0,
+  vendorPercent = 60,
+  canteenPercent = 40,
+  totalMinutes = 0,
+  totalSeconds = 0,
+  ratePerSecond = 15,
+  status = 'BELUM DIBAYAR',
+  dueDate = null,
+  bankInfo = null,
+  filename,
+}) => {
+  try {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let currentY = 14;
+
+    // 1. Accent Bar
+    doc.setFillColor(30, 58, 138); // Primary Navy #1e3a8a
+    doc.rect(0, 0, pageWidth, 5, 'F');
+
+    // 2. KOP INVOICE
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.setTextColor(30, 58, 138);
+    doc.text('SADEWA INDONESIA', margin, currentY + 5);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text('FAKTUR TAGIHAN BULANAN LAYANAN KOMUNIKASI', margin, currentY + 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Sistem Pemantauan & Penagihan Pascabayar Layanan Komunikasi Pemasyarakatan', margin, currentY + 17);
+
+    // Right Badge
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(pageWidth - margin - 48, currentY, 48, 16, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('FAKTUR RESMI', pageWidth - margin - 24, currentY + 6, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    const isPaid = String(status).toUpperCase() === 'PAID' || String(status).toUpperCase() === 'LUNAS';
+    doc.setTextColor(isPaid ? 22 : 194, isPaid ? 101 : 65, isPaid ? 52 : 12);
+    doc.text(isPaid ? 'LUNAS (PAID)' : 'MENUNGGU SETORAN', pageWidth - margin - 24, currentY + 12, { align: 'center' });
+
+    currentY += 23;
+
+    // Divider Line
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(margin, currentY, pageWidth - margin, currentY);
+    currentY += 6;
+
+    // 3. Grid Metadata Tagihan (2 Kolom)
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text('INFORMASI TAGIHAN', margin, currentY);
+    doc.text('DITAGIHKAN KEPADA', pageWidth / 2 + 5, currentY);
+    currentY += 4;
+
+    const infoBoxY = currentY;
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, infoBoxY, (pageWidth - margin * 2) / 2 - 4, 28, 2, 2, 'F');
+    doc.roundedRect(pageWidth / 2 + 2, infoBoxY, (pageWidth - margin * 2) / 2 - 2, 28, 2, 2, 'F');
+
+    // Kolom Kiri
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text('Nomor Invoice:', margin + 4, infoBoxY + 6);
+    doc.text('Periode Layanan:', margin + 4, infoBoxY + 12);
+    doc.text('Tarif Komunikasi:', margin + 4, infoBoxY + 18);
+    doc.text('Total Pemakaian:', margin + 4, infoBoxY + 24);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(String(invoiceNumber || '-'), margin + 34, infoBoxY + 6);
+    doc.text(String(period || '-'), margin + 34, infoBoxY + 12);
+    doc.text(`Rp ${Number(ratePerSecond || 15).toLocaleString('id-ID')} / detik`, margin + 34, infoBoxY + 18);
+    doc.text(`${Number(totalSeconds || 0).toLocaleString('id-ID')} Detik (${Math.round((totalSeconds || 0) / 60)} Menit)`, margin + 34, infoBoxY + 24);
+
+    // Kolom Kanan
+    const rightColX = pageWidth / 2 + 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text('Unit Pelaksana Teknis:', rightColX, infoBoxY + 6);
+    doc.text('Pengelola Kantin:', rightColX, infoBoxY + 12);
+    doc.text('Jatuh Tempo:', rightColX, infoBoxY + 18);
+    doc.text('Status Pembayaran:', rightColX, infoBoxY + 24);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(String(branchName || 'Lapas / Rutan'), rightColX + 34, infoBoxY + 6);
+    doc.text(String(canteenName || 'Koperasi Lapas'), rightColX + 34, infoBoxY + 12);
+    doc.text(String(dueDate || 'Tanggal 2 bulan berikutnya'), rightColX + 34, infoBoxY + 18);
+    doc.setTextColor(isPaid ? 22 : 180, isPaid ? 101 : 83, isPaid ? 52 : 9);
+    doc.text(String(status || 'BELUM DIBAYAR'), rightColX + 34, infoBoxY + 24);
+
+    currentY = infoBoxY + 34;
+
+    // 4. Tabel Sederhana (3 Baris: Omset 100%, Hak UPT 40%, Setoran Vendor 60%)
+    const tableRows = [
+      [
+        '1',
+        'Total Omset Pemasukan Layanan Komunikasi WBP\n(Akumulasi detik pemakaian voucher x tarif per detik)',
+        '100%',
+        `Rp ${Number(totalGross || 0).toLocaleString('id-ID')}`
+      ],
+      [
+        '2',
+        'Hak Kelola Finansial Internal Lapas / UPT\n(Dikelola mandiri di kasir lokal: Koperasi 30%, Inkopasindo 10%)',
+        `${canteenPercent}%`,
+        `Rp ${Number(canteenKeepAmount || 0).toLocaleString('id-ID')}`
+      ],
+      [
+        '3',
+        'Total Kewajiban Setoran ke Rekening Vendor Sadewa\n(Wajib disetorkan oleh UPT/Kantin ke Rekening Penampung Vendor)',
+        `${vendorPercent}%`,
+        `Rp ${Number(vendorDepositAmount || 0).toLocaleString('id-ID')}`
+      ]
+    ];
+
+    autoTable(doc, {
+      startY: currentY,
+      margin: { left: margin, right: margin },
+      head: [['NO', 'DESKRIPSI KOMPONEN PEMBAGIAN HASIL', 'PORSI', 'JUMLAH (RP)']],
+      body: tableRows,
+      theme: 'grid',
+      headStyles: {
+        fillColor: [30, 58, 138],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8.5,
+        halign: 'left',
+        cellPadding: 3,
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: 'center' },
+        1: { cellWidth: 'auto' },
+        2: { cellWidth: 20, halign: 'center', fontStyle: 'bold' },
+        3: { cellWidth: 38, halign: 'right', fontStyle: 'bold' },
+      },
+      styles: {
+        fontSize: 8,
+        textColor: [15, 23, 42],
+        cellPadding: 3.5,
+        lineColor: [226, 232, 240],
+        lineWidth: 0.2,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      didParseCell: (data) => {
+        // Highlight row 3 (Setoran Vendor 60%)
+        if (data.row.index === 2 && data.section === 'body') {
+          data.cell.styles.fillColor = [239, 246, 255]; // blue-50
+          if (data.column.index === 3) {
+            data.cell.styles.textColor = [29, 78, 216]; // blue-700
+            data.cell.styles.fontSize = 9.5;
+          }
+        }
+      }
+    });
+
+    currentY = doc.lastAutoTable.finalY + 5;
+
+    // 5. Total Highlight Banner
+    doc.setFillColor(30, 58, 138);
+    doc.roundedRect(margin, currentY, pageWidth - margin * 2, 14, 2, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`TOTAL KEWAJIBAN SETORAN KE VENDOR (${vendorPercent}%):`, margin + 6, currentY + 8.5);
+
+    doc.setFontSize(12);
+    doc.text(`Rp ${Number(vendorDepositAmount || 0).toLocaleString('id-ID')}`, pageWidth - margin - 6, currentY + 9, { align: 'right' });
+
+    currentY += 19;
+
+    // 6. Petunjuk Pembayaran / Rekening Vendor
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, currentY, pageWidth - margin * 2, 22, 2, 2, 'FD');
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(30, 58, 138);
+    doc.text('PETUNJUK PEMBAYARAN REKENING PENAMPUNG VENDOR SADEWA', margin + 4, currentY + 5.5);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    const bankName = bankInfo?.bankName || 'Bank Mandiri';
+    const accNo = bankInfo?.accountNumber || '123-00-9876543-1';
+    const accHolder = bankInfo?.accountHolder || 'PT Sadewa Digital Nusantara';
+
+    doc.text(`Bank Tujuan: ${bankName}`, margin + 4, currentY + 11);
+    doc.text(`Nomor Rekening: ${accNo}`, margin + 4, currentY + 16);
+    doc.text(`Atas Nama: ${accHolder}`, pageWidth / 2, currentY + 11);
+    doc.text('Catatan: Cantumkan Nomor Invoice pada berita transfer.', pageWidth / 2, currentY + 16);
+
+    currentY += 30;
+
+    // 7. Kolom Pengesahan Tanda Tangan
+    const colWidth = (pageWidth - margin * 2) / 2;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+
+    doc.text('Dikeluarkan Oleh (Vendor Sadewa):', margin + 10, currentY);
+    doc.text('Mengetahui / Penanggung Jawab Lapas:', margin + colWidth + 10, currentY);
+
+    currentY += 18;
+    doc.setDrawColor(148, 163, 184);
+    doc.setLineWidth(0.3);
+    doc.line(margin + 10, currentY, margin + colWidth - 20, currentY);
+    doc.line(margin + colWidth + 10, currentY, pageWidth - margin - 20, currentY);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(15, 23, 42);
+    doc.text('Finance Sadewa Indonesia', margin + 10, currentY + 4);
+    doc.text(`${branchName} / Inkopasindo`, margin + colWidth + 10, currentY + 4);
+
+    // Save File
+    const cleanFilename = filename || `Invoice_${invoiceNumber || 'Sadewa'}.pdf`;
+    doc.save(cleanFilename);
+    return true;
+  } catch (err) {
+    console.error('[ExportInvoicePDF] Gagal membuat invoice PDF:', err);
+    alert('Terjadi kesalahan saat membuat Invoice PDF.');
+    return false;
+  }
+};
+
 export default {
   exportToExcel,
   exportToPDF,
+  exportInvoicePDF,
   downloadTranscriptPDF,
   downloadTextFile,
   downloadAudioFile,
