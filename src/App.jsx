@@ -35,6 +35,7 @@ import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
 import BranchReports from './pages/branch/Reports';
 import BranchPackages from './pages/branch/Packages';
+import BranchCctv from './pages/branch/Cctv';
 // Kanwil Pages (Demo Role: ADMIN_KANWIL)
 import KanwilDashboard from './pages/kanwil/Dashboard';
 import KanwilBranches from './pages/kanwil/Branches';
@@ -146,6 +147,7 @@ function App() {
               <Route path="branch" element={<ProtectedRoute allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]} />}>
                 <Route index element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="dashboard" element={<BranchDashboard />} />
+                <Route path="cctv" element={<BranchCctv />} />
                 <Route path="inmates">
                   <Route index element={<BranchInmatesList />} />
                   <Route 

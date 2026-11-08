@@ -11,7 +11,8 @@ import {
   Wallet,
   Landmark,
   Receipt,
-  CircleDollarSign
+  CircleDollarSign,
+  Video
 } from 'lucide-react';
 
 /**
@@ -166,23 +167,25 @@ export const getMenuItemsByRole = (role) => {
     ];
   }
 
-  // Menu untuk Kepala UPT (Dashboard, Data WBP, Rekaman Panggilan, Kelola Pengguna, Transaksi, Laporan)
+  // Menu untuk Kepala UPT (Dashboard, Data WBP, Monitoring CCTV, Rekaman Panggilan, Kelola Pengguna, Transaksi, Laporan)
   if (normRole === ROLES.KEPALA_UPT) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data WBP', icon: Users, path: '/branch/inmates' },
+      { name: 'Monitoring CCTV', icon: Video, path: '/branch/cctv' },
       { name: 'Rekaman Panggilan', icon: PhoneCall, path: '/branch/recordings' },
       { name: 'Kelola Pengguna', icon: UserCog, path: '/branch/users' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
-            { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
+      { name: 'Laporan', icon: BarChart3, path: '/branch/reports' },
     ];
   }
 
-  // Menu untuk Supervisor (Dashboard, Data WBP, Kelola Paket, Transaksi, Laporan)
+  // Menu untuk Supervisor (Dashboard, Data WBP, Monitoring CCTV, Kelola Paket, Transaksi, Laporan)
   if (normRole === ROLES.SUPERVISOR) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/branch/dashboard' },
       { name: 'Data WBP', icon: Users, path: '/branch/inmates' },
+      { name: 'Monitoring CCTV', icon: Video, path: '/branch/cctv' },
       { name: 'Kelola Paket', icon: Package, path: '/branch/packages' },
       { name: 'Transaksi', icon: CreditCard, path: '/branch/transactions' },
       { name: 'Tagihan Bulanan', icon: Receipt, path: '/branch/billing' },
