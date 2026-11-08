@@ -13,17 +13,18 @@
  * tanpa mengubah backend PasCall-BackEnd sama sekali.
  */
 
+import * as XLSX from 'xlsx-js-style';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { apiFetch } from './api';
+import { exportInvoicePDF } from '../utils/exportUtils';
 import {
   getFinanceBillings,
   getAllFinanceBillings,
-  getFinanceSummary,
   getFinanceContracts,
   formatRupiah,
   MONTH_NAMES
 } from './financeService';
-import { getBranches } from './branchService';
-import { getAllKanwilsForSuperadmin } from './kanwilService';
 
 export { formatRupiah, MONTH_NAMES };
 
@@ -468,199 +469,41 @@ export const getInkopasindoReportsData = async (year = '2026') => {
  * - Jumlah ke vendor dihitung dinamis dari persentase kontrak vendor (bukan ditulis mati).
  * - Jika omset Rp 0, tetap tampilkan invoice dengan angka Rp 0.
  */
-export const generateInkopasindoInvoicePDF = async (item) => {
+/**
+ * Utility untuk mengunduh Faktur Invoice Resmi Digital Wartel Sadewa
+ * Menggunakan format standar yang sama dengan halaman Tagihan Lapas (exportInvoicePDF).
+ */
+export const generateInkopasindoInvoicePDF = async (item, openPreview = true) => {
   if (!item) return false;
 
   try {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    });
-
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const margin = 18;
-    const contentWidth = pageWidth - (margin * 2);
-    let currentY = 16;
-
     const normalized = normalizeBillingItem(item);
     const shares = normalized.shares3Way;
     const split = normalized.split3Way;
 
-    // 1. Accent Top Header Bar (Navy #0B3D91)
-    doc.setFillColor(11, 61, 145);
-    doc.rect(0, 0, pageWidth, 4, 'F');
+    const periodStr = `${MONTH_NAMES[(normalized.month || 1) - 1]} ${normalized.year}`;
+    const totalMinutes = Math.round(Number(item.totalMinutes || (normalized.grossAmount > 0 ? (normalized.grossAmount / 15 / 60) : 0)));
+    const totalSeconds = Number(item.totalSeconds || (totalMinutes * 60));
 
-    // 2. Header: "SADEWA" di Kiri, Judul "INVOICE" & Nomor Tagihan di Kanan
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.setTextColor(11, 61, 145);
-    doc.text('SADEWA', margin, currentY + 5);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text('Sistem Layanan Komunikasi Pemasyarakatan', margin, currentY + 11);
-
-    // Kanan: Judul "INVOICE" & Nomor Tagihan
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(22);
-    doc.setTextColor(15, 23, 42);
-    doc.text('INVOICE', pageWidth - margin, currentY + 5, { align: 'right' });
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`No. Tagihan: ${normalized.id || '-'}`, pageWidth - margin, currentY + 11, { align: 'right' });
-
-    currentY += 18;
-
-    // Garis Pemisah
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.4);
-    doc.line(margin, currentY, pageWidth - margin, currentY);
-
-    currentY += 6;
-
-    // 3. Metadata Box (Periode, Nama UPT, Kanwil)
-    doc.setFillColor(248, 250, 252);
-    doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(margin, currentY, contentWidth, 34, 2, 2, 'FD');
-
-    // Kolom Kiri: Periode & Tanggal Cetak
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Periode Tagihan:', margin + 6, currentY + 9);
-    doc.text('Tanggal Cetak:', margin + 6, currentY + 18);
-    doc.text('Status Pembayaran:', margin + 6, currentY + 27);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(`${MONTH_NAMES[(normalized.month || 1) - 1]} ${normalized.year}`, margin + 38, currentY + 9);
-    doc.text(
-      new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
-      margin + 38,
-      currentY + 18
-    );
-
-    const statusLabel = normalized.status === 'PAID'
-      ? 'Lunas / Sudah Dibayar'
-      : normalized.status === 'PENDING_CONFIRMATION'
-        ? 'Menunggu Verifikasi Setoran'
-        : 'Belum Dibayar';
-    doc.text(statusLabel, margin + 38, currentY + 27);
-
-    // Kolom Kanan: Nama UPT & Kanwil
-    const colRightX = margin + (contentWidth / 2) + 2;
-    doc.setFontSize(8);
-    doc.setTextColor(100, 116, 139);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Nama UPT:', colRightX, currentY + 9);
-    doc.text('Wilayah (Kanwil):', colRightX, currentY + 18);
-    doc.text('Entitas Pemantau:', colRightX, currentY + 27);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(String(normalized.branchName || '-'), colRightX + 28, currentY + 9);
-    doc.text(String(normalized.kanwilName || '-'), colRightX + 28, currentY + 18);
-    doc.text('Koperasi Inkopasindo', colRightX + 28, currentY + 27);
-
-    currentY += 42;
-
-    // 4. Total Omset Kotor Box
-    doc.setFillColor(241, 245, 249);
-    doc.setDrawColor(203, 213, 225);
-    doc.roundedRect(margin, currentY, contentWidth, 22, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(8.5);
-    doc.setTextColor(71, 85, 105);
-    doc.text('TOTAL OMSET KOTOR', margin + 6, currentY + 8);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(100, 116, 139);
-    doc.text('Akumulasi pendapatan kotor dari layanan panggilan komunikasi', margin + 6, currentY + 15);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(15, 23, 42);
-    doc.text(formatRupiah(normalized.grossAmount), pageWidth - margin - 6, currentY + 13.5, { align: 'right' });
-
-    currentY += 28;
-
-    // 5. Card Jumlah yang Harus Dibayar ke Vendor (DITAMPILKAN PALING MENONJOL, BESAR DAN TEBAL)
-    doc.setFillColor(238, 242, 255);
-    doc.setDrawColor(99, 102, 241);
-    doc.setLineWidth(0.8);
-    doc.roundedRect(margin, currentY, contentWidth, 54, 3, 3, 'FD');
-
-    // Label Header Card
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10.5);
-    doc.setTextColor(67, 56, 202);
-    doc.text('JUMLAH YANG HARUS DIBAYAR KE VENDOR', margin + 8, currentY + 12);
-
-    // Keterangan Persentase Kontrak
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(99, 102, 241);
-    doc.text(
-      `Porsi Vendor (${split.vendor}% dari total omset kotor berdasarkan kontrak kerja sama)`,
-      margin + 8,
-      currentY + 19
-    );
-
-    // Angka Nominal Paling Menonjol (26pt Bold)
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(26);
-    doc.setTextColor(30, 27, 75); // Dark Indigo
-    doc.text(formatRupiah(shares.vendor.amount), margin + 8, currentY + 38);
-
-    // Tag Porsi di Sebelah Kanan Card
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(9.5);
-    doc.setTextColor(67, 56, 202);
-    doc.text(`Porsi Kontrak: ${split.vendor}%`, pageWidth - margin - 8, currentY + 38, { align: 'right' });
-
-    currentY += 62;
-
-    // 6. Catatan Ketentuan Resmi Sederhana
-    doc.setFillColor(254, 243, 199);
-    doc.setDrawColor(253, 230, 138);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(margin, currentY, contentWidth, 16, 2, 2, 'FD');
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(7.5);
-    doc.setTextColor(180, 83, 9);
-    doc.text('CATATAN KETENTUAN KONTRAK:', margin + 5, currentY + 6);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.2);
-    doc.setTextColor(146, 64, 14);
-    doc.text(
-      `Nominal kewajiban dihitung secara dinamis dari persentase kontrak vendor (${split.vendor}%). Hanya Superadmin yang berwenang mengubah nilai kontrak.`,
-      margin + 5,
-      currentY + 11
-    );
-
-    // 7. Footer Satu Halaman A4
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.3);
-    doc.line(margin, pageHeight - 16, pageWidth - margin, pageHeight - 16);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(7.5);
-    doc.setTextColor(148, 163, 184);
-    doc.text('Dokumen tagihan resmi SADEWA • Koperasi Inkopasindo', margin, pageHeight - 10);
-    doc.text('Halaman 1 dari 1', pageWidth - margin, pageHeight - 10, { align: 'right' });
-
-    // Simpan file PDF
-    doc.save(`Invoice-${normalized.id}.pdf`);
-    return true;
+    return exportInvoicePDF({
+      invoiceNumber: normalized.id || `INV-${normalized.year}${String(normalized.month).padStart(2, '0')}-${(normalized.branchName || 'UPT').substring(0, 4).toUpperCase()}`,
+      period: periodStr,
+      branchName: normalized.branchName || 'Lapas I Ungaran',
+      kanwilName: normalized.kanwilName || 'Kanwil Jawa Tengah',
+      canteenName: item.canteenName || 'Dzaki Ardyan',
+      totalGross: normalized.grossAmount,
+      canteenKeepAmount: shares.upt.amount,
+      vendorDepositAmount: shares.vendor.amount,
+      vendorPercent: split.vendor,
+      canteenPercent: split.upt,
+      totalMinutes,
+      totalSeconds,
+      ratePerSecond: item.ratePerSecond || 15,
+      status: normalized.status === 'PAID' ? 'LUNAS' : normalized.status === 'PENDING_CONFIRMATION' ? 'MENUNGGU VERIFIKASI' : normalized.grossAmount <= 0 ? 'Tidak Ada Tagihan' : 'BELUM DIBAYAR',
+      dueDate: item.dueDate || 'Tanggal 2 bulan berikutnya',
+      filename: `Invoice_${normalized.id || 'Sadewa'}.pdf`,
+      openPreview,
+    });
   } catch (err) {
     console.error('[InkopasindoService] Error generating PDF invoice:', err);
     return false;
@@ -668,91 +511,546 @@ export const generateInkopasindoInvoicePDF = async (item) => {
 };
 
 /**
- * 5. Ekspor Data Laporan Tahunan ke CSV
+ * Mengirimkan pembayaran tagihan setoran vendor 60% per Lapas/UPT oleh Inkopasindo
+ * POST /api/canteen/topups (Multipart FormData)
  */
-export const exportInkopasindoReportCSV = ({ year, monthlyBreakdown, grandTotals, stakeholderTotals }) => {
+export const submitInkopasindoVendorPayment = async ({
+  branchId,
+  nominal,
+  minutes = 1,
+  paymentMethod = 'TRANSFER_BANK',
+  bankTarget = 'Bank Mandiri 168-00-9988112-7',
+  proofFile,
+  billingMonth,
+  billingYear,
+}) => {
+  if (!branchId) throw new Error('Cabang UPT wajib ditentukan.');
+  if (!nominal || Number(nominal) <= 0) throw new Error('Nominal tagihan harus lebih besar dari 0.');
+  if (!proofFile) throw new Error('File bukti transfer wajib diunggah.');
+
+  const formData = new FormData();
+  formData.append('branchId', String(branchId));
+  formData.append('nominal', String(nominal));
+  formData.append('minutes', String(minutes > 0 ? minutes : 1));
+  formData.append('paymentMethod', paymentMethod);
+  formData.append('bankTarget', String(bankTarget));
+  formData.append('proofFile', proofFile);
+  if (billingMonth) formData.append('billingMonth', String(billingMonth));
+  if (billingYear) formData.append('billingYear', String(billingYear));
+
+  return apiFetch('/api/canteen/topups', {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+/**
+ * 5. Ekspor Data Laporan Tahunan ke Dokumen Excel (.xlsx) Resmi dengan Tabel Berbingkai Rapi
+ * - Border garis tabel lengkap pada setiap sel
+ * - Header tabel berwarna Navy dengan teks putih tebal
+ * - Format angka ribuan (numFmt: '#,##0') rata kanan
+ * - Kolom rata tengah dan rata kiri proporsional
+ * - Baris Total Akhir dengan highlight warna dan garis ganda bawah
+ */
+export const exportInkopasindoReportExcel = ({ year, monthlyBreakdown = [], grandTotals = {}, stakeholderTotals = {} }) => {
   try {
-    const csvRows = [];
-    csvRows.push(['LAPORAN AKUMULASI FINANSIAL INKOPASINDO']);
-    csvRows.push([`Tahun Buku: ${year}`]);
-    csvRows.push([`Waktu Unduh: ${new Date().toLocaleString('id-ID')}`]);
-    csvRows.push([]);
+    const wb = XLSX.utils.book_new();
 
-    csvRows.push(['RINGKASAN AKUMULASI TAHUNAN']);
-    csvRows.push(['Total Omset Kotor', grandTotals.totalOmsetKotor]);
-    csvRows.push(['Sudah Terealisasi', grandTotals.totalRealized]);
-    csvRows.push(['Menunggu Verifikasi', grandTotals.totalPending]);
-    csvRows.push(['Belum Tertagih', grandTotals.totalUnpaid]);
-    csvRows.push([]);
+    const borderThin = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    };
 
-    csvRows.push(['HAK FINANSIAL 3 PIHAK']);
-    csvRows.push(['Pihak', 'Porsi Kontrak (%)', 'Total Hak (Rp)', 'Terealisasi (Rp)', 'Tertunda (Rp)']);
-    csvRows.push([
-      'Vendor (Sadewa)',
-      stakeholderTotals.vendor.percent,
-      stakeholderTotals.vendor.total,
-      stakeholderTotals.vendor.realized,
-      stakeholderTotals.vendor.pending,
-    ]);
-    csvRows.push([
-      'UPT Pemasyarakatan',
-      stakeholderTotals.upt.percent,
-      stakeholderTotals.upt.total,
-      stakeholderTotals.upt.realized,
-      stakeholderTotals.upt.pending,
-    ]);
-    csvRows.push([
-      'Koperasi Inkopasindo',
-      stakeholderTotals.inkopasindo.percent,
-      stakeholderTotals.inkopasindo.total,
-      stakeholderTotals.inkopasindo.realized,
-      stakeholderTotals.inkopasindo.pending,
-    ]);
-    csvRows.push([]);
+    const borderDoubleBottom = {
+      top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      bottom: { style: 'double', color: { rgb: '0B3D91' } },
+      left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+      right: { style: 'thin', color: { rgb: 'CBD5E1' } },
+    };
 
-    csvRows.push(['RINCIAN BULANAN']);
-    csvRows.push([
+    const styleBannerTitle = {
+      font: { bold: true, color: { rgb: '0B3D91' }, sz: 16, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'left' },
+    };
+
+    const styleBannerSubtitle = {
+      font: { bold: true, color: { rgb: '0F172A' }, sz: 13, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'left' },
+    };
+
+    const styleSectionHeader = {
+      font: { bold: true, color: { rgb: '0F172A' }, sz: 11.5, name: 'Calibri' },
+      fill: { fgColor: { rgb: 'E2E8F0' } }, // slate-200
+      alignment: { vertical: 'center', horizontal: 'left' },
+      border: borderThin,
+    };
+
+    const styleColHeader = {
+      font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11, name: 'Calibri' },
+      fill: { fgColor: { rgb: '0B3D91' } }, // Primary Navy
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+      border: borderThin,
+    };
+
+    const styleCellText = {
+      font: { sz: 11, color: { rgb: '1E293B' }, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'left' },
+      border: borderThin,
+    };
+
+    const styleCellCenter = {
+      font: { sz: 11, color: { rgb: '1E293B' }, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'center' },
+      border: borderThin,
+    };
+
+    const styleCellNumber = {
+      font: { sz: 11, color: { rgb: '0F172A' }, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'right' },
+      numFmt: '#,##0',
+      border: borderThin,
+    };
+
+    const styleCellBoldText = {
+      font: { bold: true, sz: 11, color: { rgb: '0F172A' }, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'left' },
+      border: borderThin,
+    };
+
+    const styleCellBoldCenter = {
+      font: { bold: true, sz: 11, color: { rgb: '0F172A' }, name: 'Calibri' },
+      alignment: { vertical: 'center', horizontal: 'center' },
+      border: borderThin,
+    };
+
+    const styleTotalText = {
+      font: { bold: true, sz: 11.5, color: { rgb: '0B3D91' }, name: 'Calibri' },
+      fill: { fgColor: { rgb: 'EEF2FF' } }, // blue-50
+      alignment: { vertical: 'center', horizontal: 'left' },
+      border: borderDoubleBottom,
+    };
+
+    const styleTotalNumber = {
+      font: { bold: true, sz: 11.5, color: { rgb: '0B3D91' }, name: 'Calibri' },
+      fill: { fgColor: { rgb: 'EEF2FF' } },
+      alignment: { vertical: 'center', horizontal: 'right' },
+      numFmt: '#,##0',
+      border: borderDoubleBottom,
+    };
+
+    const aoa = [];
+    const cellStyles = {};
+    const rowHeights = [];
+    const merges = [];
+
+    let r = 0;
+
+    // --- Header Judul Laporan (Bersih Tanpa Label Tahun Buku & Waktu Unduh Terpisah) ---
+    aoa.push(['SADEWA INDONESIA • KOPERASI INKOPASINDO']);
+    cellStyles[`${r},0`] = styleBannerTitle;
+    rowHeights[r] = { hpt: 28 };
+    merges.push({ s: { r, c: 0 }, e: { r, c: 8 } });
+    r++;
+
+    aoa.push([`LAPORAN AKUMULASI FINANSIAL TAHUN BUKU ${year || new Date().getFullYear()}`]);
+    cellStyles[`${r},0`] = styleBannerSubtitle;
+    rowHeights[r] = { hpt: 24 };
+    merges.push({ s: { r, c: 0 }, e: { r, c: 8 } });
+    r++;
+
+    aoa.push([]); // baris kosong
+    rowHeights[r] = { hpt: 12 };
+    r++;
+
+    // ==========================================
+    // TABEL 1: RINGKASAN AKUMULASI TAHUNAN
+    // ==========================================
+    aoa.push(['1. RINGKASAN AKUMULASI TAHUNAN', '']);
+    cellStyles[`${r},0`] = styleSectionHeader;
+    cellStyles[`${r},1`] = styleSectionHeader;
+    rowHeights[r] = { hpt: 24 };
+    merges.push({ s: { r, c: 0 }, e: { r, c: 1 } });
+    r++;
+
+    aoa.push(['Parameter Akumulasi Finansial', 'Nominal (Rp)']);
+    cellStyles[`${r},0`] = styleColHeader;
+    cellStyles[`${r},1`] = styleColHeader;
+    rowHeights[r] = { hpt: 26 };
+    r++;
+
+    const summaryItems = [
+      ['Total Omset Kotor', Number(grandTotals.totalOmsetKotor) || 0, true],
+      ['Sudah Terealisasi (Lunas)', Number(grandTotals.totalRealized) || 0, false],
+      ['Menunggu Verifikasi Setoran', Number(grandTotals.totalPending) || 0, false],
+      ['Belum Tertagih', Number(grandTotals.totalUnpaid) || 0, false],
+    ];
+
+    summaryItems.forEach(([label, val, isBold]) => {
+      aoa.push([label, val]);
+      cellStyles[`${r},0`] = isBold ? styleCellBoldText : styleCellText;
+      cellStyles[`${r},1`] = isBold
+        ? { ...styleCellNumber, font: { bold: true, sz: 11, color: { rgb: '0B3D91' }, name: 'Calibri' } }
+        : styleCellNumber;
+      rowHeights[r] = { hpt: 22 };
+      r++;
+    });
+
+    aoa.push([]); // baris kosong
+    rowHeights[r] = { hpt: 12 };
+    r++;
+
+    // ==========================================
+    // TABEL 2: HAK FINANSIAL 3 PIHAK
+    // ==========================================
+    aoa.push(['2. HAK FINANSIAL 3 PIHAK (BERDASARKAN KONTRAK KERJASAMA)', '', '', '', '']);
+    for (let c = 0; c < 5; c++) cellStyles[`${r},${c}`] = styleSectionHeader;
+    rowHeights[r] = { hpt: 24 };
+    merges.push({ s: { r, c: 0 }, e: { r, c: 4 } });
+    r++;
+
+    const t2Headers = ['Pihak Entitas', 'Porsi Kontrak', 'Total Hak (Rp)', 'Terealisasi (Rp)', 'Tertunda (Rp)'];
+    aoa.push(t2Headers);
+    t2Headers.forEach((_, c) => {
+      cellStyles[`${r},${c}`] = styleColHeader;
+    });
+    rowHeights[r] = { hpt: 26 };
+    r++;
+
+    const stakeholderRows = [
+      [
+        'Vendor (Sadewa)',
+        `${Number(stakeholderTotals.vendor?.percent ?? 60)}%`,
+        Number(stakeholderTotals.vendor?.total ?? 0),
+        Number(stakeholderTotals.vendor?.realized ?? 0),
+        Number(stakeholderTotals.vendor?.pending ?? 0),
+      ],
+      [
+        'UPT Pemasyarakatan',
+        `${Number(stakeholderTotals.upt?.percent ?? 30)}%`,
+        Number(stakeholderTotals.upt?.total ?? 0),
+        Number(stakeholderTotals.upt?.realized ?? 0),
+        Number(stakeholderTotals.upt?.pending ?? 0),
+      ],
+      [
+        'Koperasi Inkopasindo',
+        `${Number(stakeholderTotals.inkopasindo?.percent ?? 10)}%`,
+        Number(stakeholderTotals.inkopasindo?.total ?? 0),
+        Number(stakeholderTotals.inkopasindo?.realized ?? 0),
+        Number(stakeholderTotals.inkopasindo?.pending ?? 0),
+      ],
+    ];
+
+    stakeholderRows.forEach((row) => {
+      aoa.push(row);
+      cellStyles[`${r},0`] = styleCellBoldText;
+      cellStyles[`${r},1`] = styleCellBoldCenter;
+      cellStyles[`${r},2`] = styleCellNumber;
+      cellStyles[`${r},3`] = styleCellNumber;
+      cellStyles[`${r},4`] = styleCellNumber;
+      rowHeights[r] = { hpt: 22 };
+      r++;
+    });
+
+    aoa.push([]); // baris kosong
+    rowHeights[r] = { hpt: 12 };
+    r++;
+
+    // ==========================================
+    // TABEL 3: RINCIAN BULANAN (9 KOLOM LENGKAP)
+    // ==========================================
+    aoa.push([`3. RINCIAN BULANAN TAHUN BUKU ${year}`, '', '', '', '', '', '', '', '']);
+    for (let c = 0; c < 9; c++) cellStyles[`${r},${c}`] = styleSectionHeader;
+    rowHeights[r] = { hpt: 24 };
+    merges.push({ s: { r, c: 0 }, e: { r, c: 8 } });
+    r++;
+
+    const t3Headers = [
       'Bulan',
       'Total UPT',
       'Omset Kotor (Rp)',
       'Lunas (Rp)',
       'Menunggu (Rp)',
       'Belum Bayar (Rp)',
-      'Hak Vendor (Rp)',
-      'Hak UPT (Rp)',
-      'Hak Inkopasindo (Rp)',
-    ]);
+      'Hak Vendor 60% (Rp)',
+      'Hak UPT 30% (Rp)',
+      'Hak Inkopasindo 10% (Rp)',
+    ];
+    aoa.push(t3Headers);
+    t3Headers.forEach((_, c) => {
+      cellStyles[`${r},${c}`] = styleColHeader;
+    });
+    rowHeights[r] = { hpt: 28 };
+    r++;
 
-    monthlyBreakdown.forEach((m) => {
-      csvRows.push([
-        m.monthName,
-        m.totalUpt,
-        m.gross,
-        m.paid,
-        m.pending,
-        m.unpaid,
-        m.shares.vendor,
-        m.shares.upt,
-        m.shares.inkopasindo,
+    let sumGross = 0;
+    let sumPaid = 0;
+    let sumPending = 0;
+    let sumUnpaid = 0;
+    let sumVendor = 0;
+    let sumUptShare = 0;
+    let sumInkopasindo = 0;
+
+    monthlyBreakdown.forEach((m, idx) => {
+      const gross = Number(m.gross) || 0;
+      const paid = Number(m.paid) || 0;
+      const pending = Number(m.pending) || 0;
+      const unpaid = Number(m.unpaid) || 0;
+      const vendorShare = Number(m.shares?.vendor) || 0;
+      const uptShare = Number(m.shares?.upt) || 0;
+      const inkopasindoShare = Number(m.shares?.inkopasindo) || 0;
+      const uptCount = Number(m.totalUpt) || 0;
+
+      sumGross += gross;
+      sumPaid += paid;
+      sumPending += pending;
+      sumUnpaid += unpaid;
+      sumVendor += vendorShare;
+      sumUptShare += uptShare;
+      sumInkopasindo += inkopasindoShare;
+
+      aoa.push([
+        m.monthName || '-',
+        uptCount,
+        gross,
+        paid,
+        pending,
+        unpaid,
+        vendorShare,
+        uptShare,
+        inkopasindoShare,
       ]);
+
+      const zebraFill = idx % 2 === 1 ? { fgColor: { rgb: 'F8FAFC' } } : undefined;
+      const rowTextStyle = zebraFill ? { ...styleCellBoldText, fill: zebraFill } : styleCellBoldText;
+      const rowCenterStyle = zebraFill ? { ...styleCellCenter, fill: zebraFill } : styleCellCenter;
+      const rowNumStyle = zebraFill ? { ...styleCellNumber, fill: zebraFill } : styleCellNumber;
+
+      cellStyles[`${r},0`] = rowTextStyle;
+      cellStyles[`${r},1`] = rowCenterStyle;
+      for (let c = 2; c < 9; c++) {
+        cellStyles[`${r},${c}`] = rowNumStyle;
+      }
+      rowHeights[r] = { hpt: 22 };
+      r++;
     });
 
-    const csvContent = csvRows
-      .map((row) => row.map((val) => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','))
-      .join('\r\n');
+    // Baris TOTAL KESELURUHAN (Highlight Biru & Garis Ganda Bawah)
+    aoa.push([
+      'TOTAL KESELURUHAN',
+      '-',
+      sumGross,
+      sumPaid,
+      sumPending,
+      sumUnpaid,
+      sumVendor,
+      sumUptShare,
+      sumInkopasindo,
+    ]);
+    cellStyles[`${r},0`] = styleTotalText;
+    cellStyles[`${r},1`] = { ...styleTotalText, alignment: { horizontal: 'center', vertical: 'center' } };
+    for (let c = 2; c < 9; c++) {
+      cellStyles[`${r},${c}`] = styleTotalNumber;
+    }
+    rowHeights[r] = { hpt: 26 };
+    r++;
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Laporan-Finansial-Inkopasindo-${year}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Terapkan semua style ke cell yang sesuai
+    Object.keys(cellStyles).forEach((coord) => {
+      const [rowIdx, colIdx] = coord.split(',').map(Number);
+      const cellRef = XLSX.utils.encode_cell({ r: rowIdx, c: colIdx });
+      if (!ws[cellRef]) {
+        ws[cellRef] = { t: 's', v: '' };
+      }
+      ws[cellRef].s = cellStyles[coord];
+    });
+
+    // Pasang merges, row heights & konfigurasi lebar kolom proporsional
+    ws['!merges'] = merges;
+    ws['!rows'] = rowHeights;
+    ws['!cols'] = [
+      { wch: 36 }, // A: Parameter / Entitas / Bulan
+      { wch: 20 }, // B: Nominal / Porsi / Total UPT
+      { wch: 26 }, // C: Omset Kotor / Total Hak
+      { wch: 24 }, // D: Lunas / Terealisasi
+      { wch: 24 }, // E: Menunggu / Tertunda
+      { wch: 24 }, // F: Belum Bayar
+      { wch: 26 }, // G: Hak Vendor 60%
+      { wch: 24 }, // H: Hak UPT 30%
+      { wch: 28 }, // I: Hak Inkopasindo 10%
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, `Laporan ${year}`);
+    XLSX.writeFile(wb, `Laporan-Finansial-Inkopasindo-${year}.xlsx`);
     return true;
   } catch (err) {
-    console.error('[InkopasindoService] Error exporting CSV:', err);
+    console.error('[InkopasindoService] Error exporting Excel:', err);
+    return false;
+  }
+};
+
+/**
+ * Kompatibilitas mundur: jika masih ada yang memanggil exportInkopasindoReportCSV
+ */
+export const exportInkopasindoReportCSV = exportInkopasindoReportExcel;
+
+/**
+ * 6. Cetak / Ekspor Laporan Finansial Resmi Inkopasindo ke Dokumen PDF (A4 Landscape)
+ * Langsung membuka pratinjau cetak & menyimpan berkas PDF
+ */
+export const generateInkopasindoReportPDF = ({
+  year,
+  monthlyBreakdown = [],
+  grandTotals = {},
+  _stakeholderTotals = {},
+  openPreview = true,
+}) => {
+  try {
+    const doc = new jsPDF({
+      orientation: 'landscape',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 14;
+    let currentY = 14;
+
+    // 1. Accent Top Header Bar Navy
+    doc.setFillColor(11, 61, 145);
+    doc.rect(0, 0, pageWidth, 5, 'F');
+
+    // 2. Official Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.setTextColor(11, 61, 145);
+    doc.text('SADEWA INDONESIA • KOPERASI INKOPASINDO', margin, currentY + 4);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text(`LAPORAN AKUMULASI FINANSIAL TAHUNAN (TAHUN BUKU ${year || 2026})`, margin, currentY + 11);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `Waktu Cetak: ${new Date().toLocaleString('id-ID')} | Porsi Kontrak Resmi: Vendor 60%, UPT 30%, Inkopasindo 10%`,
+      margin,
+      currentY + 17
+    );
+
+    currentY += 22;
+
+    // 3. Ringkasan Kartu 4 Metrik
+    const cardWidth = (pageWidth - margin * 2 - 9) / 4;
+    const statCards = [
+      { label: 'TOTAL OMSET KOTOR', val: formatRupiah(grandTotals.totalOmsetKotor || 0), color: [11, 61, 145] },
+      { label: 'SUDAH TEREALISASI', val: formatRupiah(grandTotals.totalRealized || 0), color: [16, 185, 129] },
+      { label: 'MENUNGGU VERIFIKASI', val: formatRupiah(grandTotals.totalPending || 0), color: [245, 158, 11] },
+      { label: 'BELUM TERTAGIH', val: formatRupiah(grandTotals.totalUnpaid || 0), color: [239, 68, 68] },
+    ];
+
+    statCards.forEach((c, i) => {
+      const cardX = margin + i * (cardWidth + 3);
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(cardX, currentY, cardWidth, 18, 2, 2, 'FD');
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      doc.setTextColor(100, 116, 139);
+      doc.text(c.label, cardX + 4, currentY + 6);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10.5);
+      doc.setTextColor(c.color[0], c.color[1], c.color[2]);
+      doc.text(c.val, cardX + 4, currentY + 14);
+    });
+
+    currentY += 23;
+
+    // 4. Tabel Rincian Bulanan (A4 Landscape)
+    const tableHeaders = [
+      'Bulan',
+      'Total UPT',
+      'Omset Kotor',
+      'Lunas',
+      'Menunggu',
+      'Belum Bayar',
+      'Hak Vendor (60%)',
+      'Hak UPT (30%)',
+      'Hak Inkopasindo (10%)',
+    ];
+
+    const tableRows = monthlyBreakdown.map((m) => [
+      m.monthName,
+      m.totalUpt,
+      formatRupiah(m.gross),
+      formatRupiah(m.paid),
+      formatRupiah(m.pending),
+      formatRupiah(m.unpaid),
+      formatRupiah(m.shares?.vendor || 0),
+      formatRupiah(m.shares?.upt || 0),
+      formatRupiah(m.shares?.inkopasindo || 0),
+    ]);
+
+    autoTable(doc, {
+      startY: currentY,
+      head: [tableHeaders],
+      body: tableRows,
+      margin: { left: margin, right: margin, bottom: 15 },
+      theme: 'grid',
+      styles: {
+        font: 'helvetica',
+        fontSize: 7.5,
+        textColor: [51, 65, 85],
+        cellPadding: 2,
+        halign: 'right',
+      },
+      headStyles: {
+        fillColor: [11, 61, 145],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+        halign: 'center',
+      },
+      columnStyles: {
+        0: { halign: 'left', fontStyle: 'bold', cellWidth: 26 },
+        1: { halign: 'center', cellWidth: 18 },
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      didDrawPage: (data) => {
+        const str = `Dokumen Resmi SADEWA • Koperasi Inkopasindo | Halaman ${data.pageNumber}`;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(str, margin, pageHeight - 8);
+      },
+    });
+
+    const filename = `Laporan_Finansial_Inkopasindo_${year}.pdf`;
+    doc.save(filename);
+
+    if (openPreview && typeof window !== 'undefined') {
+      try {
+        const blobUrl = doc.output('bloburl');
+        window.open(blobUrl, '_blank');
+      } catch (e) {
+        console.warn('[InkopasindoService] Gagal membuka popup tab baru:', e);
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[InkopasindoService] Error generating PDF report:', err);
     return false;
   }
 };

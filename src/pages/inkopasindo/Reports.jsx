@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import {
   getInkopasindoReportsData,
-  exportInkopasindoReportCSV,
+  exportInkopasindoReportExcel,
+  generateInkopasindoReportPDF,
   formatRupiah
 } from '../../services/inkopasindoService';
 
@@ -56,8 +57,8 @@ export default function InkopasindoReports() {
     loadReportData();
   }, [selectedYear]);
 
-  const handleExportCSV = () => {
-    exportInkopasindoReportCSV({
+  const handleExportExcel = () => {
+    exportInkopasindoReportExcel({
       year: selectedYear,
       monthlyBreakdown,
       grandTotals,
@@ -66,12 +67,45 @@ export default function InkopasindoReports() {
   };
 
   const handlePrint = () => {
-    window.print();
+    generateInkopasindoReportPDF({
+      year: selectedYear,
+      monthlyBreakdown,
+      grandTotals,
+      stakeholderTotals,
+      openPreview: true,
+    });
   };
 
   return (
-    <div className="space-y-6 pb-12 print:p-0 print:space-y-4">
-      {/* 1. Top Action Bar: Badge Periode, Ekspor CSV, Cetak (Tanpa Duplikasi Judul) */}
+    <div className="space-y-6 pb-12 print:p-0 print:space-y-4 print:bg-white text-slate-800">
+      {/* CSS Khusus Print Browser (Mencegah Blank Page saat Ctrl+P) */}
+      <style>{`
+        @media print {
+          nav, aside, header, .no-print, [class*="fixed"], button {
+            display: none !important;
+          }
+          html, body, #root, [class*="min-h-screen"], main {
+            background: #ffffff !important;
+            color: #0f172a !important;
+            overflow: visible !important;
+            height: auto !important;
+            min-height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: static !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .shadow-xs, .shadow-2xs, .shadow-md {
+            box-shadow: none !important;
+            border: 1px solid #cbd5e1 !important;
+          }
+        }
+      `}</style>
+
+      {/* 1. Top Action Bar: Badge Periode, Ekspor Excel (.xlsx), Cetak */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-1 print:hidden">
         <div className="flex items-center gap-2">
           <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-200/80 text-xs font-bold whitespace-nowrap">
@@ -97,24 +131,26 @@ export default function InkopasindoReports() {
             </select>
           </div>
 
-          {/* Tombol Ekspor CSV */}
+          {/* Tombol Ekspor Excel (.xlsx) */}
           <button
             type="button"
-            onClick={handleExportCSV}
+            onClick={handleExportExcel}
+            title="Unduh berkas Excel (.xlsx) rapi dengan multi-kolom terstruktur"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/90 text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Ekspor CSV</span>
+            <span>Ekspor Excel (.xlsx)</span>
           </button>
 
-          {/* Tombol Cetak */}
+          {/* Tombol Cetak Dokumen PDF */}
           <button
             type="button"
             onClick={handlePrint}
+            title="Cetak & Unduh Dokumen PDF Resmi Laporan Finansial"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold shadow-2xs transition-all cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5" />
-            <span>Cetak Laporan</span>
+            <span>Cetak Laporan (PDF)</span>
           </button>
         </div>
       </div>
