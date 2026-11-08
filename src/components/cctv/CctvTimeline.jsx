@@ -1,30 +1,30 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Play, Pause, FastForward, Rewind, SkipBack, SkipForward, Clock, ZoomIn, ZoomOut, Film } from 'lucide-react';
+import { Play, Pause, FastForward, Rewind, SkipBack, SkipForward, Clock, Download } from 'lucide-react';
 
 /**
  * CctvTimeline:
- * Komponen Timeline 24 Jam interaktif ala VMS NVR CCTV profesional (Hikvision / Dahua / UniFi Protect).
- * Mendukung scrubbing drag, pita rekaman (continuous & motion event), zoom waktu (24h, 4h, 1h),
- * kontrol kecepatan (0.5x - 8x), dan step-frame per detik.
+ * Komponen Timeline 24 Jam untuk pemutaran rekaman CCTV.
+ * Memungkinkan pengguna menggeser waktu, maju-mundur detik demi detik,
+ * serta memilih rentang waktu unduhan video.
  */
 export default function CctvTimeline({
   selectedDate,
-  currentTimeSec = 36000, // detik sejak 00:00:00 (default 10:00:00 = 36000s)
+  currentTimeSec = 36000, // Detik dalam hari (0..86399)
   onTimeChange,
   isPlaying = false,
   onTogglePlay,
   playbackSpeed = 1,
   onChangeSpeed,
-  onStepFrame, // -1 or +1
-  onJump, // -10 or +10
-  recordingSegments = [], // Array<{ startSec, endSec, type: 'continuous' | 'motion' }>
+  onStepFrame, // Mundur/maju 1 detik
+  onJump, // Mundur/maju 10 detik
+  recordingSegments = [], // Rentang rekaman yang tersedia { startSec, endSec }
   onOpenClipExporter,
 }) {
   const containerRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [zoomLevel, setZoomLevel] = useState('24h'); // '24h' | '4h' | '1h'
 
-  // Format detik menjadi HH:mm:ss
+  // Format detik ke HH:mm:ss
   const formatSecondsToHms = (totalSec) => {
     const s = Math.max(0, Math.min(86399, Math.floor(totalSec)));
     const hours = Math.floor(s / 3600);
@@ -33,8 +33,8 @@ export default function CctvTimeline({
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
   };
 
-  // Rentang waktu yang ditampilkan berdasarkan zoom
-  let viewDuration = 86400; // 24 jam dalam detik
+  // Rentang waktu yang tampil berdasarkan zoom
+  let viewDuration = 86400; // 24 jam penuh
   let viewStartSec = 0;
 
   if (zoomLevel === '4h') {
@@ -45,13 +45,13 @@ export default function CctvTimeline({
     viewStartSec = Math.max(0, Math.min(86400 - viewDuration, currentTimeSec - 1800));
   }
 
-  // Hitung posisi horizontal playhead (persentase 0-100%)
+  // Posisi horizontal playhead (%)
   const playheadPercent = Math.max(
     0,
     Math.min(100, ((currentTimeSec - viewStartSec) / viewDuration) * 100)
   );
 
-  // Menangani klik atau drag pada timeline
+  // Penanganan klik / drag di timeline
   const handleTimelineInteraction = (e) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
@@ -88,10 +88,10 @@ export default function CctvTimeline({
     };
   }, [isDragging, viewStartSec, viewDuration]);
 
-  // Marker jam berdasarkan zoom
+  // Marker jam pada timeline
   const renderTimeMarkers = () => {
     const markers = [];
-    const stepHours = zoomLevel === '24h' ? 2 : zoomLevel === '4h' ? 0.5 : 0.1666; // 2h, 30m, 10m
+    const stepHours = zoomLevel === '24h' ? 2 : zoomLevel === '4h' ? 0.5 : 0.1666;
     const stepSec = stepHours * 3600;
     const firstMarkerSec = Math.ceil(viewStartSec / stepSec) * stepSec;
 
@@ -118,28 +118,22 @@ export default function CctvTimeline({
     return markers;
   };
 
-  // Render segmen rekaman pada timeline
+  // Render pita rekaman yang tersedia (Continuous / Available recordings)
   const renderRecordingSegments = () => {
     return recordingSegments.map((seg, idx) => {
-      // Potong ke rentang view yang terlihat
       const segStart = Math.max(viewStartSec, seg.startSec);
       const segEnd = Math.min(viewStartSec + viewDuration, seg.endSec);
       if (segEnd <= segStart) return null;
 
       const left = ((segStart - viewStartSec) / viewDuration) * 100;
       const width = ((segEnd - segStart) / viewDuration) * 100;
-      const isMotion = seg.type === 'motion';
 
       return (
         <div
           key={idx}
-          className={`absolute top-0 bottom-0 rounded-[1px] ${
-            isMotion
-              ? 'bg-amber-400 border-x border-amber-500 z-10'
-              : 'bg-emerald-500/80 border-x border-emerald-600/90 z-0'
-          }`}
+          className="absolute top-0 bottom-0 bg-emerald-500/80 border-x border-emerald-600/90 rounded-[1px]"
           style={{ left: `${left}%`, width: `${width}%` }}
-          title={`${isMotion ? 'Gerakan Terdeteksi' : 'Rekaman Kontinu'}: ${formatSecondsToHms(seg.startSec)} - ${formatSecondsToHms(seg.endSec)}`}
+          title={`Rekaman Tersedia: ${formatSecondsToHms(seg.startSec)} - ${formatSecondsToHms(seg.endSec)}`}
         />
       );
     });
@@ -147,7 +141,7 @@ export default function CctvTimeline({
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 text-white select-none shadow-xl">
-      {/* 1. Bar Atas: Digital Clock, Legenda Warna, Zoom Timeline */}
+      {/* 1. Bar Atas: Digital Clock & Skala Zoom */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3 pb-3 border-b border-slate-800 text-xs">
         {/* Playhead Digital Clock */}
         <div className="flex items-center gap-2.5">
@@ -155,38 +149,34 @@ export default function CctvTimeline({
             <Clock className="w-4 h-4" />
           </div>
           <div>
-            <div className="text-[11px] text-slate-400">Waktu Rekaman Terpilih</div>
+            <div className="text-[11px] text-slate-400">Waktu Replay Terpilih</div>
             <div className="text-sm font-mono font-bold text-white tracking-wider">
               {selectedDate} <span className="text-emerald-400">{formatSecondsToHms(currentTimeSec)}</span> <span className="text-[10px] text-slate-400 font-sans">WIB</span>
             </div>
           </div>
         </div>
 
-        {/* Legenda Warna Rekaman */}
+        {/* Status Rekaman */}
         <div className="hidden sm:flex items-center gap-4 text-[11px] text-slate-400">
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-xs bg-emerald-500" />
-            <span>Rekaman Rutin</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-xs bg-amber-400" />
-            <span>Event / Gerakan</span>
+            <span>Rekaman Tersedia di Storage</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-xs bg-slate-800 border border-slate-700" />
-            <span>Kosong</span>
+            <span>Tidak Ada Rekaman</span>
           </div>
         </div>
 
-        {/* Zoom Level & Ekspor Klip */}
+        {/* Tombol Unduh & Zoom Level */}
         <div className="flex items-center gap-2">
           {onOpenClipExporter && (
             <button
               onClick={onOpenClipExporter}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-xs transition"
             >
-              <Film className="w-3.5 h-3.5" />
-              <span>Gunting Klip Bukti</span>
+              <Download className="w-3.5 h-3.5" />
+              <span>Download Klip Video</span>
             </button>
           )}
 
@@ -207,7 +197,7 @@ export default function CctvTimeline({
         </div>
       </div>
 
-      {/* 2. Interactive Scrubber Timeline Canvas */}
+      {/* 2. Interactive Scrubber Timeline */}
       <div className="relative pt-4 pb-2">
         {/* Scale labels container */}
         <div className="relative h-4 mb-1">
@@ -227,42 +217,41 @@ export default function CctvTimeline({
             ))}
           </div>
 
-          {/* Pita Rekaman (Continuous & Motion Segments) */}
+          {/* Pita Rekaman Tersedia */}
           {renderRecordingSegments()}
 
-          {/* Jarum Playhead (Red Needle with Cursor Top Pin) */}
+          {/* Jarum Playhead (Red Needle) */}
           <div
             className="absolute top-0 bottom-0 z-30 pointer-events-none -translate-x-1/2 flex flex-col items-center"
             style={{ left: `${playheadPercent}%` }}
           >
-            {/* Top Pin Tag */}
             <div className="w-3.5 h-3.5 bg-red-500 rounded-full shadow-lg shadow-red-500/50 border-2 border-white -mt-1" />
-            {/* Vertical Line */}
             <div className="w-[2px] h-full bg-red-500 shadow-md shadow-red-500/80" />
           </div>
         </div>
       </div>
 
-      {/* 3. Bar Kontrol Pemutaran CCTV (Deck Controller) */}
+      {/* 3. Kontrol Maju-Mundur & Playback Deck */}
       <div className="mt-3 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        {/* Deck Play / Seek Controls */}
         <div className="flex items-center gap-1.5">
-          {/* Step Back (Per 1 Detik) */}
+          {/* Mundur 1 Detik / Frame */}
           <button
             onClick={() => onStepFrame && onStepFrame(-1)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            title="Mundur 1 Frame / 1 Detik"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            title="Mundur 1 Detik"
           >
-            <SkipBack className="w-4 h-4" />
+            <SkipBack className="w-3.5 h-3.5" />
+            <span>-1s</span>
           </button>
 
-          {/* Jump -10s */}
+          {/* Mundur 10 Detik */}
           <button
             onClick={() => onJump && onJump(-10)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
             title="Mundur 10 Detik"
           >
-            <Rewind className="w-4 h-4" />
+            <Rewind className="w-3.5 h-3.5" />
+            <span>-10s</span>
           </button>
 
           {/* Play / Pause Utama */}
@@ -274,29 +263,31 @@ export default function CctvTimeline({
             <span>{isPlaying ? 'Jeda' : 'Putar'}</span>
           </button>
 
-          {/* Jump +10s */}
+          {/* Maju 10 Detik */}
           <button
             onClick={() => onJump && onJump(10)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
             title="Maju 10 Detik"
           >
-            <FastForward className="w-4 h-4" />
+            <span>+10s</span>
+            <FastForward className="w-3.5 h-3.5" />
           </button>
 
-          {/* Step Forward (Per 1 Detik) */}
+          {/* Maju 1 Detik / Frame */}
           <button
             onClick={() => onStepFrame && onStepFrame(1)}
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
-            title="Maju 1 Frame / 1 Detik"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
+            title="Maju 1 Detik"
           >
-            <SkipForward className="w-4 h-4" />
+            <span>+1s</span>
+            <SkipForward className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Speed Selector (0.5x, 1x, 2x, 4x, 8x ala NVR) */}
+        {/* Pilihan Kecepatan */}
         <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs text-slate-300">
           <span className="text-[10px] font-semibold text-slate-500 px-1">Kecepatan:</span>
-          {[0.5, 1, 2, 4, 8].map((spd) => (
+          {[0.5, 1, 2, 4].map((spd) => (
             <button
               key={spd}
               onClick={() => onChangeSpeed && onChangeSpeed(spd)}
@@ -314,4 +305,3 @@ export default function CctvTimeline({
     </div>
   );
 }
-
