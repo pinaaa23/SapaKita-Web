@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   Video,
   VideoOff,
@@ -26,11 +26,8 @@ import {
   X,
   Film,
   Activity,
-  AlertTriangle,
-  ZoomIn,
-  Search,
-  ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Eye
 } from 'lucide-react';
 import { cctvService, SAMPLE_CCTV_STREAMS } from '../../services/cctvService';
 import { getAuthUser } from '../../services/api';
@@ -50,11 +47,11 @@ export default function BranchCctv() {
   const [loading, setLoading] = useState(true);
 
   // Live Mode States
-  const [gridLayout, setGridLayout] = useState('2x2'); // '2x2' | '1x1' | 'focus'
+  const [gridLayout, setGridLayout] = useState('2x2'); // '2x2' | 'focus'
   const [selectedChannel, setSelectedChannel] = useState(1);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Audio & Fullscreen per camera
+  // Audio & Fullscreen per camera (Live)
   const [mutedStates, setMutedStates] = useState({ 1: true, 2: true, 3: true, 4: true });
   const videoRefs = useRef({});
 
@@ -62,12 +59,13 @@ export default function BranchCctv() {
   const todayStr = new Date().toISOString().split('T')[0];
   const [playbackDate, setPlaybackDate] = useState(todayStr);
   const [playbackChannel, setPlaybackChannel] = useState(1);
-  const [playbackSec, setPlaybackSec] = useState(36000); // 10:00:00 WIB (36000s)
+  const [playbackSec, setPlaybackSec] = useState(36000); // 10:00:00 WIB (36000 detik)
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
+  const [playbackMuted, setPlaybackMuted] = useState(true);
   const playbackVideoRef = useRef(null);
 
-  // Modal Konfigurasi (Kepala UPT)
+  // Modal Konfigurasi 4 Slot (Kepala UPT)
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [editingSlotIndex, setEditingSlotIndex] = useState(0);
   const [formSlots, setFormSlots] = useState([]);
@@ -88,30 +86,20 @@ export default function BranchCctv() {
     setTimeout(() => setToastMsg(''), 3000);
   };
 
-  // Update realtime clock every second
+  // Format detik menjadi string jam HH:mm:ss
+  const formatSecondsToHms = (sec) => {
+    const s = Math.max(0, Math.min(86399, Math.floor(sec)));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sc = s % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
+  };
+
+  // Update jam realtime setiap detik
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  // Timer playback saat 'isPlaying' bernilai true
-  useEffect(() => {
-    let interval = null;
-    if (activeTab === 'playback' && isPlaying) {
-      interval = setInterval(() => {
-        setPlaybackSec((prev) => {
-          if (prev >= 86399) {
-            setIsPlaying(false);
-            return 86399;
-          }
-          return Math.min(86399, prev + playbackSpeed);
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTab, isPlaying, playbackSpeed]);
 
   // Load CCTV slots dari backend / cache
   const loadCctvSlots = async () => {
@@ -141,6 +129,65 @@ export default function BranchCctv() {
     loadCctvSlots();
   }, [user?.branchId]);
 
+  // Kamera aktif untuk Playback (berdasarkan playbackChannel)
+  const activePlaybackCamera = useMemo(() => {
+    return (
+      slots.find((s) => (s.channel || 1) === playbackChannel) ||
+      slots[0] || {
+        channel: 1,
+        name: 'CCTV 01 - Portir & Pintu Utama',
+        location: 'Gerbang Utama Lapas',
+      }
+    );
+  }, [slots, playbackChannel]);
+
+  // URL Video Rekaman Berdasarkan Channel (menjamin setiap channel memutar video yang berbeda)
+  const getPlaybackVideoUrl = useCallback((camera, channel) => {
+    // Jika streamUrl berupa direct MP4/WebM, gunakan itu
+    if (camera?.streamUrl && !camera.streamUrl.includes('.m3u8')) {
+      return camera.streamUrl;
+    }
+    // Klip sampel terpisah per kamera untuk investigasi waktu kebelakang
+    const sampleClips = [
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4',
+    ];
+    return sampleClips[(channel - 1) % sampleClips.length];
+  }, []);
+
+  // SINKRONISASI WAKTU MUNDUR / MAJU (SEEKING VIDEO SESUAI TIMELINE PLAYBACK)
+  const syncVideoToPlaybackSec = (targetSec) => {
+    if (playbackVideoRef.current) {
+      const video = playbackVideoRef.current;
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        // Petakan detik 0..86399 ke dalam durasi berkas video yang sedang diputar
+        const targetVideoTime = targetSec % Math.floor(video.duration);
+        video.currentTime = targetVideoTime;
+      }
+    }
+  };
+
+  // Timer playback saat 'isPlaying' aktif
+  useEffect(() => {
+    let interval = null;
+    if (activeTab === 'playback' && isPlaying) {
+      interval = setInterval(() => {
+        setPlaybackSec((prev) => {
+          if (prev >= 86399) {
+            setIsPlaying(false);
+            return 86399;
+          }
+          return Math.min(86399, prev + playbackSpeed);
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTab, isPlaying, playbackSpeed]);
+
   // Segmen Rekaman Realistis untuk Timeline (Continuous & Motion Event)
   const recordingSegments = useMemo(() => {
     return [
@@ -154,20 +201,22 @@ export default function BranchCctv() {
     ];
   }, []);
 
-  // Daftar Event Log Kejadian untuk Panel Samping Playback
+  // Event Logs Kejadian untuk Panel Samping Playback (Disesuaikan dengan Channel)
   const eventLogs = useMemo(() => {
-    return [
+    const allEvents = [
       {
         id: 'ev-1',
+        channel: 1,
         timeSec: 28800,
         timeLabel: '08:00:00 WIB',
-        title: 'Apel Pagi & Pergantian Shift Regu',
+        title: 'Apel Pagi & Pergantian Shift Regu Portir',
         type: 'motion',
         duration: '60 Menit',
         camera: 'CH 01 - Portir & Pintu Utama',
       },
       {
         id: 'ev-2',
+        channel: 2,
         timeSec: 36600,
         timeLabel: '10:10:00 WIB',
         title: 'Aktivitas Kunjungan Keluarga & WBP',
@@ -177,15 +226,17 @@ export default function BranchCctv() {
       },
       {
         id: 'ev-3',
+        channel: 3,
         timeSec: 43200,
         timeLabel: '12:00:00 WIB',
-        title: 'Distribusi Makanan & Kebutuhan Kamar',
+        title: 'Distribusi Makanan Blok Kamar',
         type: 'continuous',
         duration: '45 Menit',
         camera: 'CH 03 - Koridor Blok Hunian A',
       },
       {
         id: 'ev-4',
+        channel: 3,
         timeSec: 50400,
         timeLabel: '14:00:00 WIB',
         title: 'Gerakan Terdeteksi di Koridor Tengah',
@@ -195,92 +246,31 @@ export default function BranchCctv() {
       },
       {
         id: 'ev-5',
-        timeSec: 57600,
-        timeLabel: '16:00:00 WIB',
-        title: 'Penutupan Pintu & Kunci Kamar Sel',
+        channel: 4,
+        timeSec: 54000,
+        timeLabel: '15:00:00 WIB',
+        title: 'Aktivitas Panggilan Wartelsus WBP',
+        type: 'motion',
+        duration: '45 Menit',
+        camera: 'CH 04 - Area Wartel & Kantin',
+      },
+      {
+        id: 'ev-6',
+        channel: 1,
+        timeSec: 61200,
+        timeLabel: '17:00:00 WIB',
+        title: 'Penutupan Gerbang & Kunci Portal Malam',
         type: 'continuous',
-        duration: '40 Menit',
-        camera: 'CH 01 - Portir & Gerbang',
+        duration: '30 Menit',
+        camera: 'CH 01 - Portir & Pintu Utama',
       },
     ];
-  }, []);
 
-  // Format detik ke format jam string HH:mm:ss
-  const formatSecondsToHms = (sec) => {
-    const s = Math.max(0, Math.min(86399, Math.floor(sec)));
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sc = s % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sc).padStart(2, '0')}`;
-  };
+    // Filter event berdasarkan kamera terpilih atau tampilkan semua
+    return allEvents.filter((ev) => ev.channel === playbackChannel || allEvents.length < 4);
+  }, [playbackChannel]);
 
-  // Mute / Unmute kartu kamera
-  const toggleMute = (ch) => {
-    setMutedStates((prev) => {
-      const newMuted = !prev[ch];
-      if (videoRefs.current[ch]) {
-        videoRefs.current[ch].muted = newMuted;
-      }
-      return { ...prev, [ch]: newMuted };
-    });
-  };
-
-  // Fullscreen kamera spesifik
-  const toggleFullscreen = (ch) => {
-    const el = videoRefs.current[ch];
-    if (el) {
-      if (document.fullscreenElement) {
-        document.exitFullscreen().catch(() => {});
-      } else {
-        el.requestFullscreen().catch(() => {});
-      }
-    }
-  };
-
-  // Snapshot gambar beresolusi tinggi dengan Watermark Bukti Resmi
-  const takeSnapshot = (ch, cameraName) => {
-    const video = videoRefs.current[ch];
-    if (!video) {
-      showToast('Kamera belum siap untuk snapshot');
-      return;
-    }
-    try {
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Watermark Resmi Berkas Pengawasan Lapas
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(20, canvas.height - 65, 520, 45);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 15px monospace';
-      ctx.fillText(
-        `PASCALL CCTV • ${cameraName.toUpperCase()}`,
-        35,
-        canvas.height - 43
-      );
-      ctx.font = '13px sans-serif';
-      ctx.fillStyle = '#A3E635'; // Lime green
-      ctx.fillText(
-        `${currentTime.toLocaleDateString('id-ID')} ${currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB`,
-        35,
-        canvas.height - 26
-      );
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `CCTV_SNAPSHOT_${cameraName.replace(/\s+/g, '_')}_${Date.now()}.png`;
-      a.click();
-      showToast(`Snapshot ${cameraName} berhasil disimpan!`);
-    } catch (e) {
-      alert('Tidak dapat mengambil snapshot CORS. Pastikan URL stream mengizinkan snapshot.');
-    }
-  };
-
-  // Handle Playback Controls
+  // Handle Play/Pause
   const handleTogglePlay = () => {
     setIsPlaying((prev) => !prev);
     if (playbackVideoRef.current) {
@@ -292,31 +282,184 @@ export default function BranchCctv() {
     }
   };
 
+  // Handle Frame Step (-1s atau +1s)
   const handleStepFrame = (deltaSec) => {
     setIsPlaying(false);
-    setPlaybackSec((prev) => Math.max(0, Math.min(86399, prev + deltaSec)));
+    setPlaybackSec((prev) => {
+      const next = Math.max(0, Math.min(86399, prev + deltaSec));
+      syncVideoToPlaybackSec(next);
+      return next;
+    });
   };
 
+  // Handle Jump (-10s atau +10s)
   const handleJump = (deltaSec) => {
-    setPlaybackSec((prev) => Math.max(0, Math.min(86399, prev + deltaSec)));
+    setPlaybackSec((prev) => {
+      const next = Math.max(0, Math.min(86399, prev + deltaSec));
+      syncVideoToPlaybackSec(next);
+      return next;
+    });
+    showToast(deltaSec < 0 ? 'Mundur 10 Detik' : 'Maju 10 Detik');
   };
 
+  // Handle Timeline Scrubbing (Klik / Drag Waktu 24 Jam)
+  const handleTimeChange = (sec) => {
+    setPlaybackSec(sec);
+    syncVideoToPlaybackSec(sec);
+  };
+
+  // Handle Ganti Kecepatan Putar
   const handleChangeSpeed = (speed) => {
     setPlaybackSpeed(speed);
     if (playbackVideoRef.current) {
       playbackVideoRef.current.playbackRate = speed;
     }
-    showToast(`Kecepatan diputar ${speed}x`);
+    showToast(`Kecepatan putar ${speed}x`);
   };
 
-  // Lompat ke event yang dipilih di panel
+  // Handle Pilih Event Kejadian
   const handleSelectEvent = (eventItem) => {
     setPlaybackSec(eventItem.timeSec);
+    syncVideoToPlaybackSec(eventItem.timeSec);
     setIsPlaying(true);
-    showToast(`Melompat ke kejadian: ${eventItem.title}`);
+    if (playbackVideoRef.current) {
+      playbackVideoRef.current.play().catch(() => {});
+    }
+    showToast(`Melompat ke: ${eventItem.title}`);
   };
 
-  // Handle Simpan Form Konfigurasi (Kepala UPT)
+  // Handle Buka Modal Klip (Otomatis mengisi jam playhead saat ini)
+  const handleOpenClipModal = () => {
+    setClipStartHms(formatSecondsToHms(playbackSec));
+    setClipEndHms(formatSecondsToHms(playbackSec + 900)); // +15 menit default
+    setShowClipModal(true);
+  };
+
+  // Handle Ekspor Klip Bukti
+  const handleDownloadClip = () => {
+    setClipDownloading(true);
+    setTimeout(() => {
+      setClipDownloading(false);
+      setShowClipModal(false);
+      showToast('Klip bukti rekaman berhasil diunduh dari Object Storage Biznet!');
+      const a = document.createElement('a');
+      a.href = getPlaybackVideoUrl(activePlaybackCamera, playbackChannel);
+      a.download = `BUKTI_CCTV_CH${playbackChannel}_${playbackDate}_${clipStartHms.replace(/:/g, '')}.mp4`;
+      a.target = '_blank';
+      a.click();
+    }, 1200);
+  };
+
+  // Snapshot Gambar Playback
+  const takePlaybackSnapshot = () => {
+    const video = playbackVideoRef.current;
+    if (!video) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(20, canvas.height - 70, 520, 50);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText(
+        `BUKTI REKAMAN HISTORI • ${activePlaybackCamera.name.toUpperCase()}`,
+        35,
+        canvas.height - 46
+      );
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#38BDF8'; // Sky blue
+      ctx.fillText(
+        `WAKTU REKAMAN: ${playbackDate} ${formatSecondsToHms(playbackSec)} WIB`,
+        35,
+        canvas.height - 28
+      );
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `BUKTI_FRAME_CH${playbackChannel}_${playbackDate}_${formatSecondsToHms(playbackSec).replace(/:/g, '')}.png`;
+      a.click();
+      showToast('Tangkapan layar bukti rekaman berhasil disimpan!');
+    } catch (e) {
+      alert('Tidak dapat mengambil snapshot CORS.');
+    }
+  };
+
+  // Snapshot Gambar Live View
+  const takeLiveSnapshot = (ch, cameraName) => {
+    const video = videoRefs.current[ch];
+    if (!video) return;
+    try {
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth || 1280;
+      canvas.height = video.videoHeight || 720;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(20, canvas.height - 70, 520, 50);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 15px monospace';
+      ctx.fillText(`PASCALL CCTV LIVE • ${cameraName.toUpperCase()}`, 35, canvas.height - 46);
+      ctx.font = '13px sans-serif';
+      ctx.fillStyle = '#4ADE80'; // Emerald green
+      ctx.fillText(
+        `${currentTime.toLocaleDateString('id-ID')} ${currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB`,
+        35,
+        canvas.height - 28
+      );
+
+      const dataUrl = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `LIVE_SNAPSHOT_${cameraName.replace(/\s+/g, '_')}_${Date.now()}.png`;
+      a.click();
+      showToast(`Snapshot ${cameraName} tersimpan!`);
+    } catch (e) {
+      alert('Gagal mengambil snapshot CORS.');
+    }
+  };
+
+  // Fullscreen Playback Player
+  const togglePlaybackFullscreen = () => {
+    const el = playbackVideoRef.current;
+    if (el) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else {
+        el.requestFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  // Fullscreen Live Camera
+  const toggleLiveFullscreen = (ch) => {
+    const el = videoRefs.current[ch];
+    if (el) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      } else {
+        el.requestFullscreen().catch(() => {});
+      }
+    }
+  };
+
+  // Toggle Mute Live Camera
+  const toggleLiveMute = (ch) => {
+    setMutedStates((prev) => {
+      const newMuted = !prev[ch];
+      if (videoRefs.current[ch]) {
+        videoRefs.current[ch].muted = newMuted;
+      }
+      return { ...prev, [ch]: newMuted };
+    });
+  };
+
+  // Simpan Form 4 Slot CCTV
   const handleSaveAllSlots = async () => {
     setSaveLoading(true);
     setSaveSuccessMsg('');
@@ -335,38 +478,18 @@ export default function BranchCctv() {
     }
   };
 
-  // Handle Ekspor Klip Bukti
-  const handleDownloadClip = () => {
-    setClipDownloading(true);
-    setTimeout(() => {
-      setClipDownloading(false);
-      setShowClipModal(false);
-      showToast('Klip rekaman MP4 berhasil diunduh dari Object Storage Biznet!');
-      // Trigger unduhan file sample video
-      const a = document.createElement('a');
-      a.href = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-      a.download = `BUKTI_CCTV_CH${playbackChannel}_${playbackDate}_${clipStartHms.replace(/:/g, '')}.mp4`;
-      a.target = '_blank';
-      a.click();
-    }, 1200);
-  };
-
-  // Current active camera object
-  const activeCameraObj = slots.find((s) => (s.channel || 1) === selectedChannel) || slots[0] || {};
-
   return (
     <div className="space-y-4 max-w-7xl mx-auto pb-12">
-      {/* Toast Notifikasi */}
+      {/* Toast Notification */}
       {toastMsg && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900/95 border border-slate-700 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border border-slate-700 text-white px-4 py-2.5 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs font-semibold animate-in fade-in slide-in-from-bottom-3 duration-200">
           <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
           <span>{toastMsg}</span>
         </div>
       )}
 
-      {/* 1. Header Navigasi & Mode Switcher VMS */}
-      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        {/* Judul & Status Sistem */}
+      {/* 1. Top Bar: Header & Navigasi Mode */}
+      <div className="bg-white border border-slate-200/90 rounded-2xl p-4 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-3.5">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shrink-0 shadow-xs">
             <Video className="w-5 h-5 text-blue-400" />
@@ -392,7 +515,7 @@ export default function BranchCctv() {
           </div>
         </div>
 
-        {/* Mode Switcher: LIVE MONITORING vs PLAYBACK REKAMAN */}
+        {/* Tab Switcher & Konfigurasi */}
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
             <button
@@ -423,7 +546,6 @@ export default function BranchCctv() {
             </button>
           </div>
 
-          {/* Tombol Pengaturan 4 Slot (Khusus Kepala UPT) */}
           {isKepalaUpt && (
             <button
               onClick={() => setShowConfigModal(true)}
@@ -436,20 +558,20 @@ export default function BranchCctv() {
         </div>
       </div>
 
-      {/* 2. Banner Informasi Mode Supervisor (Jelas & Kontras Tinggi) */}
+      {/* 2. Notice Mode Supervisor */}
       {isSupervisor && (
         <div className="bg-amber-50 border border-amber-200/90 rounded-xl p-3 flex items-start sm:items-center gap-3 text-xs shadow-2xs">
           <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
           <p className="text-amber-950 font-medium">
-            <strong className="font-bold text-amber-950">Mode Supervisor:</strong> Anda memiliki hak akses untuk memantau tayangan langsung 4 kamera dan memutar rekaman waktu kebelakang. Penambahan atau perubahan URL stream CCTV dikelola oleh Kepala UPT.
+            <strong className="font-bold text-amber-950">Mode Supervisor:</strong> Akses pemantauan tayangan langsung 4 kamera dan pemutaran rekaman histori aktif. Pengaturan URL kamera dikelola oleh Kepala UPT.
           </p>
         </div>
       )}
 
-      {/* 3. KONTEN TAB 1: LIVE MONITORING (KONSOL CCTV 4 KAMERA) */}
+      {/* 3. TAB 1: LIVE MONITORING */}
       {activeTab === 'live' && (
         <div className="space-y-3">
-          {/* Toolbar Live: Grid Layout Switcher & Refresh */}
+          {/* Toolbar Live */}
           <div className="bg-white border border-slate-200/80 rounded-xl px-4 py-2 flex items-center justify-between text-xs">
             <div className="flex items-center gap-2 text-slate-600">
               <span className="font-semibold text-slate-400 text-[11px]">Tampilan Layar:</span>
@@ -486,7 +608,7 @@ export default function BranchCctv() {
             </div>
           </div>
 
-          {/* Grid Viewports Kamera CCTV */}
+          {/* Grid 4 Kamera */}
           <div
             className={`grid gap-3.5 ${
               gridLayout === '2x2' ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
@@ -508,7 +630,6 @@ export default function BranchCctv() {
                     isSelected ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  {/* Aspect-Video Viewport Display */}
                   <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                     {hasUrl ? (
                       <>
@@ -523,9 +644,8 @@ export default function BranchCctv() {
                           }}
                         />
 
-                        {/* OSD (On-Screen Display) Header Atas */}
+                        {/* OSD Atas */}
                         <div className="absolute top-2.5 inset-x-2.5 flex items-center justify-between pointer-events-none z-10">
-                          {/* Nama Kamera & Channel Tag */}
                           <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md border border-white/10 text-white shadow-md">
                             <span className="font-mono text-[10px] font-extrabold text-blue-400">
                               CH{String(ch).padStart(2, '0')}
@@ -535,7 +655,6 @@ export default function BranchCctv() {
                             </span>
                           </div>
 
-                          {/* Indikator REC Merah & Kualitas */}
                           <div className="flex items-center gap-1.5 bg-black/75 backdrop-blur-xs px-2 py-1 rounded-md border border-white/10 text-white text-[10px] font-mono">
                             <div className="flex items-center gap-1 text-red-400 font-bold">
                               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
@@ -546,20 +665,19 @@ export default function BranchCctv() {
                           </div>
                         </div>
 
-                        {/* OSD Bawah: Realtime CCTV Timestamp font digital */}
+                        {/* OSD Waktu Bawah */}
                         <div className="absolute bottom-2.5 left-2.5 pointer-events-none z-10">
                           <div className="bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md border border-white/10 text-[11px] font-mono text-emerald-400 shadow-md">
                             {currentTime.toLocaleDateString('id-ID')} {currentTime.toLocaleTimeString('id-ID', { hour12: false })}
                           </div>
                         </div>
 
-                        {/* Quick Action Overlay (Muncul saat hover di kanan bawah) */}
+                        {/* Quick Action Tools */}
                         <div className="absolute bottom-2.5 right-2.5 flex items-center gap-1 opacity-90 group-hover:opacity-100 transition z-20">
-                          {/* Toggle Audio */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleMute(ch);
+                              toggleLiveMute(ch);
                             }}
                             className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
                             title={isMuted ? 'Nyalakan Audio' : 'Bisukan'}
@@ -567,19 +685,17 @@ export default function BranchCctv() {
                             {isMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
                           </button>
 
-                          {/* Snapshot PNG */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              takeSnapshot(ch, camera.name);
+                              takeLiveSnapshot(ch, camera.name);
                             }}
                             className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title="Ambil Foto Snapshot (Watermark)"
+                            title="Ambil Foto Snapshot"
                           >
                             <Camera className="w-3.5 h-3.5 text-slate-200" />
                           </button>
 
-                          {/* Focus */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -587,16 +703,15 @@ export default function BranchCctv() {
                               setGridLayout(gridLayout === 'focus' ? '2x2' : 'focus');
                             }}
                             className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
-                            title={gridLayout === 'focus' ? 'Kembali ke Grid' : 'Layar Tunggal'}
+                            title={gridLayout === 'focus' ? 'Grid 2x2' : 'Layar Tunggal'}
                           >
                             <Layers className="w-3.5 h-3.5 text-slate-200" />
                           </button>
 
-                          {/* Fullscreen */}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleFullscreen(ch);
+                              toggleLiveFullscreen(ch);
                             }}
                             className="p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10"
                             title="Layar Penuh"
@@ -606,7 +721,6 @@ export default function BranchCctv() {
                         </div>
                       </>
                     ) : (
-                      /* Placeholder saat belum ada URL */
                       <div className="flex flex-col items-center justify-center p-6 text-center text-slate-500">
                         <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-600 mb-2">
                           <VideoOff className="w-6 h-6" />
@@ -615,7 +729,7 @@ export default function BranchCctv() {
                           Kamera #{ch} Belum Dikonfigurasi
                         </h4>
                         <p className="text-[11px] text-slate-500 mt-0.5">
-                          {isKepalaUpt ? 'Masukkan URL RTSP/HLS kamera untuk mulai memantau' : 'Belum diaktifkan oleh Kepala UPT'}
+                          {isKepalaUpt ? 'Masukkan URL RTSP/HLS kamera' : 'Belum diaktifkan'}
                         </p>
                         {isKepalaUpt && (
                           <button
@@ -626,14 +740,14 @@ export default function BranchCctv() {
                             className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition"
                           >
                             <Plus className="w-3.5 h-3.5" />
-                            Atur URL Kamera #{ch}
+                            Atur Kamera #{ch}
                           </button>
                         )}
                       </div>
                     )}
                   </div>
 
-                  {/* Footer Strip Info */}
+                  {/* Card Footer: Lokasi & Tombol Putar Rekaman Kamera Ini */}
                   <div className="px-3.5 py-1.5 bg-slate-900 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
                     <span className="truncate max-w-[220px]">
                       📍 {camera.location || 'Lokasi belum disetel'}
@@ -643,11 +757,12 @@ export default function BranchCctv() {
                         e.stopPropagation();
                         setPlaybackChannel(ch);
                         setActiveTab('playback');
+                        showToast(`Beralih ke rekaman: ${camera.name}`);
                       }}
                       className="text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition"
                     >
                       <RotateCcw className="w-3 h-3" />
-                      Putar Rekaman
+                      <span>Putar Rekaman CH {ch}</span>
                     </button>
                   </div>
                 </div>
@@ -657,72 +772,79 @@ export default function BranchCctv() {
         </div>
       )}
 
-      {/* 4. KONTEN TAB 2: PLAYBACK REKAMAN (TIMELINE 24 JAM & EVENT INVESTIGASI) */}
+      {/* 4. TAB 2: PLAYBACK REKAMAN CCTV (TIMELINE 24 JAM & EVENT KEJADIAN) */}
       {activeTab === 'playback' && (
-        <div className="space-y-4">
-          {/* Filter Bar Playback */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3 shadow-2xs">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Kamera Selector */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Pilih Kamera CCTV
-                </label>
-                <select
-                  value={playbackChannel}
-                  onChange={(e) => setPlaybackChannel(Number(e.target.value))}
-                  className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-blue-500"
-                >
-                  {slots.map((s, idx) => (
-                    <option key={s.id || idx} value={s.channel || idx + 1}>
-                      CH {s.channel || idx + 1}: {s.name}
-                    </option>
-                  ))}
-                </select>
+        <div className="space-y-3.5">
+          {/* Bar Filter & Pilihan Kamera Playback (Tab Cepat 4 Kamera) */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-3.5 shadow-2xs space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Tab Selector Pindah Kamera Cepat CH 1, 2, 3, 4 */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                  Pilih Kamera:
+                </span>
+                {slots.map((s, idx) => {
+                  const ch = s.channel || idx + 1;
+                  const isCurrent = playbackChannel === ch;
+                  return (
+                    <button
+                      key={s.id || ch}
+                      onClick={() => {
+                        setPlaybackChannel(ch);
+                        showToast(`Memuat rekaman: CH ${ch} - ${s.name}`);
+                      }}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap ${
+                        isCurrent
+                          ? 'bg-blue-600 text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200/70 border border-slate-200/60'
+                      }`}
+                    >
+                      <span
+                        className={`w-2 h-2 rounded-full ${
+                          isCurrent ? 'bg-white' : 'bg-emerald-500'
+                        }`}
+                      />
+                      <span>CH {String(ch).padStart(2, '0')}: {s.name}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Tanggal Rekaman */}
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                  Tanggal Rekaman
-                </label>
-                <div className="flex items-center gap-1.5">
+              {/* Tanggal Rekaman & Gunting Klip */}
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-2.5 py-1 text-xs">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400" />
                   <input
                     type="date"
                     value={playbackDate}
                     onChange={(e) => setPlaybackDate(e.target.value)}
                     max={todayStr}
-                    className="bg-slate-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-xl px-3 py-1.5 outline-none focus:border-blue-500"
+                    className="bg-transparent text-slate-800 font-bold outline-none text-xs"
                   />
                   <button
                     onClick={() => setPlaybackDate(todayStr)}
-                    className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                      playbackDate === todayStr
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    className={`ml-1 px-2 py-0.5 rounded-lg text-[10px] font-bold transition ${
+                      playbackDate === todayStr ? 'bg-blue-600 text-white' : 'text-slate-500 hover:text-slate-800'
                     }`}
                   >
                     Hari Ini
                   </button>
                 </div>
-              </div>
-            </div>
 
-            {/* Quick Status Object Storage */}
-            <div className="text-right flex items-center gap-2">
-              <button
-                onClick={() => setShowClipModal(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
-              >
-                <Film className="w-3.5 h-3.5" />
-                <span>Gunting Klip Bukti</span>
-              </button>
+                <button
+                  onClick={handleOpenClipModal}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-xs transition"
+                >
+                  <Film className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Gunting Klip</span>
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* Area Player Utama & Panel Samping Investigasi */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-            {/* Player Viewport (3 Kolom) */}
+          {/* Area Player Viewport & Timeline */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3.5">
+            {/* Viewport & Timeline (3 Kolom) */}
             <div className="lg:col-span-3 bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex flex-col">
               {/* OSD Header Viewport Playback */}
               <div className="px-4 py-2.5 bg-slate-900 border-b border-slate-800 flex items-center justify-between text-white text-xs">
@@ -731,51 +853,93 @@ export default function BranchCctv() {
                     PLAYBACK CH{String(playbackChannel).padStart(2, '0')}
                   </span>
                   <span className="font-bold text-slate-200">
-                    {activeCameraObj.name || `Kamera Slot #${playbackChannel}`}
+                    {activePlaybackCamera.name}
+                  </span>
+                  <span className="text-slate-400 text-[11px] hidden sm:inline">
+                    ({activePlaybackCamera.location || 'Lokasi'})
                   </span>
                 </div>
-                <div className="font-mono text-emerald-400 font-bold text-xs">
-                  {playbackDate} • {formatSecondsToHms(playbackSec)} WIB
+
+                <div className="flex items-center gap-3">
+                  <div className="font-mono text-emerald-400 font-bold text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span>{playbackDate}</span>
+                    <span>•</span>
+                    <span>{formatSecondsToHms(playbackSec)} WIB</span>
+                  </div>
+
+                  {/* Snapshot Button in Playback */}
+                  <button
+                    onClick={takePlaybackSnapshot}
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    title="Simpan Frame Bukti Rekaman"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Fullscreen Button */}
+                  <button
+                    onClick={togglePlaybackFullscreen}
+                    className="p-1 rounded text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                    title="Layar Penuh"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
 
-              {/* Layar Video Playback */}
-              <div className="relative aspect-video bg-black flex items-center justify-center">
+              {/* Video Player Display */}
+              <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                 <video
                   ref={playbackVideoRef}
-                  src={
-                    activeCameraObj.streamUrl ||
-                    'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
-                  }
+                  key={`playback-video-ch-${playbackChannel}-${playbackDate}`}
+                  src={getPlaybackVideoUrl(activePlaybackCamera, playbackChannel)}
                   className="w-full h-full object-contain"
                   playsInline
+                  muted={playbackMuted}
+                  loop
                   onPlay={() => setIsPlaying(true)}
                   onPause={() => setIsPlaying(false)}
                 />
 
-                {/* Big Center Play Button if paused */}
+                {/* Big Center Play Button saat pause */}
                 {!isPlaying && (
                   <button
                     onClick={handleTogglePlay}
-                    className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl transition transform hover:scale-110"
+                    className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-blue-600/90 hover:bg-blue-500 text-white flex items-center justify-center shadow-2xl transition transform hover:scale-110 z-10"
                   >
                     <Play className="w-8 h-8 fill-white ml-1" />
                   </button>
                 )}
 
-                {/* Indikator Status Pemutaran di Layar */}
-                <div className="absolute top-3 left-3 bg-black/70 backdrop-blur-xs px-2.5 py-1 rounded text-white text-[11px] font-mono flex items-center gap-2 pointer-events-none">
+                {/* Indikator Kecepatan di Layar */}
+                <div className="absolute top-3 left-3 bg-black/75 backdrop-blur-xs px-2.5 py-1 rounded-md text-white text-[11px] font-mono flex items-center gap-2 pointer-events-none z-10">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <span>SPEED: {playbackSpeed}x</span>
+                  <span>PUTAR: {playbackSpeed}x</span>
                 </div>
+
+                {/* Audio Toggle in Playback */}
+                <button
+                  onClick={() => {
+                    const newMuted = !playbackMuted;
+                    setPlaybackMuted(newMuted);
+                    if (playbackVideoRef.current) {
+                      playbackVideoRef.current.muted = newMuted;
+                    }
+                  }}
+                  className="absolute bottom-3 right-3 p-1.5 rounded-lg bg-black/75 text-white hover:bg-slate-700 transition backdrop-blur-xs border border-white/10 z-10"
+                  title={playbackMuted ? 'Nyalakan Audio' : 'Bisukan'}
+                >
+                  {playbackMuted ? <VolumeX className="w-3.5 h-3.5 text-slate-400" /> : <Volume2 className="w-3.5 h-3.5 text-emerald-400" />}
+                </button>
               </div>
 
-              {/* Timeline 24 Jam Interaktif NVR Profesional */}
+              {/* TIMELINE 24 JAM INTERAKTIF ALAH VMS NVR */}
               <div className="p-3 bg-slate-950 border-t border-slate-800">
                 <CctvTimeline
                   selectedDate={playbackDate}
                   currentTimeSec={playbackSec}
-                  onTimeChange={(sec) => setPlaybackSec(sec)}
+                  onTimeChange={handleTimeChange}
                   isPlaying={isPlaying}
                   onTogglePlay={handleTogglePlay}
                   playbackSpeed={playbackSpeed}
@@ -783,7 +947,7 @@ export default function BranchCctv() {
                   onStepFrame={handleStepFrame}
                   onJump={handleJump}
                   recordingSegments={recordingSegments}
-                  onOpenClipExporter={() => setShowClipModal(true)}
+                  onOpenClipExporter={handleOpenClipModal}
                 />
               </div>
             </div>
@@ -801,13 +965,12 @@ export default function BranchCctv() {
               </div>
 
               <p className="text-[11px] text-slate-400 mb-3">
-                Klik peristiwa di bawah ini untuk melompat langsung ke waktu kejadian pada video.
+                Klik kejadian di bawah ini untuk melompat langsung ke rekaman video:
               </p>
 
-              {/* Event List Items */}
               <div className="space-y-2 overflow-y-auto max-h-[500px] pr-1 flex-1">
                 {eventLogs.map((ev) => {
-                  const isNearCurrent = Math.abs(playbackSec - ev.timeSec) < 1800; // dalam rentang 30 menit
+                  const isNearCurrent = Math.abs(playbackSec - ev.timeSec) < 1800;
                   return (
                     <div
                       key={ev.id}
@@ -875,17 +1038,15 @@ export default function BranchCctv() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Kamera Terpilih */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Kamera CCTV
                 </label>
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800">
-                  CH {playbackChannel}: {activeCameraObj.name} ({activeCameraObj.location})
+                  CH {playbackChannel}: {activePlaybackCamera.name} ({activePlaybackCamera.location})
                 </div>
               </div>
 
-              {/* Tanggal & Waktu Klip */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -913,7 +1074,6 @@ export default function BranchCctv() {
                 </div>
               </div>
 
-              {/* Catatan Investigasi */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Perihal / Catatan Kejadian
@@ -930,7 +1090,7 @@ export default function BranchCctv() {
               <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2">
                 <HardDrive className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                 <span>
-                  Berkas video dipotong langsung dari <strong>Object Storage Biznet GIO</strong> dalam format MP4 resmi siap lampir.
+                  Berkas video diunduh langsung dari <strong>Object Storage Biznet GIO</strong> dalam format MP4 resmi.
                 </span>
               </div>
             </div>
@@ -991,7 +1151,7 @@ export default function BranchCctv() {
                 </div>
               )}
 
-              {/* Slot Selector Tabs (1..4) */}
+              {/* Tab Slot 1..4 */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[1, 2, 3, 4].map((ch, idx) => {
                   const currentForm = formSlots[idx] || {};
@@ -1028,7 +1188,7 @@ export default function BranchCctv() {
                 })}
               </div>
 
-              {/* Form Input Selected Slot */}
+              {/* Form Input Detail Slot */}
               {formSlots[editingSlotIndex] && (
                 <div className="bg-slate-50/70 border border-slate-200 rounded-2xl p-4.5 space-y-3.5">
                   <div className="flex items-center justify-between pb-2 border-b border-slate-200">
