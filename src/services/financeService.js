@@ -142,20 +142,51 @@ export const INITIAL_BRANCH_CONTRACTS = [
     accountHolder: 'Koperasi Lapas Semarang',
     updatedAt: '2026-03-12T11:00:00Z',
   },
+  {
+    branchId: 'b9',
+    branchName: 'Lapas Kelas I Ungaran',
+    canteenName: 'Koperasi Pengayoman Ungaran',
+    kanwilName: 'Kantor Wilayah Jawa Tengah',
+    ratePerSecond: 15,
+    split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
+    accountNumber: '136-00-5566778-9',
+    bankName: 'Bank Mandiri',
+    accountHolder: 'Koperasi Lapas Ungaran',
+    updatedAt: '2026-03-15T09:00:00Z',
+  },
+  {
+    branchId: 'b10',
+    branchName: 'Lapas Kelas IIA Ambarawa',
+    canteenName: 'Koperasi Sejahtera Ambarawa',
+    kanwilName: 'Kantor Wilayah Jawa Tengah',
+    ratePerSecond: 15,
+    split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
+    accountNumber: '029-88-1122334-1',
+    bankName: 'Bank Jateng',
+    accountHolder: 'Koperasi Lapas Ambarawa',
+    updatedAt: '2026-03-20T10:30:00Z',
+  },
 ];
 
-// Generator tagihan awal untuk fallback
+// Generator tagihan awal untuk fallback (Semua bulan 1 - 12 memiliki data riil non-zero)
 const generateInitialBillings = () => {
   const billings = [];
-  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  const months = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   INITIAL_BRANCH_CONTRACTS.forEach((branch, bIdx) => {
     months.forEach((m) => {
-      const baseSeconds = 280000 + (bIdx * 35000) + ((m % 4) * 45000);
+      // Perhitungan detik & omset non-zero realistis per UPT
+      const multiplier = branch.ratePerSecond === 15 ? 3.5 : 1;
+      const baseSeconds = Math.round((280000 + (bIdx * 35000) + ((m % 4) * 45000)) * multiplier);
       const grossAmount = baseSeconds * branch.ratePerSecond;
       const totalVouchers = Math.floor(baseSeconds / 300) + (m * 12);
 
-      const s = branch.split;
+      // Pembagian hasil: Bulan 11 & 12 menggunakan porsi resmi 3 Pihak (Vendor 60%, UPT 30%, Inkopasindo 10%)
+      const isNovDec = m >= 11;
+      const s = isNovDec
+        ? { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 }
+        : branch.split;
+
       const kepalaUptAmount = Math.round(grossAmount * (s.kepalaUpt / 100));
       const koperasiAmount = Math.round(grossAmount * (s.koperasi / 100));
       const inkopasindoAmount = Math.round(grossAmount * (s.inkopasindo / 100));
@@ -167,12 +198,14 @@ const generateInitialBillings = () => {
       let paymentMethod = 'Bank Transfer Mandiri';
 
       if (m <= 8) {
+        // Bulan 1 - 8: Semua lunas
         status = 'PAID';
         const d = String(20 + (bIdx % 8)).padStart(2, '0');
         const mStr = String(m).padStart(2, '0');
         paymentDate = `2026-${mStr}-${d}T14:30:00Z`;
         paymentRef = `TRX-2026${mStr}${d}-${branch.branchId.toUpperCase()}-${1000 + bIdx}`;
       } else if (m === 9) {
+        // Bulan 9: Kombinasi lunas, menunggu verifikasi, dan belum bayar
         if (bIdx % 3 === 0) {
           status = 'PAID';
           paymentDate = '2026-10-05T11:20:00Z';
@@ -184,15 +217,42 @@ const generateInitialBillings = () => {
         } else {
           status = 'UNPAID';
         }
-      } else {
-        status = bIdx === 0 ? 'PENDING_CONFIRMATION' : 'UNPAID';
-        if (bIdx === 0) {
-          paymentDate = '2026-10-24T08:00:00Z';
-          paymentRef = `TRX-20261024-B1-4091`;
+      } else if (m === 10) {
+        // Bulan 10: Sebagian besar lunas, ada yang menunggu dan belum bayar
+        if (bIdx % 2 === 0) {
+          status = 'PAID';
+          paymentDate = '2026-11-02T10:15:00Z';
+          paymentRef = `TRX-20261102-${branch.branchId.toUpperCase()}-${4000 + bIdx}`;
+        } else if (bIdx === 1 || bIdx === 5) {
+          status = 'PENDING_CONFIRMATION';
+          paymentDate = '2026-11-04T14:20:00Z';
+          paymentRef = `TRX-20261104-${branch.branchId.toUpperCase()}-${4500 + bIdx}`;
+        } else {
+          status = 'UNPAID';
         }
+      } else if (m === 11) {
+        // Bulan 11 (November 2026 - Bulan Aktif): Variasi realistis untuk pengujian fungsi Inkopasindo
+        // bIdx 0, 1, 6, 9: UNPAID (bisa dites klik tombol 'Bayar ke Vendor')
+        // bIdx 2, 3, 8: PENDING_CONFIRMATION (menunggu verifikasi Admin Finance)
+        // bIdx 4, 5, 7: PAID (lunas disetor ke vendor)
+        if (bIdx === 4 || bIdx === 5 || bIdx === 7) {
+          status = 'PAID';
+          paymentDate = '2026-11-06T13:40:00Z';
+          paymentRef = `TRX-20261106-VND-${branch.branchId.toUpperCase()}-771`;
+        } else if (bIdx === 2 || bIdx === 3 || bIdx === 8) {
+          status = 'PENDING_CONFIRMATION';
+          paymentDate = '2026-11-07T09:30:00Z';
+          paymentRef = `TRX-20261107-VND-${branch.branchId.toUpperCase()}-882`;
+        } else {
+          status = 'UNPAID';
+        }
+      } else {
+        // Bulan 12 (Desember 2026): Bulan berjalan
+        status = 'UNPAID';
       }
 
-      const depositAmountToFinance = grossAmount - koperasiAmount;
+      // Untuk November 2026 ke atas, depositAmountToFinance adalah 60% hak Vendor Sadewa
+      const depositAmountToFinance = isNovDec ? vendorAmount : (grossAmount - koperasiAmount);
 
       billings.push({
         id: `BILL-2026-${String(m).padStart(2, '0')}-${branch.branchId.toUpperCase()}`,
@@ -210,7 +270,7 @@ const generateInitialBillings = () => {
         canteenCashCollected: grossAmount,
         canteenKeepAmount: koperasiAmount,
         depositAmountToFinance,
-        split: { ...branch.split },
+        split: { ...s },
         shares: {
           kepalaUpt: { percent: s.kepalaUpt, amount: kepalaUptAmount },
           koperasi: { percent: s.koperasi, amount: koperasiAmount },
@@ -229,21 +289,21 @@ const generateInitialBillings = () => {
           senderBank: branch.bankName,
           senderAccount: branch.accountNumber,
           senderName: branch.accountHolder,
-          targetBank: 'Bank Mandiri (Rekening Penampung Sadewa)',
+          targetBank: 'Bank Mandiri (Rekening Penampung Vendor Sadewa)',
           targetAccount: '168-00-9988112-7',
-          targetHolder: 'PT Station Technology',
-          transferDate: paymentDate || '2026-10-24T08:30:00Z',
+          targetHolder: 'PT PasCall Solusi Indonesia',
+          transferDate: paymentDate || '2026-11-07T09:30:00Z',
           nominalSetoran: depositAmountToFinance,
           totalUangTunaiKantin: grossAmount,
           potonganKoperasi: koperasiAmount,
           receiptNumber: `SLIP-${branch.branchId.toUpperCase()}-2026${String(m).padStart(2, '0')}`,
-          channel: 'ATM / Mobile Banking Transfer',
+          channel: 'ATM / Mobile Banking Transfer Mandiri',
         },
         notes: status === 'PAID'
-          ? `Setoran bagi hasil sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke stakeholder`
+          ? `Setoran tagihan vendor sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke vendor`
           : status === 'PENDING_CONFIRMATION'
-            ? `Bukti transfer setoran tunai telah diunggah oleh petugas kantin, menunggu verifikasi Admin Finance`
-            : `Kantin memegang uang cash hasil penjualan voucher dan belum melakukan setoran ke Finance`,
+            ? `Bukti transfer setoran 60% vendor telah diunggah oleh Inkopasindo, menunggu verifikasi Admin Finance`
+            : `Tagihan porsi vendor 60% belum dibayarkan oleh Inkopasindo`,
         verifiedBy: status === 'PAID' ? 'Dewi Lestari (Finance)' : null,
         verifiedAt: status === 'PAID' ? paymentDate : null,
         rejectionReason: null,
@@ -273,7 +333,14 @@ const getAllFinanceBillingsFromStorage = () => {
     const raw = localStorage.getItem(BILLINGS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Cek apakah data tersimpan sudah mencakup bulan 11 & 12 dengan nominal omset non-zero
+        const hasNovNonZero = parsed.some((b) => b.month === 11 && Number(b.grossAmount || 0) > 0);
+        const hasDecNonZero = parsed.some((b) => b.month === 12 && Number(b.grossAmount || 0) > 0);
+        if (hasNovNonZero && hasDecNonZero) {
+          return parsed;
+        }
+      }
     }
   } catch (e) {
     console.warn('[FinanceService] Fallback storage billings error:', e);

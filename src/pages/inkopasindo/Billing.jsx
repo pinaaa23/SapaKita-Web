@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import {
   Receipt,
@@ -11,7 +12,15 @@ import {
   Landmark,
   X,
   Eye,
-  Lock
+  Lock,
+  Wallet,
+  Building2,
+  CreditCard,
+  Copy,
+  Check,
+  QrCode,
+  ArrowRight,
+  ExternalLink
 } from 'lucide-react';
 import {
   getInkopasindoBillings,
@@ -20,6 +29,20 @@ import {
   formatRupiah,
   MONTH_NAMES
 } from '../../services/inkopasindoService';
+import { getFinancePaymentSettings } from '../../services/financeService';
+import { API_BASE_URL } from '../../services/api';
+import ModalBayarVendorInkopasindo from '../../components/inkopasindo/ModalBayarVendorInkopasindo';
+
+function resolveImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('data:') || url.startsWith('blob:')) return url;
+  if (url.includes(':9000') || url.includes('finance-settings') || url.includes('/payment-settings/qris-image')) {
+    const queryString = url.includes('?') ? url.substring(url.indexOf('?')) : '';
+    return `${(API_BASE_URL || '').replace(/\/+$/, '')}/api/finance/payment-settings/qris-image${queryString}`;
+  }
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  return `${(API_BASE_URL || '').replace(/\/+$/, '')}/${url.replace(/^\/+/, '')}`;
+}
 
 export default function InkopasindoBilling() {
   const [searchParams] = useSearchParams();
@@ -39,9 +62,23 @@ export default function InkopasindoBilling() {
   // Modal Detail State
   const [detailModalItem, setDetailModalItem] = useState(null);
 
+  // Modal Bayar Vendor State
+  const [payModalItem, setPayModalItem] = useState(null);
+
+  // Rekening Penampung Vendor State
+  const [financeSetting, setFinanceSetting] = useState(null);
+  const [copiedRekening, setCopiedRekening] = useState(false);
+  const [previewQrisModal, setPreviewQrisModal] = useState(false);
+
   // Download & Toast State
   const [downloadingId, setDownloadingId] = useState(null);
   const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    getFinancePaymentSettings().then((s) => {
+      if (s) setFinanceSetting(s);
+    });
+  }, []);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -113,7 +150,166 @@ export default function InkopasindoBilling() {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* 1. Filter Section (Kanwil, UPT, Periode, Status, Search) */}
+      {/* 1. KARTU INFORMASI REKENING PENAMPUNG & QRIS VENDOR SADEWA */}
+      <div className="bg-white rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xs p-5 sm:p-6 transition-all space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-200/80 flex items-center justify-center text-blue-600 shrink-0 shadow-2xs">
+              <Building2 className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-black text-slate-900 tracking-tight">
+                  Rekening Penampung & Barcode QRIS Resmi Vendor Sadewa
+                </h3>
+                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800 border border-blue-200">
+                  Sinkron Terpusat
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Rekening resmi Finance Sadewa untuk pembayaran setoran tagihan bulanan hak vendor (60%) per Lapas/UPT oleh Koperasi Inkopasindo.
+              </p>
+            </div>
+          </div>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit shrink-0">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Rekening Terverifikasi Superadmin</span>
+          </span>
+        </div>
+
+        {/* Grid 2 Kolom: Rekening Bank & QRIS Barcode */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-1">
+          {/* Kolom Kiri: Kartu Rekening Bank Mandiri */}
+          {financeSetting?.isBankActive !== false && (
+            <div className={`${
+              financeSetting?.isQrisActive !== false && financeSetting?.qrisImageUrl ? 'lg:col-span-7' : 'lg:col-span-12'
+            } bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 text-white rounded-2xl p-5 border border-blue-900/40 shadow-sm relative overflow-hidden flex flex-col justify-between min-h-[175px]`}>
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-blue-500/30 text-blue-200 text-xs font-black uppercase tracking-wider rounded-lg border border-blue-400/30">
+                    {financeSetting?.bankName || 'Bank Mandiri'}
+                  </span>
+                  <span className="text-[11px] text-slate-300 font-medium">Metode 1: Transfer Rekening Bank</span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-400/30">
+                  Instruksi Resmi Setoran
+                </span>
+              </div>
+
+              <div className="my-3.5 relative z-10">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold block mb-1">
+                  Nomor Rekening Tujuan Setoran Vendor
+                </span>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="text-xl sm:text-2xl font-mono font-black text-white tracking-widest select-all">
+                    {financeSetting?.accountNumber || '168-00-9988112-7'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const num = financeSetting?.accountNumber || '168-00-9988112-7';
+                      navigator.clipboard.writeText(num);
+                      setCopiedRekening(true);
+                      setTimeout(() => setCopiedRekening(false), 2000);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 active:scale-95 text-white text-xs font-bold rounded-xl border border-white/20 transition cursor-pointer"
+                    title="Salin nomor rekening"
+                  >
+                    {copiedRekening ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-300">Tersalin</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5 text-blue-300" />
+                        <span>Salin No. Rekening</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2.5 border-t border-white/10 flex items-center justify-between text-xs text-slate-300 relative z-10">
+                <div>
+                  <span className="text-[10px] text-slate-400 block font-medium">Atas Nama Rekening Penerima:</span>
+                  <span className="font-bold text-white text-xs">
+                    {financeSetting?.accountHolder || 'PT PasCall Solusi Indonesia'}
+                  </span>
+                </div>
+                <CreditCard className="w-5 h-5 text-blue-400/60" />
+              </div>
+            </div>
+          )}
+
+          {/* Kolom Kanan: Barcode QRIS Resmi */}
+          {financeSetting?.isQrisActive !== false && (
+            <div className={`${
+              financeSetting?.isBankActive !== false ? 'lg:col-span-5' : 'lg:col-span-12'
+            } bg-gradient-to-br from-indigo-50/80 to-blue-50/60 rounded-2xl p-4 sm:p-5 border border-indigo-200/80 flex flex-col justify-between`}>
+              <div className="flex items-start gap-4">
+                <div
+                  onClick={() => financeSetting?.qrisImageUrl && setPreviewQrisModal(true)}
+                  className={`relative group shrink-0 ${financeSetting?.qrisImageUrl ? 'cursor-pointer' : ''}`}
+                  title={financeSetting?.qrisImageUrl ? 'Klik untuk memperbesar barcode QRIS' : ''}
+                >
+                  {financeSetting?.qrisImageUrl ? (
+                    <div className="relative">
+                      <img
+                        src={resolveImageUrl(financeSetting.qrisImageUrl)}
+                        alt="QRIS Resmi Penampung"
+                        className="w-24 h-24 sm:w-28 sm:h-28 object-contain rounded-xl bg-white border border-indigo-200 shadow-xs p-1.5 group-hover:scale-105 transition-transform"
+                      />
+                      <div className="absolute inset-0 bg-slate-900/50 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[10px] font-bold gap-1">
+                        <Eye className="w-4 h-4" />
+                        <span>Perbesar</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-xl bg-white border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 text-[10px] p-2 text-center">
+                      <QrCode className="w-6 h-6 mb-1 text-slate-400" />
+                      <span>QRIS Belum Diunggah</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <QrCode className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <span className="text-xs font-bold text-slate-900">
+                      {financeSetting?.isBankActive !== false ? 'Metode 2: Scan QRIS (ATAU)' : 'Metode: Scan QRIS Resmi'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    Pindai barcode menggunakan aplikasi m-Banking (Mandiri Livin, BCA, BRImo, BNI) atau E-Wallet (GoPay, OVO, DANA).
+                  </p>
+                  {financeSetting?.qrisImageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setPreviewQrisModal(true)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-indigo-700 hover:text-indigo-900 transition pt-1 cursor-pointer"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Perbesar Barcode QRIS</span>
+                      <ArrowRight className="w-3 h-3 ml-0.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {financeSetting?.instructions && (
+                <div className="mt-3 pt-2.5 border-t border-indigo-200/60 text-[11px] text-slate-600 flex items-start gap-1.5">
+                  <span className="text-slate-500 font-medium">
+                    <strong>Petunjuk:</strong> {financeSetting.instructions}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Filter Section (Kanwil, UPT, Periode, Status, Search) */}
       <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-100">
           <div className="flex items-center gap-2">
@@ -309,6 +505,12 @@ export default function InkopasindoBilling() {
                           Menunggu
                         </span>
                       )}
+                      {b.status === 'REJECTED' && (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200" title={b.rejectionReason || 'Bukti ditolak Finance'}>
+                          <AlertCircle className="w-3 h-3 text-rose-600" />
+                          Ditolak
+                        </span>
+                      )}
                       {b.status === 'UNPAID' && (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200">
                           <AlertCircle className="w-3 h-3 text-rose-600" />
@@ -317,9 +519,22 @@ export default function InkopasindoBilling() {
                       )}
                     </td>
 
-                    {/* 6. Aksi: Detail & Unduh Invoice */}
+                    {/* 6. Aksi: Detail, Bayar & Unduh Invoice */}
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <div className="inline-flex items-center justify-end gap-1.5">
+                        {/* Tombol Bayar ke Vendor untuk status UNPAID atau REJECTED */}
+                        {(b.status === 'UNPAID' || b.status === 'REJECTED') && (
+                          <button
+                            type="button"
+                            onClick={() => setPayModalItem(b)}
+                            title="Bayar tagihan setoran vendor (60%)"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-2xs active:scale-95 cursor-pointer"
+                          >
+                            <Wallet className="w-3.5 h-3.5" />
+                            <span>Bayar ke Vendor</span>
+                          </button>
+                        )}
+
                         <button
                           type="button"
                           onClick={() => setDetailModalItem(b)}
@@ -513,7 +728,7 @@ export default function InkopasindoBilling() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50">
+            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => setDetailModalItem(null)}
@@ -522,27 +737,85 @@ export default function InkopasindoBilling() {
                 Tutup
               </button>
 
-              <button
-                type="button"
-                disabled={downloadingId === detailModalItem.id}
-                onClick={() => handleDownloadInvoice(detailModalItem)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {downloadingId === detailModalItem.id ? (
-                  <>
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Membuat PDF...</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4" />
-                    <span>Unduh Invoice PDF</span>
-                  </>
+              <div className="flex items-center gap-2">
+                {(detailModalItem.status === 'UNPAID' || detailModalItem.status === 'REJECTED') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const item = detailModalItem;
+                      setDetailModalItem(null);
+                      setPayModalItem(item);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-95"
+                  >
+                    <Wallet className="w-4 h-4" />
+                    <span>Bayar ke Vendor ({formatRupiah(detailModalItem.shares3Way?.vendor?.amount || 0)})</span>
+                  </button>
                 )}
-              </button>
+
+                <button
+                  type="button"
+                  disabled={downloadingId === detailModalItem.id}
+                  onClick={() => handleDownloadInvoice(detailModalItem)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white text-xs font-bold transition-all shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {downloadingId === detailModalItem.id ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      <span>Membuat PDF...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" />
+                      <span>Unduh Invoice PDF</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Bayar Vendor Inkopasindo */}
+      <ModalBayarVendorInkopasindo
+        isOpen={!!payModalItem}
+        onClose={() => setPayModalItem(null)}
+        billingItem={payModalItem}
+        onSuccess={() => {
+          showToast(`Pembayaran tagihan setoran vendor untuk ${payModalItem?.branchName || 'UPT'} berhasil diajukan ke Finance.`, 'success');
+          loadBillings();
+        }}
+      />
+
+      {/* Modal Zoom QRIS */}
+      {previewQrisModal && financeSetting?.qrisImageUrl && createPortal(
+        <div
+          className="fixed inset-0 z-[100000] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setPreviewQrisModal(false)}
+        >
+          <div
+            className="bg-white p-6 rounded-3xl max-w-sm w-full text-center space-y-3 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h4 className="text-sm font-bold text-slate-800">Barcode QRIS Resmi Vendor</h4>
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
+              <img
+                src={resolveImageUrl(financeSetting.qrisImageUrl)}
+                alt="QRIS Full"
+                className="w-full aspect-square object-contain"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewQrisModal(false)}
+              className="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold cursor-pointer"
+            >
+              Tutup
+            </button>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Floating Toast Notification */}
