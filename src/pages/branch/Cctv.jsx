@@ -32,6 +32,7 @@ import {
 import { cctvService, SAMPLE_CCTV_STREAMS } from '../../services/cctvService';
 import { getAuthUser } from '../../services/api';
 import { ROLES, normalizeRole } from '../../config/menuConfig';
+import CctvPlayer from '../../components/cctv/CctvPlayer';
 
 export default function BranchCctv() {
   const user = getAuthUser();
@@ -440,17 +441,14 @@ export default function BranchCctv() {
                   <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                     {hasUrl ? (
                       <>
-                        <video
-                          ref={(el) => (videoRefs.current[ch] = el)}
+                        <CctvPlayer
                           src={camera.streamUrl}
-                          className="w-full h-full object-cover"
-                          autoPlay
-                          loop
-                          playsInline
                           muted={isMuted}
-                          crossOrigin="anonymous"
-                          onError={(e) => {
-                            console.warn(`Video load error on CH ${ch}:`, camera.streamUrl);
+                          autoPlay={true}
+                          loop={true}
+                          playsInline={true}
+                          onVideoRef={(el) => {
+                            if (el) videoRefs.current[ch] = el;
                           }}
                         />
 
