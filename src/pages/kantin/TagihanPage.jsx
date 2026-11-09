@@ -452,7 +452,7 @@ export default function TagihanPage() {
     if (isPaid) {
       return {
         key: 'PAID',
-        label: 'Lunas',
+        label: 'Lunas / Disetor ke Vendor',
         badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
         textColor: 'text-emerald-300',
         icon: CheckCircle2,
@@ -462,7 +462,7 @@ export default function TagihanPage() {
     if (isPendingAcc) {
       return {
         key: 'PENDING_ACC',
-        label: 'Menunggu ACC Admin Finance',
+        label: 'Menunggu Verifikasi Finance',
         badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
         textColor: 'text-amber-300',
         icon: Clock,
@@ -472,7 +472,7 @@ export default function TagihanPage() {
     if (isRejected) {
       return {
         key: 'REJECTED',
-        label: 'Ditolak',
+        label: 'Setoran Ditolak Finance (Revisi Inkopasindo)',
         badgeBg: 'bg-rose-500/25 text-rose-300 border-rose-400/40',
         textColor: 'text-rose-300',
         icon: XCircle,
@@ -482,7 +482,7 @@ export default function TagihanPage() {
     if (isPastDue && sisaTagihan > 0) {
       return {
         key: 'BLOCKED',
-        label: 'Telat / Diblokir',
+        label: 'Telat / Menunggu Setoran Inkopasindo',
         badgeBg: 'bg-rose-500/30 text-rose-300 border-rose-500/50',
         textColor: 'text-rose-300',
         icon: ShieldAlert,
@@ -492,7 +492,7 @@ export default function TagihanPage() {
     if (!isMonthClosed) {
       return {
         key: 'IN_PROGRESS',
-        label: 'Bulan Berjalan',
+        label: 'Bulan Berjalan (Akumulasi)',
         badgeBg: 'bg-blue-500/20 text-blue-200 border-blue-400/30',
         textColor: 'text-blue-200',
         icon: Clock,
@@ -501,7 +501,7 @@ export default function TagihanPage() {
 
     return {
       key: 'UNPAID',
-      label: 'Belum Bayar',
+      label: 'Menunggu Pembayaran Inkopasindo',
       badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-400/30',
       textColor: 'text-amber-300',
       icon: AlertTriangle,
@@ -751,17 +751,17 @@ export default function TagihanPage() {
         </div>
       )}
 
-      {/* 2. Peringatan Telat / Diblokir (Lewat Jatuh Tempo) */}
+      {/* 2. Peringatan Telat / Menunggu Setoran Inkopasindo (Lewat Jatuh Tempo) */}
       {isPastDue && !isPaid && !isPendingAcc && isContractConfigured && newTotalTagihan > 0 && (
         <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl flex items-start sm:items-center gap-3 text-xs text-rose-900 animate-in fade-in">
           <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
             <strong className="block font-black text-rose-800">
-              Layanan Dinonaktifkan Sementara (Status: Telat / Diblokir)
+              Batas Waktu Terlewati (Menunggu Setoran Inkopasindo)
             </strong>
             <span>
               Batas jatuh tempo tagihan periode ini telah terlewati pada{' '}
-              <strong>{formatTanggal(dueDate)}</strong>. Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan. Segera lakukan pelunasan tagihan di bawah ini untuk mengaktifkan kembali layanan.
+              <strong>{formatTanggal(dueDate)}</strong>. Tagihan porsi vendor sebesar 60% sedang menunggu proses pelunasan dan konfirmasi setoran dari pihak Koperasi Inkopasindo.
             </span>
           </div>
         </div>
@@ -773,10 +773,10 @@ export default function TagihanPage() {
           <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
             <strong className="block font-black text-rose-800">
-              Peringatan Jatuh Tempo Mendesak: {remainingDays === 0 ? 'Hari Ini Adalah Batas Terakhir!' : 'Tersisa 1 Hari Lagi!'}
+              Peringatan Jatuh Tempo Mendesak: {remainingDays === 0 ? 'Hari Ini Batas Waktu Terakhir!' : 'Tersisa 1 Hari Lagi!'}
             </strong>
             <span>
-              Batas waktu pembayaran tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays === 0 ? 'Hari ini' : '1 hari lagi'}). Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan.
+              Batas waktu pelunasan tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays === 0 ? 'Hari ini' : '1 hari lagi'}). Setoran ke vendor dikoordinasikan dan dibayarkan terpusat oleh Koperasi Inkopasindo.
             </span>
           </div>
         </div>
@@ -788,10 +788,10 @@ export default function TagihanPage() {
           <AlertTriangle className="w-5 h-5 text-orange-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
             <strong className="block font-black text-orange-800">
-              Peringatan Jatuh Tempo: Tersisa {remainingDays} Hari Lagi
+              Pengingat Jatuh Tempo: Tersisa {remainingDays} Hari Lagi
             </strong>
             <span>
-              Batas waktu pembayaran tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays} hari lagi). Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan.
+              Batas waktu pelunasan tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays} hari lagi). Setoran ke vendor dikoordinasikan dan dibayarkan terpusat oleh Koperasi Inkopasindo.
             </span>
           </div>
         </div>
@@ -806,7 +806,7 @@ export default function TagihanPage() {
               Pengingat Jatuh Tempo: Tersisa {remainingDays} Hari Lagi
             </strong>
             <span>
-              Batas waktu pembayaran tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays} hari lagi). Jika lewat jatuh tempo, kantin otomatis tidak bisa berjualan.
+              Batas waktu pelunasan tagihan adalah <strong>{formatTanggal(dueDate)}</strong> ({remainingDays} hari lagi). Setoran ke vendor dikoordinasikan dan dibayarkan terpusat oleh Koperasi Inkopasindo.
             </span>
           </div>
         </div>
@@ -817,12 +817,12 @@ export default function TagihanPage() {
         <div className="p-4 bg-rose-50 border border-rose-300 rounded-2xl flex items-start sm:items-center gap-3 text-xs text-rose-900 animate-in fade-in">
           <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 sm:mt-0" />
           <div className="flex-1">
-            <strong className="block font-bold text-rose-800">Pembayaran Sebelumnya Ditolak oleh Admin Finance</strong>
+            <strong className="block font-bold text-rose-800">Bukti Setoran Perlu Diperbaiki oleh Inkopasindo</strong>
             <p className="mt-0.5 text-rose-700">
-              Alasan: <span className="font-semibold">{rejectedPayment.rejectReason || 'Bukti transfer tidak sesuai atau tidak valid.'}</span>
+              Catatan Finance: <span className="font-semibold">{rejectedPayment.rejectReason || 'Bukti transfer tidak sesuai atau tidak valid.'}</span>
             </p>
             <span className="text-[11px] text-rose-600 mt-1 block">
-              Silakan lakukan pembayaran ulang dan unggah bukti transfer yang sah melalui tombol di bawah.
+              Pihak Koperasi Inkopasindo sedang dalam proses mengunggah ulang bukti setoran yang valid.
             </span>
           </div>
         </div>
@@ -1344,8 +1344,8 @@ export default function TagihanPage() {
                               {isApproved
                                 ? 'Disetujui (Lunas)'
                                 : isPending
-                                ? 'Menunggu ACC'
-                                : 'Ditolak'}
+                                ? 'Menunggu Verifikasi Finance'
+                                : 'Ditolak Finance'}
                             </span>
                           </span>
                         </td>
