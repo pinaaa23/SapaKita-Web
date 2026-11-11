@@ -44,6 +44,7 @@ const profileLink = isBranchAdmin ? '/branch/profile' : (isKanwilUser ? '/kanwil
     if (pathname.startsWith('/branch/inmates/')) return { title: 'Detail WBP', subtitle: 'Informasi lengkap data warga binaan' };
     if (pathname.startsWith('/branch/inmates')) return { title: 'Data WBP', subtitle: uptName ? `Kelola data warga binaan di ${uptName}` : 'Kelola data warga binaan di UPT Anda' };
 
+    if (pathname.startsWith('/branch/cctv')) return { title: 'Pemantauan CCTV', subtitle: uptName ? `Monitoring video streaming langsung dan arsip rekaman CCTV di ${uptName}` : 'Monitoring video streaming langsung dan pemutaran rekaman pengawasan' };
     if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan suara dan video warga binaan (WBP)' };
     if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Keluarga', subtitle: 'Verifikasi permohonan nomor kontak keluarga WBP' };
     if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna UPT', subtitle: 'Manajemen akun Supervisor dan Operator Kantin' };
