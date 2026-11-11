@@ -27,7 +27,9 @@ import {
   ShieldCheck,
   Building2,
   Radio,
-  ArrowRight
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { cctvService, SAMPLE_CCTV_STREAMS } from '../../services/cctvService';
 import { getAuthUser } from '../../services/api';
@@ -40,6 +42,8 @@ export default function BranchCctv() {
   const normRole = normalizeRole(user?.role);
   const isKepalaUpt = normRole === ROLES.KEPALA_UPT;
   const isSupervisor = normRole === ROLES.SUPERVISOR;
+  // Hanya Kepala UPT (atau Superadmin) yang boleh menambah, mengatur, dan mengubah URL CCTV
+  const canManageCctv = isKepalaUpt || normRole === ROLES.SUPERADMIN;
 
   // Tab: 'live' (Tayangan Langsung 4 Kamera) atau 'playback' (Pemutaran Rekaman Waktu Kebelakang)
   const [activeTab, setActiveTab] = useState('live');
@@ -79,9 +83,18 @@ export default function BranchCctv() {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [timelineMode, setTimelineMode] = useState('session'); // 'session' (fokus 2 jam) atau '24h' (penuh 24 jam)
+  const [selectedArchiveId, setSelectedArchiveId] = useState(() => {
+    const now = new Date();
+    const h = now.getHours();
+    const startHour = Math.floor(h / 2) * 2;
+    return `archive-${startHour}`;
+  });
   const [playbackSec, setPlaybackSec] = useState(() => {
     const now = new Date();
-    return now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const h = now.getHours();
+    const startHour = Math.floor(h / 2) * 2;
+    return startHour * 3600; // Mulai dari awal sesi jam aktif
   });
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState(1);
@@ -171,42 +184,7 @@ export default function BranchCctv() {
     return sampleClips[(channel - 1) % sampleClips.length];
   }, []);
 
-  // Sinkronisasi pemutar video saat waktu digeser
-  const syncVideoToPlaybackSec = (targetSec) => {
-    if (playbackVideoRef.current) {
-      const video = playbackVideoRef.current;
-      if (Number.isFinite(video.duration) && video.duration > 0) {
-        const targetVideoTime = targetSec % Math.floor(video.duration);
-        video.currentTime = targetVideoTime;
-      }
-    }
-  };
-
-  // Timer playback saat tombol play ditekan
-  useEffect(() => {
-    let interval = null;
-    if (activeTab === 'playback' && isPlaying) {
-      interval = setInterval(() => {
-        setPlaybackSec((prev) => {
-          if (prev >= 86399) {
-            setIsPlaying(false);
-            return 86399;
-          }
-          return Math.min(86399, prev + playbackSpeed);
-        });
-      }, 1000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [activeTab, isPlaying, playbackSpeed]);
-
-  // Segmen ketersediaan rekaman
-  const recordingSegments = useMemo(() => {
-    return [{ startSec: 0, endSec: 86400 }];
-  }, []);
-
-  // Daftar berkas rekaman per sesi jam
+  // Daftar berkas rekaman per sesi jam (12 sesi @ 2 jam)
   const hourlyArchives = useMemo(() => {
     const hours = [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22];
     return hours.map((h) => {
@@ -225,21 +203,77 @@ export default function BranchCctv() {
     });
   }, []);
 
-  const handleTogglePlay = () => {
-    setIsPlaying((prev) => !prev);
+  // Sesi rekaman aktif yang sedang dipilih
+  const selectedArchive = useMemo(() => {
+    return hourlyArchives.find((a) => a.id === selectedArchiveId) || hourlyArchives[5] || hourlyArchives[0];
+  }, [hourlyArchives, selectedArchiveId]);
+
+  // Sinkronisasi pemutar video saat waktu digeser
+  const syncVideoToPlaybackSec = (targetSec) => {
     if (playbackVideoRef.current) {
-      if (isPlaying) {
-        playbackVideoRef.current.pause();
-      } else {
-        playbackVideoRef.current.play().catch(() => {});
+      const video = playbackVideoRef.current;
+      if (Number.isFinite(video.duration) && video.duration > 0) {
+        // Offset relatif terhadap awal berkas rekaman sesi 2 jam (0 s/d 7200 detik)
+        const baseSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.startSec : 0;
+        const offsetSec = Math.max(0, targetSec - baseSec);
+        const targetVideoTime = offsetSec % Math.floor(video.duration);
+        if (typeof video.fastSeek === 'function') {
+          video.fastSeek(targetVideoTime);
+        } else {
+          video.currentTime = targetVideoTime;
+        }
       }
     }
   };
 
+  // Timer playback saat tombol play ditekan
+  useEffect(() => {
+    let interval = null;
+    if (activeTab === 'playback' && isPlaying) {
+      interval = setInterval(() => {
+        setPlaybackSec((prev) => {
+          const maxSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.endSec : 86399;
+          if (prev >= maxSec) {
+            setIsPlaying(false);
+            return maxSec;
+          }
+          return Math.min(maxSec, prev + playbackSpeed);
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [activeTab, isPlaying, playbackSpeed, timelineMode, selectedArchive]);
+
+  // Segmen ketersediaan rekaman
+  const recordingSegments = useMemo(() => {
+    return [{ startSec: 0, endSec: 86400 }];
+  }, []);
+
+  const handleTogglePlay = () => {
+    setIsPlaying((prev) => {
+      const next = !prev;
+      if (playbackVideoRef.current) {
+        if (next) {
+          playbackVideoRef.current.play().catch(() => {});
+        } else {
+          playbackVideoRef.current.pause();
+        }
+      }
+      return next;
+    });
+  };
+
   const handleStepFrame = (deltaSec) => {
     setIsPlaying(false);
+    if (playbackVideoRef.current) {
+      playbackVideoRef.current.pause();
+    }
     setPlaybackSec((prev) => {
-      const next = Math.max(0, Math.min(86399, prev + deltaSec));
+      const minSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.startSec : 0;
+      const maxSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.endSec : 86399;
+      const next = Math.max(minSec, Math.min(maxSec, prev + deltaSec));
       syncVideoToPlaybackSec(next);
       return next;
     });
@@ -247,7 +281,9 @@ export default function BranchCctv() {
 
   const handleJump = (deltaSec) => {
     setPlaybackSec((prev) => {
-      const next = Math.max(0, Math.min(86399, prev + deltaSec));
+      const minSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.startSec : 0;
+      const maxSec = (timelineMode === 'session' && selectedArchive) ? selectedArchive.endSec : 86399;
+      const next = Math.max(minSec, Math.min(maxSec, prev + deltaSec));
       syncVideoToPlaybackSec(next);
       return next;
     });
@@ -264,16 +300,19 @@ export default function BranchCctv() {
     if (playbackVideoRef.current) {
       playbackVideoRef.current.playbackRate = speed;
     }
+    showToast(`Kecepatan putar ${speed}x`);
   };
 
   const handleSelectArchive = (archive) => {
+    setSelectedArchiveId(archive.id);
+    setTimelineMode('session'); // Selalu fokus geser pada rentang 2 jam sesi yang dipilih
     setPlaybackSec(archive.startSec);
     syncVideoToPlaybackSec(archive.startSec);
     setIsPlaying(true);
     if (playbackVideoRef.current) {
       playbackVideoRef.current.play().catch(() => {});
     }
-    showToast(`Memutar rekaman ${archive.timeLabel}`);
+    showToast(`Fokus Sesi: ${archive.timeLabel}`);
   };
 
   const handleOpenClipModal = () => {
@@ -515,53 +554,60 @@ export default function BranchCctv() {
             <span>{currentTime.toLocaleTimeString('id-ID', { hour12: false })} WIB</span>
           </div>
 
-          {/* Grid Layout Toggle (Active only in Live Monitor mode) */}
+          {/* Grid Layout & Focus Switcher (Pilihan Grid 2x2 atau Fokus ke CH 1, 2, 3, 4) */}
           {activeTab === 'live' && (
             <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
               <button
+                type="button"
                 onClick={() => setGridLayout('2x2')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 px-2.5 ${
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 px-3 ${
                   gridLayout === '2x2' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
                 }`}
-                title="Tampilan Grid 2x2"
+                title="Tampilkan semua 4 kamera dalam grid 2x2"
               >
                 <Grid2X2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Grid 2x2</span>
               </button>
-              <button
-                onClick={() => setGridLayout('focus')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 px-2.5 ${
-                  gridLayout === 'focus' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title={`Fokus Kamera #${selectedChannel}`}
-              >
-                <Square className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Fokus CH {selectedChannel}</span>
-              </button>
+
+              <div className="h-4 w-[1px] bg-slate-300 mx-0.5" />
+
+              <span className="text-[10px] font-bold text-slate-400 px-1 hidden md:inline">Fokus:</span>
+
+              {[1, 2, 3, 4].map((ch) => {
+                const isFocused = gridLayout === 'focus' && selectedChannel === ch;
+                return (
+                  <button
+                    key={ch}
+                    type="button"
+                    onClick={() => {
+                      setSelectedChannel(ch);
+                      setGridLayout('focus');
+                    }}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isFocused
+                        ? 'bg-primary text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                    }`}
+                    title={`Fokus Layar Penuh Kamera CH ${ch}`}
+                  >
+                    CH {ch}
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {/* Quick-Fill Sample Streams (Untuk testing / presentasi cepat) */}
-          <button
-            type="button"
-            onClick={handleFillAllSampleStreams}
-            disabled={saveLoading}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
-            title="Muat stream video contoh ke semua 4 kamera"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-            <span className="hidden sm:inline">Contoh Stream</span>
-          </button>
-
-          {/* Atur Kamera Button (Tersedia untuk Kepala UPT dan Supervisor) */}
-          <button
-            type="button"
-            onClick={() => setShowConfigModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 transition cursor-pointer shrink-0"
-          >
-            <SlidersHorizontal className="w-3.5 h-3.5" />
-            <span>Atur Kamera</span>
-          </button>
+          {/* Atur Kamera Button (Hanya Tersedia untuk Kepala UPT) */}
+          {canManageCctv && (
+            <button
+              type="button"
+              onClick={() => setShowConfigModal(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-dark active:scale-95 text-white text-xs font-bold rounded-xl shadow-md shadow-primary/20 transition cursor-pointer shrink-0"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Atur Kamera</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -591,12 +637,45 @@ export default function BranchCctv() {
                 <div
                   key={camera.id || `cctv-${ch}`}
                   onClick={() => setSelectedChannel(ch)}
+                  onDoubleClick={() => {
+                    setSelectedChannel(ch);
+                    setGridLayout((prev) => (prev === 'focus' ? '2x2' : 'focus'));
+                  }}
                   className={`group relative aspect-video rounded-2xl bg-slate-950 border overflow-hidden shadow-sm transition-all flex flex-col justify-between ${
                     isSelected
                       ? 'border-blue-500 ring-2 ring-blue-500/30'
                       : 'border-slate-800 hover:border-slate-700'
                   }`}
                 >
+                  {/* Tombol Panah Navigasi Kiri & Kanan (Muncul saat mode Fokus) */}
+                  {gridLayout === 'focus' && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChannel((prev) => (prev === 1 ? 4 : prev - 1));
+                        }}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/20 shadow-xl transition backdrop-blur-xs cursor-pointer opacity-80 hover:opacity-100"
+                        title="Pindah ke Kamera Sebelumnya"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedChannel((prev) => (prev === 4 ? 1 : prev + 1));
+                        }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 p-2.5 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/20 shadow-xl transition backdrop-blur-xs cursor-pointer opacity-80 hover:opacity-100"
+                        title="Pindah ke Kamera Berikutnya"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
+                    </>
+                  )}
+
                   {/* Layer 1: Pemutar Video atau Standby Placeholder */}
                   <div className="absolute inset-0 w-full h-full">
                     {hasUrl ? (
@@ -622,20 +701,26 @@ export default function BranchCctv() {
                           {camera.location || `Slot Kamera ${ch}`}
                         </p>
 
-                        <div className="flex items-center gap-2 mt-3.5">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingSlotIndex(ch - 1);
-                              setShowConfigModal(true);
-                            }}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
-                          >
-                            <SlidersHorizontal className="w-3 h-3" />
-                            <span>Atur URL Kamera</span>
-                          </button>
-                        </div>
+                        {canManageCctv ? (
+                          <div className="flex items-center gap-2 mt-3.5">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingSlotIndex(ch - 1);
+                                setShowConfigModal(true);
+                              }}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white text-[11px] font-bold shadow-xs transition cursor-pointer"
+                            >
+                              <SlidersHorizontal className="w-3 h-3" />
+                              <span>Atur URL Kamera</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-[11px] text-slate-500 mt-2 italic">
+                            Menunggu tautan stream dari Kepala UPT
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -713,20 +798,52 @@ export default function BranchCctv() {
                     </div>
 
                     <div className="flex items-center gap-1.5">
-                      {/* Edit Slot URL Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingSlotIndex(ch - 1);
-                          setShowConfigModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition cursor-pointer"
-                        title="Edit URL Kamera"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                        <span className="hidden sm:inline">Edit URL</span>
-                      </button>
+                      {/* Tombol Toggle Fokus / Grid 2x2 per kamera */}
+                      {gridLayout === '2x2' ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedChannel(ch);
+                            setGridLayout('focus');
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition cursor-pointer"
+                          title={`Fokus Layar Besar CH ${ch}`}
+                        >
+                          <Square className="w-3 h-3" />
+                          <span className="hidden sm:inline">Fokus</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setGridLayout('2x2');
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition cursor-pointer"
+                          title="Kembali ke tampilan Grid 2x2"
+                        >
+                          <Grid2X2 className="w-3 h-3" />
+                          <span className="hidden sm:inline">Grid 2x2</span>
+                        </button>
+                      )}
+
+                      {/* Edit Slot URL Button (Hanya Tersedia untuk Kepala UPT) */}
+                      {canManageCctv && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingSlotIndex(ch - 1);
+                            setShowConfigModal(true);
+                          }}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-semibold transition cursor-pointer"
+                          title="Edit URL Kamera"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                          <span className="hidden sm:inline">Edit URL</span>
+                        </button>
+                      )}
 
                       {/* Shortcut ke Tab Pemutaran Rekaman */}
                       <button
@@ -762,6 +879,46 @@ export default function BranchCctv() {
               );
             })}
           </div>
+
+          {/* Quick Switcher Strip di bawah saat mode Fokus aktif */}
+          {gridLayout === 'focus' && (
+            <div className="flex flex-wrap items-center justify-between p-3.5 bg-white border border-slate-200/80 rounded-2xl shadow-xs gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-slate-700">Pilih Kamera Fokus:</span>
+                <div className="flex items-center gap-1.5 overflow-x-auto">
+                  {[1, 2, 3, 4].map((ch) => {
+                    const cam = slots.find((s) => (s.channel || 1) === ch);
+                    const isSelected = selectedChannel === ch;
+                    return (
+                      <button
+                        key={ch}
+                        type="button"
+                        onClick={() => setSelectedChannel(ch)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
+                          isSelected
+                            ? 'bg-primary text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <span>CH {ch}</span>
+                        <span className="opacity-80 font-normal hidden sm:inline">• {cam?.name || `Kamera ${ch}`}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setGridLayout('2x2')}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition cursor-pointer"
+                title="Kembali ke tampilan matriks 4 kamera"
+              >
+                <Grid2X2 className="w-3.5 h-3.5" />
+                <span>Kembali ke Grid 2x2</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -819,14 +976,35 @@ export default function BranchCctv() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Kolom 1-3: Pemutar Video Rekaman & Timeline Scrubber */}
             <div className="lg:col-span-3 space-y-3">
-              <div className="relative aspect-video rounded-2xl bg-slate-950 border border-slate-800 shadow-sm overflow-hidden flex items-center justify-center">
+              <div
+                onClick={handleTogglePlay}
+                className="relative aspect-video rounded-2xl bg-slate-950 border border-slate-800 shadow-sm overflow-hidden flex items-center justify-center cursor-pointer group"
+              >
                 <video
                   ref={playbackVideoRef}
                   src={getPlaybackVideoUrl(activePlaybackCamera, playbackChannel)}
                   loop={true}
                   playsInline={true}
+                  onLoadedMetadata={() => {
+                    syncVideoToPlaybackSec(playbackSec);
+                  }}
                   className="w-full h-full object-cover"
                 />
+
+                {/* Center Play Button Overlay Saat Video Sedang Di-Jeda */}
+                {!isPlaying && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePlay();
+                    }}
+                    className="absolute inset-0 m-auto w-16 h-16 rounded-full bg-slate-900/70 hover:bg-blue-600/90 text-white flex items-center justify-center backdrop-blur-xs transition transform hover:scale-110 shadow-xl cursor-pointer border border-white/20"
+                    title="Putar Rekaman"
+                  >
+                    <Play className="w-7 h-7 fill-white ml-1" />
+                  </button>
+                )}
 
                 {/* Overlay Header Video Rekaman */}
                 <div className="absolute top-0 left-0 right-0 p-3.5 flex items-center justify-between bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-10">
@@ -846,14 +1024,22 @@ export default function BranchCctv() {
                 {/* Kontrol Hover Video (Snapshot & Fullscreen) */}
                 <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
                   <button
-                    onClick={takePlaybackSnapshot}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      takePlaybackSnapshot();
+                    }}
                     className="p-2 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs border border-white/20 transition cursor-pointer"
                     title="Ambil Snapshot Frame"
                   >
                     <Camera className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={togglePlaybackFullscreen}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePlaybackFullscreen();
+                    }}
                     className="p-2 rounded-xl bg-black/60 hover:bg-black/80 text-white text-xs border border-white/20 transition cursor-pointer"
                     title="Layar Penuh"
                   >
@@ -862,8 +1048,10 @@ export default function BranchCctv() {
                 </div>
               </div>
 
-              {/* Komponen Timeline Interaktif 24 Jam */}
+              {/* Komponen Timeline Interaktif Presisi */}
               <CctvTimeline
+                selectedDate={playbackDate}
+                currentTimeSec={playbackSec}
                 playbackSec={playbackSec}
                 onTimeChange={handleTimeChange}
                 isPlaying={isPlaying}
@@ -874,6 +1062,9 @@ export default function BranchCctv() {
                 onJump={handleJump}
                 recordingSegments={recordingSegments}
                 onOpenClipExporter={handleOpenClipModal}
+                activeArchive={selectedArchive}
+                timelineMode={timelineMode}
+                onChangeTimelineMode={setTimelineMode}
               />
             </div>
 
@@ -889,14 +1080,14 @@ export default function BranchCctv() {
 
               <div className="flex-1 overflow-y-auto space-y-2 py-3 pr-1">
                 {hourlyArchives.map((archive) => {
-                  const isCurrent = playbackSec >= archive.startSec && playbackSec < archive.endSec;
+                  const isCurrent = selectedArchive.id === archive.id;
                   return (
                     <div
                       key={archive.id}
                       onClick={() => handleSelectArchive(archive)}
                       className={`p-2.5 rounded-xl border text-xs transition cursor-pointer flex items-center justify-between ${
                         isCurrent
-                          ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20'
+                          ? 'bg-blue-50/90 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
                           : 'bg-slate-50 border-slate-200/70 hover:bg-slate-100'
                       }`}
                     >
@@ -917,11 +1108,11 @@ export default function BranchCctv() {
                             handleSelectArchive(archive);
                           }}
                           className={`p-1.5 rounded-lg transition ${
-                            isCurrent ? 'bg-primary text-white' : 'bg-white text-slate-600 hover:text-primary shadow-2xs'
+                            isCurrent ? 'bg-primary text-white shadow-2xs' : 'bg-white text-slate-600 hover:text-primary shadow-2xs'
                           }`}
                           title="Putar sesi ini"
                         >
-                          <Play className="w-3 h-3" />
+                          <Play className="w-3 h-3 fill-current" />
                         </button>
                       </div>
                     </div>
@@ -938,9 +1129,9 @@ export default function BranchCctv() {
       )}
 
       {/* ============================================================== */}
-      {/* MODAL: ATUR KONFIGURASI KAMERA CCTV                            */}
+      {/* MODAL: ATUR KONFIGURASI KAMERA CCTV (HANYA KEPALA UPT)      */}
       {/* ============================================================== */}
-      {showConfigModal && formSlots.length > 0 && (
+      {showConfigModal && canManageCctv && formSlots.length > 0 && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
           <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] my-auto">
             {/* Header Modal */}
