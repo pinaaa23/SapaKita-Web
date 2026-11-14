@@ -12,9 +12,15 @@ import {
   CheckCircle2, 
   RefreshCw,
   CircleDollarSign,
+  Building2,
   Sparkles,
   Eye,
-  EyeOff
+  EyeOff,
+  User,
+  Phone,
+  Filter,
+  ShieldCheck,
+  Landmark
 } from 'lucide-react';
 import { 
   getFinanceAccounts, 
@@ -25,12 +31,13 @@ import {
 import { generateRandomPassword } from '../../services/userService';
 
 /**
- * Helper untuk men-generate email resmi Finance dari Nama Lengkap
- * Contoh: "Julaika" -> "finance.julaika@sadewa.id"
- *         "Siti Rahmawati" -> "finance.siti.rahmawati@sadewa.id"
+ * Helper untuk men-generate email resmi Finance / Inkopasindo dari Nama Lengkap & Role
+ * Contoh: "Julaika", role="finance"      -> "finance.julaika@sadewa.id"
+ *         "Budi Santoso", role="inkopasindo" -> "inkopasindo.budi.santoso@sadewa.id"
  */
-const generateFinanceEmailFromName = (name) => {
-  if (!name || typeof name !== 'string') return '';
+const generateAccountEmailFromName = (name, role = 'finance') => {
+  const prefix = role === 'inkopasindo' ? 'inkopasindo' : 'finance';
+  if (!name || typeof name !== 'string') return `${prefix}@sadewa.id`;
   const clean = name
     .toLowerCase()
     .trim()
@@ -38,14 +45,15 @@ const generateFinanceEmailFromName = (name) => {
     .split(/\s+/)
     .filter(Boolean)
     .join('.');
-  if (!clean) return '';
-  return `finance.${clean}@sadewa.id`;
+  if (!clean) return `${prefix}@sadewa.id`;
+  return `${prefix}.${clean}@sadewa.id`;
 };
 
 export default function FinanceAccounts() {
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -57,6 +65,7 @@ export default function FinanceAccounts() {
   const [addForm, setAddForm] = useState({
     name: '',
     email: '',
+    role: 'finance', // 'finance' | 'inkopasindo'
     password: '',
     phone: '',
     status: 'Aktif',
@@ -105,16 +114,17 @@ export default function FinanceAccounts() {
     try {
       const res = await getFinanceAccounts({
         search,
+        role: roleFilter,
         status: statusFilter,
       });
       setAccounts(res.items || []);
     } catch (err) {
-      console.error('Gagal mengambil daftar akun Finance:', err);
-      showToast('Gagal memuat daftar akun Finance', 'error');
+      console.error('Gagal mengambil daftar akun Finance & Inkopasindo:', err);
+      showToast('Gagal memuat daftar akun', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [search, statusFilter]);
+  }, [search, roleFilter, statusFilter]);
 
   useEffect(() => {
     fetchAccounts();
@@ -123,9 +133,11 @@ export default function FinanceAccounts() {
   // Buka Modal Tambah Akun (Inisialisasi form & password acak baru)
   const openAddModal = () => {
     const autoPass = generateRandomPassword();
+    const defaultRole = 'finance';
     setAddForm({
       name: '',
       email: '',
+      role: defaultRole,
       password: autoPass,
       phone: '',
       status: 'Aktif',
@@ -136,10 +148,22 @@ export default function FinanceAccounts() {
     setIsAddModalOpen(true);
   };
 
+  // Handle pergantian Role di modal Tambah Akun
+  const handleRoleChange = (newRole) => {
+    setAddForm((prev) => {
+      const nextEmail = !isEmailCustomized ? generateAccountEmailFromName(prev.name, newRole) : prev.email;
+      return {
+        ...prev,
+        role: newRole,
+        email: nextEmail,
+      };
+    });
+  };
+
   // Handle perubahan Nama Lengkap -> Otomatis buat email jika belum dicustom manual
   const handleNameChange = (val) => {
     setAddForm((prev) => {
-      const nextEmail = !isEmailCustomized ? generateFinanceEmailFromName(val) : prev.email;
+      const nextEmail = !isEmailCustomized ? generateAccountEmailFromName(val, prev.role) : prev.email;
       return {
         ...prev,
         name: val,
@@ -157,12 +181,12 @@ export default function FinanceAccounts() {
     }));
   };
 
-  // Reset email agar kembali sinkron otomatis dengan nama
+  // Reset email agar kembali sinkron otomatis dengan nama & role
   const handleResetEmailToAuto = () => {
     setIsEmailCustomized(false);
     setAddForm((prev) => ({
       ...prev,
-      email: generateFinanceEmailFromName(prev.name),
+      email: generateAccountEmailFromName(prev.name, prev.role),
     }));
   };
 
@@ -195,7 +219,7 @@ export default function FinanceAccounts() {
     if (!finalEmail.includes('@')) {
       finalEmail = `${finalEmail}@sadewa.id`;
     } else if (!finalEmail.toLowerCase().endsWith('@sadewa.id')) {
-      setAddFormError('Email login wajib menggunakan domain @sadewa.id (contoh: finance.nama@sadewa.id)');
+      setAddFormError('Email login wajib menggunakan domain @sadewa.id (contoh: finance.nama@sadewa.id atau inkopasindo.nama@sadewa.id)');
       return;
     }
 
@@ -209,6 +233,7 @@ export default function FinanceAccounts() {
       const res = await createFinanceAccount({
         name: addForm.name.trim(),
         email: finalEmail.toLowerCase(),
+        role: addForm.role,
         password: addForm.password.trim(),
         phone: addForm.phone.trim(),
         status: addForm.status,
@@ -218,6 +243,8 @@ export default function FinanceAccounts() {
         setNewlyCreatedAccount({
           name: addForm.name.trim(),
           email: finalEmail.toLowerCase(),
+          role: addForm.role,
+          roleLabel: addForm.role === 'inkopasindo' ? 'Inkopasindo' : 'Admin Finance',
           password: addForm.password.trim(),
           status: addForm.status,
           source: res.source,
@@ -227,7 +254,7 @@ export default function FinanceAccounts() {
         setIsCreateSuccessModalOpen(true);
         fetchAccounts();
       } else {
-        setAddFormError(res?.message || 'Gagal membuat akun Finance');
+        setAddFormError(res?.message || 'Gagal membuat akun');
       }
     } catch (err) {
       setAddFormError(err?.message || 'Terjadi kesalahan sistem saat membuat akun');
@@ -280,20 +307,25 @@ export default function FinanceAccounts() {
     }
   };
 
+  // Summary Metrics
+  const totalCount = accounts.length;
+  const financeCount = accounts.filter(a => a.role === 'finance').length;
+  const inkopasindoCount = accounts.filter(a => a.role === 'inkopasindo').length;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 animate-in fade-in duration-300">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className={`p-4 rounded-xl text-xs font-bold flex items-center justify-between border shadow-sm animate-in fade-in duration-200 ${
+        <div className={`p-4 rounded-2xl text-xs font-bold flex items-center justify-between border shadow-sm animate-in fade-in duration-200 ${
           toastMessage.type === 'error'
             ? 'bg-rose-50 text-rose-800 border-rose-200'
             : 'bg-emerald-50 text-emerald-800 border-emerald-200'
         }`}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2.5">
             {toastMessage.type === 'error' ? (
-              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
             )}
             <span>{toastMessage.text}</span>
           </div>
@@ -306,161 +338,229 @@ export default function FinanceAccounts() {
         </div>
       )}
 
-      {/* Control Bar: Search Input, Status Filter & Tombol Tambah Akun Finance */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-sm flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
-        <div className="relative w-full md:w-80">
+      {/* Control Bar: Search Input, Role Filter, Status Filter & Tombol Tambah Akun */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
+        <div className="relative w-full lg:w-96">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari nama atau email akun Finance..."
+            placeholder="Cari nama atau email akun Finance / Inkopasindo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium"
+            className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-end md:self-auto w-full md:w-auto justify-end">
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3.5 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary cursor-pointer font-bold"
-          >
-            <option value="All">Semua Status</option>
-            <option value="Aktif">Status: Aktif</option>
-            <option value="Nonaktif">Status: Nonaktif</option>
-          </select>
+        <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
+          {/* Filter Role */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              aria-label="Filter Peran Akun"
+              className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
+            >
+              <option value="All">Semua Role ({totalCount})</option>
+              <option value="finance">Finance Pusat ({financeCount})</option>
+              <option value="inkopasindo">Inkopasindo ({inkopasindoCount})</option>
+            </select>
+          </div>
+
+          {/* Filter Status */}
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              aria-label="Filter Status Akun"
+              className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
+            >
+              <option value="All">Semua Status</option>
+              <option value="Aktif">Status: Aktif</option>
+              <option value="Nonaktif">Status: Nonaktif</option>
+            </select>
+          </div>
 
           <button
             onClick={fetchAccounts}
-            className="p-2 rounded-xl text-slate-500 hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors"
+            className="p-2 rounded-xl text-slate-500 hover:text-primary hover:bg-primary/10 cursor-pointer transition-colors border border-slate-200/80 bg-white"
             title="Segarkan data"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-primary' : ''}`} />
           </button>
 
-          {/* Tombol Tambah Akun Finance: Sesuai Tema Resmi Sadewa (bg-primary / hover:bg-primary-dark) */}
+          {/* Tombol Tambah Akun: Membuka Form Tambah Finance / Inkopasindo */}
           <button
             type="button"
             onClick={openAddModal}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark active:scale-95 text-white text-xs font-bold shadow-md shadow-primary/20 cursor-pointer transition-all shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Akun Finance</span>
+            <span>Tambah Akun</span>
           </button>
         </div>
       </div>
 
-      {/* Tabel Daftar Akun Finance */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      {/* Tabel Daftar Akun Finance & Inkopasindo */}
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {isLoading ? (
-          <div className="py-12 text-center text-sm text-slate-400">
-            Memuat daftar akun Finance...
+          <div className="py-16 text-center text-xs text-slate-400">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-2 opacity-75" />
+            Memuat daftar akun Finance &amp; Inkopasindo...
           </div>
         ) : accounts.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-400">
-            {search || statusFilter !== 'All' 
-              ? 'Tidak ada akun Finance yang sesuai dengan filter.' 
-              : 'Belum ada akun Finance yang terdaftar.'}
+          <div className="py-16 text-center text-xs text-slate-400">
+            {search || roleFilter !== 'All' || statusFilter !== 'All'
+              ? 'Tidak ada akun yang sesuai dengan kriteria filter pencarian.' 
+              : 'Belum ada akun Finance atau Inkopasindo yang terdaftar.'}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-xs">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse min-w-[700px] text-xs">
               <thead>
-                <tr className="bg-slate-50/75 border-b border-slate-200/80 text-slate-600 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">Nama</th>
-                  <th className="py-3 px-4">Email</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Aksi</th>
+                <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3 px-4">NAMA</th>
+                  <th className="py-3 px-4">EMAIL</th>
+                  <th className="py-3 px-4">ROLE</th>
+                  <th className="py-3 px-4 text-center">STATUS</th>
+                  <th className="py-3 px-4 text-right">AKSI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {accounts.map((acc) => (
-                  <tr 
-                    key={acc.id} 
-                    className={`hover:bg-slate-50/70 transition-colors ${!acc.isActive ? 'bg-slate-50/40 opacity-75' : ''}`}
-                  >
-                    {/* Nama Lengkap */}
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center font-bold shrink-0">
-                          {acc.name?.charAt(0).toUpperCase() || 'F'}
+                {accounts.map((acc) => {
+                  const isInkopasindo = acc.role === 'inkopasindo';
+                  return (
+                    <tr 
+                      key={acc.id} 
+                      className={`hover:bg-slate-50/70 transition-colors ${!acc.isActive ? 'bg-slate-50/40 opacity-75' : ''}`}
+                    >
+                      {/* Nama Lengkap & Badge Pusat */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 border ${
+                            isInkopasindo
+                              ? 'bg-purple-50 text-purple-700 border-purple-200'
+                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                          }`}>
+                            {acc.name?.charAt(0).toUpperCase() || (isInkopasindo ? 'I' : 'F')}
+                          </div>
+                          <div>
+                            <span className="font-bold text-slate-800 block text-xs">{acc.name}</span>
+                            <span className={`text-[10px] font-bold inline-flex items-center gap-1 mt-0.5 ${
+                              isInkopasindo ? 'text-purple-600' : 'text-blue-600'
+                            }`}>
+                              {isInkopasindo ? (
+                                <>
+                                  <Building2 className="w-3 h-3" />
+                                  <span>Inkopasindo Pusat</span>
+                                </>
+                              ) : (
+                                <>
+                                  <CircleDollarSign className="w-3 h-3" />
+                                  <span>Finance Pusat</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="font-bold text-slate-800 block">{acc.name}</span>
-                          <span className="text-[10px] text-primary font-bold inline-flex items-center gap-1">
-                            <CircleDollarSign className="w-3 h-3 text-primary" />
-                            <span>Finance Pusat</span>
-                          </span>
+                      </td>
+
+                      {/* Email */}
+                      <td className="py-3.5 px-4 text-slate-600">
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span>{acc.email}</span>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Email */}
-                    <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-center gap-1.5 font-mono text-xs">
-                        <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{acc.email}</span>
-                      </div>
-                    </td>
+                      {/* Role Pill */}
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
+                          isInkopasindo
+                            ? 'bg-purple-50 text-purple-700 border-purple-200/80'
+                            : 'bg-blue-50 text-blue-700 border-blue-200/80'
+                        }`}>
+                          {isInkopasindo ? (
+                            <>
+                              <Building2 className="w-3 h-3 text-purple-600" />
+                              <span>Inkopasindo</span>
+                            </>
+                          ) : (
+                            <>
+                              <CircleDollarSign className="w-3 h-3 text-blue-600" />
+                              <span>Admin Finance</span>
+                            </>
+                          )}
+                        </span>
+                      </td>
 
-                    {/* Status (Aktif / Nonaktif) */}
-                    <td className="py-3.5 px-4 text-center">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        acc.isActive 
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
-                          : 'bg-slate-100 text-slate-500 border border-slate-200/60'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${acc.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        <span>{acc.isActive ? 'Aktif' : 'Nonaktif'}</span>
-                      </span>
-                    </td>
+                      {/* Status (Aktif / Nonaktif) */}
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                          acc.isActive 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                            : 'bg-slate-100 text-slate-500 border border-slate-200/60'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${acc.isActive ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                          <span>{acc.isActive ? 'Aktif' : 'Nonaktif'}</span>
+                        </span>
+                      </td>
 
-                    {/* Aksi: Reset Password & Nonaktifkan/Aktifkan */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={() => {
-                            setSelectedAccountForReset(acc);
-                            setIsResetConfirmModalOpen(true);
-                          }}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 font-medium cursor-pointer transition-colors text-[11px]"
-                          title="Reset password akun"
-                        >
-                          <KeyRound className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Reset Password</span>
-                        </button>
+                      {/* Aksi: Reset Password & Nonaktifkan/Aktifkan */}
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setSelectedAccountForReset(acc);
+                              setIsResetConfirmModalOpen(true);
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-slate-600 hover:text-amber-600 hover:bg-amber-50 font-medium cursor-pointer transition-colors text-[11px]"
+                            title="Reset password akun"
+                          >
+                            <KeyRound className="w-3.5 h-3.5 text-slate-400" />
+                            <span>Reset Password</span>
+                          </button>
 
-                        <button
-                          onClick={() => {
-                            setSelectedAccountForStatus(acc);
-                            setIsStatusModalOpen(true);
-                          }}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium cursor-pointer transition-colors text-[11px] ${
-                            acc.isActive
-                              ? 'text-slate-600 hover:text-rose-600 hover:bg-rose-50'
-                              : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                          title={acc.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
-                        >
-                          <Power className={`w-3.5 h-3.5 ${acc.isActive ? 'text-rose-500' : 'text-emerald-500'}`} />
-                          <span>{acc.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            onClick={() => {
+                              setSelectedAccountForStatus(acc);
+                              setIsStatusModalOpen(true);
+                            }}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg font-medium cursor-pointer transition-colors text-[11px] ${
+                              acc.isActive
+                                ? 'text-slate-600 hover:text-rose-600 hover:bg-rose-50'
+                                : 'text-slate-600 hover:text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                            title={acc.isActive ? 'Nonaktifkan akun' : 'Aktifkan akun'}
+                          >
+                            <Power className={`w-3.5 h-3.5 ${acc.isActive ? 'text-rose-500' : 'text-emerald-500'}`} />
+                            <span>{acc.isActive ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* MODAL 1: Form Tambah Akun Finance */}
+      {/* MODAL 1: Form Tambah Akun Finance / Inkopasindo */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
-              <h2 className="text-base font-bold text-slate-800">Tambah Akun Finance</h2>
+          <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] my-auto">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                  <Plus className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-800">Tambah Akun Finance / Inkopasindo</h2>
+                  <p className="text-[11px] text-slate-500">Buat akses tim Keuangan Pusat atau perwakilan Inkopasindo</p>
+                </div>
+              </div>
               <button
                 onClick={() => setIsAddModalOpen(false)}
                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
@@ -469,34 +569,109 @@ export default function FinanceAccounts() {
               </button>
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleCreateSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
               {addFormError && (
-                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl flex items-start gap-2">
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{addFormError}</span>
                 </div>
               )}
 
-              {/* Nama Lengkap */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Nama Lengkap *
+              {/* Pilihan Peran / Role (Sama seperti gaya seleksi di Kepala UPT: Kartu Pilihan Role) */}
+              <div className="space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                  Pilih Peran Akun <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Julaika"
-                  value={addForm.name}
-                  onChange={(e) => handleNameChange(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
+                  {/* Card Role Finance */}
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange('finance')}
+                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
+                      addForm.role === 'finance'
+                        ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      addForm.role === 'finance' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <CircleDollarSign className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className={`font-bold text-xs ${addForm.role === 'finance' ? 'text-blue-900' : 'text-slate-800'}`}>
+                          Admin Finance
+                        </p>
+                        {addForm.role === 'finance' && (
+                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
+                            <Check className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Monitoring billing, setoran &amp; laporan keuangan
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Card Role Inkopasindo */}
+                  <button
+                    type="button"
+                    onClick={() => handleRoleChange('inkopasindo')}
+                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
+                      addForm.role === 'inkopasindo'
+                        ? 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-500/20 shadow-xs'
+                        : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      addForm.role === 'inkopasindo' ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      <Building2 className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className={`font-bold text-xs ${addForm.role === 'inkopasindo' ? 'text-purple-900' : 'text-slate-800'}`}>
+                          Inkopasindo
+                        </p>
+                        {addForm.role === 'inkopasindo' && (
+                          <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">
+                            <Check className="w-2.5 h-2.5" />
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
+                        Monitoring tagihan &amp; bagi hasil 10% koperasi
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Nama Lengkap */}
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-bold">
+                  Nama Lengkap Petugas <span className="text-rose-500">*</span>
+                </label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    required
+                    placeholder={addForm.role === 'inkopasindo' ? 'Contoh: Ahmad Subardjo (Inkopasindo)' : 'Contoh: Dewi Lestari (Finance)'}
+                    value={addForm.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
+                  />
+                </div>
               </div>
 
               {/* Email Login (Domain @sadewa.id) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Email Login (domain @sadewa.id) *
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-700 font-bold">
+                    Email Login (@sadewa.id) <span className="text-rose-500">*</span>
                   </label>
                   {isEmailCustomized && addForm.name && (
                     <button
@@ -509,30 +684,48 @@ export default function FinanceAccounts() {
                   )}
                 </div>
                 <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    placeholder="finance.nama@sadewa.id"
+                    placeholder={addForm.role === 'inkopasindo' ? 'inkopasindo.nama@sadewa.id' : 'finance.nama@sadewa.id'}
                     value={addForm.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className="w-full pl-3 pr-24 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono font-medium"
+                    className="w-full pl-9 pr-24 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono font-medium"
                   />
                   {!addForm.email.includes('@') && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-mono text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded">
                       @sadewa.id
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Terisi otomatis dari nama. Contoh: <code className="text-primary font-bold font-mono">finance.nama@sadewa.id</code>
+                <p className="text-[11px] text-slate-400">
+                  Rekomendasi format: <code className="text-primary font-bold font-mono">{addForm.role === 'inkopasindo' ? 'inkopasindo.<nama>@sadewa.id' : 'finance.<nama>@sadewa.id'}</code>
                 </p>
               </div>
 
-              {/* Password Akun (Otomatis & Bisa Diedit / Diganti) */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-slate-700">
-                    Password Akun *
+              {/* Nomor Handphone / WhatsApp (Opsional) */}
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-bold">
+                  Nomor Telepon / WhatsApp <span className="text-slate-400 font-normal">(Opsional)</span>
+                </label>
+                <div className="relative">
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="tel"
+                    placeholder="Contoh: 081298765432"
+                    value={addForm.phone}
+                    onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
+                  />
+                </div>
+              </div>
+
+              {/* Password Akun */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-slate-700 font-bold">
+                    Password Akun <span className="text-rose-500">*</span>
                   </label>
                   <button
                     type="button"
@@ -552,7 +745,7 @@ export default function FinanceAccounts() {
                     placeholder="Masukkan password atau gunakan acak"
                     value={addForm.password}
                     onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                    className="w-full pl-3 pr-20 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono tracking-wider font-bold"
+                    className="w-full pl-3 pr-20 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono tracking-wider font-bold"
                   />
                   <div className="absolute right-2 flex items-center gap-1">
                     <button
@@ -581,21 +774,21 @@ export default function FinanceAccounts() {
                     </button>
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Password otomatis dibuatkan. Anda dapat mengubahnya secara manual jika ingin kata sandi sendiri.
+                <p className="text-[11px] text-slate-400">
+                  Password otomatis di-generate. Dapat diubah secara bebas oleh Superadmin.
                 </p>
               </div>
 
               {/* Status Akun */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Status Akun *
+              <div className="space-y-1">
+                <label className="block text-slate-700 font-bold">
+                  Status Akun Awal <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setAddForm({ ...addForm, status: 'Aktif' })}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       addForm.status === 'Aktif'
                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -608,7 +801,7 @@ export default function FinanceAccounts() {
                   <button
                     type="button"
                     onClick={() => setAddForm({ ...addForm, status: 'Nonaktif' })}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       addForm.status === 'Nonaktif'
                         ? 'bg-slate-100 border-slate-400 text-slate-800 ring-2 ring-slate-400/20'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -626,14 +819,14 @@ export default function FinanceAccounts() {
                   type="button"
                   disabled={isSubmittingAdd}
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmittingAdd}
-                  className="px-5 py-2.5 rounded-xl text-xs font-bold bg-primary hover:bg-primary-dark text-white cursor-pointer shadow-md shadow-primary/20 transition-all disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl font-bold bg-primary hover:bg-primary-dark text-white cursor-pointer shadow-md shadow-primary/20 transition-all disabled:opacity-50"
                 >
                   {isSubmittingAdd ? 'Menyimpan...' : 'Buat Akun'}
                 </button>
@@ -653,7 +846,7 @@ export default function FinanceAccounts() {
                   <CheckCircle2 className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base">Akun Finance Berhasil Dibuat</h3>
+                  <h3 className="font-bold text-base">Akun Berhasil Dibuat</h3>
                   <p className="text-xs text-emerald-100 mt-0.5">{newlyCreatedAccount.name}</p>
                 </div>
               </div>
@@ -679,6 +872,12 @@ export default function FinanceAccounts() {
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Nama Lengkap</span>
                   <span className="font-bold text-slate-800">{newlyCreatedAccount.name}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Peran / Role</span>
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 mt-0.5">
+                    {newlyCreatedAccount.roleLabel}
+                  </span>
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Email Login</span>
@@ -742,7 +941,7 @@ export default function FinanceAccounts() {
 
               <div>
                 <h3 className="text-base font-bold text-slate-800">
-                  Reset Password Akun Finance?
+                  Reset Password Akun {selectedAccountForReset.roleLabel}?
                 </h3>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                   Sistem akan membuatkan kata sandi acak baru untuk akun <strong>"{selectedAccountForReset.name}"</strong> ({selectedAccountForReset.email}).
@@ -815,7 +1014,7 @@ export default function FinanceAccounts() {
                   onClick={() => handleCopy(newResetPassword, 'reset-pass')}
                   className="px-3.5 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 shadow-2xs"
                 >
-                  {copiedField === 'reset-pass' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedField === 'reset-pass' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5 text-white" />}
                   <span>{copiedField === 'reset-pass' ? 'Disalin!' : 'Salin'}</span>
                 </button>
               </div>
@@ -847,14 +1046,16 @@ export default function FinanceAccounts() {
 
               <div>
                 <h3 className="text-base font-bold text-slate-800">
-                  {selectedAccountForStatus.isActive ? 'Nonaktifkan Akun Finance?' : 'Aktifkan Akun Finance?'}
+                  {selectedAccountForStatus.isActive 
+                    ? `Nonaktifkan Akun ${selectedAccountForStatus.roleLabel}?` 
+                    : `Aktifkan Akun ${selectedAccountForStatus.roleLabel}?`}
                 </h3>
                 <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                   Apakah Anda yakin ingin {selectedAccountForStatus.isActive ? 'menonaktifkan' : 'mengaktifkan'} akun <strong>"{selectedAccountForStatus.name}"</strong> ({selectedAccountForStatus.email})?
                 </p>
                 {selectedAccountForStatus.isActive && (
                   <p className="text-[11px] text-rose-600 font-semibold mt-2 bg-rose-50 p-2.5 rounded-xl border border-rose-200/60">
-                    Pengguna tidak akan dapat login ke dashboard Finance selama akun dalam status nonaktif.
+                    Pengguna tidak akan dapat login ke dashboard {selectedAccountForStatus.roleLabel} selama akun dalam status nonaktif.
                   </p>
                 )}
               </div>

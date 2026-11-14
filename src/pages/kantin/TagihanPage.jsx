@@ -585,9 +585,9 @@ export default function TagihanPage() {
     exportInvoicePDF({
       invoiceNumber,
       period: `${monthOptions[selectedMonth - 1]?.label || ''} ${selectedYear}`,
-      branchName: canteenBilling?.branchName || canteenBilling?.uptName || uptName || user?.branchName || user?.branch?.name || 'Lapas I Ungaran',
-      kanwilName: canteenBilling?.kanwilName || user?.branch?.kanwilName || 'Kanwil Jawa Tengah',
-      canteenName: canteenBilling?.canteenName || user?.name || 'Dzaki Ardyan',
+      branchName: canteenBilling?.branchName || canteenBilling?.uptName || uptName || user?.branchName || user?.branch?.name || 'Lapas UPT',
+      kanwilName: canteenBilling?.kanwilName || user?.branch?.kanwilName || 'Kanwil Ditjenpas',
+      canteenName: canteenBilling?.canteenName || user?.canteenName || user?.name || 'Kantin Lapas',
       totalGross: gross,
       canteenKeepAmount: canteenAmount,
       vendorDepositAmount: vendorAmount,

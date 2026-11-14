@@ -291,7 +291,7 @@ const generateInitialBillings = () => {
           senderName: branch.accountHolder,
           targetBank: 'Bank Mandiri (Rekening Penampung Vendor Sadewa)',
           targetAccount: '168-00-9988112-7',
-          targetHolder: 'PT PasCall Solusi Indonesia',
+          targetHolder: 'PT Station Technology',
           transferDate: paymentDate || '2026-11-07T09:30:00Z',
           nominalSetoran: depositAmountToFinance,
           totalUangTunaiKantin: grossAmount,

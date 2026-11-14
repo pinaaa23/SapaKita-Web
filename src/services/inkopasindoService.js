@@ -22,6 +22,7 @@ import {
   getFinanceBillings,
   getAllFinanceBillings,
   getFinanceContracts,
+  getFinancePaymentSettings,
   formatRupiah,
   MONTH_NAMES
 } from './financeService';
@@ -485,6 +486,21 @@ export const generateInkopasindoInvoicePDF = async (item, openPreview = true) =>
     const totalMinutes = Math.round(Number(item.totalMinutes || (normalized.grossAmount > 0 ? (normalized.grossAmount / 15 / 60) : 0)));
     const totalSeconds = Number(item.totalSeconds || (totalMinutes * 60));
 
+    // Sinkronisasi data rekening penampung resmi vendor dari backend/Superadmin
+    let bankInfo = null;
+    try {
+      const settings = await getFinancePaymentSettings();
+      if (settings?.bankName && settings?.accountNumber) {
+        bankInfo = {
+          bankName: settings.bankName,
+          accountNumber: settings.accountNumber,
+          accountHolder: settings.accountHolder,
+        };
+      }
+    } catch (e) {
+      console.warn('[InkopasindoService] Gagal memuat payment settings, fallback ke cache:', e);
+    }
+
     return exportInvoicePDF({
       invoiceNumber: normalized.id || `INV-${normalized.year}${String(normalized.month).padStart(2, '0')}-${(normalized.branchName || 'UPT').substring(0, 4).toUpperCase()}`,
       period: periodStr,
@@ -501,6 +517,7 @@ export const generateInkopasindoInvoicePDF = async (item, openPreview = true) =>
       ratePerSecond: item.ratePerSecond || 15,
       status: normalized.status === 'PAID' ? 'LUNAS' : normalized.status === 'PENDING_CONFIRMATION' ? 'MENUNGGU VERIFIKASI' : normalized.grossAmount <= 0 ? 'Tidak Ada Tagihan' : 'BELUM DIBAYAR',
       dueDate: item.dueDate || 'Tanggal 2 bulan berikutnya',
+      bankInfo,
       filename: `Invoice_${normalized.id || 'Sadewa'}.pdf`,
       openPreview,
     });

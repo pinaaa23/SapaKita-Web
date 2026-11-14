@@ -1003,7 +1003,7 @@ export const exportInvoicePDF = ({
 
     const bankName = resolvedBank?.bankName || 'Bank Mandiri';
     const accNo = resolvedBank?.accountNumber || '168-00-9988112-7';
-    const accHolder = resolvedBank?.accountHolder || 'PT PasCall Solusi Indonesia';
+    const accHolder = resolvedBank?.accountHolder || 'PT Station Technology';
 
     const boxW = pageWidth - margin * 2;
     const boxH = 31;

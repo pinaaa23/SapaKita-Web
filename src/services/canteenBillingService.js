@@ -261,7 +261,9 @@ export async function getCanteenBillingNational(month, year) {
         : (beBranchInfo?.totalMinutes ? Number(beBranchInfo.totalMinutes) * 60 : (b.totalSeconds || (b.totalMinutes ? b.totalMinutes * 60 : 0)))
     );
     const bIdx = branches.indexOf(b);
-    const totalSeconds = rawTotalSec > 0 ? rawTotalSec : Math.round((280000 + ((bIdx >= 0 ? bIdx : 1) * 35000)) * ((b.ratePerSecond === 15 || contract?.ratePerSecond === 15) ? 3.5 : 1));
+    const totalSeconds = rawTotalSec > 0
+      ? rawTotalSec
+      : (isDummyMode() ? Math.round((280000 + ((bIdx >= 0 ? bIdx : 1) * 35000)) * ((b.ratePerSecond === 15 || contract?.ratePerSecond === 15) ? 3.5 : 1)) : 0);
 
     // Hitung rumus tagihan baru: Detik x Tarif x Persen Negosiasi (Porsi Superadmin/Finance)
     const effectiveRate = isContractSet ? (contract?.ratePerSecond ?? beBranchInfo?.ratePerSecond ?? 15) : (b.ratePerSecond || 15);
@@ -461,8 +463,8 @@ export async function getCanteenBillingMonthly(month, year) {
 
   totalSeconds = Math.max(totalSeconds, calculatedSecondsFromTx);
 
-  // Fallback data non-zero: Jika belum ada transaksi atau backend offline, sediakan data dummy realistis
-  if (totalSeconds <= 0 || transactions.length === 0) {
+  // Fallback data non-zero: HANYA jika isDummyMode() aktif (misal testing lokal)
+  if ((totalSeconds <= 0 || transactions.length === 0) && isDummyMode()) {
     transactions = generateDummyCanteenCalls(targetMonth, targetYear, rawBranchId, user?.branchName);
     totalSeconds = 36420; // 607 Menit panggilan WBP
   }
@@ -509,40 +511,44 @@ export async function getCanteenBillingMonthly(month, year) {
     }
   }
 
-  // Fallback kontrak resmi non-zero
+  // Fallback kontrak resmi non-zero HANYA jika isDummyMode()
   if (!contract || !isCanteenContractConfigured(contract)) {
-    contract = {
-      branchId: branchId || 'b9',
-      branchName: rawBranchName || 'Lapas Kelas I Ungaran',
-      canteenName: rawCanteenName || 'Dzaki Ardyan',
-      ratePerSecond: 15,
-      superadminPercent: 60,
-      canteenPercent: 40,
-      negotiationPercent: 60,
-      koperasiPercent: 30,
-      inkopasindoPercent: 10,
-      vendorPercent: 60,
-      isContractSet: true,
-      split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
-    };
+    if (isDummyMode()) {
+      contract = {
+        branchId: branchId || 'b9',
+        branchName: rawBranchName || 'Lapas Kelas I Ungaran',
+        canteenName: rawCanteenName || 'Dzaki Ardyan',
+        ratePerSecond: 15,
+        superadminPercent: 60,
+        canteenPercent: 40,
+        negotiationPercent: 60,
+        koperasiPercent: 30,
+        inkopasindoPercent: 10,
+        vendorPercent: 60,
+        isContractSet: true,
+        split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
+      };
+    } else {
+      contract = null;
+    }
   }
 
   const isContractSet = isCanteenContractConfigured(contract);
 
-  const ratePerSecond = isContractSet ? Number(contract.ratePerSecond) : 15;
+  const ratePerSecond = isContractSet ? Number(contract.ratePerSecond) : null;
   const superadminPercent = isContractSet
     ? (contract.superadminPercent !== null && contract.superadminPercent !== undefined ? Number(contract.superadminPercent) : Number(contract.negotiationPercent || 60))
-    : 60;
+    : null;
   const canteenPercent = isContractSet
     ? (contract.canteenPercent !== null && contract.canteenPercent !== undefined ? Number(contract.canteenPercent) : (100 - Number(contract.negotiationPercent || 60)))
-    : 40;
+    : null;
   const negotiationPercent = superadminPercent;
 
   // 4. Hitung tagihan berdasarkan rumus baru (Porsi Superadmin)
   const billingCalc = calculateUnifiedBilling({
     totalSeconds,
-    ratePerSecond,
-    superadminPercent,
+    ratePerSecond: ratePerSecond || 0,
+    superadminPercent: superadminPercent || 0,
   });
 
   // 5. Perbarui nilai setiap transaksi di riwayat agar otomatis mengikuti aturan baru
@@ -600,14 +606,16 @@ export async function getCanteenBillingMonthly(month, year) {
     },
     transactions: recalculatedTransactions,
     rawStatus: isContractSet
-      ? (beBillingData?.billingStatus || (targetMonth <= 10 ? 'PAID' : (targetMonth === 11 ? 'PENDING' : 'BERJALAN')))
+      ? (beBillingData?.billingStatus || (totalSeconds === 0 ? 'TIDAK_ADA_TAGIHAN' : (isDummyMode() && targetMonth === 11 ? 'PENDING' : 'BERJALAN')))
       : 'BELUM_DIATUR',
     statusPembayaran: isContractSet
-      ? (beBillingData?.billingStatus === 'PAID' || targetMonth <= 10
+      ? (beBillingData?.billingStatus === 'PAID'
           ? 'Lunas'
-          : (beBillingData?.billingStatus === 'PENDING' || targetMonth === 11
-              ? 'Menunggu ACC'
-              : 'Belum Dibayar'))
+          : (totalSeconds === 0
+              ? 'Tidak Ada Tagihan'
+              : (beBillingData?.billingStatus === 'PENDING' || (isDummyMode() && targetMonth === 11)
+                  ? 'Menunggu ACC'
+                  : 'Belum Dibayar')))
       : 'Belum diatur',
     isBlocked: isContractSet ? (beBillingData?.billingStatus === 'DIBLOKIR') : false,
     paymentProof: beBillingData?.paymentProof || null,
@@ -817,11 +825,11 @@ export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20
     };
   });
 
-  // Fallback data panggilan dummy jika belum ada data riil di database agar tidak muncul 0
+  // Fallback data panggilan dummy HANYA jika isDummyMode() aktif (demo lokal)
   let itemsToUse = mappedItems;
   let finalAccumulatedSeconds = accumulatedSeconds;
 
-  if (itemsToUse.length === 0) {
+  if (itemsToUse.length === 0 && isDummyMode()) {
     const rawBranchName = user?.branchName || user?.branch?.name || 'Lapas Kelas I Ungaran';
     const dummyCalls = generateDummyCanteenCalls(targetMonth, targetYear, effectiveBranchId, rawBranchName);
     let filteredDummy = dummyCalls;
