@@ -35,6 +35,7 @@ const Detail = () => {
   const [branch, setBranch] = useState(null);
   const [branchUsers, setBranchUsers] = useState([]);
   const [branchCalls, setBranchCalls] = useState([]);
+  const [totalCallsCount, setTotalCallsCount] = useState(0);
   const [branchTransactions, setBranchTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [toastMessage, setToastMessage] = useState('');
@@ -78,9 +79,9 @@ const Detail = () => {
 
     try {
       const [uRes, cRes, tRes] = await Promise.allSettled([
-        getUsers({ branchId: id }),
+        getUsers({ branchId: id, limit: 100 }),
         getCallHistory({ branchId: id }),
-        getBalanceTransactions({ branchId: id, limit: 100 }),
+        getBalanceTransactions({ branchId: id, limit: 500 }),
       ]);
       if (uRes.status === 'fulfilled') {
         const rawUsers = uRes.value?.items || [];
@@ -90,7 +91,17 @@ const Detail = () => {
         );
         setBranchUsers(onlyThisBranchUsers);
       }
-      if (cRes.status === 'fulfilled') setBranchCalls(cRes.value?.items || []);
+      if (cRes.status === 'fulfilled') {
+        const callData = cRes.value;
+        const rawCalls = callData?.items || [];
+        setBranchCalls(rawCalls);
+        const total = typeof callData?.total === 'number'
+          ? callData.total
+          : typeof callData?.pagination?.total === 'number'
+            ? callData.pagination.total
+            : rawCalls.length;
+        setTotalCallsCount(total);
+      }
       if (tRes.status === 'fulfilled') {
         const rawTransactions = tRes.value?.items || [];
         // Pastikan hanya transaksi yang benar-benar milik cabang bersangkutan
@@ -201,7 +212,7 @@ const Detail = () => {
     );
   }
 
-  const totalCalls = branchCalls.length;
+  const totalCalls = totalCallsCount || branchCalls.length;
   const totalRevenue = branchTransactions.reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const occupancyRate = branch.capacity > 0 ? Math.round((branch.inmateCount / branch.capacity) * 100) : 0;
   const isOvercapacity = occupancyRate > 100;
