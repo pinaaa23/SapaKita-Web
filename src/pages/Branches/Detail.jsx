@@ -26,7 +26,6 @@ import { getUsers, resetUserPassword } from '../../services/userService';
 import { getCallHistory } from '../../services/callService';
 import { getBalanceTransactions } from '../../services/balanceService';
 import { apiFetch, logout } from '../../services/api';
-import StatCard from '../../components/StatCard';
 
 const Detail = () => {
   const { id } = useParams();
@@ -80,7 +79,7 @@ const Detail = () => {
     try {
       const [uRes, cRes, tRes] = await Promise.allSettled([
         getUsers({ branchId: id, limit: 100 }),
-        getCallHistory({ branchId: id }),
+        getCallHistory({ branchId: id, limit: 500 }),
         getBalanceTransactions({ branchId: id, limit: 500 }),
       ]);
       if (uRes.status === 'fulfilled') {
@@ -218,6 +217,28 @@ const Detail = () => {
   const isOvercapacity = occupancyRate > 100;
   const adminEmailDisplay = branch.adminEmail || branchUsers[0]?.email || null;
 
+  // Rincian Status Panggilan Cabang
+  const answeredCallsCount = branchCalls.filter(
+    (c) => c.status === 'Answered' || c.status === 'Terjawab' || c.status === 'ENDED' || c.status === 'CONNECTED'
+  ).length;
+
+  const rejectedCallsCount = branchCalls.filter(
+    (c) => c.status === 'Rejected' || c.status === 'Ditolak' || c.status === 'REJECTED'
+  ).length;
+
+  const missedCallsCount = branchCalls.filter(
+    (c) => c.status === 'Missed' || c.status === 'Tidak Terjawab' || c.status === 'MISSED' || c.status === 'Busy' || c.status === 'Sibuk'
+  ).length;
+
+  const loadedCallsCount = branchCalls.length;
+  const callScale = (loadedCallsCount > 0 && totalCalls > loadedCallsCount) ? (totalCalls / loadedCallsCount) : 1;
+
+  const displayAnswered = callScale === 1 ? answeredCallsCount : Math.round(answeredCallsCount * callScale);
+  const displayRejected = callScale === 1 ? rejectedCallsCount : Math.round(rejectedCallsCount * callScale);
+  const displayMissed = callScale === 1 ? missedCallsCount : Math.max(0, totalCalls - displayAnswered - displayRejected);
+
+  const answeredPercentage = totalCalls > 0 ? Math.round((displayAnswered / totalCalls) * 100) : 0;
+
   return (
     <div className="space-y-6 pb-8">
       {/* Toast Alert */}
@@ -292,18 +313,92 @@ const Detail = () => {
 
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <StatCard 
-          title="Total Panggilan (Cabang)" 
-          value={`${totalCalls} Panggilan`}
-          icon={PhoneCall} 
-          color="blue"
-        />
-        <StatCard 
-          title="Total Pendapatan (Cabang)" 
-          value={formatCurrency(totalRevenue)} 
-          icon={Wallet} 
-          color="green"
-        />
+        {/* Card 1: Total Panggilan (Cabang) dengan Sub-metrics Status */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Panggilan (Cabang)</p>
+              <div className="flex items-baseline gap-2 mt-1">
+                <h3 className="text-xl font-extrabold text-slate-800">{totalCalls} Panggilan</h3>
+                {totalCalls > 0 && (
+                  <span className="text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                    {answeredPercentage}% Berhasil
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600 border border-blue-100">
+              <PhoneCall className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="mt-3">
+            {/* Segmented Progress Bar */}
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden flex">
+              {totalCalls > 0 ? (
+                <>
+                  <div 
+                    title={`Terjawab: ${displayAnswered} (${answeredPercentage}%)`}
+                    className="h-full bg-emerald-500 transition-all duration-500" 
+                    style={{ width: `${(displayAnswered / totalCalls) * 100}%` }}
+                  />
+                  <div 
+                    title={`Tidak Terjawab: ${displayMissed}`}
+                    className="h-full bg-amber-400 transition-all duration-500" 
+                    style={{ width: `${(displayMissed / totalCalls) * 100}%` }}
+                  />
+                  <div 
+                    title={`Ditolak: ${displayRejected}`}
+                    className="h-full bg-rose-500 transition-all duration-500" 
+                    style={{ width: `${(displayRejected / totalCalls) * 100}%` }}
+                  />
+                </>
+              ) : (
+                <div className="h-full bg-slate-200 w-full" />
+              )}
+            </div>
+
+            {/* Sub-metrics Status Badges */}
+            <div className="flex items-center justify-between text-[11px] font-medium text-slate-600 mt-2 flex-wrap gap-1">
+              <span className="flex items-center gap-1.5" title="Panggilan berhasil terhubung">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                <span><strong className="text-slate-800 font-bold">{displayAnswered}</strong> Terjawab</span>
+              </span>
+              <span className="flex items-center gap-1.5" title="Panggilan tidak diangkat">
+                <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                <span><strong className="text-slate-800 font-bold">{displayMissed}</strong> Tak Terjawab</span>
+              </span>
+              <span className="flex items-center gap-1.5" title="Panggilan ditolak tujuan">
+                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                <span><strong className="text-slate-800 font-bold">{displayRejected}</strong> Ditolak</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 2: Total Pendapatan (Cabang) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
+          <div className="flex justify-between items-start">
+            <div>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pendapatan (Cabang)</p>
+              <h3 className="text-xl font-extrabold text-slate-800 mt-1">{formatCurrency(totalRevenue)}</h3>
+            </div>
+            <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
+              <Wallet className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <div className="w-full bg-emerald-100 h-2 rounded-full overflow-hidden">
+              <div className="h-full bg-emerald-500 rounded-full w-full"></div>
+            </div>
+            <div className="flex justify-between items-center text-[11px] font-medium text-slate-500 mt-1.5">
+              <span>{branchTransactions.length} Transaksi Kantin</span>
+              <span className="text-emerald-700 font-bold">100% Kas Kantin UPT</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Tingkat Hunian (Okupansi) */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
