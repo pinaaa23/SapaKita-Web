@@ -321,9 +321,10 @@ export const getCallHistory = async ({
   }
 
   try {
+    const safeLimit = Math.min(Math.max(1, Number(limit) || 20), 100);
     const query = new URLSearchParams();
     if (page) query.append('page', String(page));
-    if (limit) query.append('limit', String(limit));
+    query.append('limit', String(safeLimit));
     if (search) query.append('search', search);
     if (branchId && branchId !== 'All' && branchId !== 'all') query.append('branchId', branchId);
     if (status && status !== 'All' && status !== 'all') {
@@ -363,7 +364,7 @@ export const getCallHistory = async ({
     const res = await getRecordingsApi({
       search,
       page,
-      limit,
+      limit: safeLimit,
       status: ['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED'].includes(status?.toUpperCase()) ? status : undefined,
       branchId,
       startDate,

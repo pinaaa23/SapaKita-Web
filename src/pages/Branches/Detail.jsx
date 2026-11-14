@@ -79,8 +79,8 @@ const Detail = () => {
     try {
       const [uRes, cRes, tRes] = await Promise.allSettled([
         getUsers({ branchId: id, limit: 100 }),
-        getCallHistory({ branchId: id, limit: 500 }),
-        getBalanceTransactions({ branchId: id, limit: 500 }),
+        getCallHistory({ branchId: id, limit: 100 }),
+        getBalanceTransactions({ branchId: id, limit: 100 }),
       ]);
       if (uRes.status === 'fulfilled') {
         const rawUsers = uRes.value?.items || [];
