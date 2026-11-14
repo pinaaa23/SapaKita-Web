@@ -2,7 +2,7 @@ import React from 'react';
 import { Phone, PhoneCall, Clock, CheckCircle2 } from 'lucide-react';
 
 export default function KartuWartel({ wartel, now = Date.now(), waktuServerOffset = 0 }) {
-  const { nama, nomor, status, estimasiSelesai } = wartel;
+  const { nama, nomor, status, estimasiSelesai, detail } = wartel;
   const isDigunakan = status === 'digunakan';
   const displayNama = nama || nomor;
 
@@ -86,6 +86,25 @@ export default function KartuWartel({ wartel, now = Date.now(), waktuServerOffse
             </span>
           )}
         </div>
+
+        {/* Info Detail Panggilan Saat Digunakan */}
+        {isDigunakan && detail && (
+          <div className="mt-3.5 pt-3 border-t border-slate-100 space-y-1.5 text-xs">
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-slate-400 font-medium">WBP:</span>
+              <span className="font-bold text-slate-800 truncate max-w-[160px]" title={detail.inmate?.name}>
+                {detail.inmate?.name || 'WBP'}
+                {detail.inmate?.blockRoom ? ` (${detail.inmate.blockRoom})` : ''}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-slate-600">
+              <span className="text-slate-400 font-medium">Tujuan:</span>
+              <span className="font-semibold text-slate-700 truncate max-w-[160px]" title={detail.family?.name || detail.family?.phone}>
+                {detail.family?.name || detail.family?.phone || 'Keluarga'}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Footer / Info Sisa Waktu */}

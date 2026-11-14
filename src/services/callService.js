@@ -26,8 +26,8 @@ export const mapCallItem = (item) => {
   const transcript = recordingObj?.transcriptText || item.transcriptText || item.transcript || call.transcriptText || call.transcript || '';
   const transcriptStatus = recordingObj?.transcriptStatus || item.transcriptStatus || call.transcriptStatus || (transcript ? 'COMPLETED' : null);
 
-  const durationSec = typeof call.durationSeconds === 'number' 
-    ? call.durationSeconds 
+  const durationSec = typeof call.durationSeconds === 'number'
+    ? call.durationSeconds
     : (typeof item.durationSeconds === 'number' ? item.durationSeconds : (Number(item.duration) || 0));
 
   const branchObj = item.branch || call.branch || call.inmate?.branch || null;
@@ -123,11 +123,11 @@ export const mapCallItem = (item) => {
     : (durationSec > 0 && normalizedStatus === 'Answered' ? Math.round(durationSec * ratePerSec) : 0);
 
   let hasRecording = Boolean(
-    storageUrl || 
+    storageUrl ||
     recordingObj?.storageUrl ||
-    item.recordingUrl || 
-    call.recordingUrl || 
-    item.hasRecording || 
+    item.recordingUrl ||
+    call.recordingUrl ||
+    item.hasRecording ||
     call.hasRecording ||
     (isDemo && durationSec > 0)
   );
@@ -141,9 +141,9 @@ export const mapCallItem = (item) => {
   const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
 
   const recordingUrl = hasRecording
-    ? (storageUrl 
-        ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`)
-        : (item.recordingUrl || call.recordingUrl || `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`))
+    ? (storageUrl
+      ? (storageUrl.startsWith('http') ? storageUrl : `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`)
+      : (item.recordingUrl || call.recordingUrl || `${API_BASE_URL}/api/recordings/${recordingId}/stream${tokenQuery}`))
     : '';
 
   // Jalur panggilan (Web / GSM)

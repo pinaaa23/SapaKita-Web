@@ -318,7 +318,7 @@ export function hitungRingkasanWartel(list = [], cabang = null) {
   const validList = Array.isArray(list) ? list : [];
   const total = validList.length;
   const digunakan = validList.filter((item) => item.status === 'digunakan').length;
-  const perbaikan = validList.filter((item) => item.status === 'perbaikan').length;
+  const perbaikan = validList.filter((item) => item.status === 'perbaikan' || item.status === 'rusak').length;
   const tersedia = Math.max(0, total - digunakan - perbaikan);
 
   return {
