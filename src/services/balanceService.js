@@ -124,6 +124,10 @@ export const getBalanceTransactions = async ({
   if (search && search.trim()) params.append('search', search.trim());
   if (page) params.append('page', page.toString());
   if (limit) params.append('limit', limit.toString());
+  if (branchId && branchId !== 'All' && branchId !== 'all') {
+    params.append('branchId', typeof branchId === 'string' ? branchId.trim() : branchId);
+  }
+  if (status && status !== 'All' && status !== 'all') params.append('status', status);
 
   // Filter periode / tanggal jika ada
   if (periode && ['harian', 'bulanan', 'tahunan'].includes(periode)) {

@@ -80,7 +80,7 @@ const Detail = () => {
       const [uRes, cRes, tRes] = await Promise.allSettled([
         getUsers({ branchId: id }),
         getCallHistory({ branchId: id }),
-        getBalanceTransactions({ branchId: id }),
+        getBalanceTransactions({ branchId: id, limit: 100 }),
       ]);
       if (uRes.status === 'fulfilled') {
         const rawUsers = uRes.value?.items || [];
@@ -91,7 +91,14 @@ const Detail = () => {
         setBranchUsers(onlyThisBranchUsers);
       }
       if (cRes.status === 'fulfilled') setBranchCalls(cRes.value?.items || []);
-      if (tRes.status === 'fulfilled') setBranchTransactions(tRes.value?.items || []);
+      if (tRes.status === 'fulfilled') {
+        const rawTransactions = tRes.value?.items || [];
+        // Pastikan hanya transaksi yang benar-benar milik cabang bersangkutan
+        const onlyThisBranchTransactions = rawTransactions.filter(
+          (t) => String(t.branchId) === String(id)
+        );
+        setBranchTransactions(onlyThisBranchTransactions);
+      }
     } catch (e) {
       console.log('[BranchDetail] Error load related items:', e);
     } finally {
