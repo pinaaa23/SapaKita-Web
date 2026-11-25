@@ -12,8 +12,8 @@ import { useAuth } from '../context/AuthContext';
 import { getMenuItemsByRole, normalizeRole, ROLES, ROLE_LABELS } from '../config/menuConfig';
 import { getPendingTopupCountSync } from '../services/canteenTopupService';
 import { getAuthToken } from '../services/api';
-import sapakitaLogoWhite from '../assets/sapakita_logo_white.svg';
-import sapakitaIcon from '../assets/sapakita_icon.svg';
+import sapakitaLogoWhite from '../assets/logo_sapakita_white.png';
+import sapakitaIcon from '../assets/icon_sapakita.png';
 
 const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, closeMobileMenu }) => {
   const isOpen = isSidebarOpen !== undefined ? isSidebarOpen : !isCollapsed;
@@ -159,25 +159,27 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
       {/* Main Sidebar Container (Soft Blue-Green Gradient Theme) */}
       <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0E7A74] via-[#166B7C] to-[#1E5D88] text-white flex flex-col shadow-2xl overflow-hidden">
         
-        {/* 1. Header / Logo */}
-        <div className={`pt-4 pb-2 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-5 pr-4' : 'justify-center px-2'}`}>
+        {/* 1. Header / Role & Logo SapaKita */}
+        <div className={`pt-4 pb-2.5 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-5 pr-4' : 'justify-center px-2'}`}>
           {isExpandedView ? (
-            <div className="flex flex-col items-start min-w-0 overflow-hidden">
-              <img 
-                src={sapakitaLogoWhite} 
-                alt="SapaKita" 
-                className="w-[124px] h-auto object-contain object-left drop-shadow-[0_1px_2px_rgba(0,0,0,0.15)]" 
-              />
-              <p className="text-[11px] text-teal-100 font-medium tracking-wide mt-0.5 truncate max-w-full">
+            <div className="flex flex-col items-start min-w-0 overflow-hidden w-full">
+              <p className="text-[11.5px] text-teal-100 font-semibold tracking-wide truncate max-w-full">
                 {effectiveRoleLabel}
               </p>
+              <div className="mt-2 w-full">
+                <img 
+                  src={sapakitaLogoWhite} 
+                  alt="SapaKita" 
+                  className="w-[145px] max-w-full h-auto object-contain object-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)]" 
+                />
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-center py-1">
               <img 
                 src={sapakitaIcon} 
                 alt="SapaKita" 
-                className="w-8 h-8 object-contain drop-shadow-sm" 
+                className="w-9 h-9 object-contain drop-shadow-md" 
               />
             </div>
           )}
@@ -186,7 +188,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
             type="button"
             onClick={closeMobileMenu}
             aria-label="Tutup Menu"
-            className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0"
+            className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0 ml-2"
           >
             <X className="w-5 h-5" />
           </button>
