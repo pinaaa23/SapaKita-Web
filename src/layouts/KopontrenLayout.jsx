@@ -88,8 +88,8 @@ export default function KopontrenLayout() {
           )}
         </button>
 
-        {/* Main Floating Gradient Sidebar Container (Soft Blue-Green / Teal-Navy) */}
-        <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0E7A74] via-[#166B7C] to-[#1E5D88] text-white flex flex-col shadow-2xl overflow-hidden select-none">
+        {/* Main Floating Gradient Sidebar Container (Inverted Soft Blue-Green Theme) */}
+        <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#1F5F8B] via-[#16707C] to-[#0D7A73] text-white flex flex-col shadow-2xl overflow-hidden select-none">
           
           {/* 1. Header: Logo SapaKita on top, Role underneath */}
           <div className={`pt-4 pb-2 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-4.5 pr-3.5' : 'justify-center px-2'}`}>

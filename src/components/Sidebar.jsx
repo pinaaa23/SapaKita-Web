@@ -156,8 +156,8 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
         </button>
       )}
 
-      {/* Main Sidebar Container (Soft Blue-Green Gradient Theme) */}
-      <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0E7A74] via-[#166B7C] to-[#1E5D88] text-white flex flex-col shadow-2xl overflow-hidden">
+      {/* Main Sidebar Container (Inverted Soft Blue-Green Theme: Soft Blue top, Teal bottom) */}
+      <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#1F5F8B] via-[#16707C] to-[#0D7A73] text-white flex flex-col shadow-2xl overflow-hidden">
         
         {/* 1. Header: Logo SapaKita on top, Role underneath */}
         <div className={`pt-4 pb-2 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-4.5 pr-3.5' : 'justify-center px-2'}`}>
