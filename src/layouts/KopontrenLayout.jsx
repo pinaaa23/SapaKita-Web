@@ -91,27 +91,29 @@ export default function KopontrenLayout() {
         {/* Main Floating Gradient Sidebar Container (Soft Blue-Green / Teal-Navy) */}
         <div className="w-full h-full rounded-[2rem] bg-gradient-to-b from-[#0E7A74] via-[#166B7C] to-[#1E5D88] text-white flex flex-col shadow-2xl overflow-hidden select-none">
           
-          {/* 1. Header / Role & Logo SapaKita */}
-          <div className={`pt-4 pb-2.5 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-5 pr-4' : 'justify-center px-2'}`}>
+          {/* 1. Header: Logo SapaKita on top, Role underneath */}
+          <div className={`pt-4 pb-2 transition-all duration-300 flex items-center ${isExpandedView ? 'justify-between pl-4.5 pr-3.5' : 'justify-center px-2'}`}>
             {isExpandedView ? (
               <div className="flex flex-col items-start min-w-0 overflow-hidden w-full">
-                <p className="text-[11.5px] text-teal-100 font-semibold tracking-wide truncate max-w-full">
-                  Operator Kopontren
-                </p>
-                <div className="mt-2 w-full">
+                {/* Logo SapaKita */}
+                <div className="flex items-center w-full">
                   <img 
                     src={sapakitaLogoWhite} 
                     alt="SapaKita" 
-                    className="w-[145px] max-w-full h-auto object-contain object-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.25)]" 
+                    className="w-[136px] max-w-full h-auto object-contain object-left drop-shadow-[0_2px_4px_rgba(0,0,0,0.22)]" 
                   />
                 </div>
+                {/* Role Label underneath Logo */}
+                <p className="text-[11px] text-teal-100/90 font-medium tracking-wide mt-1.5 truncate max-w-full">
+                  Operator Kopontren
+                </p>
               </div>
             ) : (
               <div className="flex items-center justify-center py-1">
                 <img 
                   src={sapakitaIcon} 
                   alt="SapaKita" 
-                  className="w-9 h-9 object-contain drop-shadow-md" 
+                  className="w-8 h-8 object-contain drop-shadow-md" 
                 />
               </div>
             )}
@@ -120,14 +122,14 @@ export default function KopontrenLayout() {
               type="button"
               onClick={() => setIsMobileMenuOpen(false)}
               aria-label="Tutup Menu"
-              className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0 ml-2"
+              className="md:hidden p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer shrink-0 ml-1"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           {/* Thin Divider Line */}
-          <div className="mx-3 mb-2">
+          <div className="mx-3.5 mb-2 mt-0.5">
             <div className="border-b border-white/15 w-full"></div>
           </div>
 
