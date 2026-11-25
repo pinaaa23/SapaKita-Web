@@ -57,7 +57,7 @@ export default function CallPerformanceComparisonChart({
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  const [viewMode, setViewMode] = useState('by_branch'); // 'by_branch' (Komparasi Antar Lapas) | 'by_month' (Tren Bulanan)
+  const [viewMode, setViewMode] = useState('by_branch'); // 'by_branch' (Komparasi Kampus Pondok) | 'by_month' (Tren Bulanan)
   const [metricType, setMetricType] = useState('calls'); // 'calls' (Volume Panggilan) | 'duration' (Durasi Menit)
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedBranchId, setSelectedBranchId] = useState('all');
@@ -74,7 +74,7 @@ export default function CallPerformanceComparisonChart({
     else setIsLoading(true);
 
     try {
-      // A. Ambil seluruh cabang
+      // A. Ambil seluruh kampus/cabang
       let allBranches = [];
       try {
         const bRes = await getBranches({ limit: 100 });
@@ -84,14 +84,14 @@ export default function CallPerformanceComparisonChart({
       }
 
       // Filter cabang berdasarkan hak akses:
-      // Superadmin: SEMUA Lapas se-Indonesia
-      // Kanwil: HANYA UPT / Lapas di bawah naungan Kanwil tersebut
+      // Superadmin: SEMUA Kampus Pondok se-Indonesia
+      // Yayasan: HANYA Kampus Pondok di bawah naungan Yayasan tersebut
       let scopedBranches = allBranches;
       if (isKanwil) {
         scopedBranches = allBranches.filter((b) => {
           if (kanwilId && (b.kanwilId === kanwilId || b.kanwil?.id === kanwilId)) return true;
-          if (kanwilName && kanwilName !== 'Kantor Wilayah') {
-            const cleanKanwil = kanwilName.toLowerCase().replace(/^(kanwil|kantor wilayah)\s+/gi, '').trim();
+          if (kanwilName && kanwilName !== 'Kantor Wilayah' && kanwilName !== 'Yayasan Pesantren') {
+            const cleanKanwil = kanwilName.toLowerCase().replace(/^(yayasan|kantor wilayah|kanwil)\s+/gi, '').trim();
             const bKanwil = (b.kanwilName || b.kanwil?.name || b.location || b.province || '').toLowerCase();
             if (bKanwil.includes(cleanKanwil)) return true;
           }
@@ -122,7 +122,7 @@ export default function CallPerformanceComparisonChart({
         return allItems;
       };
 
-      // B. Ambil riwayat panggilan riil (Gunakan /api/calls untuk memuat seluruh sesi panggilan: terjawab & tidak terjawab)
+      // B. Ambil riwayat panggilan riil
       let callList = [];
       try {
         callList = await fetchAllCalls(getCallHistory);
@@ -133,15 +133,15 @@ export default function CallPerformanceComparisonChart({
         }
       }
 
-      // Filter panggilan khusus Kanwil: Hanya panggilan milik UPT yang diampu Kanwil
+      // Filter panggilan khusus Yayasan: Hanya panggilan milik Kampus yang diampu Yayasan
       if (isKanwil && scopedBranches.length > 0) {
-        const kanwilBranchIdSet = new Set(scopedBranches.map((b) => b.id || b._id));
+        const kanwilBranchIdSet = new Set(scopedBranches.map((b) => String(b.id || b._id)));
         const kanwilBranchNameSet = new Set(
           scopedBranches.map((b) => (b.name || b.branchName || '').toLowerCase().trim())
         );
 
         callList = callList.filter((c) => {
-          const bId = c.branchId || c.inmate?.branchId || c.branch?.id;
+          const bId = String(c.branchId || c.inmate?.branchId || c.branch?.id || '');
           if (bId && kanwilBranchIdSet.has(bId)) return true;
           const bName = (c.branchName || c.inmate?.branchName || c.branch?.name || '').toLowerCase().trim();
           return bName && kanwilBranchNameSet.has(bName);
@@ -210,18 +210,18 @@ export default function CallPerformanceComparisonChart({
 
   const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
 
-  // 1. PROSES DATA KOMPARASI ANTAR LAPAS (View Mode: by_branch)
+  // 1. PROSES DATA KOMPARASI ANTAR KAMPUS PONDOK (View Mode: by_branch)
   const comparisonByBranchData = useMemo(() => {
     const branchStats = new Map();
 
-    // Pastikan setiap cabang yang terdaftar di naungan ini muncul di diagram
+    // Pastikan setiap kampus yang terdaftar di naungan ini muncul di diagram
     branches.forEach((b) => {
       const bId = b.id || b._id;
-      const bName = b.name || b.branchName || 'Lapas';
+      const bName = b.name || b.branchName || 'Kampus Pondok';
       branchStats.set(bId, {
         branchId: bId,
         branchName: bName,
-        shortName: bName.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim() || bName,
+        shortName: bName.replace(/^(pesantren|ponpes|pondok|kampus|cabang)\s+/gi, '').trim() || bName,
         totalCalls: 0,
         answeredCalls: 0,
         missedCalls: 0,
@@ -240,7 +240,7 @@ export default function CallPerformanceComparisonChart({
         return;
       }
 
-      // Cocokkan cabang asosiasi
+      // Cocokkan cabang/kampus asosiasi
       const callBranchId = call.branchId || call.inmate?.branchId || call.branch?.id;
       let matchedBranchId = null;
 
@@ -259,12 +259,12 @@ export default function CallPerformanceComparisonChart({
       // Jika cabang belum ada di map dan diperbolehkan
       if (!matchedBranchId) {
         matchedBranchId = callBranchId || 'unknown_branch';
-        const name = call.branchName || call.inmate?.branchName || call.branch?.name || 'Lapas Pemasyarakatan';
+        const name = call.branchName || call.inmate?.branchName || call.branch?.name || 'Kampus Pesantren';
         if (!branchStats.has(matchedBranchId)) {
           branchStats.set(matchedBranchId, {
             branchId: matchedBranchId,
             branchName: name,
-            shortName: name.replace(/^(lapas|rutan|kelas|kls|i|ii|iia|iib)\s+/gi, '').trim() || name,
+            shortName: name.replace(/^(pesantren|ponpes|pondok|kampus|cabang)\s+/gi, '').trim() || name,
             totalCalls: 0,
             answeredCalls: 0,
             missedCalls: 0,
@@ -307,7 +307,7 @@ export default function CallPerformanceComparisonChart({
       };
     });
 
-    // Urutkan dari Lapas dengan total panggilan tertinggi
+    // Urutkan dari Kampus Pondok dengan total panggilan tertinggi
     const sorted = result.sort((a, b) => b.totalCalls - a.totalCalls);
     if (topLimit !== 'all' && viewMode === 'by_branch') {
       const limitNum = parseInt(topLimit, 10);
@@ -320,13 +320,12 @@ export default function CallPerformanceComparisonChart({
 
   // 2. PROSES DATA TREN BULANAN (View Mode: by_month)
   const monthlyTrendData = useMemo(() => {
-    // Tentukan tahun acuan
-    let targetYear = now.getFullYear();
+    // Tentukan tahun acuan secara stabil
+    let targetYear = new Date().getFullYear();
     if (selectedMonth !== 'all') {
       const y = parseInt(selectedMonth.split('-')[0], 10);
       if (!isNaN(y)) targetYear = y;
     } else if (rawCalls.length > 0) {
-      // Ambil tahun dari panggilan terakhir
       const lastCallDate = getCallDate(rawCalls[0]);
       if (lastCallDate) targetYear = lastCallDate.getFullYear();
     }
@@ -353,10 +352,18 @@ export default function CallPerformanceComparisonChart({
       const callYear = callDate.getFullYear();
       if (callYear !== targetYear) return;
 
-      // Filter spesifik Lapas jika dipilih
+      // Filter spesifik Kampus jika dipilih
       if (selectedBranchId !== 'all') {
-        const callBranchId = call.branchId || call.inmate?.branchId || call.branch?.id;
-        if (callBranchId !== selectedBranchId) return;
+        const callBranchId = String(call.branchId || call.inmate?.branchId || call.branch?.id || '');
+        const targetId = String(selectedBranchId);
+        if (callBranchId !== targetId) {
+          const targetBranch = branches.find(b => String(b.id || b._id) === targetId);
+          const targetName = (targetBranch?.name || targetBranch?.branchName || '').toLowerCase().trim();
+          const callBranchName = (call.branchName || call.inmate?.branchName || call.branch?.name || '').toLowerCase().trim();
+          if (!targetName || !callBranchName || !callBranchName.includes(targetName)) {
+            return;
+          }
+        }
       }
 
       const mKey = `${callYear}-${String(callDate.getMonth() + 1).padStart(2, '0')}`;
@@ -374,7 +381,7 @@ export default function CallPerformanceComparisonChart({
 
       entry.totalCalls += 1;
       if (!entry.branchMap) entry.branchMap = {};
-      const bName = call.branchName || call.inmate?.branchName || call.branch?.name || 'Lapas';
+      const bName = call.branchName || call.inmate?.branchName || call.branch?.name || 'Kampus Pondok';
       entry.branchMap[bName] = (entry.branchMap[bName] || 0) + 1;
 
       if (isAnswered) {
@@ -396,7 +403,7 @@ export default function CallPerformanceComparisonChart({
         successRate,
       };
     });
-  }, [rawCalls, selectedMonth, selectedBranchId, now]);
+  }, [rawCalls, selectedMonth, selectedBranchId, branches]);
 
   // Statistik Ringkasan Periode Aktif
   const summaryMetrics = useMemo(() => {
@@ -407,7 +414,7 @@ export default function CallPerformanceComparisonChart({
     const totalSeconds = activeData.reduce((acc, d) => acc + d.totalSeconds, 0);
     const successRate = totalCalls > 0 ? Number(((answeredCalls / totalCalls) * 100).toFixed(1)) : 0;
 
-    const topLapas = comparisonByBranchData.length > 0 && comparisonByBranchData[0].totalCalls > 0
+    const topPondok = comparisonByBranchData.length > 0 && comparisonByBranchData[0].totalCalls > 0
       ? comparisonByBranchData[0]
       : null;
 
@@ -417,7 +424,7 @@ export default function CallPerformanceComparisonChart({
       missedCalls,
       totalSeconds,
       successRate,
-      topLapas,
+      topPondok,
     };
   }, [viewMode, comparisonByBranchData, monthlyTrendData]);
 
@@ -441,7 +448,7 @@ export default function CallPerformanceComparisonChart({
     return (
       <div className="bg-white/95 backdrop-blur-md p-3.5 rounded-2xl shadow-xl border border-slate-200/90 text-xs min-w-[220px] animate-in fade-in-50 duration-150">
         <div className="flex items-center gap-2 pb-2 mb-2 border-b border-slate-100">
-          <div className="w-6 h-6 rounded-lg bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold">
+          <div className="w-6 h-6 rounded-lg bg-teal-50 text-[#0D7A73] flex items-center justify-center font-bold">
             {viewMode === 'by_branch' ? <Building2 className="w-3.5 h-3.5" /> : <Calendar className="w-3.5 h-3.5" />}
           </div>
           <span className="font-extrabold text-slate-800 text-xs truncate max-w-[200px]">
@@ -452,10 +459,10 @@ export default function CallPerformanceComparisonChart({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-slate-600">
             <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#0B3D91]"></span>
+              <span className="w-2.5 h-2.5 rounded-full bg-[#0D7A73]"></span>
               <span>Terjawab (Sukses):</span>
             </span>
-            <span className="font-black text-[#0B3D91]">{formatNumber(data.answeredCalls)} panggilan</span>
+            <span className="font-black text-[#0D7A73]">{formatNumber(data.answeredCalls)} panggilan</span>
           </div>
 
           <div className="flex items-center justify-between text-slate-600">
@@ -480,7 +487,7 @@ export default function CallPerformanceComparisonChart({
 
           {viewMode === 'by_month' && data.branchMap && Object.keys(data.branchMap).length > 0 && selectedBranchId === 'all' && (
             <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-500">
-              <span className="font-bold text-slate-700 block mb-1">Rincian Kontribusi Lapas:</span>
+              <span className="font-bold text-slate-700 block mb-1">Rincian Kontribusi Pondok:</span>
               <div className="space-y-0.5 max-h-24 overflow-y-auto">
                 {Object.entries(data.branchMap).map(([name, count]) => (
                   <div key={name} className="flex justify-between items-center text-slate-600">
@@ -502,28 +509,28 @@ export default function CallPerformanceComparisonChart({
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-100">
         <div>
           <div className="flex items-center gap-2.5 flex-wrap">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#0B3D91] flex items-center justify-center font-bold shadow-2xs">
-              <BarChart3 className="w-4.5 h-4.5 text-[#0B3D91]" />
+            <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center font-bold shadow-2xs">
+              <BarChart3 className="w-4.5 h-4.5 text-[#0D7A73]" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
                   {isKanwil 
-                    ? `Performa Panggilan Lapas di ${kanwilName}` 
-                    : 'Performa Panggilan Seluruh Lapas Nasional'}
+                    ? `Performa Panggilan Kampus di ${kanwilName}` 
+                    : 'Performa Panggilan Seluruh Kampus Pesantren'}
                 </h2>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
                   isKanwil 
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
-                    : 'bg-blue-50 text-[#0B3D91] border-blue-200'
+                    : 'bg-teal-50 text-[#0D7A73] border-teal-200'
                 }`}>
-                  {isKanwil ? `Wilayah ${kanwilName}` : 'Tingkat Nasional (Semua Lapas)'}
+                  {isKanwil ? `Yayasan ${kanwilName}` : 'Tingkat Nasional (Semua Pondok)'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 {isKanwil
-                  ? `Sinkronisasi performa panggilan ${branches.length} Lapas/UPT di bawah naungan ${kanwilName}`
-                  : `Sinkronisasi performa panggilan seluruh ${branches.length} Lapas se-Indonesia`}
+                  ? `Sinkronisasi performa panggilan ${branches.length} Kampus Pondok di bawah naungan ${kanwilName}`
+                  : `Sinkronisasi performa panggilan seluruh ${branches.length} Kampus Pesantren se-Indonesia`}
               </p>
             </div>
           </div>
@@ -531,26 +538,26 @@ export default function CallPerformanceComparisonChart({
 
         {/* Action Controls & Filters */}
         <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          {/* Switcher Tampilan (Komparasi Lapas vs Tren Bulanan) */}
+          {/* Switcher Tampilan (Komparasi Kampus Pondok vs Tren Bulanan) */}
           <div className="inline-flex p-1 bg-slate-100/90 rounded-xl text-xs font-semibold border border-slate-200/50">
             <button
               type="button"
               onClick={() => setViewMode('by_branch')}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'by_branch'
-                  ? 'bg-white text-[#0B3D91] shadow-xs font-bold'
+                  ? 'bg-white text-[#0D7A73] shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Komparasi Lapas</span>
+              <span>Komparasi Kampus Pondok</span>
             </button>
             <button
               type="button"
               onClick={() => setViewMode('by_month')}
               className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
                 viewMode === 'by_month'
-                  ? 'bg-white text-[#0B3D91] shadow-xs font-bold'
+                  ? 'bg-white text-[#0D7A73] shadow-xs font-bold'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
@@ -565,7 +572,7 @@ export default function CallPerformanceComparisonChart({
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(e.target.value)}
-                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer shadow-2xs"
+                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 cursor-pointer shadow-2xs"
               >
                 <option value="all">Semua Periode ({rawCalls.length} Panggilan)</option>
                 {availableMonths.map((mKey) => {
@@ -586,9 +593,9 @@ export default function CallPerformanceComparisonChart({
               <select
                 value={selectedBranchId}
                 onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0B3D91]/20 cursor-pointer max-w-[200px] truncate shadow-2xs"
+                className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 cursor-pointer max-w-[200px] truncate shadow-2xs"
               >
-                <option value="all">{isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas Nasional'}</option>
+                <option value="all">{isKanwil ? 'Semua Kampus Wilayah' : 'Semua Kampus Pondok'}</option>
                 {branches.map((b) => (
                   <option key={b.id || b._id} value={b.id || b._id}>
                     {b.name || b.branchName}
@@ -631,9 +638,9 @@ export default function CallPerformanceComparisonChart({
             onClick={() => fetchData(true)}
             disabled={isLoading || isRefreshing}
             title="Segarkan data panggilan terbaru"
-            className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#0B3D91] border border-slate-200 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
+            className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-[#0D7A73] border border-slate-200 transition-all cursor-pointer disabled:opacity-50 shadow-2xs"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#0B3D91]' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#0D7A73]' : ''}`} />
           </button>
         </div>
       </div>
@@ -643,7 +650,7 @@ export default function CallPerformanceComparisonChart({
         <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100/90 hover:bg-slate-50 transition-colors">
           <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold mb-1">
             <span className="flex items-center gap-1.5">
-              <PhoneCall className="w-3.5 h-3.5 text-[#0B3D91]" />
+              <PhoneCall className="w-3.5 h-3.5 text-[#0D7A73]" />
               Total Panggilan
             </span>
             <span className="text-[9px] font-bold text-slate-500 bg-slate-200/60 px-1.5 py-0.5 rounded-md">
@@ -676,11 +683,11 @@ export default function CallPerformanceComparisonChart({
         <div className="p-3.5 bg-slate-50/70 rounded-2xl border border-slate-100/90 hover:bg-slate-50 transition-colors">
           <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold mb-1">
             <span className="flex items-center gap-1.5">
-              <TrendingUp className="w-3.5 h-3.5 text-blue-600" />
+              <TrendingUp className="w-3.5 h-3.5 text-teal-600" />
               Success Rate
             </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-blue-700 tracking-tight">
+          <p className="text-xl sm:text-2xl font-black text-teal-700 tracking-tight">
             {summaryMetrics.successRate}%
           </p>
           <p className="text-[11px] text-slate-400 mt-0.5">Rasio panggilan berhasil</p>
@@ -690,14 +697,14 @@ export default function CallPerformanceComparisonChart({
           <div className="flex items-center justify-between text-[11px] text-amber-800 font-semibold mb-1 truncate">
             <span className="flex items-center gap-1.5">
               <Award className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-              Lapas Teraktif
+              Pondok Teraktif
             </span>
           </div>
-          <p className="text-sm sm:text-base font-black text-amber-900 tracking-tight truncate mt-0.5" title={summaryMetrics.topLapas?.branchName || '-'}>
-            {summaryMetrics.topLapas ? summaryMetrics.topLapas.branchName : '-'}
+          <p className="text-sm sm:text-base font-black text-amber-900 tracking-tight truncate mt-0.5" title={summaryMetrics.topPondok?.branchName || '-'}>
+            {summaryMetrics.topPondok ? summaryMetrics.topPondok.branchName : '-'}
           </p>
           <p className="text-[11px] text-amber-700/80 mt-0.5 truncate">
-            {summaryMetrics.topLapas ? `${formatNumber(summaryMetrics.topLapas.totalCalls)} sesi panggilan` : 'Belum ada panggilan'}
+            {summaryMetrics.topPondok ? `${formatNumber(summaryMetrics.topPondok.totalCalls)} sesi panggilan` : 'Belum ada panggilan'}
           </p>
         </div>
       </div>
@@ -706,29 +713,29 @@ export default function CallPerformanceComparisonChart({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 px-1">
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-            <span className="w-1.5 h-3.5 bg-[#0B3D91] rounded-full"></span>
-            <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Lapas/UPT' : 'Tren Panggilan 12 Bulan'}</span>
+            <span className="w-1.5 h-3.5 bg-[#0D7A73] rounded-full"></span>
+            <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Kampus Pesantren' : 'Tren Panggilan 12 Bulan'}</span>
           </span>
           {viewMode === 'by_branch' && branches.length > 10 && (
             <div className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
               <button
                 type="button"
                 onClick={() => setTopLimit('all')}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === 'all' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === 'all' ? 'bg-white text-[#0D7A73] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Semua ({branches.length})
               </button>
               <button
                 type="button"
                 onClick={() => setTopLimit('10')}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '10' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '10' ? 'bg-white text-[#0D7A73] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Top 10
               </button>
               <button
                 type="button"
                 onClick={() => setTopLimit('20')}
-                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '20' ? 'bg-white text-[#0B3D91] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-2 py-0.5 rounded-md cursor-pointer transition-all ${topLimit === '20' ? 'bg-white text-[#0D7A73] shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Top 20
               </button>
@@ -737,7 +744,7 @@ export default function CallPerformanceComparisonChart({
         </div>
         <div className="flex items-center gap-4 text-xs font-semibold">
           <span className="flex items-center gap-1.5 text-slate-700">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#0B3D91]"></span>
+            <span className="w-2.5 h-2.5 rounded-full bg-[#0D7A73]"></span>
             <span>{metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab'}</span>
           </span>
           {metricType === 'calls' && (
@@ -749,10 +756,11 @@ export default function CallPerformanceComparisonChart({
         </div>
       </div>
 
-      {/* 3. Area Diagram Batang Recharts Responsif Dinamis (Mendukung hingga 60+ Lapas) */}
+      {/* 3. Area Diagram Batang Recharts Responsif Dinamis (Mendukung hingga 60+ Pondok) */}
       {(() => {
         const currentData = viewMode === 'by_branch' ? comparisonByBranchData : monthlyTrendData;
         const itemCount = currentData.length;
+        const hasData = summaryMetrics.totalCalls > 0 || (viewMode === 'by_branch' && itemCount > 0);
         const needsScroll = viewMode === 'by_branch' && itemCount > 12;
         const dynamicMinWidth = needsScroll ? Math.max(900, itemCount * 65) : '100%';
         const isAngled = viewMode === 'by_branch' && itemCount > 5;
@@ -764,7 +772,7 @@ export default function CallPerformanceComparisonChart({
                 <div className="h-full w-full bg-slate-50 rounded-2xl animate-pulse flex items-center justify-center text-slate-400 text-xs">
                   Memuat data performa panggilan...
                 </div>
-              ) : itemCount > 0 ? (
+              ) : (summaryMetrics.totalCalls > 0 && itemCount > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={currentData}
@@ -782,46 +790,46 @@ export default function CallPerformanceComparisonChart({
                       dy={isAngled ? 4 : 8}
                       interval={0}
                     />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                width={36}
-                tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }}
-                allowDecimals={false}
-                domain={[0, 'auto']}
-                tickFormatter={(val) => metricType === 'calls' ? formatNumber(val) : `${val}m`}
-              />
-              <Tooltip 
-                content={<CustomTooltip />} 
-                cursor={false} 
-              />
-              {/* StackId menjamin kolom batang 100% tegak lurus presisi tepat di atas label & garis axis */}
-              <Bar
-                name={metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab (Menit)'}
-                dataKey={metricType === 'calls' ? 'answeredCalls' : 'totalMinutes'}
-                fill="#0B3D91"
-                stackId="callsStack"
-                radius={metricType === 'calls' ? [4, 4, 0, 0] : [6, 6, 0, 0]}
-                maxBarSize={55}
-              />
-              {metricType === 'calls' && (
-                <Bar
-                  name="Tidak Terjawab / Gagal"
-                  dataKey="missedCalls"
-                  fill="#F43F5E"
-                  stackId="callsStack"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={55}
-                />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      width={36}
+                      tick={{ fill: '#64748B', fontSize: 11, fontWeight: 600 }}
+                      allowDecimals={false}
+                      domain={[0, (dataMax) => Math.max(dataMax, 5)]}
+                      tickFormatter={(val) => metricType === 'calls' ? formatNumber(val) : `${val}m`}
+                    />
+                    <Tooltip 
+                      content={<CustomTooltip />} 
+                      cursor={false} 
+                    />
+                    {/* StackId menjamin kolom batang 100% tegak lurus presisi tepat di atas label & garis axis */}
+                    <Bar
+                      name={metricType === 'calls' ? 'Panggilan Terjawab (Sukses)' : 'Durasi Terjawab (Menit)'}
+                      dataKey={metricType === 'calls' ? 'answeredCalls' : 'totalMinutes'}
+                      fill="#0D7A73"
+                      stackId="callsStack"
+                      radius={metricType === 'calls' ? [4, 4, 0, 0] : [6, 6, 0, 0]}
+                      maxBarSize={55}
+                    />
+                    {metricType === 'calls' && (
+                      <Bar
+                        name="Tidak Terjawab / Gagal"
+                        dataKey="missedCalls"
+                        fill="#F43F5E"
+                        stackId="callsStack"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={55}
+                      />
+                    )}
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                  <PhoneCall className="w-8 h-8 text-slate-300 mb-2" />
+                  <span>Belum ada data panggilan pada periode ini</span>
+                </div>
               )}
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-full w-full flex flex-col items-center justify-center text-slate-400 text-xs font-medium bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
-            <PhoneCall className="w-8 h-8 text-slate-300 mb-2" />
-            <span>Belum ada data panggilan pada periode ini</span>
-          </div>
-        )}
             </div>
           </div>
         );
@@ -834,13 +842,13 @@ export default function CallPerformanceComparisonChart({
           <span>
             {isKanwil 
               ? `Tersinkronisasi khusus UPT di lingkungan ${kanwilName}` 
-              : 'Tersinkronisasi seluruh UPT/Lapas nasional'}
+              : 'Tersinkronisasi seluruh kampus pesantren nasional'}
           </span>
         </div>
         <div className="text-slate-400 font-medium">
           {viewMode === 'by_branch' 
-            ? `Menampilkan ${comparisonByBranchData.length} Lapas • ${activePeriodLabel}` 
-            : `Menampilkan tren 12 bulan • ${selectedBranchId === 'all' ? (isKanwil ? 'Semua Lapas Wilayah' : 'Semua Lapas') : 'Lapas Terpilih'}`}
+            ? `Menampilkan ${comparisonByBranchData.length} Kampus Pondok • ${activePeriodLabel}` 
+            : `Menampilkan tren 12 bulan • ${selectedBranchId === 'all' ? (isKanwil ? 'Semua Pondok Wilayah' : 'Semua Pondok') : 'Pondok Terpilih'}`}
         </div>
       </div>
     </div>

@@ -208,7 +208,8 @@ export default function YayasanManagement() {
       !term ||
       (k.YayasanName || k.name || '').toLowerCase().includes(term) ||
       (k.code || '').toLowerCase().includes(term) ||
-      (k.wilayah || k.region || '').toLowerCase().includes(term) ||
+      (k.wilayah || k.region || k.city || '').toLowerCase().includes(term) ||
+      (k.adminName || k.adminUser?.name || '').toLowerCase().includes(term) ||
       (k.adminEmail || k.adminUser?.email || '').toLowerCase().includes(term) ||
       (k.provinces || []).some((p) => p.toLowerCase().includes(term));
 
@@ -305,13 +306,13 @@ export default function YayasanManagement() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama Yayasan, kode, wilayah, atau admin..." 
+              placeholder="Cari nama yayasan, kode, kota/kabupaten, atau admin..." 
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
                 setPage(1);
               }}
-              className="w-full pl-10 pr-9 py-2.5 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all shadow-2xs"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-teal-500/10 focus:border-[#0D7A73] transition-all shadow-2xs"
             />
             {searchTerm && (
               <button 
@@ -339,7 +340,7 @@ export default function YayasanManagement() {
             </button>
 
             <Link
-              to="/Yayasan-management/create"
+              to="/yayasan-management/create"
               className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold shadow-md shadow-primary/20 cursor-pointer transition-all inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -408,21 +409,21 @@ export default function YayasanManagement() {
         >
           <table className="w-full text-left border-collapse table-fixed min-w-[850px]">
             <colgroup>
-              <col className="w-[25%]" />
-              <col className="w-[15%]" />
+              <col className="w-[32%]" />
               <col className="w-[18%]" />
+              <col className="w-[22%]" />
               <col className="w-[12%]" />
-              <col className="w-[12%]" />
-              <col className="w-[18%]" />
+              <col className="w-[8%]" />
+              <col className="w-[8%]" />
             </colgroup>
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className={`py-3.5 pl-6 pr-4 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
-                  Yayasan Pesantren
+                  Nama Yayasan
                 </th>
-                <th className="py-3.5 px-4 font-bold text-left">Wilayah</th>
-                <th className="py-3.5 px-4 font-bold text-left">Provinsi Cakupan</th>
-                <th className="py-3.5 px-4 font-bold text-center">Kampus Binaan</th>
+                <th className="py-3.5 px-4 font-bold text-left">Kota/Kabupaten</th>
+                <th className="py-3.5 px-4 font-bold text-left">Admin Yayasan</th>
+                <th className="py-3.5 px-4 font-bold text-center">Jumlah Pondok</th>
                 <th className="py-3.5 px-4 font-bold text-center">Status</th>
                 <th className={`py-3.5 px-4 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                   Aksi
@@ -450,13 +451,13 @@ export default function YayasanManagement() {
                       <div className="h-4 bg-slate-200 rounded w-24"></div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <div className="h-6 bg-slate-200 rounded-xl w-16 mx-auto"></div>
+                      <div className="h-6 bg-slate-200 rounded-xl w-10 mx-auto"></div>
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="h-6 bg-slate-200 rounded-full w-14 mx-auto"></div>
                     </td>
                     <td className={`py-3.5 px-4 text-center sticky right-0 z-10 bg-white ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
-                      <div className="h-7 bg-slate-200 rounded-lg w-24 mx-auto"></div>
+                      <div className="h-7 bg-slate-200 rounded-lg w-20 mx-auto"></div>
                     </td>
                   </tr>
                 ))
@@ -469,53 +470,45 @@ export default function YayasanManagement() {
                       <td className={`py-3.5 pl-6 pr-4 text-left whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
-                            isAktif ? 'bg-blue-50 border border-blue-100 text-blue-600' : 'bg-slate-100 border border-slate-200 text-slate-400'
+                            isAktif ? 'bg-teal-50 border border-teal-100 text-teal-700' : 'bg-slate-100 border border-slate-200 text-slate-400'
                           }`}>
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div className="min-w-0 truncate">
-                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-blue-600 transition-colors truncate" title={k.YayasanName}>
+                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-primary transition-colors truncate" title={k.YayasanName}>
                               {k.YayasanName}
                             </p>
-                            <p className="text-[10px] font-mono font-bold text-slate-400 tracking-tight mt-0.5">
+                            <p className="text-[11px] font-mono font-medium text-slate-400 tracking-tight mt-0.5">
                               {k.code || '-'}
                             </p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Wilayah */}
+                      {/* Kota/Kabupaten (dari Wilayah) */}
                       <td className="py-3.5 px-4 text-left whitespace-nowrap text-xs font-medium text-slate-700">
                         <div className="flex items-center gap-1.5 truncate">
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                          <span className="truncate">{k.wilayah || k.region || k.provinces?.[0] || 'Indonesia'}</span>
+                          <span className="truncate">{k.wilayah || k.city || k.region || k.provinces?.[0] || '-'}</span>
                         </div>
                       </td>
 
-                      {/* Provinsi Cakupan */}
-                      <td className="py-3.5 px-4 text-left">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {(k.provinces || []).slice(0, 2).map((prov) => (
-                            <span key={prov} className="text-[11px] bg-blue-50 text-blue-700 font-medium px-2.5 py-0.5 rounded-lg whitespace-nowrap border border-blue-100/70 shadow-2xs">
-                              {prov}
-                            </span>
-                          ))}
-                          {(k.provinces || []).length > 2 && (
-                            <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-lg border border-slate-200" title={(k.provinces || []).slice(2).join(', ')}>
-                              +{k.provinces.length - 2}
-                            </span>
-                          )}
-                          {(!k.provinces || k.provinces.length === 0) && (
-                            <span className="text-slate-400 text-xs italic">-</span>
-                          )}
+                      {/* Admin Yayasan (Nama + Email) */}
+                      <td className="py-3.5 px-4 text-left whitespace-nowrap text-xs text-slate-700">
+                        <div className="min-w-0 truncate">
+                          <p className="font-semibold text-slate-800 text-xs truncate">
+                            {k.adminName || k.adminUser?.name || 'Admin Yayasan'}
+                          </p>
+                          <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5">
+                            {k.adminEmail || k.adminUser?.email || '-'}
+                          </p>
                         </div>
                       </td>
 
-                      {/* Kampus Binaan */}
+                      {/* Jumlah Pondok (Angka rata tengah) */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50/70 text-blue-700 border border-blue-100/80 shadow-2xs">
-                          <Users className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{k.KampusCount ?? (k.assignedKampuss?.length || 0)} Kampus</span>
+                        <span className="inline-flex items-center justify-center font-extrabold text-xs text-slate-700 bg-slate-100 px-2.5 py-1 rounded-xl border border-slate-200/80 shadow-2xs min-w-[32px]">
+                          {k.KampusCount ?? (k.assignedKampuss?.length || 0)}
                         </span>
                       </td>
 
@@ -531,14 +524,14 @@ export default function YayasanManagement() {
                         </span>
                       </td>
 
-                      {/* Aksi (Sticky Right: Ruang Lebih Luas & Rapi) */}
+                      {/* Aksi (Sticky Right) */}
                       <td className={`py-3.5 px-4 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <div className="flex items-center justify-center gap-2">
                           {/* 1. Ikon Mata: Detail Yayasan & Kampus Binaan */}
                           <button 
                             type="button"
                             onClick={() => setDetailYayasan(k)}
-                            className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                            className="p-2 rounded-xl text-slate-400 hover:text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
                             title="Lihat Detail Lengkap Yayasan"
                           >
                             <Eye className="w-4 h-4" />
@@ -546,9 +539,9 @@ export default function YayasanManagement() {
 
                           {/* 2. Ikon Pensil: Edit Data Yayasan */}
                           <Link
-                            to={`/Yayasan-management/${k.id}/edit`}
+                            to={`/yayasan-management/${k.id}/edit`}
                             state={{ Yayasan: k }}
-                            className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
+                            className="p-2 rounded-xl text-slate-400 hover:text-teal-600 hover:bg-teal-50 border border-transparent hover:border-teal-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
                             title="Edit Data Yayasan"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -585,22 +578,14 @@ export default function YayasanManagement() {
                           ? 'Tidak ada Yayasan Pesantren yang cocok dengan filter atau kata kunci pencarian.' 
                           : 'Belum ada Yayasan Pesantren yang terdaftar di sistem.'}
                       </p>
-                      {hasActiveFilters ? (
+                      {hasActiveFilters && (
                         <button 
                           type="button"
                           onClick={resetFilters} 
-                          className="mt-3 px-3.5 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                          className="mt-3 px-3.5 py-1.5 bg-teal-50 text-[#0D7A73] hover:bg-teal-100 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                         >
                           Hapus Filter Pencarian
                         </button>
-                      ) : (
-                        <Link
-                          to="/Yayasan-management/create"
-                          className="mt-3 px-3.5 py-1.5 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Tambah Yayasan Pertama</span>
-                        </Link>
                       )}
                     </div>
                   </td>
@@ -632,7 +617,7 @@ export default function YayasanManagement() {
                   onClick={() => setPage(i + 1)}
                   className={`w-8 h-8 rounded-lg font-bold text-xs transition-colors cursor-pointer ${
                     page === i + 1
-                      ? 'bg-blue-600 text-white shadow-2xs'
+                      ? 'bg-primary text-white shadow-2xs'
                       : 'text-slate-600 hover:bg-slate-100'
                   }`}
                 >
@@ -1073,7 +1058,7 @@ export default function YayasanManagement() {
               {/* Footer Modal */}
               <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
                 <Link
-                  to={`/Yayasan-management/${detailYayasan.id}/edit`}
+                  to={`/yayasan-management/${detailYayasan.id}/edit`}
                   state={{ Yayasan: detailYayasan }}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                 >

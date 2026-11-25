@@ -255,7 +255,7 @@ export default function YayasanCreate() {
     try {
       await deleteYayasanFromSuperadmin(formData.id);
       setIsDeleteModalOpen(false);
-      navigate('/Yayasan-management', {
+      navigate('/yayasan-management', {
         state: { successMessage: `Yayasan Pesantren "${formData.YayasanName}" berhasil dihapus dari sistem.` }
       });
     } catch (err) {
@@ -269,7 +269,7 @@ export default function YayasanCreate() {
     const isEdit = createdCredentials?.isEdit;
     const name = createdCredentials?.name || formData.YayasanName;
     setCreatedCredentials(null);
-    navigate('/Yayasan-management', {
+    navigate('/yayasan-management', {
       state: {
         successMessage: isEdit
           ? `Perubahan data & kredensial "${name}" berhasil disimpan.`
@@ -283,7 +283,7 @@ export default function YayasanCreate() {
       {/* Top Header & Breadcrumb Bar */}
       <div className="flex items-center justify-between">
         <Link 
-          to="/Yayasan-management"
+          to="/yayasan-management"
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Kelola Yayasan
@@ -291,7 +291,7 @@ export default function YayasanCreate() {
       </div>
 
       {/* Hero Overview Banner Card */}
-      <div className="bg-gradient-to-r from-[#0B3D91] via-[#1E5FCC] to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#1E5D88] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10">
           <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md p-1 border-2 border-white/30 flex items-center justify-center shrink-0 shadow-inner">
             <Building2 className="w-8 h-8 text-white" />
@@ -300,7 +300,7 @@ export default function YayasanCreate() {
             <h2 className="text-xl font-black text-white tracking-tight">
               {isEditing ? 'Edit Data Yayasan Pesantren' : 'Pendaftaran Yayasan Pesantren Baru'}
             </h2>
-            <p className="text-blue-100 text-xs">
+            <p className="text-teal-100 text-xs">
               {isEditing 
                 ? 'Perbarui data wilayah kerja koordinasi dan akun administrator Yayasan Pesantren'
                 : 'Daftarkan Yayasan Pesantren baru sebagai koordinator Kampus dan buat kredensial akun administrator Yayasan'}
@@ -372,7 +372,7 @@ export default function YayasanCreate() {
                   }}
                   className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
-                <span className="text-[11px] text-slate-400">Sesuai nomenklatur Kemenkumham / Ditjenpas</span>
+                <span className="text-[11px] text-slate-400">Nama resmi yayasan / badan pengelola pesantren</span>
               </div>
             </div>
 
@@ -429,7 +429,7 @@ export default function YayasanCreate() {
                   {formData.provinces.map((prov) => (
                     <span 
                       key={prov}
-                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/80 shadow-2xs"
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200/80 shadow-2xs"
                     >
                       <span>{prov}</span>
                       <button
@@ -444,7 +444,7 @@ export default function YayasanCreate() {
                             };
                           })
                         }
-                        className="p-0.5 hover:bg-blue-200/60 rounded text-blue-600 hover:text-blue-900 cursor-pointer"
+                        className="p-0.5 hover:bg-teal-200/60 rounded text-teal-600 hover:text-teal-900 cursor-pointer"
                         title={`Hapus ${prov}`}
                       >
                         <X className="w-3.5 h-3.5" />
@@ -722,7 +722,7 @@ export default function YayasanCreate() {
 
           <div className="flex items-center justify-end gap-3">
             <Link
-              to="/Yayasan-management"
+              to="/yayasan-management"
               className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-all text-center cursor-pointer"
             >
               Batal
@@ -780,7 +780,7 @@ export default function YayasanCreate() {
 
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
                 <span className="text-slate-500 font-medium">Provinsi Cakupan</span>
-                <span className="font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded text-[11px] border border-blue-200/60">
+                <span className="font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded text-[11px] border border-teal-200/60">
                   {(createdCredentials.provinces || []).join(', ')}
                 </span>
               </div>

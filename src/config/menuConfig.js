@@ -133,7 +133,7 @@ export const getMenuItemsByRole = (role) => {
   if (normRole === ROLES.SUPERADMIN) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-      { name: 'Yayasan Pesantren', icon: Landmark, path: '/kanwil-management' },
+      { name: 'Yayasan Pesantren', icon: Landmark, path: '/yayasan-management' },
       { name: 'Kampus Pesantren', icon: Building2, path: '/branches' },
       { name: 'Akun Keuangan', icon: CircleDollarSign, path: '/finance-accounts' },
       { name: 'Data Santri', icon: Users, path: '/santri' },

@@ -63,7 +63,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branches/')) return { title: 'Detail Kampus Pesantren', subtitle: 'Informasi operasional & data kampus pondok' };
     if (pathname.startsWith('/branches')) return { title: 'Manajemen Kampus Pesantren', subtitle: 'Kelola data operasional seluruh kampus pondok pesantren yang terdaftar' };
 
-    if (pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Yayasan Pesantren', subtitle: 'Kelola Yayasan / Pengurus Pusat sebagai induk pembina kampus pondok' };
+    if (pathname.startsWith('/yayasan-management') || pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Yayasan Pesantren', subtitle: 'Kelola Yayasan / Pengurus Pusat sebagai induk pembina kampus pondok' };
     if (pathname.startsWith('/finance-accounts')) return { title: 'Akun Keuangan Platform', subtitle: 'Kelola akun tim keuangan platform untuk pemantauan billing dan setoran' };
 
     if (pathname.startsWith('/santri/') || pathname.startsWith('/inmates/')) return { title: 'Detail Santri', subtitle: 'Informasi lengkap data santri' };
@@ -226,7 +226,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Data Santri', category: 'Halaman', link: '/kanwil/santri', desc: 'Data seluruh santri se-yayasan' },
     { title: 'Laporan Yayasan', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh kampus' },
   ] : [
-    { title: 'Yayasan Pesantren', category: 'Halaman', link: '/kanwil-management', desc: 'Kelola Yayasan / Pengurus Pusat' },
+    { title: 'Yayasan Pesantren', category: 'Halaman', link: '/yayasan-management', desc: 'Kelola Yayasan / Pengurus Pusat' },
     { title: 'Akun Keuangan Platform', category: 'Halaman', link: '/finance-accounts', desc: 'Kelola akun tim Finance platform' },
     { title: 'Kampus Pesantren', category: 'Halaman', link: '/branches', desc: 'Daftar & status kampus pondok nasional' },
     { title: 'Data Santri', category: 'Halaman', link: '/santri', desc: 'Daftar santri seluruh kampus pondok' },

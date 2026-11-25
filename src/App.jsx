@@ -125,9 +125,15 @@ function App() {
                 {/* Superadmin Packages, Yayasan Management, Finance */}
                 <Route path="packages" element={<PackagesList />} />
                 <Route path="canteen-topup" element={<CanteenTopup />} />
-                <Route path="kanwil-management" element={<KanwilManagement />} />
-                <Route path="kanwil-management/create" element={<KanwilCreate />} />
-                <Route path="kanwil-management/:id/edit" element={<KanwilCreate />} />
+                <Route path="yayasan-management" element={<KanwilManagement />} />
+                <Route path="yayasan-management/create" element={<KanwilCreate />} />
+                <Route path="yayasan-management/:id/edit" element={<KanwilCreate />} />
+                <Route path="kanwil-management" element={<Navigate to="/yayasan-management" replace />} />
+                <Route path="kanwil-management/create" element={<Navigate to="/yayasan-management/create" replace />} />
+                <Route path="kanwil-management/:id/edit" element={<Navigate to="/yayasan-management" replace />} />
+                <Route path="Yayasan-management" element={<Navigate to="/yayasan-management" replace />} />
+                <Route path="Yayasan-management/create" element={<Navigate to="/yayasan-management/create" replace />} />
+                <Route path="Yayasan-management/:id/edit" element={<Navigate to="/yayasan-management" replace />} />
                 <Route path="kanwil-admins" element={<KanwilAdmins />} />
                 <Route path="finance-accounts" element={<FinanceAccounts />} />
                 <Route path="billing" element={<FinanceBilling />} />
