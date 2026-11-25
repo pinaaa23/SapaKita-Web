@@ -176,7 +176,7 @@ const InmatesList = () => {
         'No': idx + 1,
         'NIS': i.wbpRegNumber || i.identifier || '-',
         'Nama Lengkap': i.name || '-',
-        'Kampus Pesantren': branchesMap[i.branchId] || i.branchName || 'Kampus Utama',
+        'Pondok Pesantren': branchesMap[i.branchId] || i.branchName || 'Pondok Utama',
         'Status Komunikasi': i.commStatus || i.status || 'Aktif',
         'Tanggal Masuk': i.entryDate ? new Date(i.entryDate).toLocaleDateString('id-ID') : '-'
       }));
@@ -187,7 +187,7 @@ const InmatesList = () => {
       const filename = `Data_Santri_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
       const success = exportToExcel(exportData, filename, 'Data Santri', {
         title: 'LAPORAN DATA SANTRI PESANTREN TERPADU',
-        subtitle: 'Data Master Santri Seluruh Kampus Pesantren SapaKita',
+        subtitle: 'Data Master Santri Seluruh Pondok Pesantren SapaKita',
         metadata: {
           'Tingkat': 'Pusat / Nasional',
           'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
@@ -389,7 +389,7 @@ const InmatesList = () => {
                 <th className={`py-3 pl-5 pr-3 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                   Nama Lengkap
                 </th>
-                <th className="py-3 px-3 font-bold text-left">Kampus Pesantren</th>
+                <th className="py-3 px-3 font-bold text-left">Pondok Pesantren</th>
                 <th className="py-3 px-2.5 font-bold text-left">Asrama / Kamar</th>
                 <th className="py-3 px-2.5 font-bold text-left">Tgl Masuk</th>
                 <th className="py-3 px-3 font-bold text-center">Status Izin</th>
@@ -448,7 +448,7 @@ const InmatesList = () => {
                         </div>
                       </td>
 
-                      {/* Kampus Pesantren */}
+                      {/* Pondok Pesantren */}
                       <td className="py-2.5 px-3 text-left whitespace-nowrap">
                         <span className="text-slate-700 font-medium text-xs max-w-[150px] truncate block" title={resolvedBranchName}>
                           {resolvedBranchName}

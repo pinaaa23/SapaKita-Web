@@ -318,7 +318,7 @@ const Create = () => {
             {/* Nama UPT */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama UPT (Kampus Pesantren) <span className="text-rose-500">*</span>
+                Nama Pondok Pesantren <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />

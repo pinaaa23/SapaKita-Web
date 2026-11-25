@@ -134,7 +134,7 @@ export const getMenuItemsByRole = (role) => {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { name: 'Yayasan Pesantren', icon: Landmark, path: '/yayasan-management' },
-      { name: 'Kampus Pesantren', icon: Building2, path: '/branches' },
+      { name: 'Pondok Pesantren', icon: Building2, path: '/branches' },
       { name: 'Akun Keuangan', icon: CircleDollarSign, path: '/finance-accounts' },
       { name: 'Data Santri', icon: Users, path: '/santri' },
       { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
@@ -152,7 +152,7 @@ export const getMenuItemsByRole = (role) => {
   if (normRole === ROLES.ADMIN_KANWIL) {
     return [
       { name: 'Dashboard', icon: LayoutDashboard, path: '/kanwil/dashboard' },
-      { name: 'Kampus Pesantren', icon: Building2, path: '/kanwil/branches' },
+      { name: 'Pondok Pesantren', icon: Building2, path: '/kanwil/branches' },
       { name: 'Data Santri', icon: Users, path: '/kanwil/santri' },
       { name: 'Panggilan', icon: PhoneCall, path: '/kanwil/calls' },
       { name: 'Tagihan Kopontren', icon: Receipt, path: '/kanwil/canteen-topup' },

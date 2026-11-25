@@ -516,8 +516,8 @@ export default function CallPerformanceComparisonChart({
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
                   {isKanwil 
-                    ? `Performa Panggilan Kampus di ${kanwilName}` 
-                    : 'Performa Panggilan Seluruh Kampus Pesantren'}
+                    ? `Performa Panggilan Pondok di ${kanwilName}` 
+                    : 'Performa Panggilan Seluruh Pondok Pesantren'}
                 </h2>
                 <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold border ${
                   isKanwil 
@@ -529,8 +529,8 @@ export default function CallPerformanceComparisonChart({
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
                 {isKanwil
-                  ? `Sinkronisasi performa panggilan ${branches.length} Kampus Pondok di bawah naungan ${kanwilName}`
-                  : `Sinkronisasi performa panggilan seluruh ${branches.length} Kampus Pesantren se-Indonesia`}
+                  ? `Sinkronisasi performa panggilan ${branches.length} Pondok Pesantren di bawah naungan ${kanwilName}`
+                  : `Sinkronisasi performa panggilan seluruh ${branches.length} Pondok Pesantren se-Indonesia`}
               </p>
             </div>
           </div>
@@ -550,7 +550,7 @@ export default function CallPerformanceComparisonChart({
               }`}
             >
               <Building2 className="w-3.5 h-3.5" />
-              <span>Komparasi Kampus Pondok</span>
+              <span>Komparasi Pondok Pesantren</span>
             </button>
             <button
               type="button"
@@ -595,7 +595,7 @@ export default function CallPerformanceComparisonChart({
                 onChange={(e) => setSelectedBranchId(e.target.value)}
                 className="appearance-none bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold py-2 pl-3 pr-8 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 cursor-pointer max-w-[200px] truncate shadow-2xs"
               >
-                <option value="all">{isKanwil ? 'Semua Kampus Wilayah' : 'Semua Kampus Pondok'}</option>
+                <option value="all">{isKanwil ? 'Semua Pondok Wilayah' : 'Semua Pondok Pesantren'}</option>
                 {branches.map((b) => (
                   <option key={b.id || b._id} value={b.id || b._id}>
                     {b.name || b.branchName}
@@ -714,7 +714,7 @@ export default function CallPerformanceComparisonChart({
         <div className="flex items-center gap-2.5">
           <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
             <span className="w-1.5 h-3.5 bg-[#0D7A73] rounded-full"></span>
-            <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Kampus Pesantren' : 'Tren Panggilan 12 Bulan'}</span>
+            <span>{viewMode === 'by_branch' ? 'Distribusi Panggilan per Pondok Pesantren' : 'Tren Panggilan 12 Bulan'}</span>
           </span>
           {viewMode === 'by_branch' && branches.length > 10 && (
             <div className="inline-flex items-center gap-1 text-[11px] font-bold bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
@@ -842,12 +842,12 @@ export default function CallPerformanceComparisonChart({
           <span>
             {isKanwil 
               ? `Tersinkronisasi khusus UPT di lingkungan ${kanwilName}` 
-              : 'Tersinkronisasi seluruh kampus pesantren nasional'}
+              : 'Tersinkronisasi seluruh pondok pesantren nasional'}
           </span>
         </div>
         <div className="text-slate-400 font-medium">
           {viewMode === 'by_branch' 
-            ? `Menampilkan ${comparisonByBranchData.length} Kampus Pondok • ${activePeriodLabel}` 
+            ? `Menampilkan ${comparisonByBranchData.length} Pondok Pesantren • ${activePeriodLabel}` 
             : `Menampilkan tren 12 bulan • ${selectedBranchId === 'all' ? (isKanwil ? 'Semua Pondok Wilayah' : 'Semua Pondok') : 'Pondok Terpilih'}`}
         </div>
       </div>

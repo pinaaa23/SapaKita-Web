@@ -24,7 +24,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
   const isFinance = location.pathname === '/finance' || location.pathname.startsWith('/finance/');
   
   const { role: currentRole, roleLabel, uptName, user, logout } = useAuth();
-  const branchDisplayName = uptName || user?.branch?.name || user?.branchName || 'Kampus Pondok Pesantren';
+  const branchDisplayName = uptName || user?.branch?.name || user?.branchName || 'Pondok Pesantren';
 
   const [pendingTopupCount, setPendingTopupCount] = useState(() => getPendingTopupCountSync());
   const [financePendingCount, setFinancePendingCount] = useState(0);

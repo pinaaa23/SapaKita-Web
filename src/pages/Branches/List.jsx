@@ -141,9 +141,9 @@ const List = () => {
     const totalSantri = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
 
     const filename = `Daftar_Cabang_UPT_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const success = exportToExcel(exportData, filename, 'Kampus Pesantren', {
-      title: 'LAPORAN DATA MASTER CABANG & Kampus Pesantren',
-      subtitle: 'Daftar Seluruh Unit Pelaksana Teknis (UPT) Pesantren & Pesantren Se-Indonesia',
+    const success = exportToExcel(exportData, filename, 'Pondok Pesantren', {
+      title: 'LAPORAN DATA MASTER Pondok Pesantren',
+      subtitle: 'Daftar Seluruh Pondok Pesantren Se-Indonesia',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
@@ -158,7 +158,7 @@ const List = () => {
     });
 
     if (success !== false) {
-      showToast('Berhasil mengekspor data Kampus Pesantren ke format Excel!', 'success');
+      showToast('Berhasil mengekspor data Pondok Pesantren ke format Excel!', 'success');
     }
   };
 
@@ -351,7 +351,7 @@ const List = () => {
                             setIsDeleteModalOpen(true);
                           }}
                           className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                          title="Hapus Kampus Pesantren"
+                          title="Hapus Pondok Pesantren"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -402,7 +402,7 @@ const List = () => {
         </div>
       </div>
 
-      {/* Modal Konfirmasi Hapus Kampus Pesantren */}
+      {/* Modal Konfirmasi Hapus Pondok Pesantren */}
       {isDeleteModalOpen && branchToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
@@ -411,7 +411,7 @@ const List = () => {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Kampus Pesantren</h3>
+                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Pondok Pesantren</h3>
                 <p className="text-[11px] text-slate-400">Tindakan ini permanen dan tidak dapat dibatalkan</p>
               </div>
             </div>
@@ -456,7 +456,7 @@ const List = () => {
                       navigate('/login', { replace: true });
                       return;
                     }
-                    showToast(err?.message || 'Gagal menghapus Kampus Pesantren.', 'error');
+                    showToast(err?.message || 'Gagal menghapus Pondok Pesantren.', 'error');
                   } finally {
                     setIsDeleting(false);
                   }

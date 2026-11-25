@@ -27,58 +27,58 @@ const Topbar = ({ toggleMobileMenu }) => {
       user?.kanwil?.name ||
       'Yayasan Pesantren';
 
-    if (pathname.startsWith('/kanwil/branches/create')) return { title: 'Tambah Kampus Pesantren', subtitle: `Daftarkan kampus pondok baru di bawah naungan ${activeKanwilName}` };
-    if (pathname.startsWith('/kanwil/branches')) return { title: 'Daftar Kampus Pesantren', subtitle: `Kampus pondok binaan di bawah naungan ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/branches/create')) return { title: 'Tambah Pondok Pesantren', subtitle: `Daftarkan pondok pesantren baru di bawah naungan ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/branches')) return { title: 'Daftar Pondok Pesantren', subtitle: `Pondok pesantren binaan di bawah naungan ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/santri') || pathname.startsWith('/kanwil/inmates')) return { title: 'Data Santri', subtitle: `Daftar seluruh santri/santriwati di ${activeKanwilName}` };
-    if (pathname.startsWith('/kanwil/calls')) return { title: 'Panggilan', subtitle: `Log aktivitas panggilan dan rekaman audio seluruh kampus di ${activeKanwilName}` };
-    if (pathname.startsWith('/kanwil/canteen-topup')) return { title: 'Tagihan Kopontren', subtitle: `Laporan tagihan bulanan kopontren seluruh kampus di ${activeKanwilName}` };
-    if (pathname.startsWith('/kanwil/reports')) return { title: 'Laporan', subtitle: `Laporan & analitik performa seluruh kampus di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/calls')) return { title: 'Panggilan', subtitle: `Log aktivitas panggilan dan rekaman audio seluruh pondok di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/canteen-topup')) return { title: 'Tagihan Kopontren', subtitle: `Laporan tagihan bulanan kopontren seluruh pondok di ${activeKanwilName}` };
+    if (pathname.startsWith('/kanwil/reports')) return { title: 'Laporan', subtitle: `Laporan & analitik performa seluruh pondok di ${activeKanwilName}` };
     if (pathname.startsWith('/kanwil/profile')) return { title: 'Profil Yayasan', subtitle: 'Informasi akun & pengaturan profil yayasan' };
     if (pathname === '/kanwil' || pathname === '/kanwil/' || pathname.startsWith('/kanwil/dashboard')) {
       return { title: 'Dashboard', subtitle: `Selamat Datang, ${activeKanwilName}!` };
     }
 
-    // Branch / Kampus Admin Page Details
+    // Branch / Pondok Admin Page Details
     if (pathname.startsWith('/branch/santri/create') || pathname.startsWith('/branch/inmates/create')) return { title: 'Tambah Santri Baru', subtitle: 'Form pendaftaran santri baru dan input NIS' };
     if (pathname.includes('/edit') && (pathname.startsWith('/branch/santri') || pathname.startsWith('/branch/inmates'))) return { title: 'Edit Data Santri', subtitle: 'Perbarui informasi & data santri/santriwati' };
     if (pathname.startsWith('/branch/santri/') || pathname.startsWith('/branch/inmates/')) return { title: 'Detail Santri', subtitle: 'Informasi lengkap data santri, asrama, dan kontak wali' };
-    if (pathname.startsWith('/branch/santri') || pathname.startsWith('/branch/inmates')) return { title: 'Data Santri', subtitle: uptName ? `Kelola data santri di ${uptName}` : 'Kelola data santri di kampus pesantren Anda' };
+    if (pathname.startsWith('/branch/santri') || pathname.startsWith('/branch/inmates')) return { title: 'Data Santri', subtitle: uptName ? `Kelola data santri di ${uptName}` : 'Kelola data santri di pondok pesantren Anda' };
 
     if (pathname.startsWith('/branch/cctv')) return { title: 'Pemantauan CCTV', subtitle: uptName ? `Monitoring siaran langsung CCTV bilik wartel dan area antrean santri di ${uptName}` : 'Monitoring siaran langsung CCTV bilik wartel dan arsip rekaman video' };
     if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan, audio player, dan transkrip AI Whisper santri' };
     if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Wali Santri', subtitle: 'Verifikasi nomor telepon orang tua/wali santri' };
-    if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna Kampus', subtitle: 'Manajemen akun Supervisor Kesantrian dan Operator Kopontren' };
+    if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna Pondok', subtitle: 'Manajemen akun Supervisor Kesantrian dan Operator Kopontren' };
     if (pathname.startsWith('/branch/packages')) return { title: 'Kelola Paket', subtitle: uptName ? `Atur tarif dan durasi paket panggilan santri di ${uptName}` : 'Atur tarif dan paket layanan komunikasi untuk kasir Kopontren dan santri' };
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi voucher & pembayaran kopontren' };
-    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik komunikasi santri kampus' };
+    if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik komunikasi santri pondok' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil staf pondok' };
     if (pathname === '/branch' || pathname === '/branch/' || pathname === '/branch/dashboard' || pathname.startsWith('/branch/dashboard')) {
-      const greetingName = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Pimpinan Kampus');
+      const greetingName = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Pimpinan Pondok');
       return { title: 'Dashboard', subtitle: greetingName ? `Selamat Datang, ${greetingName}!` : 'Selamat Datang di SapaKita!' };
     }
     
     // Superadmin Page Details
-    if (pathname.startsWith('/branches/create')) return { title: 'Tambah Kampus Pesantren', subtitle: 'Daftarkan kampus atau komplek pondok baru ke sistem' };
-    if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit Kampus Pesantren', subtitle: 'Perbarui data operasional kampus pondok' };
-    if (pathname.startsWith('/branches/')) return { title: 'Detail Kampus Pesantren', subtitle: 'Informasi operasional & data kampus pondok' };
-    if (pathname.startsWith('/branches')) return { title: 'Manajemen Kampus Pesantren', subtitle: 'Kelola data operasional seluruh kampus pondok pesantren yang terdaftar' };
+    if (pathname.startsWith('/branches/create')) return { title: 'Tambah Pondok Pesantren', subtitle: 'Daftarkan pondok pesantren baru ke sistem' };
+    if (pathname.includes('/edit') && pathname.startsWith('/branches')) return { title: 'Edit Pondok Pesantren', subtitle: 'Perbarui data operasional pondok pesantren' };
+    if (pathname.startsWith('/branches/')) return { title: 'Detail Pondok Pesantren', subtitle: 'Informasi operasional & data pondok pesantren' };
+    if (pathname.startsWith('/branches')) return { title: 'Manajemen Pondok Pesantren', subtitle: 'Kelola data operasional seluruh pondok pesantren yang terdaftar' };
 
-    if (pathname.startsWith('/yayasan-management') || pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Yayasan Pesantren', subtitle: 'Kelola Yayasan / Pengurus Pusat sebagai induk pembina kampus pondok' };
+    if (pathname.startsWith('/yayasan-management') || pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Yayasan Pesantren', subtitle: 'Kelola Yayasan / Pengurus Pusat sebagai induk pembina pondok pesantren' };
     if (pathname.startsWith('/finance-accounts')) return { title: 'Akun Keuangan Platform', subtitle: 'Kelola akun tim keuangan platform untuk pemantauan billing dan setoran' };
 
     if (pathname.startsWith('/santri/') || pathname.startsWith('/inmates/')) return { title: 'Detail Santri', subtitle: 'Informasi lengkap data santri' };
-    if (pathname.startsWith('/santri') || pathname.startsWith('/inmates')) return { title: 'Data Santri', subtitle: 'Seluruh santri/santriwati di semua kampus pesantren' };
+    if (pathname.startsWith('/santri') || pathname.startsWith('/inmates')) return { title: 'Data Santri', subtitle: 'Seluruh santri/santriwati di semua pondok pesantren' };
 
     if (pathname.startsWith('/calls/')) return { title: 'Detail Rekaman Panggilan', subtitle: 'Informasi panggilan & pemutaran rekaman audio' };
-    if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh kampus pesantren' };
+    if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh pondok pesantren' };
 
     if (pathname.startsWith('/transactions/')) return { title: 'Detail Transaksi', subtitle: 'Rincian transaksi & status pembayaran voucher' };
     if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi penjualan voucher kopontren' };
 
-    if (pathname.startsWith('/packages')) return { title: 'Katalog Paket Kampus', subtitle: 'Monitoring tarif, durasi, dan status paket panggilan seluruh kampus pondok' };
-    if (pathname.startsWith('/canteen-topup')) return { title: 'Tagihan Kopontren', subtitle: 'Laporan tagihan bulanan seluruh kampus, penggunaan detik bicara, dan verifikasi transfer' };
+    if (pathname.startsWith('/packages')) return { title: 'Katalog Paket Pondok', subtitle: 'Monitoring tarif, durasi, dan status paket panggilan seluruh pondok pesantren' };
+    if (pathname.startsWith('/canteen-topup')) return { title: 'Tagihan Kopontren', subtitle: 'Laporan tagihan bulanan seluruh pondok pesantren, penggunaan detik bicara, dan verifikasi transfer' };
 
-    if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh kampus pesantren' };
+    if (pathname.startsWith('/reports')) return { title: 'Laporan & Analitik', subtitle: 'Statistik & analitik agregat seluruh pondok pesantren' };
     if (pathname.startsWith('/profile')) return { title: 'Profil Superadmin', subtitle: 'Kelola informasi akun & preferensi sistem' };
 
     // Finance Admin Page Details
@@ -222,17 +222,17 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Profil Pengguna', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan pengguna' },
   ] : (isKanwilUser ? [
     { title: 'Dashboard', category: 'Halaman', link: '/kanwil/dashboard', desc: 'Ringkasan operasional kampus binaan yayasan' },
-    { title: 'Daftar Kampus Pesantren', category: 'Halaman', link: '/kanwil/branches', desc: 'Daftar kampus pondok binaan yayasan' },
+    { title: 'Daftar Pondok Pesantren', category: 'Halaman', link: '/kanwil/branches', desc: 'Daftar pondok pesantren binaan yayasan' },
     { title: 'Data Santri', category: 'Halaman', link: '/kanwil/santri', desc: 'Data seluruh santri se-yayasan' },
-    { title: 'Laporan Yayasan', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh kampus' },
+    { title: 'Laporan Yayasan', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh pondok' },
   ] : [
     { title: 'Yayasan Pesantren', category: 'Halaman', link: '/yayasan-management', desc: 'Kelola Yayasan / Pengurus Pusat' },
     { title: 'Akun Keuangan Platform', category: 'Halaman', link: '/finance-accounts', desc: 'Kelola akun tim Finance platform' },
-    { title: 'Kampus Pesantren', category: 'Halaman', link: '/branches', desc: 'Daftar & status kampus pondok nasional' },
-    { title: 'Data Santri', category: 'Halaman', link: '/santri', desc: 'Daftar santri seluruh kampus pondok' },
-    { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh kampus' },
+    { title: 'Pondok Pesantren', category: 'Halaman', link: '/branches', desc: 'Daftar & status pondok pesantren nasional' },
+    { title: 'Data Santri', category: 'Halaman', link: '/santri', desc: 'Daftar santri seluruh pondok pesantren' },
+    { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh pondok pesantren' },
     { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi penjualan voucher kopontren nasional' },
-    { title: 'Katalog Paket Kampus', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh kampus' },
+    { title: 'Katalog Paket Pondok', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh pondok' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },
   ]);
