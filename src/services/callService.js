@@ -1,4 +1,4 @@
-import { apiFetch, logout, getAuthToken, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi, API_BASE_URL } from './api';
+﻿import { apiFetch, logout, getAuthToken, getRecordingsApi, getRecordingByIdApi, getRecordingStreamUrlApi, API_BASE_URL } from './api';
 import { isDummyMode } from '../dummy';
 
 // Endpoint path disimpan dalam konstanta agar mudah disesuaikan
@@ -275,6 +275,8 @@ export const getKanwilCalls = async ({
   }
 };
 
+
+
 /**
  * Mengambil daftar rekaman & transkrip dari backend /api/recordings
  */
@@ -425,6 +427,8 @@ export const getCallHistory = async ({
   }
 };
 
+
+
 /**
  * Mengambil detail rekaman dan transkrip lengkap berdasarkan ID
  */
@@ -451,6 +455,8 @@ export const getCallById = async (id) => {
     throw error;
   }
 };
+
+
 
 /**
  * Mengambil presigned streaming URL untuk pemutaran audio
@@ -483,6 +489,8 @@ export const getAudioStreamUrl = async (recordingId) => {
     return directProxyUrl;
   }
 };
+
+
 
 /**
  * Mengambil ringkasan kanal panggilan (Web vs GSM)
@@ -549,3 +557,6 @@ export default {
 };
 
 
+
+
+export const getYayasanCalls = getKanwilCalls;

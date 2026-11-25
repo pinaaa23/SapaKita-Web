@@ -6,7 +6,7 @@ import Topbar from './Topbar';
 const Layout = () => {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    const saved = localStorage.getItem('pascall_sidebar_open');
+    const saved = localStorage.getItem('sapakita_sidebar_open');
     if (saved !== null) {
       return saved === 'true';
     }
@@ -15,7 +15,7 @@ const Layout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem('pascall_sidebar_open', isSidebarOpen);
+    localStorage.setItem('sapakita_sidebar_open', isSidebarOpen);
   }, [isSidebarOpen]);
 
   // Tutup menu drawer otomatis setiap berpindah rute
@@ -32,7 +32,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#E4EFFC] via-[#EFF5FC] to-[#F8FAFC] font-sans text-slate-900 flex relative overflow-x-hidden w-full max-w-full">
+    <div className="min-h-screen bg-gradient-to-br from-[#E6F4F1] via-[#EDF6F7] to-[#F1F8FA] font-sans text-slate-900 flex relative overflow-x-hidden w-full max-w-full">
       {/* Backdrop Gelap saat Drawer Mobile Terbuka */}
       {isMobileMenuOpen && (
         <div 

@@ -187,11 +187,11 @@ canApprove = true,
     drawRow('Pengirim (Kantin UPT)', item.canteenName);
     drawRow('Rekening Pengirim', `${item.accountNumber} (${item.bankName})`);
     drawRow('Penerima', 'PT Station Technology', true);
-    drawRow('Bank Penerima', 'Bank Mandiri (Rek Penampung)');
-    drawRow('Nomor Rekening Penerima', '168-00-9988112-7');
-    drawRow('Total Cash di Kantin', formatRupiah(item.grossAmount));
-    drawRow('Hak Internal UPT (45% Dikelola)', formatRupiah(canteenKeep));
-    drawRow('Jenis Setoran', 'Setoran Bagi Hasil Sadewa');
+    drawRow('Bank Penerima', 'Bank Syariah Indonesia (BSI)');
+    drawRow('Nomor Rekening Penerima', '711-22-3344556-0');
+    drawRow('Total Cash di Kopontren', formatRupiah(item.grossAmount));
+    drawRow('Hak Internal Pesantren (50% Dikelola)', formatRupiah(canteenKeep));
+    drawRow('Jenis Setoran', 'Setoran Bagi Hasil SapaKita');
     drawRow('Catatan Petugas', 'Kewajiban setor periode ' + item.month + '/' + item.year);
 
     // Footer Struk
@@ -438,37 +438,29 @@ canApprove = true,
                 </div>
 
                 {/* Status Rekening Tujuan */}
-                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-1.5 text-[11px]">
-                  <div className="flex items-center gap-1.5 font-bold text-[#0B3D91]">
+                <div className="p-3 rounded-2xl bg-teal-50/70 border border-teal-100 space-y-1.5 text-[11px]">
+                  <div className="flex items-center gap-1.5 font-bold text-teal-800">
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                    <span>Rekening Penampung Finance Sadewa</span>
+                    <span>Rekening Penampung Finance SapaKita</span>
                   </div>
                   <p className="text-slate-600">
-                    Bank Mandiri No. <strong>168-00-9988112-7</strong> a.n. <strong>PT Station Technology</strong>
+                    Bank Syariah Indonesia (BSI) No. <strong>711-22-3344556-0</strong> a.n. <strong>PT SapaKita Solusi Pesantren</strong>
                   </p>
                 </div>
 
-                {/* Detail 4 Pihak yang Akan Dibagikan Saat di-ACC */}
+                {/* Detail 2 Pihak yang Akan Dibagikan Saat di-ACC */}
                 <div className="space-y-1 pt-1">
                   <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Distribusi Dana Pasca ACC:
+                    Distribusi Bagi Hasil Pasca ACC:
                   </span>
-                  <div className="grid grid-cols-2 gap-1.5 text-[11px]">
-                    <div className="bg-purple-50 p-2 rounded-xl text-purple-900">
-                      <span className="block text-[10px] text-purple-700">Kepala UPT (5%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.kepalaUpt?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.05))}</span>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="bg-teal-50 p-2.5 rounded-xl text-teal-900 border border-teal-100">
+                      <span className="block text-[10px] text-teal-700 font-semibold">Platform SapaKita (50%)</span>
+                      <span className="font-bold text-xs">{formatRupiah(item.shares?.platform?.amount ?? item.shares?.vendor?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.50))}</span>
                     </div>
-                    <div className="bg-sky-50 p-2 rounded-xl text-sky-900">
-                      <span className="block text-[10px] text-sky-700">Koperasi (30%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.koperasi?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.30))}</span>
-                    </div>
-                    <div className="bg-amber-50 p-2 rounded-xl text-amber-900">
-                      <span className="block text-[10px] text-amber-700">Inkopasindo (10%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.inkopasindo?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.10))}</span>
-                    </div>
-                    <div className="bg-indigo-50 p-2 rounded-xl text-indigo-900">
-                      <span className="block text-[10px] text-indigo-700">Vendor (55%)</span>
-                      <span className="font-bold">{formatRupiah(item.shares?.vendor?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.55))}</span>
+                    <div className="bg-amber-50 p-2.5 rounded-xl text-amber-900 border border-amber-100">
+                      <span className="block text-[10px] text-amber-700 font-semibold">Pesantren / Kopontren (50%)</span>
+                      <span className="font-bold text-xs">{formatRupiah(item.shares?.pesantren?.amount ?? item.shares?.koperasi?.amount ?? Math.round((item.grossAmount || item.nominal || 0) * 0.50))}</span>
                     </div>
                   </div>
                 </div>

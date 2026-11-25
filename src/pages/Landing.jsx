@@ -1,27 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Mail, Phone, Wallet, Clock, Shield, Mic, Monitor, IdCard, Download, Video, MessageSquare } from 'lucide-react';
+import sapakitaLogo from '../assets/sapakita_logo.svg';
+import sapakitaIcon from '../assets/sapakita_icon.svg';
 import mockupPascall from '../assets/mockup_pascall.png';
 import warmConnectionImg from '../assets/warm_connection.jpg';
-import lapasImg from '../assets/lapas.jpg';
 import familyCallImg from '../assets/family_call.jpg';
 import securityConnectionImg from '../assets/security_connection.jpg';
 
 /**
- * Link URL unduhan aplikasi PasCall (APK / Play Store).
- * Ubah nilai variabel ini jika link download sudah siap.
+ * Link URL unduhan aplikasi SapaKita Kiosk (APK).
  */
 const APP_LINK_URL = '#';
 
 /**
  * ================================================================
- * PasCall Landing Page — Clean Flat & Gradient Cards Theme
+ * SapaKita Landing Page — Soft Blue-Green Professional Theme
  * ================================================================
- * Visual redesign based on reference pitch-deck styling:
- * - Flat alternating section background (#ffffff / #f0f6ff)
- * - Soft gradient cards for features (blue-indigo-purple)
- * - Pastel gradient cards for step timeline
- * - Full-gradient donut charts for radial stats
+ * Sistem Komunikasi Wartel Pesantren Terpadu
+ * "Satu Sapaan, Sejuta Kedekatan — Dekatkan Hati, Sempurnakan Silaturahmi"
  * ================================================================
  */
 
@@ -66,35 +63,35 @@ function Squiggle({ className = '', width = 140, height = 32, id: idProp }) {
 // ──────────────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    title: 'Panggilan Suara & Video',
-    desc: 'Keluarga dapat memilih jadwal panggilan suara maupun video yang tersedia. Sistem otomatis mengingatkan waktu agar tidak terlewat.',
-    cardGradient: 'linear-gradient(150deg, #2563eb 0%, #3b82f6 45%, #6366f1 100%)',
-    shadowColor: 'rgba(37, 99, 235, 0.32)',
-    bracketColor: '#2563eb',
+    title: 'Panggilan Suara & Video HD',
+    desc: 'Wali santri cukup mengetuk link resmi WhatsApp SapaKita di smartphone tanpa perlu instal aplikasi, dan otomatis beralih ke panggilan seluler GSM jika offline.',
+    cardGradient: 'linear-gradient(150deg, #0D7A73 0%, #166B7C 50%, #1E5D88 100%)',
+    shadowColor: 'rgba(13, 122, 115, 0.28)',
+    bracketColor: '#0D7A73',
     icon: Phone,
   },
   {
-    title: 'Sistem Saldo Praktis',
-    desc: 'Isi saldo dilakukan resmi melalui petugas kantin di lapas. Saldo otomatis siap digunakan untuk panggilan tanpa prosedur rumit.',
-    cardGradient: 'linear-gradient(150deg, #4f46e5 0%, #6366f1 45%, #8b5cf6 100%)',
-    shadowColor: 'rgba(99, 102, 241, 0.32)',
-    bracketColor: '#6366f1',
+    title: 'Voucher Praktis di Kopontren',
+    desc: 'Santri membeli paket kuota durasi bicara di kasir Koperasi Pondok Pesantren (Kopontren) lengkap dengan struk fisik kode voucher 5 karakter unik.',
+    cardGradient: 'linear-gradient(150deg, #166B7C 0%, #1E7B85 50%, #2A9D8F 100%)',
+    shadowColor: 'rgba(22, 107, 124, 0.28)',
+    bracketColor: '#166B7C',
     icon: Wallet,
   },
   {
-    title: 'Riwayat Panggilan Tertata',
-    desc: 'Setiap panggilan (waktu, durasi, dan kontak) tersimpan rapi dalam sistem secara transparan untuk pengawasan dan kenyamanan bersama.',
-    cardGradient: 'linear-gradient(150deg, #0284c7 0%, #2563eb 50%, #4f46e5 100%)',
-    shadowColor: 'rgba(2, 132, 199, 0.32)',
-    bracketColor: '#0284c7',
+    title: 'Audit & Transkrip Teks AI',
+    desc: 'Percakapan tersimpan aman dan dilengkapi transkrip teks otomatis berbasis Speech-to-Text Whisper AI untuk pemantauan adab dan pencegahan perundungan.',
+    cardGradient: 'linear-gradient(150deg, #1E5D88 0%, #236E98 50%, #3A8891 100%)',
+    shadowColor: 'rgba(30, 93, 136, 0.28)',
+    bracketColor: '#1E5D88',
     icon: Clock,
   },
   {
-    title: 'Kontak Terverifikasi Sah',
-    desc: 'Admin memverifikasi setiap kontak keluarga melalui KTP resmi untuk memastikan hanya pihak keluarga sah yang terhubung.',
-    cardGradient: 'linear-gradient(150deg, #4338ca 0%, #7c3aed 50%, #9333ea 100%)',
-    shadowColor: 'rgba(124, 58, 237, 0.32)',
-    bracketColor: '#7c3aed',
+    title: 'Whitelist Kontak Sah Wali',
+    desc: 'Santri hanya dapat menghubungi maksimal 10 nomor orang tua/wali santri yang telah terdaftar dan terverifikasi di whitelist resmi pesantren.',
+    cardGradient: 'linear-gradient(150deg, #0F766E 0%, #115E59 50%, #166B7C 100%)',
+    shadowColor: 'rgba(15, 118, 110, 0.28)',
+    bracketColor: '#0F766E',
     icon: Shield,
   },
 ];
@@ -102,50 +99,50 @@ const FEATURES = [
 const STEPS = [
   {
     num: '01',
-    title: 'Daftar Akun',
-    desc: 'Buat akun dengan nomor handphone.',
+    title: 'Pendaftaran Santri',
+    desc: 'Supervisor kesantrian mendaftarkan santri baru lengkap dengan NIS.',
     Icon: IdCard,
-    cardBg: 'linear-gradient(145deg, #f0f7ff 0%, #dbeafe 100%)',
-    borderColor: '#93c5fd',
-    accentColor: '#1d4ed8',
-    dotColor: '#2563eb',
-    iconBg: 'linear-gradient(135deg, #2563eb, #60a5fa)',
-    shadowColor: 'rgba(37, 99, 235, 0.14)',
+    cardBg: 'linear-gradient(145deg, #f0fdfa 0%, #e6f4f1 100%)',
+    borderColor: '#99f6e4',
+    accentColor: '#0f766e',
+    dotColor: '#0d9488',
+    iconBg: 'linear-gradient(135deg, #0d9488, #5eead4)',
+    shadowColor: 'rgba(13, 148, 136, 0.14)',
   },
   {
     num: '02',
-    title: 'Verifikasi Kontak',
-    desc: 'Lakukan verifikasi kontak keluarga via KTP.',
+    title: 'Input Kontak Wali',
+    desc: 'Kasir mendaftarkan nomor wali dengan validasi otomatis ke WhatsApp.',
     Icon: Shield,
-    cardBg: 'linear-gradient(145deg, #faf5ff 0%, #ede9fe 100%)',
-    borderColor: '#c4b5fd',
-    accentColor: '#6d28d9',
-    dotColor: '#7c3aed',
-    iconBg: 'linear-gradient(135deg, #7c3aed, #c084fc)',
-    shadowColor: 'rgba(124, 58, 237, 0.14)',
+    cardBg: 'linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 100%)',
+    borderColor: '#bae6fd',
+    accentColor: '#0369a1',
+    dotColor: '#0284c7',
+    iconBg: 'linear-gradient(135deg, #0284c7, #7dd3fc)',
+    shadowColor: 'rgba(2, 132, 199, 0.14)',
   },
   {
     num: '03',
-    title: 'Top Up Saldo',
-    desc: 'Isi saldo melalui petugas kantin di dalam lapas.',
+    title: 'Voucher Kopontren',
+    desc: 'Santri membeli paket bicara dan menerima struk kode unik 5 karakter.',
     Icon: Wallet,
-    cardBg: 'linear-gradient(145deg, #fffbeb 0%, #fef3c7 100%)',
-    borderColor: '#fcd34d',
-    accentColor: '#b45309',
-    dotColor: '#d97706',
-    iconBg: 'linear-gradient(135deg, #d97706, #fbbf24)',
-    shadowColor: 'rgba(217, 119, 6, 0.14)',
+    cardBg: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
+    borderColor: '#bbf7d0',
+    accentColor: '#15803d',
+    dotColor: '#16a34a',
+    iconBg: 'linear-gradient(135deg, #16a34a, #86efac)',
+    shadowColor: 'rgba(22, 163, 74, 0.14)',
   },
   {
     num: '04',
-    title: 'Mulai Panggilan',
-    desc: 'Pilih jadwal dan mulai panggilan sesuai waktu yang tersedia.',
+    title: 'Panggilan di Bilik',
+    desc: 'Login di tablet kiosk dengan NIS & PIN 6 digit untuk mulai video call.',
     Icon: Phone,
-    cardBg: 'linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%)',
-    borderColor: '#86efac',
-    accentColor: '#15803d',
-    dotColor: '#16a34a',
-    iconBg: 'linear-gradient(135deg, #16a34a, #4ade80)',
+    cardBg: 'linear-gradient(145deg, #f4fbf7 0%, #e8f5ee 100%)',
+    borderColor: '#a7f3d0',
+    accentColor: '#047857',
+    dotColor: '#059669',
+    iconBg: 'linear-gradient(135deg, #059669, #6ee7b7)',
     shadowColor: 'rgba(22, 163, 74, 0.14)',
   },
 ];
@@ -192,7 +189,7 @@ const STATS = [
   },
   {
     value: '8',
-    label: 'cabang lapas',
+    label: 'kampus pesantren',
     gradId: 'dial-grad-2',
     gradient: ['#1d4ed8', '#4f46e5', '#7c3aed'],
     glow: 'rgba(79, 70, 229, 0.35)',
@@ -515,25 +512,17 @@ export default function Landing() {
       {/* ==============================================================
           HEADER (Slides down slowly from top)
           ============================================================== */}
-      <header className="w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-5 flex items-center justify-between bg-white lp-header-animate">
-        <a href="#" className="flex items-center gap-2 lp-focus-ring" aria-label="Sadewa beranda">
-          <svg width="32" height="24" viewBox="0 0 32 24" fill="none" aria-hidden="true">
-            <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#hdr-g)" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-            <defs>
-              <linearGradient id="hdr-g" x1="0" y1="12" x2="32" y2="12">
-                <stop offset="0%" stopColor="#2f6fed"/>
-                <stop offset="100%" stopColor="#60a5fa"/>
-              </linearGradient>
-            </defs>
-          </svg>
-          <span className="text-xl font-extrabold tracking-tight text-[#101828]">Sadewa</span>
+      {/* TOPBAR / HEADER */}
+      <header className="w-full px-6 sm:px-10 lg:px-16 xl:px-20 py-4 flex items-center justify-between bg-white border-b border-teal-100/60 lp-header-animate">
+        <a href="#" className="flex items-center gap-2 lp-focus-ring" aria-label="SapaKita beranda">
+          <img src={sapakitaLogo} alt="SapaKita" className="h-9 sm:h-10 w-auto object-contain" />
         </a>
         <Link
           to="/login"
           className="lp-focus-ring px-6 py-2 rounded-full text-sm font-semibold text-white
-                     bg-[#2f6fed] hover:bg-[#1a5fd4] transition-colors duration-200 shadow-md shadow-blue-500/20"
+                     bg-[#0D7A73] hover:bg-[#0B655F] transition-colors duration-200 shadow-md shadow-teal-700/20"
         >
-          Login
+          Masuk Dashboard
         </Link>
       </header>
 
@@ -552,14 +541,10 @@ export default function Landing() {
           <div className="lg:col-span-6">
             <h1 className="text-[clamp(2.4rem,5.2vw,4.2rem)] font-extrabold leading-[1.05] tracking-tight text-left mb-5 text-[#101828]">
               <span className="block">
-                <AnimatedLetterReveal text="Mendekatkan" startIndex={0} baseDelay={1.0} letterDelay={0.075} />
-              </span>
-              <span className="block">
-                <AnimatedLetterReveal text="Hati," startIndex={12} baseDelay={1.0} letterDelay={0.075} />
+                <AnimatedLetterReveal text="Satu Sapaan," startIndex={0} baseDelay={1.0} letterDelay={0.075} />
               </span>
               <span className="block relative whitespace-nowrap">
-                <AnimatedLetterReveal text="Tanpa Batas" startIndex={18} baseDelay={1.0} letterDelay={0.075} letterClassName="text-[#2f6fed]" />
-                {/* Squiggle — blue wave below "Tanpa Batas" */}
+                <AnimatedLetterReveal text="Sejuta Kedekatan" startIndex={13} baseDelay={1.0} letterDelay={0.075} letterClassName="text-[#0D7A73]" />
                 <span className="absolute top-full mt-3.5 left-0 lp-squiggle-animate" aria-hidden="true">
                   <Squiggle width={130} height={28} id="sq-hero" />
                 </span>
@@ -567,30 +552,34 @@ export default function Landing() {
             </h1>
 
             <p className="lp-hero-swipe-left text-base sm:text-lg text-[#475467] leading-relaxed max-w-[480px] mt-10 sm:mt-12 mb-8">
-              Sadewa menjaga komunikasi Anda dengan orang tercinta tetap aman, terverifikasi, dan tercatat, di mana pun mereka berada.
+              SapaKita menjaga komunikasi santri dengan orang tua tercinta tetap hangat, aman, dan beradab melalui panggilan suara &amp; video call terpadu tanpa melanggar regulasi pesantren.
             </p>
 
-            {/* Hero CTAs (Fade & rise up after description & mockup) */}
+            {/* Hero CTAs */}
             <div className="lp-hero-buttons-animate flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-4.5">
-              {/* Primary CTA */}
               <a
                 href={APP_LINK_URL}
                 className="lp-focus-ring inline-flex items-center justify-center gap-2.5 px-7 py-3.5
                            rounded-full text-white font-bold text-sm
-                           bg-[#2f6fed] hover:bg-[#1a5fd4]
-                           transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35"
+                           bg-[#0D7A73] hover:bg-[#0B655F]
+                           transition-all duration-200 shadow-lg shadow-teal-700/25 hover:shadow-teal-700/35"
               >
                 <Download className="w-4 h-4" aria-hidden="true" />
-                Dapatkan Sadewa
+                Aplikasi Kiosk Bilik
               </a>
 
-              {/* Secondary CTA */}
               <a
                 href="#cara-kerja"
                 onClick={handleSmoothScroll}
                 className="lp-focus-ring inline-flex items-center justify-center gap-2 px-6 py-3.5
-                           rounded-full text-[#2f6fed] hover:text-[#1a5fd4] font-semibold text-sm
-                           border border-[#2f6fed]/30 hover:border-[#2f6fed]/60 bg-blue-50/50 hover:bg-blue-50
+                           rounded-full text-[#0D7A73] hover:text-[#0B655F] font-semibold text-sm
+                           border border-[#0D7A73]/30 hover:border-[#0D7A73]/60 bg-teal-50/50 hover:bg-teal-50"
+              >
+                <span>Pelajari Cara Kerja</span>
+                <ArrowRight className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
                            transition-all duration-200"
               >
                 Lihat cara kerja
@@ -758,7 +747,7 @@ export default function Landing() {
                   <div className="absolute inset-0 bg-gradient-to-t from-blue-950/20 via-transparent to-transparent pointer-events-none" />
                 </div>
 
-                {/* 2. Top-Right Image: Modern Lapas Facility */}
+                {/* 2. Top-Right Image: Modern Pesantren Facility */}
                 <div
                   className="relative group overflow-hidden bg-white shadow-md transition-all duration-300 hover:scale-[1.02] border-2 border-white"
                   style={{
@@ -853,56 +842,56 @@ export default function Landing() {
 
             {/* Title */}
             <h2 className="text-2xl sm:text-3xl lg:text-[2.35rem] font-extrabold leading-[1.2] text-left text-[#101828] mb-4 tracking-tight">
-              Komunikasi terbatas,<br />
-              <span className="text-[#2f6fed]">berdampak besar.</span>
+              Regulasi ketat,<br />
+              <span className="text-[#0D7A73]">silaturahmi tetap erat.</span>
             </h2>
 
             {/* Narrative Paragraph */}
             <p className="text-[#475467] text-sm sm:text-base leading-relaxed max-w-[490px] mb-6">
-              Keterbatasan waktu kunjungan fisik dan jarak tempuh seringkali menjadi kendala utama bagi keluarga. Sadewa hadir menjembatani kehangatan komunikasi dengan sistem yang aman, terverifikasi, dan mudah diakses.
+              Larangan smartphone di pondok pesantren menjaga adab dan fokus belajar santri. SapaKita hadir sebagai jembatan komunikasi resmi yang aman, berkeadilan, dan terpantau dengan standar kepatuhan pesantren modern.
             </p>
 
-            {/* 3 Metric Columns with Dividers (Matching Reference) */}
-            <div className="grid grid-cols-3 gap-3 sm:gap-4 py-5 border-y border-blue-200/70 my-4 bg-white/60 backdrop-blur-sm rounded-xl px-3.5 sm:px-5">
+            {/* 3 Metric Columns with Dividers */}
+            <div className="grid grid-cols-3 gap-3 sm:gap-4 py-5 border-y border-teal-200/70 my-4 bg-white/60 backdrop-blur-sm rounded-xl px-3.5 sm:px-5">
               <div>
-                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
-                  85%
-                </span>
-                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
-                  Kendala Jarak & Waktu
-                </span>
-              </div>
-
-              <div className="border-l border-blue-200/70 pl-3.5 sm:pl-5">
-                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
-                  1x/mgg
-                </span>
-                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
-                  Batas Tatap Muka
-                </span>
-              </div>
-
-              <div className="border-l border-blue-200/70 pl-3.5 sm:pl-5">
-                <span className="block text-2xl sm:text-3xl font-extrabold text-[#2f6fed] tracking-tight leading-none">
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#0D7A73] tracking-tight leading-none">
                   100%
                 </span>
                 <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
-                  Terjamin Aman
+                  Bebas Gadget Ilegal
+                </span>
+              </div>
+
+              <div className="border-l border-teal-200/70 pl-3.5 sm:pl-5">
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#0D7A73] tracking-tight leading-none">
+                  HD
+                </span>
+                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
+                  Audio &amp; Video Call
+                </span>
+              </div>
+
+              <div className="border-l border-teal-200/70 pl-3.5 sm:pl-5">
+                <span className="block text-2xl sm:text-3xl font-extrabold text-[#0D7A73] tracking-tight leading-none">
+                  1 Thn
+                </span>
+                <span className="block text-[11px] sm:text-xs text-[#5b6472] font-semibold leading-tight mt-1.5">
+                  Arsip &amp; Transkrip AI
                 </span>
               </div>
             </div>
 
-            {/* Signature / Official Verification Footer (Matching Reference) */}
+            {/* Signature / Official Verification Footer */}
             <div className="flex items-center gap-3.5 pt-2">
-              <div className="w-10 h-10 rounded-full bg-blue-100/90 border border-blue-200 flex items-center justify-center text-[#2f6fed] shrink-0 shadow-sm">
+              <div className="w-10 h-10 rounded-full bg-teal-100/90 border border-teal-200 flex items-center justify-center text-[#0D7A73] shrink-0 shadow-sm">
                 <Shield size={20} className="stroke-[2.2]" />
               </div>
               <div>
                 <span className="block text-sm sm:text-base font-extrabold text-[#101828] tracking-tight font-serif italic">
-                  Sadewa Indonesia
+                  SapaKita Indonesia
                 </span>
                 <span className="block text-[10px] sm:text-[11px] font-semibold text-[#64748b] tracking-wider uppercase">
-                  Sistem Layanan Terpadu & Terintegrasi
+                  Sistem Komunikasi Wartel Pesantren Terpadu
                 </span>
               </div>
             </div>
@@ -1524,22 +1513,22 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
                 <div>
                   <h3 className="text-lg sm:text-xl lg:text-2xl font-extrabold text-[#101828] leading-snug mb-2">
-                    Sadewa, kini hadir untuk keluarga Anda.
+                    SapaKita, kini hadir untuk pondok pesantren Anda.
                   </h3>
                   <p className="text-[#475467] text-xs sm:text-sm max-w-[480px]">
-                    Unduh aplikasi Sadewa sekarang dan mulai terhubung dengan keluarga tercinta.
+                    Hubungkan santri dan wali santri secara resmi dengan sistem terpadu yang aman, beradab, dan transparan.
                   </p>
                 </div>
-                <a
-                  href={APP_LINK_URL}
+                <Link
+                  to="/login"
                   className="lp-focus-ring inline-flex items-center gap-2 px-6 py-3.5
                              rounded-full text-white font-bold text-xs sm:text-sm shrink-0
-                             bg-[#2f6fed] hover:bg-[#1a5fd4]
-                             transition-all duration-200 shadow-lg shadow-blue-500/25 hover:shadow-blue-500/35"
+                             bg-[#0D7A73] hover:bg-[#0B655F]
+                             transition-all duration-200 shadow-lg shadow-teal-700/25 hover:shadow-teal-700/35"
                 >
-                  <Download className="w-4 h-4" aria-hidden="true" />
-                  Dapatkan Sadewa
-                </a>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
+                  Masuk SapaKita
+                </Link>
               </div>
             </div>
           </div>
@@ -1554,32 +1543,24 @@ export default function Landing() {
         <div className="mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#5b6472]" style={{ maxWidth: '1080px' }}>
           <div className="flex items-center gap-3 flex-wrap justify-center sm:justify-start">
             <span className="text-[#101828] font-extrabold text-sm tracking-tight flex items-center gap-1.5">
-              <svg width="20" height="15" viewBox="0 0 32 24" fill="none" aria-hidden="true">
-                <path d="M2 20 C6 6, 10 6, 14 14 C18 22, 22 4, 26 8 C28 10, 30 6, 30 4" stroke="url(#ftr-g)" strokeWidth="3" strokeLinecap="round" fill="none"/>
-                <defs>
-                  <linearGradient id="ftr-g" x1="0" y1="12" x2="32" y2="12">
-                    <stop offset="0%" stopColor="#2f6fed"/>
-                    <stop offset="100%" stopColor="#60a5fa"/>
-                  </linearGradient>
-                </defs>
-              </svg>
-              Sadewa
+              <img src={sapakitaIcon} alt="SapaKita" className="w-5 h-5 object-contain" />
+              SapaKita
             </span>
-            <span className="text-[#98a2b3]">Program komunikasi terverifikasi</span>
+            <span className="text-[#98a2b3]">Sistem Komunikasi Wartel Pesantren Terpadu</span>
           </div>
           <div className="flex items-center gap-3 flex-wrap justify-center">
-            <a href="#" className="hover:text-[#2f6fed] transition-colors lp-focus-ring">Syarat &amp; Ketentuan</a>
+            <a href="#" className="hover:text-[#0D7A73] transition-colors lp-focus-ring">Syarat &amp; Ketentuan</a>
             <span className="text-gray-300">|</span>
-            <a href="#" className="hover:text-[#2f6fed] transition-colors lp-focus-ring">Kebijakan Privasi</a>
+            <a href="#" className="hover:text-[#0D7A73] transition-colors lp-focus-ring">Kebijakan Privasi</a>
             <span className="text-gray-300">|</span>
-            <a href="#" className="hover:text-[#2f6fed] transition-colors lp-focus-ring">Bantuan</a>
+            <a href="#" className="hover:text-[#0D7A73] transition-colors lp-focus-ring">Bantuan</a>
             <span className="text-gray-300">|</span>
-            <a href="mailto:cs@sadewa.id" className="hover:text-[#2f6fed] transition-colors lp-focus-ring inline-flex items-center gap-1">
+            <a href="mailto:kontak@sapakita.id" className="hover:text-[#0D7A73] transition-colors lp-focus-ring inline-flex items-center gap-1">
               <Mail className="w-3 h-3" aria-hidden="true" />
-              cs@sadewa.id
+              kontak@sapakita.id
             </a>
           </div>
-          <p className="text-[#98a2b3] text-center sm:text-right">© 2026 Sadewa. Seluruh hak cipta dilindungi.</p>
+          <p className="text-[#98a2b3] text-center sm:text-right">© {new Date().getFullYear()} SapaKita. Seluruh hak cipta dilindungi.</p>
         </div>
       </footer>
     </div>

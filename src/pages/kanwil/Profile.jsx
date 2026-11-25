@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   User,
@@ -22,22 +22,22 @@ import Modal from '../../components/Modal';
 import { useAuth } from '../../context/AuthContext';
 import { changePasswordApi, updateProfileApi } from '../../services/api';
 
-export default function KanwilProfile() {
+export default function YayasanProfile() {
   const navigate = useNavigate();
   const { user: authUser, logout } = useAuth();
 
-  const kanwilName = authUser?.kanwilName || authUser?.kanwil?.name || 'Kantor Wilayah';
-  const kanwilCode = authUser?.kanwil?.code || 'KW';
-  const kanwilRegion = authUser?.kanwil?.region || kanwilName;
-  const kanwilProvinces = authUser?.kanwil?.provinces || (authUser?.wilayah ? [authUser.wilayah] : ['Wilayah Kerja Kanwil']);
+  const YayasanName = authUser?.YayasanName || authUser?.Yayasan?.name || 'Yayasan Pesantren';
+  const YayasanCode = authUser?.Yayasan?.code || 'KW';
+  const YayasanRegion = authUser?.Yayasan?.region || YayasanName;
+  const YayasanProvinces = authUser?.Yayasan?.provinces || (authUser?.wilayah ? [authUser.wilayah] : ['Wilayah Kerja Yayasan']);
 
   // State for Account Info
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [accountInfo, setAccountInfo] = useState({
-    name: authUser?.name || 'Administrator Kanwil',
+    name: authUser?.name || 'Administrator Yayasan',
     email: authUser?.email || authUser?.identifier || '-',
     phone: authUser?.phone || '-',
-    unit: `Kantor Wilayah Ditjen Pemasyarakatan - ${kanwilName}`
+    unit: `Yayasan Pesantren Ditjen Pemasyarakatan - ${YayasanName}`
   });
   const [infoSuccess, setInfoSuccess] = useState(false);
   const [infoError, setInfoError] = useState('');
@@ -77,7 +77,7 @@ export default function KanwilProfile() {
       setInfoSuccess(true);
       setTimeout(() => setInfoSuccess(false), 3000);
     } catch (err) {
-      console.log('[KanwilProfile] Gagal update profil:', err);
+      console.log('[YayasanProfile] Gagal update profil:', err);
       if (err?.status === 401) {
         logout();
         navigate('/login', { replace: true });
@@ -87,7 +87,7 @@ export default function KanwilProfile() {
       if (beError) {
         setInfoError(beError);
       } else if (err?.status === 403) {
-        setInfoError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
+        setInfoError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Yayasan tidak memiliki izin mutasi data.');
       } else if (err?.isNetworkError) {
         setInfoError('Server backend tidak dapat dihubungi');
       } else {
@@ -126,14 +126,14 @@ export default function KanwilProfile() {
       setPasswords({ current: '', new: '', confirm: '' });
       setTimeout(() => setPasswordSuccess(false), 3000);
     } catch (err) {
-      console.log('[KanwilProfile] Gagal ubah password:', err);
+      console.log('[YayasanProfile] Gagal ubah password:', err);
       const beError = err?.data?.message || (Array.isArray(err?.data?.errors) ? err.data.errors.map(e => e.message).join(', ') : null);
       if (beError) {
         setPasswordError(beError);
       } else if (err?.status === 401) {
         setPasswordError('Password lama salah atau sesi Anda telah berakhir.');
       } else if (err?.status === 403) {
-        setPasswordError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
+        setPasswordError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Yayasan tidak memiliki izin mutasi data.');
       } else if (err?.isNetworkError) {
         setPasswordError('Server backend tidak dapat dihubungi');
       } else {
@@ -175,7 +175,7 @@ export default function KanwilProfile() {
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               <h2 className="text-2xl font-black text-white tracking-tight">{accountInfo.name}</h2>
               <span className="inline-flex items-center gap-1 px-3 py-0.5 rounded-full text-xs font-bold bg-blue-500/30 text-blue-100 backdrop-blur-md border border-blue-400/30">
-                <ShieldCheck className="w-3.5 h-3.5" /> Admin Kanwil
+                <ShieldCheck className="w-3.5 h-3.5" /> Admin Yayasan
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/30 text-emerald-200 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Sesi Aktif
@@ -183,7 +183,7 @@ export default function KanwilProfile() {
             </div>
             
             <p className="text-blue-100 text-xs md:text-sm font-medium flex items-center justify-center md:justify-start gap-2">
-              <Building2 className="w-4 h-4 text-blue-200" /> {kanwilName}
+              <Building2 className="w-4 h-4 text-blue-200" /> {YayasanName}
             </p>
 
             <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-blue-100 font-medium">
@@ -227,7 +227,7 @@ export default function KanwilProfile() {
         {/* Left Column: Wilayah & Account Details */}
         <div className="lg:col-span-2 space-y-6">
           
-          {/* Card 1: Identitas Kantor Wilayah */}
+          {/* Card 1: Identitas Yayasan Pesantren */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
               <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function KanwilProfile() {
                   <Building2 className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-800">Identitas Kantor Wilayah (Kanwil)</h2>
+                  <h2 className="text-base font-bold text-slate-800">Identitas Yayasan Pesantren (Yayasan)</h2>
                   <p className="text-[11px] text-slate-500">Yurisdiksi & cakupan koordinasi Unit Pelaksana Teknis</p>
                 </div>
               </div>
@@ -247,19 +247,19 @@ export default function KanwilProfile() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Nama Kantor Wilayah</span>
-                  <span className="text-sm font-bold text-slate-800 mt-1 block">{kanwilName}</span>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Nama Yayasan Pesantren</span>
+                  <span className="text-sm font-bold text-slate-800 mt-1 block">{YayasanName}</span>
                 </div>
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Kode Kanwil</span>
-                  <span className="text-sm font-mono font-bold text-primary mt-1 block">{kanwilCode}</span>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">Kode Yayasan</span>
+                  <span className="text-sm font-mono font-bold text-primary mt-1 block">{YayasanCode}</span>
                 </div>
               </div>
 
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/60">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">Provinsi Cakupan / Yurisdiksi Kerja</span>
                 <div className="flex flex-wrap gap-2">
-                  {kanwilProvinces.map((prov, idx) => (
+                  {YayasanProvinces.map((prov, idx) => (
                     <span 
                       key={idx}
                       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold bg-blue-100/70 text-blue-800 border border-blue-200"
@@ -270,7 +270,7 @@ export default function KanwilProfile() {
                   ))}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">
-                  Seluruh pendaftaran UPT baru oleh Kanwil ini akan otomatis berada di bawah yurisdiksi provinsi cakupan di atas.
+                  Seluruh pendaftaran Kampus baru oleh Yayasan ini akan otomatis berada di bawah yurisdiksi provinsi cakupan di atas.
                 </p>
               </div>
             </div>
@@ -285,7 +285,7 @@ export default function KanwilProfile() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-800">Informasi Administrator</h2>
-                  <p className="text-[11px] text-slate-500">Perbarui identitas & kontak penanggung jawab Kanwil</p>
+                  <p className="text-[11px] text-slate-500">Perbarui identitas & kontak penanggung jawab Yayasan</p>
                 </div>
               </div>
               
@@ -367,7 +367,7 @@ export default function KanwilProfile() {
               </div>
               <div>
                 <h2 className="text-base font-bold text-slate-800">Keamanan & Password</h2>
-                <p className="text-[11px] text-slate-500">Ubah kata sandi akun Admin Kanwil</p>
+                <p className="text-[11px] text-slate-500">Ubah kata sandi akun Admin Yayasan</p>
               </div>
             </div>
 
@@ -475,7 +475,7 @@ export default function KanwilProfile() {
       >
         <div className="p-4 space-y-4">
           <p className="text-xs text-slate-600 leading-relaxed">
-            Apakah Anda yakin ingin keluar dari sistem <span className="font-bold text-slate-800">Sadewa</span> sebagai Administrator <span className="font-bold text-slate-800">{kanwilName}</span>?
+            Apakah Anda yakin ingin keluar dari sistem <span className="font-bold text-slate-800">SapaKita</span> sebagai Administrator <span className="font-bold text-slate-800">{YayasanName}</span>?
           </p>
           <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
             <button 
@@ -498,3 +498,4 @@ export default function KanwilProfile() {
     </div>
   );
 }
+

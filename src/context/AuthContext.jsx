@@ -36,18 +36,15 @@ export const AuthProvider = ({ children }) => {
       const n = normalizeRole(tokenPayload.role || tokenPayload.userRole);
       if (n) return n;
     }
-    // Fallback berdasarkan route aktif jika di bawah /branch/, /inkopasindo/, /finance/, dsb.
+    // Fallback berdasarkan route aktif jika di bawah /branch/, /finance/, dsb.
     if (typeof window !== 'undefined') {
-      if (window.location.pathname.startsWith('/inkopasindo')) {
-        return ROLES.INKOPASINDO;
-      }
       if (window.location.pathname.startsWith('/finance')) {
         return ROLES.FINANCE;
       }
       if (window.location.pathname.startsWith('/kanwil')) {
         return ROLES.ADMIN_KANWIL;
       }
-      if (window.location.pathname.startsWith('/kantin')) {
+      if (window.location.pathname.startsWith('/kopontren') || window.location.pathname.startsWith('/kantin')) {
         return ROLES.OPERATOR_KANTIN;
       }
       if (window.location.pathname.startsWith('/branch')) {
@@ -63,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const roleLabel = useMemo(() => {
     if (!role) return '';
-    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor' : (role === ROLES.KEPALA_UPT ? 'Kepala UPT' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
+    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : (role === ROLES.KEPALA_UPT ? 'Pimpinan Kampus' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
   }, [role]);
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke token/email jika user.name kosong.
@@ -215,7 +212,6 @@ export const AuthProvider = ({ children }) => {
     isKepalaUpt: Boolean(isAuthenticated && role === ROLES.KEPALA_UPT),
     isSuperadmin: Boolean(isAuthenticated && role === ROLES.SUPERADMIN),
     isFinance: Boolean(isAuthenticated && role === ROLES.FINANCE),
-    isInkopasindo: Boolean(isAuthenticated && role === ROLES.INKOPASINDO),
     isOperatorKantin: Boolean(isAuthenticated && role === ROLES.OPERATOR_KANTIN),
     canViewRecordings,
     canManageUsers,

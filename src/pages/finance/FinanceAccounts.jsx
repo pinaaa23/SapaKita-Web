@@ -31,13 +31,12 @@ import {
 import { generateRandomPassword } from '../../services/userService';
 
 /**
- * Helper untuk men-generate email resmi Finance / Inkopasindo dari Nama Lengkap & Role
- * Contoh: "Julaika", role="finance"      -> "finance.julaika@sadewa.id"
- *         "Budi Santoso", role="inkopasindo" -> "inkopasindo.budi.santoso@sadewa.id"
+ * Helper untuk men-generate email resmi Finance dari Nama Lengkap
+ * Contoh: "Dewi Lestari" -> "finance.dewi.lestari@sapakita.id"
  */
-const generateAccountEmailFromName = (name, role = 'finance') => {
-  const prefix = role === 'inkopasindo' ? 'inkopasindo' : 'finance';
-  if (!name || typeof name !== 'string') return `${prefix}@sadewa.id`;
+const generateAccountEmailFromName = (name) => {
+  const prefix = 'finance';
+  if (!name || typeof name !== 'string') return `${prefix}@sapakita.id`;
   const clean = name
     .toLowerCase()
     .trim()
@@ -45,8 +44,8 @@ const generateAccountEmailFromName = (name, role = 'finance') => {
     .split(/\s+/)
     .filter(Boolean)
     .join('.');
-  if (!clean) return `${prefix}@sadewa.id`;
-  return `${prefix}.${clean}@sadewa.id`;
+  if (!clean) return `${prefix}@sapakita.id`;
+  return `${prefix}.${clean}@sapakita.id`;
 };
 
 export default function FinanceAccounts() {
@@ -215,11 +214,11 @@ export default function FinanceAccounts() {
       return;
     }
 
-    // Normalisasi domain @sadewa.id jika user hanya mengetik prefix
+    // Normalisasi domain @sapakita.id jika user hanya mengetik prefix
     if (!finalEmail.includes('@')) {
-      finalEmail = `${finalEmail}@sadewa.id`;
-    } else if (!finalEmail.toLowerCase().endsWith('@sadewa.id')) {
-      setAddFormError('Email login wajib menggunakan domain @sadewa.id (contoh: finance.nama@sadewa.id atau inkopasindo.nama@sadewa.id)');
+      finalEmail = `${finalEmail}@sapakita.id`;
+    } else if (!finalEmail.toLowerCase().endsWith('@sapakita.id')) {
+      setAddFormError('Email login wajib menggunakan domain @sapakita.id (contoh: finance.nama@sapakita.id)');
       return;
     }
 
@@ -233,7 +232,7 @@ export default function FinanceAccounts() {
       const res = await createFinanceAccount({
         name: addForm.name.trim(),
         email: finalEmail.toLowerCase(),
-        role: addForm.role,
+        role: 'finance',
         password: addForm.password.trim(),
         phone: addForm.phone.trim(),
         status: addForm.status,
@@ -243,8 +242,8 @@ export default function FinanceAccounts() {
         setNewlyCreatedAccount({
           name: addForm.name.trim(),
           email: finalEmail.toLowerCase(),
-          role: addForm.role,
-          roleLabel: addForm.role === 'inkopasindo' ? 'Inkopasindo' : 'Admin Finance',
+          role: 'finance',
+          roleLabel: 'Admin Finance Platform',
           password: addForm.password.trim(),
           status: addForm.status,
           source: res.source,
@@ -310,7 +309,6 @@ export default function FinanceAccounts() {
   // Summary Metrics
   const totalCount = accounts.length;
   const financeCount = accounts.filter(a => a.role === 'finance').length;
-  const inkopasindoCount = accounts.filter(a => a.role === 'inkopasindo').length;
 
   return (
     <div className="space-y-5 animate-in fade-in duration-300">
@@ -338,35 +336,20 @@ export default function FinanceAccounts() {
         </div>
       )}
 
-      {/* Control Bar: Search Input, Role Filter, Status Filter & Tombol Tambah Akun */}
+      {/* Control Bar: Search Input, Status Filter & Tombol Tambah Akun */}
       <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3.5">
         <div className="relative w-full lg:w-96">
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari nama atau email akun Finance / Inkopasindo..."
+            placeholder="Cari nama atau email akun Finance..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
+            className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-700 text-slate-800 font-medium transition"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto justify-end">
-          {/* Filter Role */}
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
-            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              aria-label="Filter Peran Akun"
-              className="bg-transparent border-none focus:outline-none text-xs font-bold text-slate-700 cursor-pointer"
-            >
-              <option value="All">Semua Role ({totalCount})</option>
-              <option value="finance">Finance Pusat ({financeCount})</option>
-              <option value="inkopasindo">Inkopasindo ({inkopasindoCount})</option>
-            </select>
-          </div>
-
           {/* Filter Status */}
           <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-2xs">
             <select
@@ -547,18 +530,18 @@ export default function FinanceAccounts() {
         )}
       </div>
 
-      {/* MODAL 1: Form Tambah Akun Finance / Inkopasindo */}
+      {/* MODAL 1: Form Tambah Akun Finance */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] my-auto">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center">
                   <Plus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-800">Tambah Akun Finance / Inkopasindo</h2>
-                  <p className="text-[11px] text-slate-500">Buat akses tim Keuangan Pusat atau perwakilan Inkopasindo</p>
+                  <h2 className="text-sm font-bold text-slate-800">Tambah Akun Keuangan Platform</h2>
+                  <p className="text-[11px] text-slate-500">Buat akses tim Keuangan Platform SapaKita</p>
                 </div>
               </div>
               <button
@@ -577,75 +560,23 @@ export default function FinanceAccounts() {
                 </div>
               )}
 
-              {/* Pilihan Peran / Role (Sama seperti gaya seleksi di Kepala UPT: Kartu Pilihan Role) */}
+              {/* Peran Akun (Role: Finance) */}
               <div className="space-y-1.5">
                 <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-                  Pilih Peran Akun <span className="text-rose-500">*</span>
+                  Peran Akun
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-0.5">
-                  {/* Card Role Finance */}
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('finance')}
-                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
-                      addForm.role === 'finance'
-                        ? 'bg-blue-50/80 border-blue-400 ring-2 ring-blue-500/20 shadow-xs'
-                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      addForm.role === 'finance' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      <CircleDollarSign className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className={`font-bold text-xs ${addForm.role === 'finance' ? 'text-blue-900' : 'text-slate-800'}`}>
-                          Admin Finance
-                        </p>
-                        {addForm.role === 'finance' && (
-                          <span className="w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
-                            <Check className="w-2.5 h-2.5" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
-                        Monitoring billing, setoran &amp; laporan keuangan
-                      </p>
-                    </div>
-                  </button>
-
-                  {/* Card Role Inkopasindo */}
-                  <button
-                    type="button"
-                    onClick={() => handleRoleChange('inkopasindo')}
-                    className={`p-3.5 rounded-xl border flex items-start gap-3 transition-all cursor-pointer text-left ${
-                      addForm.role === 'inkopasindo'
-                        ? 'bg-purple-50/80 border-purple-400 ring-2 ring-purple-500/20 shadow-xs'
-                        : 'bg-white border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                      addForm.role === 'inkopasindo' ? 'bg-purple-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
-                    }`}>
-                      <Building2 className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className={`font-bold text-xs ${addForm.role === 'inkopasindo' ? 'text-purple-900' : 'text-slate-800'}`}>
-                          Inkopasindo
-                        </p>
-                        {addForm.role === 'inkopasindo' && (
-                          <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px]">
-                            <Check className="w-2.5 h-2.5" />
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-500 mt-0.5 leading-snug">
-                        Monitoring tagihan &amp; bagi hasil 10% koperasi
-                      </p>
-                    </div>
-                  </button>
+                <div className="p-3.5 rounded-xl border bg-teal-50/80 border-teal-300 ring-2 ring-teal-500/20 shadow-xs flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-[#0D7A73] text-white flex items-center justify-center shrink-0">
+                    <CircleDollarSign className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-xs text-teal-950">
+                      Admin Keuangan Platform (Finance)
+                    </p>
+                    <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
+                      Manajemen billing pascabayar, penagihan kopontren, dan verifikasi transfer setoran
+                    </p>
+                  </div>
                 </div>
               </div>
 

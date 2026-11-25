@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle, Trash2, AlertTriangle, Landmark } from 'lucide-react';
 import { getBranches, deleteBranch } from '../../services/branchService';
@@ -29,7 +29,7 @@ const List = () => {
     total: 0,
     totalPages: 1,
   });
-  const [kanwilList, setKanwilList] = useState([]);
+  const [YayasanList, setYayasanList] = useState([]);
 
   const showToast = (text, type = 'success') => {
     setToastMessage({ text, type });
@@ -45,37 +45,37 @@ const List = () => {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // Fetch data Kanwil untuk pemetaan wilayah UPT
+  // Fetch data Yayasan untuk pemetaan wilayah UPT
   useEffect(() => {
     let isMounted = true;
-    const fetchKanwils = async () => {
+    const fetchYayasans = async () => {
       try {
         const res = await apiFetch('/api/kanwil');
         if (isMounted && res?.data && Array.isArray(res.data)) {
-          setKanwilList(res.data);
+          setYayasanList(res.data);
         }
       } catch (err) {
-        console.warn('[BranchesList] Gagal memuat data kanwil:', err);
+        console.warn('[BranchesList] Gagal memuat data Yayasan:', err);
       }
     };
-    fetchKanwils();
+    fetchYayasans();
     return () => { isMounted = false; };
   }, []);
 
-  // Helper untuk menentukan nama Kanwil cabang
-  const getResolvedKanwilName = (branch) => {
+  // Helper untuk menentukan nama Yayasan cabang
+  const getResolvedYayasanName = (branch) => {
     if (!branch) return null;
-    if (branch.kanwil?.name) return branch.kanwil.name;
-    if (branch.kanwilName) return branch.kanwilName;
-    if (branch.assignedToKanwilName) return branch.assignedToKanwilName;
+    if (branch.Yayasan?.name) return branch.Yayasan.name;
+    if (branch.YayasanName) return branch.YayasanName;
+    if (branch.assignedToYayasanName) return branch.assignedToYayasanName;
 
-    if (branch.kanwilId && kanwilList.length > 0) {
-      const found = kanwilList.find((k) => k.id === branch.kanwilId);
+    if (branch.YayasanId && YayasanList.length > 0) {
+      const found = YayasanList.find((k) => k.id === branch.YayasanId);
       if (found?.name) return found.name;
     }
 
-    if (kanwilList.length > 0) {
-      for (const k of kanwilList) {
+    if (YayasanList.length > 0) {
+      for (const k of YayasanList) {
         if (Array.isArray(k.branches) && k.branches.some((b) => (b.id || b) === branch.id || (b.name && b.name === branch.name))) {
           return k.name;
         }
@@ -128,22 +128,22 @@ const List = () => {
       'ID Cabang': b.id,
       'Nama UPT / Cabang': b.name,
       'Lokasi': b.location,
-      'Wilayah Kanwil': getResolvedKanwilName(b) || 'Belum Terhubung',
+      'Wilayah Yayasan': getResolvedYayasanName(b) || 'Belum Terhubung',
       'Alamat Lengkap': b.address,
       'Nomor Telepon': b.phone,
       'Kapasitas Maksimal': b.capacity,
-      'Jumlah WBP': b.inmateCount,
+      'Jumlah Santri': b.inmateCount,
       'Jumlah Admin / Petugas': b.adminCount,
       'Status Operasional': b.status === 'Active' ? 'Aktif' : 'Nonaktif'
     }));
 
     const activeCount = filteredBranches.filter(b => b.status === 'Active').length;
-    const totalWbp = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+    const totalSantri = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
 
     const filename = `Daftar_Cabang_UPT_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const success = exportToExcel(exportData, filename, 'Cabang UPT', {
-      title: 'LAPORAN DATA MASTER CABANG & UPT PEMASYARAKATAN',
-      subtitle: 'Daftar Seluruh Unit Pelaksana Teknis (UPT) Lapas & Rutan Se-Indonesia',
+    const success = exportToExcel(exportData, filename, 'Kampus Pesantren', {
+      title: 'LAPORAN DATA MASTER CABANG & Kampus Pesantren',
+      subtitle: 'Daftar Seluruh Unit Pelaksana Teknis (UPT) Pesantren & Pesantren Se-Indonesia',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
@@ -153,12 +153,12 @@ const List = () => {
       summaryMetrics: [
         { label: 'Total Cabang / UPT', value: `${filteredBranches.length} UPT` },
         { label: 'Cabang Aktif', value: `${activeCount} UPT` },
-        { label: 'Total Warga Binaan', value: `${totalWbp} Orang` },
+        { label: 'Total Warga Binaan', value: `${totalSantri} Orang` },
       ]
     });
 
     if (success !== false) {
-      showToast('Berhasil mengekspor data cabang UPT ke format Excel!', 'success');
+      showToast('Berhasil mengekspor data Kampus Pesantren ke format Excel!', 'success');
     }
   };
 
@@ -229,7 +229,7 @@ const List = () => {
               to="/branches/create" 
               className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all text-xs cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> Tambah UPT
+              <Plus className="w-4 h-4" /> Tambah Kampus
             </Link>
           </div>
         </div>
@@ -244,8 +244,8 @@ const List = () => {
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-4 text-left w-[26%]">Nama Cabang</th>
                 <th className="py-3.5 px-4 text-left w-[18%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[20%]">Wilayah Kanwil</th>
-                <th className="py-3.5 px-4 text-left w-[18%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-left w-[20%]">Wilayah Yayasan</th>
+                <th className="py-3.5 px-4 text-left w-[18%]">Kapasitas & Santri</th>
                 <th className="py-3.5 px-4 text-center w-[9%]">Status</th>
                 <th className="py-3.5 px-4 text-center w-[9%]">Aksi</th>
               </tr>
@@ -284,12 +284,12 @@ const List = () => {
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium">
                       {(() => {
-                        const kanwilName = getResolvedKanwilName(branch);
-                        if (kanwilName) {
+                        const YayasanName = getResolvedYayasanName(branch);
+                        if (YayasanName) {
                           return (
                             <div className="flex items-center gap-1.5">
                               <Landmark className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span className="font-semibold text-slate-800 text-xs">{kanwilName}</span>
+                              <span className="font-semibold text-slate-800 text-xs">{YayasanName}</span>
                             </div>
                           );
                         }
@@ -351,7 +351,7 @@ const List = () => {
                             setIsDeleteModalOpen(true);
                           }}
                           className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
-                          title="Hapus Cabang UPT"
+                          title="Hapus Kampus Pesantren"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -402,7 +402,7 @@ const List = () => {
         </div>
       </div>
 
-      {/* Modal Konfirmasi Hapus Cabang UPT */}
+      {/* Modal Konfirmasi Hapus Kampus Pesantren */}
       {isDeleteModalOpen && branchToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-150 my-auto max-h-[90vh] overflow-y-auto">
@@ -411,7 +411,7 @@ const List = () => {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Cabang UPT</h3>
+                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Kampus Pesantren</h3>
                 <p className="text-[11px] text-slate-400">Tindakan ini permanen dan tidak dapat dibatalkan</p>
               </div>
             </div>
@@ -421,7 +421,7 @@ const List = () => {
                 Apakah Anda yakin ingin menghapus <span className="underline">{branchToDelete.name}</span>?
               </p>
               <p className="text-[11px] text-rose-600 leading-relaxed">
-                Peringatan: Seluruh data terkait UPT ini (termasuk akun Kepala UPT, petugas, dan riwayat operasional cabang) akan ikut terhapus atau dinonaktifkan dari sistem.
+                Peringatan: Seluruh data terkait UPT ini (termasuk akun Pimpinan Kampus, petugas, dan riwayat operasional cabang) akan ikut terhapus atau dinonaktifkan dari sistem.
               </p>
             </div>
 
@@ -456,7 +456,7 @@ const List = () => {
                       navigate('/login', { replace: true });
                       return;
                     }
-                    showToast(err?.message || 'Gagal menghapus cabang UPT.', 'error');
+                    showToast(err?.message || 'Gagal menghapus Kampus Pesantren.', 'error');
                   } finally {
                     setIsDeleting(false);
                   }
@@ -484,3 +484,5 @@ const List = () => {
 };
 
 export default List;
+
+

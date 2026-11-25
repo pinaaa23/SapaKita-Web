@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
   Building2, 
@@ -31,23 +31,23 @@ import {
   Download
 } from 'lucide-react';
 import { 
-  getAllKanwilsForSuperadmin, 
-  saveKanwilFromSuperadmin, 
-  deleteKanwilFromSuperadmin,
-  toggleKanwilStatus,
+  getAllYayasansForSuperadmin, 
+  saveYayasanFromSuperadmin, 
+  deleteYayasanFromSuperadmin,
+  toggleYayasanStatus,
   getOfficialProvinces,
-  getKanwilAuditReport,
+  getYayasanAuditReport,
   getUnassignedBranches,
-  assignBranchKanwil
-} from '../../services/kanwilService';
+  assignBranchYayasan
+} from '../../services/YayasanService';
 import { generateRandomPassword } from '../../services/userService';
 import { exportToExcel } from '../../utils/exportUtils';
 import { useAuth } from '../../context/AuthContext';
 
-export default function KanwilManagement() {
+export default function YayasanManagement() {
   const location = useLocation();
   const { user } = useAuth();
-  const [kanwils, setKanwils] = useState([]);
+  const [Yayasans, setYayasans] = useState([]);
   const [provinces, setProvinces] = useState([]);
   const [auditReport, setAuditReport] = useState([]);
   const [unassignedBranches, setUnassignedBranches] = useState([]);
@@ -77,10 +77,10 @@ export default function KanwilManagement() {
     checkScroll();
     window.addEventListener('resize', checkScroll);
     return () => window.removeEventListener('resize', checkScroll);
-  }, [checkScroll, kanwils]);
+  }, [checkScroll, Yayasans]);
 
-  // Modal State Detail Kanwil & UPT Binaan
-  const [detailKanwil, setDetailKanwil] = useState(null);
+  // Modal State Detail Yayasan & Kampus Binaan
+  const [detailYayasan, setDetailYayasan] = useState(null);
   const [copiedField, setCopiedField] = useState('');
 
   const handleCopy = (text, fieldName) => {
@@ -92,35 +92,35 @@ export default function KanwilManagement() {
     }, 2000);
   };
 
-  // Modal State Tetapkan Provinsi & Kanwil
+  // Modal State Tetapkan Provinsi & Yayasan
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [assignTargetBranch, setAssignTargetBranch] = useState(null);
   const [assignForm, setAssignForm] = useState({
     branchId: '',
     province: '', 
-    kanwilId: '',
+    YayasanId: '',
     reason: 'Penetapan resmi oleh Superadmin',
   });
   const [isSubmittingAssign, setIsSubmittingAssign] = useState(false);
 
-  // Accordion UPT State
-  const [expandedKanwilId, setExpandedKanwilId] = useState(null);
+  // Accordion Kampus State
+  const [expandedYayasanId, setExpandedYayasanId] = useState(null);
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
-      const [kanwilList, provList, auditList, unassignedList] = await Promise.all([
-        getAllKanwilsForSuperadmin(),
+      const [YayasanList, provList, auditList, unassignedList] = await Promise.all([
+        getAllYayasansForSuperadmin(),
         getOfficialProvinces(),
-        getKanwilAuditReport(),
+        getYayasanAuditReport(),
         getUnassignedBranches(),
       ]);
-      setKanwils(kanwilList);
+      setYayasans(YayasanList);
       setProvinces(provList);
       setAuditReport(auditList);
       setUnassignedBranches(unassignedList);
     } catch (err) {
-      console.error('Error fetching kanwil management data:', err);
+      console.error('Error fetching Yayasan management data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +146,7 @@ export default function KanwilManagement() {
     setAssignForm({
       branchId: branch.id,
       province: branch.province || '',
-      kanwilId: branch.kanwilId || '',
+      YayasanId: branch.YayasanId || '',
       reason: 'Penetapan resmi oleh Superadmin',
     });
     setIsAssignModalOpen(true);
@@ -154,59 +154,59 @@ export default function KanwilManagement() {
 
   const handleToggleStatus = async (id, currentStatus) => {
     const nextStatus = currentStatus === 'Aktif' ? 'Nonaktif' : 'Aktif';
-    if (!window.confirm(`Ubah status Kantor Wilayah ini menjadi "${nextStatus}"?`)) {
+    if (!window.confirm(`Ubah status Yayasan Pesantren ini menjadi "${nextStatus}"?`)) {
       return;
     }
     try {
-      await toggleKanwilStatus(id);
+      await toggleYayasanStatus(id);
       fetchData();
     } catch (err) {
-      alert(err.message || 'Gagal mengubah status Kanwil.');
+      alert(err.message || 'Gagal mengubah status Yayasan.');
     }
   };
 
   const handleDelete = async (id, name) => {
-    if (!window.confirm(`Yakin ingin menghapus ${name}? Hanya diperbolehkan jika Kanwil tidak memiliki UPT.`)) {
+    if (!window.confirm(`Yakin ingin menghapus ${name}? Hanya diperbolehkan jika Yayasan tidak memiliki Kampus.`)) {
       return;
     }
     try {
-      await deleteKanwilFromSuperadmin(id);
+      await deleteYayasanFromSuperadmin(id);
       fetchData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus Kanwil.');
+      alert(err.message || 'Gagal menghapus Yayasan.');
     }
   };
 
   const handleAssignSubmit = async (e) => {
     e.preventDefault();
-    if (!assignForm.branchId || !assignForm.province || !assignForm.kanwilId) {
-      alert('Pilih UPT, Provinsi resmi, dan Kantor Wilayah tujuan!');
+    if (!assignForm.branchId || !assignForm.province || !assignForm.YayasanId) {
+      alert('Pilih Kampus, Provinsi resmi, dan Yayasan Pesantren tujuan!');
       return;
     }
 
     setIsSubmittingAssign(true);
     try {
-      await assignBranchKanwil(assignForm.branchId, {
+      await assignBranchYayasan(assignForm.branchId, {
         province: assignForm.province,
-        kanwilId: assignForm.kanwilId,
+        YayasanId: assignForm.YayasanId,
         reason: assignForm.reason,
       });
-      alert('UPT berhasil ditetapkan ke Kantor Wilayah yang sesuai!');
+      alert('Kampus berhasil ditetapkan ke Yayasan Pesantren yang sesuai!');
       setIsAssignModalOpen(false);
       fetchData();
     } catch (err) {
-      alert(err.message || 'Gagal menetapkan UPT ke Kanwil.');
+      alert(err.message || 'Gagal menetapkan Kampus ke Yayasan.');
     } finally {
       setIsSubmittingAssign(false);
     }
   };
 
   // Filter & Search Logic
-  const filteredKanwils = kanwils.filter((k) => {
+  const filteredYayasans = Yayasans.filter((k) => {
     const term = searchTerm.trim().toLowerCase();
     const matchSearch =
       !term ||
-      (k.kanwilName || k.name || '').toLowerCase().includes(term) ||
+      (k.YayasanName || k.name || '').toLowerCase().includes(term) ||
       (k.code || '').toLowerCase().includes(term) ||
       (k.wilayah || k.region || '').toLowerCase().includes(term) ||
       (k.adminEmail || k.adminUser?.email || '').toLowerCase().includes(term) ||
@@ -219,8 +219,8 @@ export default function KanwilManagement() {
     return matchSearch && matchStatus;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredKanwils.length / limit));
-  const paginatedKanwils = filteredKanwils.slice((page - 1) * limit, page * limit);
+  const totalPages = Math.max(1, Math.ceil(filteredYayasans.length / limit));
+  const paginatedYayasans = filteredYayasans.slice((page - 1) * limit, page * limit);
   const hasActiveFilters = Boolean(searchTerm.trim() || statusFilter !== 'All');
 
   const resetFilters = () => {
@@ -230,31 +230,31 @@ export default function KanwilManagement() {
   };
 
   const handleExport = () => {
-    if (!filteredKanwils || filteredKanwils.length === 0) {
-      alert('Tidak ada data Kantor Wilayah untuk diekspor.');
+    if (!filteredYayasans || filteredYayasans.length === 0) {
+      alert('Tidak ada data Yayasan Pesantren untuk diekspor.');
       return;
     }
 
-    const exportData = filteredKanwils.map((k, idx) => ({
+    const exportData = filteredYayasans.map((k, idx) => ({
       'No': idx + 1,
-      'Kode Kanwil': k.code || '-',
-      'Nama Kantor Wilayah': k.kanwilName || k.name || '-',
+      'Kode Yayasan': k.code || '-',
+      'Nama Yayasan Pesantren': k.YayasanName || k.name || '-',
       'Wilayah / Regional': k.wilayah || k.region || '-',
       'Provinsi Cakupan': Array.isArray(k.provinces) ? k.provinces.join(', ') : (k.provinces || '-'),
-      'Nama Admin Kanwil': k.adminName || k.adminUser?.name || '-',
-      'Email Admin Kanwil': k.adminEmail || k.adminUser?.email || '-',
+      'Nama Admin Yayasan': k.adminName || k.adminUser?.name || '-',
+      'Email Admin Yayasan': k.adminEmail || k.adminUser?.email || '-',
       'Nomor Telepon': k.adminPhone || k.adminUser?.phone || '-',
-      'Jumlah UPT Binaan': k.uptCount ?? (k.assignedUpts?.length || 0),
+      'Jumlah Kampus Binaan': k.KampusCount ?? (k.assignedKampuss?.length || 0),
       'Status Operasional': k.status === 'Aktif' || k.status === 'Active' ? 'Aktif' : 'Nonaktif',
     }));
 
-    const activeCount = filteredKanwils.filter(k => k.status === 'Aktif' || k.status === 'Active').length;
-    const totalUpt = filteredKanwils.reduce((sum, k) => sum + (k.uptCount ?? (k.assignedUpts?.length || 0)), 0);
+    const activeCount = filteredYayasans.filter(k => k.status === 'Aktif' || k.status === 'Active').length;
+    const totalKampus = filteredYayasans.reduce((sum, k) => sum + (k.KampusCount ?? (k.assignedKampuss?.length || 0)), 0);
 
     const filename = `Daftar_Kantor_Wilayah_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const success = exportToExcel(exportData, filename, 'Kantor Wilayah', {
-      title: 'LAPORAN DATA MASTER KANTOR WILAYAH (KANWIL)',
-      subtitle: 'Daftar Seluruh Kantor Wilayah Pemasyarakatan Nasional',
+    const success = exportToExcel(exportData, filename, 'Yayasan Pesantren', {
+      title: 'LAPORAN DATA MASTER Yayasan Pesantren (Yayasan)',
+      subtitle: 'Daftar Seluruh Yayasan Pesantren Pemasyarakatan Nasional',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${user?.name || 'Super Administrator'} (Super Administrator)`,
@@ -262,14 +262,14 @@ export default function KanwilManagement() {
         'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
       summaryMetrics: [
-        { label: 'Total Kanwil', value: `${filteredKanwils.length} Kanwil` },
-        { label: 'Kanwil Aktif', value: `${activeCount} Kanwil` },
-        { label: 'Total UPT Terhubung', value: `${totalUpt} UPT` },
+        { label: 'Total Yayasan', value: `${filteredYayasans.length} Yayasan` },
+        { label: 'Yayasan Aktif', value: `${activeCount} Yayasan` },
+        { label: 'Total Kampus Terhubung', value: `${totalKampus} Kampus` },
       ]
     });
 
     if (success !== false) {
-      setToastMessage({ text: 'Berhasil mengekspor data Kantor Wilayah ke format Excel!', type: 'success' });
+      setToastMessage({ text: 'Berhasil mengekspor data Yayasan Pesantren ke format Excel!', type: 'success' });
       setTimeout(() => setToastMessage({ text: '', type: '' }), 3500);
     }
   };
@@ -297,7 +297,7 @@ export default function KanwilManagement() {
         </div>
       )}
 
-      {/* Control Bar (Selaras dengan Halaman Data Narapidana) */}
+      {/* Control Bar (Selaras dengan Halaman Data Santri) */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 space-y-4">
         {/* Row 1: Search Input & Tombol Tambah */}
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
@@ -305,7 +305,7 @@ export default function KanwilManagement() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama kanwil, kode, wilayah, atau admin..." 
+              placeholder="Cari nama Yayasan, kode, wilayah, atau admin..." 
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -332,18 +332,18 @@ export default function KanwilManagement() {
               type="button"
               onClick={handleExport}
               className="px-3.5 py-2.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
-              title="Ekspor Data Kantor Wilayah ke Excel"
+              title="Ekspor Data Yayasan Pesantren ke Excel"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export</span>
             </button>
 
             <Link
-              to="/kanwil-management/create"
+              to="/Yayasan-management/create"
               className="px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold shadow-md shadow-primary/20 cursor-pointer transition-all inline-flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              <span>Tambah Kanwil Baru</span>
+              <span>Tambah Yayasan Baru</span>
             </Link>
           </div>
         </div>
@@ -394,12 +394,12 @@ export default function KanwilManagement() {
 
           {/* Result Count Info */}
           <div className="text-slate-400 text-[11px] font-medium ml-auto">
-            Menampilkan <strong className="text-slate-700 font-bold">{paginatedKanwils.length}</strong> dari {filteredKanwils.length} Kantor Wilayah
+            Menampilkan <strong className="text-slate-700 font-bold">{paginatedYayasans.length}</strong> dari {filteredYayasans.length} Yayasan Pesantren
           </div>
         </div>
       </div>
 
-      {/* Table Card (Selaras dengan Halaman Data Narapidana) */}
+      {/* Table Card (Selaras dengan Halaman Data Santri) */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div 
           ref={tableContainerRef}
@@ -418,11 +418,11 @@ export default function KanwilManagement() {
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className={`py-3.5 pl-6 pr-4 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
-                  Kantor Wilayah
+                  Yayasan Pesantren
                 </th>
                 <th className="py-3.5 px-4 font-bold text-left">Wilayah</th>
                 <th className="py-3.5 px-4 font-bold text-left">Provinsi Cakupan</th>
-                <th className="py-3.5 px-4 font-bold text-center">UPT Binaan</th>
+                <th className="py-3.5 px-4 font-bold text-center">Kampus Binaan</th>
                 <th className="py-3.5 px-4 font-bold text-center">Status</th>
                 <th className={`py-3.5 px-4 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                   Aksi
@@ -460,12 +460,12 @@ export default function KanwilManagement() {
                     </td>
                   </tr>
                 ))
-              ) : paginatedKanwils.length > 0 ? (
-                paginatedKanwils.map((k) => {
+              ) : paginatedYayasans.length > 0 ? (
+                paginatedYayasans.map((k) => {
                   const isAktif = k.status === 'Aktif';
                   return (
                     <tr key={k.id} className="hover:bg-slate-50/70 transition-colors group">
-                      {/* Nama & Kode Kanwil (Sticky Left) */}
+                      {/* Nama & Kode Yayasan (Sticky Left) */}
                       <td className={`py-3.5 pl-6 pr-4 text-left whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <div className="flex items-center gap-3 min-w-0">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
@@ -474,8 +474,8 @@ export default function KanwilManagement() {
                             <Building2 className="w-4 h-4" />
                           </div>
                           <div className="min-w-0 truncate">
-                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-blue-600 transition-colors truncate" title={k.kanwilName}>
-                              {k.kanwilName}
+                            <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-blue-600 transition-colors truncate" title={k.YayasanName}>
+                              {k.YayasanName}
                             </p>
                             <p className="text-[10px] font-mono font-bold text-slate-400 tracking-tight mt-0.5">
                               {k.code || '-'}
@@ -511,11 +511,11 @@ export default function KanwilManagement() {
                         </div>
                       </td>
 
-                      {/* UPT Binaan */}
+                      {/* Kampus Binaan */}
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-blue-50/70 text-blue-700 border border-blue-100/80 shadow-2xs">
                           <Users className="w-3.5 h-3.5 text-blue-600" />
-                          <span>{k.uptCount ?? (k.assignedUpts?.length || 0)} UPT</span>
+                          <span>{k.KampusCount ?? (k.assignedKampuss?.length || 0)} Kampus</span>
                         </span>
                       </td>
 
@@ -534,22 +534,22 @@ export default function KanwilManagement() {
                       {/* Aksi (Sticky Right: Ruang Lebih Luas & Rapi) */}
                       <td className={`py-3.5 px-4 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <div className="flex items-center justify-center gap-2">
-                          {/* 1. Ikon Mata: Detail Kanwil & UPT Binaan */}
+                          {/* 1. Ikon Mata: Detail Yayasan & Kampus Binaan */}
                           <button 
                             type="button"
-                            onClick={() => setDetailKanwil(k)}
+                            onClick={() => setDetailYayasan(k)}
                             className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
-                            title="Lihat Detail Lengkap Kanwil"
+                            title="Lihat Detail Lengkap Yayasan"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* 2. Ikon Pensil: Edit Data Kanwil */}
+                          {/* 2. Ikon Pensil: Edit Data Yayasan */}
                           <Link
-                            to={`/kanwil-management/${k.id}/edit`}
-                            state={{ kanwil: k }}
+                            to={`/Yayasan-management/${k.id}/edit`}
+                            state={{ Yayasan: k }}
                             className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
-                            title="Edit Data Kanwil"
+                            title="Edit Data Yayasan"
                           >
                             <Edit3 className="w-4 h-4" />
                           </Link>
@@ -563,7 +563,7 @@ export default function KanwilManagement() {
                                 ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50 hover:border-amber-200' 
                                 : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 hover:border-emerald-200'
                             }`}
-                            title={isAktif ? 'Nonaktifkan Kanwil' : 'Aktifkan Kanwil'}
+                            title={isAktif ? 'Nonaktifkan Yayasan' : 'Aktifkan Yayasan'}
                           >
                             <Power className="w-4 h-4" />
                           </button>
@@ -579,11 +579,11 @@ export default function KanwilManagement() {
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                         <Building2 className="w-6 h-6" />
                       </div>
-                      <p className="text-sm font-bold text-slate-700">Belum ada data Kantor Wilayah</p>
+                      <p className="text-sm font-bold text-slate-700">Belum ada data Yayasan Pesantren</p>
                       <p className="text-xs text-slate-400">
                         {hasActiveFilters 
-                          ? 'Tidak ada Kantor Wilayah yang cocok dengan filter atau kata kunci pencarian.' 
-                          : 'Belum ada Kantor Wilayah yang terdaftar di sistem.'}
+                          ? 'Tidak ada Yayasan Pesantren yang cocok dengan filter atau kata kunci pencarian.' 
+                          : 'Belum ada Yayasan Pesantren yang terdaftar di sistem.'}
                       </p>
                       {hasActiveFilters ? (
                         <button 
@@ -595,11 +595,11 @@ export default function KanwilManagement() {
                         </button>
                       ) : (
                         <Link
-                          to="/kanwil-management/create"
+                          to="/Yayasan-management/create"
                           className="mt-3 px-3.5 py-1.5 bg-blue-600 text-white hover:bg-blue-700 font-bold rounded-xl text-xs transition-colors cursor-pointer shadow-xs inline-flex items-center gap-1.5"
                         >
                           <Plus className="w-3.5 h-3.5" />
-                          <span>Tambah Kanwil Pertama</span>
+                          <span>Tambah Yayasan Pertama</span>
                         </Link>
                       )}
                     </div>
@@ -652,14 +652,14 @@ export default function KanwilManagement() {
         )}
       </div>
 
-      {/* MODAL TETAPKAN PROVINSI & KANWIL */}
+      {/* MODAL TETAPKAN PROVINSI & Yayasan */}
       {isAssignModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200">
           <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[90vh] my-auto animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-amber-50/70 shrink-0">
               <div className="flex items-center gap-2 text-amber-900">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
-                <h2 className="text-sm font-bold">Tetapkan Provinsi & Kantor Wilayah UPT</h2>
+                <h2 className="text-sm font-bold">Tetapkan Provinsi & Yayasan Pesantren Kampus</h2>
               </div>
               <button
                 onClick={() => setIsAssignModalOpen(false)}
@@ -672,7 +672,7 @@ export default function KanwilManagement() {
             <form onSubmit={handleAssignSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  UPT / Lapas yang Ditetapkan
+                  Kampus / Pesantren yang Ditetapkan
                 </label>
                 <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs">
                   <div className="font-bold text-slate-800">{assignTargetBranch?.name}</div>
@@ -701,16 +701,16 @@ export default function KanwilManagement() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Kantor Wilayah Tujuan *
+                  Yayasan Pesantren Tujuan *
                 </label>
                 <select
                   required
-                  value={assignForm.kanwilId}
-                  onChange={(e) => setAssignForm({ ...assignForm, kanwilId: e.target.value })}
+                  value={assignForm.YayasanId}
+                  onChange={(e) => setAssignForm({ ...assignForm, YayasanId: e.target.value })}
                   className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-slate-800 cursor-pointer"
                 >
-                  <option value="">-- Pilih Kantor Wilayah --</option>
-                  {kanwils
+                  <option value="">-- Pilih Yayasan Pesantren --</option>
+                  {Yayasans
                     .filter((k) => k.status === 'Aktif')
                     .map((k) => (
                       <option key={k.id} value={k.id}>
@@ -754,14 +754,14 @@ export default function KanwilManagement() {
         </div>
       )}
 
-      {/* MODAL DETAIL KANWIL & DAFTAR UPT BINAAN BESERTA KEPALA UPT */}
-      {detailKanwil && (() => {
-        const upts = detailKanwil.assignedUpts || [];
-        const totalUpt = upts.length;
-        const totalWbp = upts.reduce((acc, u) => acc + (Number(u.inmateCount) || 0), 0);
-        const totalCapacity = upts.reduce((acc, u) => acc + (Number(u.capacity) || 0), 0);
-        const overallOccupancy = totalCapacity > 0 ? Math.round((totalWbp / totalCapacity) * 100) : 0;
-        const isAktif = detailKanwil.status === 'Aktif';
+      {/* MODAL DETAIL Yayasan & DAFTAR Kampus BINAAN BESERTA Pimpinan Kampus */}
+      {detailYayasan && (() => {
+        const Kampuss = detailYayasan.assignedKampuss || [];
+        const totalKampus = Kampuss.length;
+        const totalSantri = Kampuss.reduce((acc, u) => acc + (Number(u.inmateCount) || 0), 0);
+        const totalCapacity = Kampuss.reduce((acc, u) => acc + (Number(u.capacity) || 0), 0);
+        const overallOccupancy = totalCapacity > 0 ? Math.round((totalSantri / totalCapacity) * 100) : 0;
+        const isAktif = detailYayasan.status === 'Aktif';
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
@@ -774,26 +774,26 @@ export default function KanwilManagement() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-base sm:text-lg font-bold text-slate-900">{detailKanwil.kanwilName}</h2>
+                      <h2 className="text-base sm:text-lg font-bold text-slate-900">{detailYayasan.YayasanName}</h2>
                       <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
-                        {detailKanwil.code}
+                        {detailYayasan.code}
                       </span>
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                         isAktif ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
                       }`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${isAktif ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                        {detailKanwil.status || 'Aktif'}
+                        {detailYayasan.status || 'Aktif'}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
                       <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>Provinsi Cakupan: <strong className="text-slate-700 font-semibold">{detailKanwil.wilayah || (detailKanwil.provinces || []).join(', ') || 'Indonesia'}</strong></span>
+                      <span>Provinsi Cakupan: <strong className="text-slate-700 font-semibold">{detailYayasan.wilayah || (detailYayasan.provinces || []).join(', ') || 'Indonesia'}</strong></span>
                     </div>
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setDetailKanwil(null)}
+                  onClick={() => setDetailYayasan(null)}
                   className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer transition-colors"
                   title="Tutup Modal"
                 >
@@ -815,8 +815,8 @@ export default function KanwilManagement() {
                     </div>
                     <div className="space-y-2">
                       <div className="flex flex-wrap gap-1.5">
-                        {(detailKanwil.provinces || []).length > 0 ? (
-                          detailKanwil.provinces.map((prov) => (
+                        {(detailYayasan.provinces || []).length > 0 ? (
+                          detailYayasan.provinces.map((prov) => (
                             <span key={prov} className="inline-flex items-center gap-1 text-xs font-bold bg-blue-50 text-blue-700 px-3 py-1 rounded-xl border border-blue-200/60 shadow-2xs">
                               <MapPin className="w-3 h-3 text-blue-500" />
                               {prov}
@@ -824,24 +824,24 @@ export default function KanwilManagement() {
                           ))
                         ) : (
                           <span className="text-xs text-slate-500 font-medium">
-                            {detailKanwil.wilayah || 'Indonesia'}
+                            {detailYayasan.wilayah || 'Indonesia'}
                           </span>
                         )}
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        Membawahi dan mengkoordinasikan UPT Pemasyarakatan pada wilayah provinsi di atas.
+                        Membawahi dan mengkoordinasikan Kampus Pemasyarakatan pada wilayah provinsi di atas.
                       </p>
                     </div>
                   </div>
 
-                  {/* Card Administrator Kanwil */}
+                  {/* Card Administrator Yayasan */}
                   <div className="p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold text-slate-700 uppercase tracking-wider">
                         <div className="p-1.5 rounded-lg bg-blue-50 text-primary">
                           <UserCheck className="w-4 h-4" />
                         </div>
-                        <span>Administrator Kanwil</span>
+                        <span>Administrator Yayasan</span>
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                         Akun Aktif
@@ -852,7 +852,7 @@ export default function KanwilManagement() {
                       <div className="flex items-center justify-between">
                         <span className="text-slate-400 font-medium text-[11px]">Nama Administrator:</span>
                         <span className="font-bold text-slate-800">
-                          {detailKanwil.adminName || detailKanwil.adminUser?.name || `Admin ${detailKanwil.kanwilName}`}
+                          {detailYayasan.adminName || detailYayasan.adminUser?.name || `Admin ${detailYayasan.YayasanName}`}
                         </span>
                       </div>
 
@@ -860,12 +860,12 @@ export default function KanwilManagement() {
                         <span className="text-slate-400 font-medium text-[11px]">Email Login:</span>
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg text-xs border border-blue-100">
-                            {detailKanwil.adminEmail || detailKanwil.adminUser?.email || 'Belum diatur'}
+                            {detailYayasan.adminEmail || detailYayasan.adminUser?.email || 'Belum diatur'}
                           </span>
-                          {(detailKanwil.adminEmail || detailKanwil.adminUser?.email) && (
+                          {(detailYayasan.adminEmail || detailYayasan.adminUser?.email) && (
                             <button
                               type="button"
-                              onClick={() => handleCopy(detailKanwil.adminEmail || detailKanwil.adminUser?.email, 'detail-email')}
+                              onClick={() => handleCopy(detailYayasan.adminEmail || detailYayasan.adminUser?.email, 'detail-email')}
                               className="p-1 hover:bg-slate-100 rounded text-slate-500 hover:text-primary transition-colors cursor-pointer"
                               title="Salin Email Administrator"
                             >
@@ -879,22 +879,22 @@ export default function KanwilManagement() {
                         </div>
                       </div>
 
-                      {detailKanwil.adminPhone && (
+                      {detailYayasan.adminPhone && (
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400 font-medium text-[11px]">No. Telepon / WA:</span>
-                          <span className="font-medium text-slate-700">{detailKanwil.adminPhone}</span>
+                          <span className="font-medium text-slate-700">{detailYayasan.adminPhone}</span>
                         </div>
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Mini Stats Bar (Ringkasan UPT & WBP Wilayah) */}
+                {/* 2. Mini Stats Bar (Ringkasan Kampus & Santri Wilayah) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">UPT Binaan</p>
-                      <h4 className="text-lg font-black text-slate-800 mt-0.5">{totalUpt} <span className="text-xs font-normal text-slate-500">Satker</span></h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Kampus Binaan</p>
+                      <h4 className="text-lg font-black text-slate-800 mt-0.5">{totalKampus} <span className="text-xs font-normal text-slate-500">Satker</span></h4>
                     </div>
                     <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
                       <Building2 className="w-4 h-4" />
@@ -903,8 +903,8 @@ export default function KanwilManagement() {
 
                   <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 shadow-2xs flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Warga Binaan</p>
-                      <h4 className="text-lg font-black text-slate-800 mt-0.5">{totalWbp.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-500">Orang</span></h4>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Santri</p>
+                      <h4 className="text-lg font-black text-slate-800 mt-0.5">{totalSantri.toLocaleString('id-ID')} <span className="text-xs font-normal text-slate-500">Orang</span></h4>
                     </div>
                     <div className="p-2.5 rounded-xl bg-indigo-50 text-indigo-600">
                       <Users className="w-4 h-4" />
@@ -922,7 +922,7 @@ export default function KanwilManagement() {
                   </div>
                 </div>
 
-                {/* 3. Daftar UPT & Kepala Satuan Kerja (Clean Modern Cards) */}
+                {/* 3. Daftar Kampus & Kepala Satuan Kerja (Clean Modern Cards) */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -930,49 +930,49 @@ export default function KanwilManagement() {
                         <Users className="w-4 h-4" />
                       </div>
                       <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                        Daftar UPT & Kepala Satuan Kerja
+                        Daftar Kampus & Kepala Satuan Kerja
                       </h3>
                     </div>
                     <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl border border-blue-200/60 shadow-2xs">
-                      {totalUpt} UPT Dinaungi
+                      {totalKampus} Kampus Dinaungi
                     </span>
                   </div>
 
-                  {upts.length > 0 ? (
+                  {Kampuss.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                      {upts.map((upt, idx) => {
-                        const inmateCount = Number(upt.inmateCount) || 0;
-                        const capacity = Number(upt.capacity) || 0;
+                      {Kampuss.map((Kampus, idx) => {
+                        const inmateCount = Number(Kampus.inmateCount) || 0;
+                        const capacity = Number(Kampus.capacity) || 0;
                         const occupancy = capacity > 0 ? Math.round((inmateCount / capacity) * 100) : 0;
-                        const isUptAktif = upt.status === 'Aktif' || !upt.status;
+                        const isKampusAktif = Kampus.status === 'Aktif' || !Kampus.status;
 
                         return (
                           <div 
-                            key={upt.id || idx} 
+                            key={Kampus.id || idx} 
                             className="bg-white rounded-2xl border border-slate-200/80 hover:border-blue-300 hover:shadow-xs transition-all p-4 space-y-3.5 shadow-2xs"
                           >
-                            {/* Header UPT Card */}
+                            {/* Header Kampus Card */}
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex items-start gap-2.5 min-w-0">
                                 <div className="w-8 h-8 rounded-xl bg-blue-50 text-primary flex items-center justify-center shrink-0 mt-0.5 border border-blue-100">
                                   <Building2 className="w-4 h-4" />
                                 </div>
                                 <div className="min-w-0">
-                                  <h4 className="text-xs font-bold text-slate-900 leading-tight truncate" title={upt.name}>
-                                    {upt.name}
+                                  <h4 className="text-xs font-bold text-slate-900 leading-tight truncate" title={Kampus.name}>
+                                    {Kampus.name}
                                   </h4>
                                   <p className="flex items-center gap-1 text-[11px] text-slate-500 mt-1 truncate">
                                     <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                                    <span className="truncate">{upt.city && upt.city !== '-' ? `${upt.city}, ` : ''}{upt.province}</span>
+                                    <span className="truncate">{Kampus.city && Kampus.city !== '-' ? `${Kampus.city}, ` : ''}{Kampus.province}</span>
                                   </p>
                                 </div>
                               </div>
                               <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                                isUptAktif
+                                isKampusAktif
                                   ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
                                   : 'bg-slate-100 text-slate-600 border border-slate-200'
                               }`}>
-                                {upt.status || 'Aktif'}
+                                {Kampus.status || 'Aktif'}
                               </span>
                             </div>
 
@@ -980,7 +980,7 @@ export default function KanwilManagement() {
                             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 space-y-1.5">
                               <div className="flex items-center justify-between text-[11px]">
                                 <span className="text-slate-500 font-medium">
-                                  Hunian WBP: <strong className="text-slate-800 font-bold">{inmateCount.toLocaleString('id-ID')}</strong> / {capacity.toLocaleString('id-ID')}
+                                  Hunian Santri: <strong className="text-slate-800 font-bold">{inmateCount.toLocaleString('id-ID')}</strong> / {capacity.toLocaleString('id-ID')}
                                 </span>
                                 <span className={`font-bold ${
                                   occupancy > 100 ? 'text-rose-600' : occupancy > 80 ? 'text-amber-600' : 'text-emerald-700'
@@ -1002,14 +1002,14 @@ export default function KanwilManagement() {
                               </div>
                             </div>
 
-                            {/* Profil Kepala UPT */}
+                            {/* Profil Pimpinan Kampus */}
                             <div className="pt-2 border-t border-slate-100 space-y-1.5">
                               <div className="flex items-center justify-between">
                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
                                   <UserCheck className="w-3.5 h-3.5 text-blue-600" />
-                                  Kepala UPT
+                                  Pimpinan Kampus
                                 </span>
-                                {upt.headEmail && upt.headEmail !== '-' ? (
+                                {Kampus.headEmail && Kampus.headEmail !== '-' ? (
                                   <span className="text-[9px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
                                     Akun Siap
                                   </span>
@@ -1021,22 +1021,22 @@ export default function KanwilManagement() {
                               </div>
 
                               <div className="text-xs space-y-1">
-                                <p className="font-bold text-slate-800 truncate" title={upt.headName}>
-                                  {upt.headName || 'Belum Ditugaskan'}
+                                <p className="font-bold text-slate-800 truncate" title={Kampus.headName}>
+                                  {Kampus.headName || 'Belum Ditugaskan'}
                                 </p>
                                 <div className="flex items-center justify-between text-[11px] text-slate-600">
                                   <div className="flex items-center gap-1.5 font-mono truncate">
                                     <Mail className="w-3 h-3 text-slate-400 shrink-0" />
-                                    <span className="truncate" title={upt.headEmail}>{upt.headEmail || '-'}</span>
+                                    <span className="truncate" title={Kampus.headEmail}>{Kampus.headEmail || '-'}</span>
                                   </div>
-                                  {upt.headEmail && upt.headEmail !== '-' && (
+                                  {Kampus.headEmail && Kampus.headEmail !== '-' && (
                                     <button
                                       type="button"
-                                      onClick={() => handleCopy(upt.headEmail, `upt-email-${idx}`)}
+                                      onClick={() => handleCopy(Kampus.headEmail, `Kampus-email-${idx}`)}
                                       className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-primary transition-colors cursor-pointer shrink-0"
-                                      title="Salin Email Kepala UPT"
+                                      title="Salin Email Pimpinan Kampus"
                                     >
-                                      {copiedField === `upt-email-${idx}` ? (
+                                      {copiedField === `Kampus-email-${idx}` ? (
                                         <Check className="w-3 h-3 text-emerald-600" />
                                       ) : (
                                         <Copy className="w-3 h-3" />
@@ -1044,10 +1044,10 @@ export default function KanwilManagement() {
                                     </button>
                                   )}
                                 </div>
-                                {upt.headPhone && upt.headPhone !== '-' && (
+                                {Kampus.headPhone && Kampus.headPhone !== '-' && (
                                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                                     <Phone className="w-3 h-3 text-slate-400 shrink-0" />
-                                    <span>{upt.headPhone}</span>
+                                    <span>{Kampus.headPhone}</span>
                                   </div>
                                 )}
                               </div>
@@ -1061,9 +1061,9 @@ export default function KanwilManagement() {
                       <div className="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mx-auto">
                         <Building2 className="w-5 h-5" />
                       </div>
-                      <p className="text-xs font-bold text-slate-700">Belum Ada UPT yang Dinaungi</p>
+                      <p className="text-xs font-bold text-slate-700">Belum Ada Kampus yang Dinaungi</p>
                       <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
-                        Kanwil ini belum menaungi UPT manapun. Anda dapat menetapkan UPT binaan melalui tabel penetapan di bawah.
+                        Yayasan ini belum menaungi Kampus manapun. Anda dapat menetapkan Kampus binaan melalui tabel penetapan di bawah.
                       </p>
                     </div>
                   )}
@@ -1073,17 +1073,17 @@ export default function KanwilManagement() {
               {/* Footer Modal */}
               <div className="px-6 py-3.5 border-t border-slate-100 flex items-center justify-between bg-white shrink-0">
                 <Link
-                  to={`/kanwil-management/${detailKanwil.id}/edit`}
-                  state={{ kanwil: detailKanwil }}
+                  to={`/Yayasan-management/${detailYayasan.id}/edit`}
+                  state={{ Yayasan: detailYayasan }}
                   className="px-3.5 py-2 rounded-xl text-xs font-bold text-slate-700 hover:text-primary bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors inline-flex items-center gap-1.5 shadow-2xs"
                 >
                   <Edit3 className="w-3.5 h-3.5 text-primary" />
-                  <span>Edit Data Kanwil</span>
+                  <span>Edit Data Yayasan</span>
                 </Link>
 
                 <button
                   type="button"
-                  onClick={() => setDetailKanwil(null)}
+                  onClick={() => setDetailYayasan(null)}
                   className="px-5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-900 text-white cursor-pointer shadow-xs transition-colors"
                 >
                   Tutup
@@ -1096,3 +1096,4 @@ export default function KanwilManagement() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -24,10 +24,10 @@ import {
   Receipt
 } from 'lucide-react';
 import { createBranch, buildCreateBranchPayload } from '../../services/branchService';
-import { getAllKanwilsForSuperadmin } from '../../services/kanwilService';
+import { getAllYayasansForSuperadmin } from '../../services/YayasanService';
 import { logout } from '../../services/api';
 
-export const ADMIN_EMAIL_DOMAIN = 'sadewa.id';
+export const ADMIN_EMAIL_DOMAIN = 'sapakita.id';
 
 const generateAdminEmail = (name, location) => {
   // Ambil teks sumber: utamakan lokasi jika ada, atau nama cabang
@@ -37,7 +37,7 @@ const generateAdminEmail = (name, location) => {
   // Filter kata-kata umum/formal agar format email ringkas, ramah pengguna, & mudah dihafal
   const noiseWords = [
     'lembaga', 'pemasyarakatan', 'rumah', 'tahanan', 'negara',
-    'lapas', 'rutan', 'kelas', 'kls', 'khusus', 'narkotika', 'anak', 'wanita', 'pemuda',
+    'Pesantren', 'Pesantren', 'kelas', 'kls', 'khusus', 'narkotika', 'anak', 'wanita', 'pemuda',
     'iia', 'iib', 'iiia', 'iiib', 'i', 'ii', 'iii', 'iv', 'v'
   ];
 
@@ -51,7 +51,7 @@ const generateAdminEmail = (name, location) => {
   const coreSlug = (words.length > 0 ? words.join('-') : rawText.toLowerCase().replace(/[^a-z0-9]+/g, '-'))
     .replace(/^-+|-+$/g, '');
 
-  return coreSlug ? `kepala.${coreSlug}@${ADMIN_EMAIL_DOMAIN}` : '';
+  return coreSlug ? `pimpinan.${coreSlug}@${ADMIN_EMAIL_DOMAIN}` : '';
 };
 
 const generateRandomPassword = () => {
@@ -76,13 +76,13 @@ const generateRandomPassword = () => {
 const Create = () => {
   const navigate = useNavigate();
   
-  // Kanwils list state for dropdown
-  const [kanwils, setKanwils] = useState([]);
+  // Yayasans list state for dropdown
+  const [Yayasans, setYayasans] = useState([]);
 
   // Branch form state
   const [formData, setFormData] = useState({
     name: '',
-    kanwilId: '',
+    YayasanId: '',
     location: '',
     address: '',
     phone: '',
@@ -97,15 +97,15 @@ const Create = () => {
   });
 
   useEffect(() => {
-    const fetchKanwils = async () => {
+    const fetchYayasans = async () => {
       try {
-        const list = await getAllKanwilsForSuperadmin();
-        setKanwils(Array.isArray(list) ? list : []);
+        const list = await getAllYayasansForSuperadmin();
+        setYayasans(Array.isArray(list) ? list : []);
       } catch (err) {
-        console.log('[BranchCreate] Error fetching kanwils:', err);
+        console.log('[BranchCreate] Error fetching Yayasans:', err);
       }
     };
-    fetchKanwils();
+    fetchYayasans();
     handleAutoGeneratePassword();
   }, []);
 
@@ -173,8 +173,8 @@ const Create = () => {
       setErrorMsg('Nama cabang / UPT tidak boleh kosong.');
       return;
     }
-    if (kanwils.length > 0 && !formData.kanwilId) {
-      setErrorMsg('Kanwil Induk pengawas wajib dipilih.');
+    if (Yayasans.length > 0 && !formData.YayasanId) {
+      setErrorMsg('Yayasan Induk pengawas wajib dipilih.');
       return;
     }
     if (!formData.location.trim()) {
@@ -197,7 +197,7 @@ const Create = () => {
     }
 
     if (!adminPassword) {
-      setErrorMsg('Password akun Kepala UPT wajib diisi.');
+      setErrorMsg('Password akun Pimpinan Kampus wajib diisi.');
       return;
     }
     if (adminPassword.length < 8) {
@@ -282,9 +282,9 @@ const Create = () => {
             <Building2 className="w-8 h-8 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
-            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran UPT & Akun Kepala UPT</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran UPT & Akun Pimpinan Kampus</h2>
             <p className="text-blue-100 text-xs">
-              Daftarkan lapas atau rutan baru dan buatkan akun login untuk Kepala UPT
+              Daftarkan Pesantren atau Pesantren baru dan buatkan akun login untuk Pimpinan Kampus
             </p>
           </div>
         </div>
@@ -318,7 +318,7 @@ const Create = () => {
             {/* Nama UPT */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama UPT (Lapas / Rutan) <span className="text-rose-500">*</span>
+                Nama UPT (Kampus Pesantren) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -328,28 +328,28 @@ const Create = () => {
                   value={formData.name}
                   onChange={handleBranchNameChange}
                   required
-                  placeholder="Contoh: Lapas Kelas I Cipinang"
+                  placeholder="Contoh: Pesantren Kelas I Cipinang"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
             </div>
 
-            {/* Kanwil Induk */}
+            {/* Yayasan Induk */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Kanwil Induk {kanwils.length > 0 && <span className="text-rose-500">*</span>}
+                Yayasan Induk {Yayasans.length > 0 && <span className="text-rose-500">*</span>}
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
                 <select 
-                  name="kanwilId"
-                  value={formData.kanwilId}
-                  onChange={(e) => setFormData(prev => ({ ...prev, kanwilId: e.target.value }))}
-                  required={kanwils.length > 0}
+                  name="YayasanId"
+                  value={formData.YayasanId}
+                  onChange={(e) => setFormData(prev => ({ ...prev, YayasanId: e.target.value }))}
+                  required={Yayasans.length > 0}
                   className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs cursor-pointer"
                 >
-                  <option value="">-- Pilih Kanwil Induk --</option>
-                  {kanwils.map((k) => (
+                  <option value="">-- Pilih Yayasan Induk --</option>
+                  {Yayasans.map((k) => (
                     <option key={k.id} value={k.id}>
                       {k.name} {k.wilayah ? `(${k.wilayah})` : ''}
                     </option>
@@ -414,7 +414,7 @@ const Create = () => {
             {/* Kapasitas Maksimal */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Kapasitas Maksimal (Daya Tampung WBP) <span className="text-rose-500">*</span>
+                Kapasitas Maksimal (Daya Tampung Santri) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -564,7 +564,7 @@ const Create = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Kepala UPT (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Pimpinan Kampus (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -576,7 +576,7 @@ const Create = () => {
                   />
                 </div>
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Lapas (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Pesantren (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -600,7 +600,7 @@ const Create = () => {
                   />
                 </div>
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Vendor Sadewa (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Vendor SapaKita (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -616,7 +616,7 @@ const Create = () => {
           </div>
         </div>
 
-        {/* Section 4: Akun Kepala UPT */}
+        {/* Section 4: Akun Pimpinan Kampus */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -624,8 +624,8 @@ const Create = () => {
                 <Shield className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Akun Kepala UPT</h3>
-                <p className="text-[11px] text-slate-500">Akun ini dipakai Kepala UPT untuk login ke dashboard</p>
+                <h3 className="text-sm font-bold text-slate-800">Akun Pimpinan Kampus</h3>
+                <p className="text-[11px] text-slate-500">Akun ini dipakai Pimpinan Kampus untuk login ke dashboard</p>
               </div>
             </div>
             <button
@@ -639,10 +639,10 @@ const Create = () => {
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Nama Lengkap Kepala UPT */}
+            {/* Nama Lengkap Pimpinan Kampus */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama Lengkap Pejabat / Kepala UPT
+                Nama Lengkap Pejabat / Pimpinan Kampus
               </label>
               <div className="relative">
                 <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -686,7 +686,7 @@ const Create = () => {
                   value={adminEmail}
                   onChange={handleEmailChange}
                   required
-                  placeholder={`kepala.lapas-surakarta@${ADMIN_EMAIL_DOMAIN}`}
+                  placeholder={`pimpinan.Pesantren-surakarta@${ADMIN_EMAIL_DOMAIN}`}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
@@ -695,12 +695,12 @@ const Create = () => {
               </p>
             </div>
 
-            {/* Password Akun Kepala UPT (Dibuat Otomatis & Dapat Disesuaikan) */}
+            {/* Password Akun Pimpinan Kampus (Dibuat Otomatis & Dapat Disesuaikan) */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Password Akun Kepala UPT <span className="text-rose-500">*</span>
+                    Password Akun Pimpinan Kampus <span className="text-rose-500">*</span>
                   </label>
                   <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Rekomendasi Otomatis
@@ -785,7 +785,7 @@ const Create = () => {
             ) : (
               <>
                 <Plus className="w-3.5 h-3.5" />
-                <span>Daftarkan UPT & Akun Kepala UPT</span>
+                <span>Daftarkan UPT & Akun Pimpinan Kampus</span>
               </>
             )}
           </button>
@@ -811,7 +811,7 @@ const Create = () => {
                   <CheckCircle2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold">UPT dan Akun Kepala UPT Berhasil Dibuat</h3>
+                  <h3 className="text-base font-bold">UPT dan Akun Pimpinan Kampus Berhasil Dibuat</h3>
                   <p className="text-xs text-emerald-100 mt-0.5">{createdCredentials.branchName}</p>
                 </div>
               </div>
@@ -831,7 +831,7 @@ const Create = () => {
               <div className="space-y-3">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Login Kepala UPT</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Login Pimpinan Kampus</p>
                     <p className="text-xs font-bold text-slate-800 font-mono truncate mt-0.5">{createdCredentials.email}</p>
                   </div>
                   <button
@@ -882,3 +882,4 @@ const Create = () => {
 };
 
 export default Create;
+

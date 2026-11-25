@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -21,16 +21,16 @@ import {
   EyeOff
 } from 'lucide-react';
 import { 
-  getAllKanwilsForSuperadmin, 
+  getAllYayasansForSuperadmin, 
   getOfficialProvinces, 
-  saveKanwilFromSuperadmin, 
-  deleteKanwilFromSuperadmin 
-} from '../../services/kanwilService';
+  saveYayasanFromSuperadmin, 
+  deleteYayasanFromSuperadmin 
+} from '../../services/YayasanService';
 import { generateRandomPassword } from '../../services/userService';
 
 /**
- * Generator rekomendasi email administrator kanwil
- * Format: admin.[slug_wilayah]@sadewa.id
+ * Generator rekomendasi email administrator Yayasan
+ * Format: admin.[slug_wilayah]@sapakita.id
  */
 export const generateRecommendedEmail = (name, wilayah, code) => {
   const text = `${wilayah || ''} ${name || ''} ${code || ''}`.toLowerCase();
@@ -69,7 +69,7 @@ export const generateRecommendedEmail = (name, wilayah, code) => {
   else if (text.includes('nusa tenggara timur') || text.includes('ntt') || text.includes('kupang')) slug = 'ntt';
   else if (text.includes('papua')) slug = 'papua';
   else {
-    const stopwords = ['kantor', 'wilayah', 'kanwil', 'kemenkumham', 'pemasyarakatan', 'dinas', 'provinsi', 'admin', 'lapas', 'upt'];
+    const stopwords = ['kantor', 'wilayah', 'Yayasan', 'kemenkumham', 'pemasyarakatan', 'dinas', 'provinsi', 'admin', 'Pesantren', 'Kampus'];
     const rawWords = (name || wilayah || '')
       .toLowerCase()
       .replace(/[^a-z0-9\s]+/g, ' ')
@@ -77,41 +77,41 @@ export const generateRecommendedEmail = (name, wilayah, code) => {
       .filter((w) => w && !stopwords.includes(w));
     slug = rawWords.slice(0, 2).join('') || (code ? code.toLowerCase().replace(/[^a-z0-9]/g, '') : 'wilayah');
   }
-  return slug ? `admin.${slug}@sadewa.id` : '';
+  return slug ? `admin.${slug}@sapakita.id` : '';
 };
 
-export default function KanwilCreate() {
+export default function YayasanCreate() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams();
 
-  const passedKanwil = location.state?.kanwil;
-  const isEditing = Boolean(id || passedKanwil);
+  const passedYayasan = location.state?.Yayasan;
+  const isEditing = Boolean(id || passedYayasan);
 
-  const initialKanwilName = passedKanwil?.kanwilName || passedKanwil?.name || '';
-  const initialWilayah = passedKanwil?.wilayah || passedKanwil?.region || passedKanwil?.provinces?.[0] || '';
+  const initialYayasanName = passedYayasan?.YayasanName || passedYayasan?.name || '';
+  const initialWilayah = passedYayasan?.wilayah || passedYayasan?.region || passedYayasan?.provinces?.[0] || '';
   const hasExistingCustomEmail = Boolean(
-    passedKanwil?.adminEmail &&
-    passedKanwil.adminEmail !== 'superadmin@sadewa.id' &&
-    passedKanwil.adminEmail.trim() !== ''
+    passedYayasan?.adminEmail &&
+    passedYayasan.adminEmail !== 'superadmin@sapakita.id' &&
+    passedYayasan.adminEmail.trim() !== ''
   );
   const initialEmail = hasExistingCustomEmail
-    ? passedKanwil.adminEmail
-    : generateRecommendedEmail(initialKanwilName, initialWilayah, passedKanwil?.code);
+    ? passedYayasan.adminEmail
+    : generateRecommendedEmail(initialYayasanName, initialWilayah, passedYayasan?.code);
 
   const [provinces, setProvinces] = useState([]);
   const [isEmailManuallyEdited, setIsEmailManuallyEdited] = useState(hasExistingCustomEmail);
   const [formData, setFormData] = useState({
-    id: passedKanwil?.id || '',
-    code: passedKanwil?.code || '',
-    kanwilName: initialKanwilName,
+    id: passedYayasan?.id || '',
+    code: passedYayasan?.code || '',
+    YayasanName: initialYayasanName,
     wilayah: initialWilayah,
-    provinces: passedKanwil?.provinces || [],
-    status: passedKanwil?.status || 'Aktif',
+    provinces: passedYayasan?.provinces || [],
+    status: passedYayasan?.status || 'Aktif',
     adminEmail: initialEmail,
-    adminName: passedKanwil?.adminName || passedKanwil?.adminUser?.name || (initialKanwilName ? `Admin ${initialKanwilName}` : ''),
+    adminName: passedYayasan?.adminName || passedYayasan?.adminUser?.name || (initialYayasanName ? `Admin ${initialYayasanName}` : ''),
     adminPassword: generateRandomPassword(),
-    adminPhone: passedKanwil?.adminPhone || passedKanwil?.adminUser?.phone || '',
+    adminPhone: passedYayasan?.adminPhone || passedYayasan?.adminUser?.phone || '',
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -122,7 +122,7 @@ export default function KanwilCreate() {
   // Success Modal State
   const [createdCredentials, setCreatedCredentials] = useState(null);
 
-  // Delete Kanwil Modal State
+  // Delete Yayasan Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
@@ -133,8 +133,8 @@ export default function KanwilCreate() {
       .catch((err) => console.error('Gagal mengambil daftar provinsi:', err));
 
     if (!isEditing) {
-      // Inisialisasi kode Kanwil dan password acak
-      getAllKanwilsForSuperadmin()
+      // Inisialisasi kode Yayasan dan password acak
+      getAllYayasansForSuperadmin()
         .then((list) => {
           const nextCode = `KW-${(list.length + 1).toString().padStart(2, '0')}`;
           const initialPass = generateRandomPassword();
@@ -151,16 +151,16 @@ export default function KanwilCreate() {
             adminPassword: generateRandomPassword(),
           }));
         });
-    } else if (!passedKanwil && id) {
+    } else if (!passedYayasan && id) {
       // Jika reload saat mode edit tanpa passed state, cari datanya
-      getAllKanwilsForSuperadmin()
+      getAllYayasansForSuperadmin()
         .then((list) => {
           const found = list.find((k) => k.id === id || String(k.id) === String(id));
           if (found) {
-            const fName = found.kanwilName || found.name || '';
+            const fName = found.YayasanName || found.name || '';
             const fWilayah = found.wilayah || found.region || found.provinces?.[0] || '';
             const fExistingEmail = found.adminEmail || found.adminUser?.email || '';
-            const fHasCustomEmail = Boolean(fExistingEmail && fExistingEmail !== 'superadmin@sadewa.id');
+            const fHasCustomEmail = Boolean(fExistingEmail && fExistingEmail !== 'superadmin@sapakita.id');
             const fEmail = fHasCustomEmail
               ? fExistingEmail
               : generateRecommendedEmail(fName, fWilayah, found.code);
@@ -169,7 +169,7 @@ export default function KanwilCreate() {
             setFormData({
               id: found.id,
               code: found.code || '',
-              kanwilName: fName,
+              YayasanName: fName,
               wilayah: fWilayah,
               provinces: found.provinces || [],
               status: found.status || 'Aktif',
@@ -180,9 +180,9 @@ export default function KanwilCreate() {
             });
           }
         })
-        .catch((err) => console.error('Gagal mengambil data kanwil edit:', err));
+        .catch((err) => console.error('Gagal mengambil data Yayasan edit:', err));
     }
-  }, [id, isEditing, passedKanwil]);
+  }, [id, isEditing, passedYayasan]);
 
   const handleCopy = (text, fieldName) => {
     if (!text) return;
@@ -195,8 +195,8 @@ export default function KanwilCreate() {
     e.preventDefault();
     setErrorMsg('');
 
-    if (!formData.kanwilName.trim()) {
-      setErrorMsg('Nama Kantor Wilayah wajib diisi.');
+    if (!formData.YayasanName.trim()) {
+      setErrorMsg('Nama Yayasan Pesantren wajib diisi.');
       return;
     }
     if (formData.provinces.length === 0) {
@@ -214,27 +214,27 @@ export default function KanwilCreate() {
 
     setIsSubmitting(true);
     try {
-      const targetWilayah = formData.wilayah || formData.provinces[0] || formData.kanwilName || 'Indonesia';
+      const targetWilayah = formData.wilayah || formData.provinces[0] || formData.YayasanName || 'Indonesia';
       const effectivePassword = formData.adminPassword?.trim() || generateRandomPassword();
       const payload = {
         ...formData,
         wilayah: targetWilayah,
         adminPassword: effectivePassword,
       };
-      await saveKanwilFromSuperadmin(payload);
+      await saveYayasanFromSuperadmin(payload);
 
       setCreatedCredentials({
-        name: formData.kanwilName,
+        name: formData.YayasanName,
         code: formData.code,
         wilayah: targetWilayah,
         provinces: formData.provinces,
-        adminName: formData.adminName || `Admin ${formData.kanwilName}`,
+        adminName: formData.adminName || `Admin ${formData.YayasanName}`,
         email: formData.adminEmail,
         password: effectivePassword,
         isEdit: isEditing,
       });
     } catch (err) {
-      setErrorMsg(err.message || 'Gagal menyimpan data Kantor Wilayah.');
+      setErrorMsg(err.message || 'Gagal menyimpan data Yayasan Pesantren.');
     } finally {
       setIsSubmitting(false);
     }
@@ -247,19 +247,19 @@ export default function KanwilCreate() {
 
   const confirmDelete = async () => {
     if (!formData.id) {
-      setDeleteError('ID Kantor Wilayah tidak valid atau belum tersimpan.');
+      setDeleteError('ID Yayasan Pesantren tidak valid atau belum tersimpan.');
       return;
     }
     setIsDeleting(true);
     setDeleteError('');
     try {
-      await deleteKanwilFromSuperadmin(formData.id);
+      await deleteYayasanFromSuperadmin(formData.id);
       setIsDeleteModalOpen(false);
-      navigate('/kanwil-management', {
-        state: { successMessage: `Kantor Wilayah "${formData.kanwilName}" berhasil dihapus dari sistem.` }
+      navigate('/Yayasan-management', {
+        state: { successMessage: `Yayasan Pesantren "${formData.YayasanName}" berhasil dihapus dari sistem.` }
       });
     } catch (err) {
-      setDeleteError(err.message || 'Gagal menghapus Kantor Wilayah.');
+      setDeleteError(err.message || 'Gagal menghapus Yayasan Pesantren.');
     } finally {
       setIsDeleting(false);
     }
@@ -267,13 +267,13 @@ export default function KanwilCreate() {
 
   const handleCloseSuccessModal = () => {
     const isEdit = createdCredentials?.isEdit;
-    const name = createdCredentials?.name || formData.kanwilName;
+    const name = createdCredentials?.name || formData.YayasanName;
     setCreatedCredentials(null);
-    navigate('/kanwil-management', {
+    navigate('/Yayasan-management', {
       state: {
         successMessage: isEdit
           ? `Perubahan data & kredensial "${name}" berhasil disimpan.`
-          : `Kantor Wilayah "${name}" berhasil didaftarkan.`
+          : `Yayasan Pesantren "${name}" berhasil didaftarkan.`
       }
     });
   };
@@ -283,10 +283,10 @@ export default function KanwilCreate() {
       {/* Top Header & Breadcrumb Bar */}
       <div className="flex items-center justify-between">
         <Link 
-          to="/kanwil-management"
+          to="/Yayasan-management"
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Kelola Kanwil
+          <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Kelola Yayasan
         </Link>
       </div>
 
@@ -298,12 +298,12 @@ export default function KanwilCreate() {
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
             <h2 className="text-xl font-black text-white tracking-tight">
-              {isEditing ? 'Edit Data Kantor Wilayah' : 'Pendaftaran Kantor Wilayah Baru'}
+              {isEditing ? 'Edit Data Yayasan Pesantren' : 'Pendaftaran Yayasan Pesantren Baru'}
             </h2>
             <p className="text-blue-100 text-xs">
               {isEditing 
-                ? 'Perbarui data wilayah kerja koordinasi dan akun administrator Kantor Wilayah'
-                : 'Daftarkan Kantor Wilayah baru sebagai koordinator UPT dan buat kredensial akun administrator kanwil'}
+                ? 'Perbarui data wilayah kerja koordinasi dan akun administrator Yayasan Pesantren'
+                : 'Daftarkan Yayasan Pesantren baru sebagai koordinator Kampus dan buat kredensial akun administrator Yayasan'}
             </p>
           </div>
         </div>
@@ -320,24 +320,24 @@ export default function KanwilCreate() {
       {/* Main Form */}
       <form onSubmit={handleSubmit} autoComplete="off" className="space-y-5">
         
-        {/* Section 1: Informasi & Wilayah Kanwil */}
+        {/* Section 1: Informasi & Wilayah Yayasan */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
             <div className="p-2 rounded-xl bg-primary/10 text-primary">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Informasi & Wilayah Kanwil</h3>
-              <p className="text-[11px] text-slate-500">Nama kantor wilayah, kode wilayah resmi, dan cakupan provinsi kerja</p>
+              <h3 className="text-sm font-bold text-slate-800">Informasi & Wilayah Yayasan</h3>
+              <p className="text-[11px] text-slate-500">Nama Yayasan Pesantren, kode wilayah resmi, dan cakupan provinsi kerja</p>
             </div>
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Kode Kanwil & Nama Kanwil */}
+            {/* Kode Yayasan & Nama Yayasan */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Kode Kanwil <span className="text-rose-500">*</span>
+                  Kode Yayasan <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -353,18 +353,18 @@ export default function KanwilCreate() {
 
               <div className="sm:col-span-2 space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Nama Kantor Wilayah <span className="text-rose-500">*</span>
+                  Nama Yayasan Pesantren <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Kanwil Jawa Barat"
-                  value={formData.kanwilName}
+                  placeholder="Contoh: Yayasan Jawa Barat"
+                  value={formData.YayasanName}
                   onChange={(e) => {
                     const val = e.target.value;
-                    const next = { ...formData, kanwilName: val };
+                    const next = { ...formData, YayasanName: val };
                     const currentWilayah = formData.wilayah || formData.provinces[0] || val || '';
-                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sadewa.id' || formData.adminEmail.includes('@sadewa.id')) {
+                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sapakita.id' || formData.adminEmail.includes('@sapakita.id')) {
                       next.adminEmail = generateRecommendedEmail(val, currentWilayah, formData.code);
                       next.adminName = val ? `Admin ${val}` : '';
                     }
@@ -399,12 +399,12 @@ export default function KanwilCreate() {
                       provinces: nextProvinces,
                       wilayah: nextWilayah,
                     };
-                    if (!formData.kanwilName) {
-                      next.kanwilName = `Kanwil ${prov}`;
-                      next.adminName = `Admin Kanwil ${prov}`;
+                    if (!formData.YayasanName) {
+                      next.YayasanName = `Yayasan ${prov}`;
+                      next.adminName = `Admin Yayasan ${prov}`;
                     }
-                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sadewa.id' || formData.adminEmail.includes('@sadewa.id')) {
-                      next.adminEmail = generateRecommendedEmail(next.kanwilName || prov, prov, formData.code);
+                    if (!isEmailManuallyEdited || !formData.adminEmail || formData.adminEmail === 'superadmin@sapakita.id' || formData.adminEmail.includes('@sapakita.id')) {
+                      next.adminEmail = generateRecommendedEmail(next.YayasanName || prov, prov, formData.code);
                     }
                     setFormData(next);
                   }
@@ -420,7 +420,7 @@ export default function KanwilCreate() {
               </select>
 
               <p className="text-[11px] text-slate-400">
-                Pilih provinsi cakupan. Sistem akan otomatis menyelaraskan wilayah dan rekomendasi email administrator Kanwil.
+                Pilih provinsi cakupan. Sistem akan otomatis menyelaraskan wilayah dan rekomendasi email administrator Yayasan.
               </p>
 
               {/* Chip Badges */}
@@ -475,7 +475,7 @@ export default function KanwilCreate() {
               </div>
             </div>
             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
-              1 Kanwil = 1 Akun Administrator
+              1 Yayasan = 1 Akun Administrator
             </span>
           </div>
 
@@ -484,13 +484,13 @@ export default function KanwilCreate() {
               {/* Nama Administrator */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Nama Lengkap Administrator Kanwil
+                  Nama Lengkap Administrator Yayasan
                 </label>
                 <div className="relative">
                   <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
                     type="text"
-                    placeholder="Contoh: Admin Kanwil Jawa Barat"
+                    placeholder="Contoh: Admin Yayasan Jawa Barat"
                     value={formData.adminName}
                     onChange={(e) => setFormData({ ...formData, adminName: e.target.value })}
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
@@ -527,8 +527,8 @@ export default function KanwilCreate() {
                 <button
                   type="button"
                   onClick={() => {
-                    const currentWilayah = formData.provinces[0] || formData.wilayah || formData.kanwilName || '';
-                    const rec = generateRecommendedEmail(formData.kanwilName, currentWilayah, formData.code);
+                    const currentWilayah = formData.provinces[0] || formData.wilayah || formData.YayasanName || '';
+                    const rec = generateRecommendedEmail(formData.YayasanName, currentWilayah, formData.code);
                     if (rec) {
                       setFormData({ ...formData, adminEmail: rec });
                       setIsEmailManuallyEdited(false);
@@ -543,10 +543,10 @@ export default function KanwilCreate() {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type="email"
-                  name="kanwilAdminEmail"
+                  name="YayasanAdminEmail"
                   autoComplete="off"
                   required={!isEditing}
-                  placeholder="Contoh: admin.jateng@sadewa.id"
+                  placeholder="Contoh: admin.jateng@sapakita.id"
                   value={formData.adminEmail}
                   onChange={(e) => {
                     setFormData({ ...formData, adminEmail: e.target.value });
@@ -556,7 +556,7 @@ export default function KanwilCreate() {
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Format resmi: <span className="text-slate-600">admin.[wilayah]@sadewa.id</span>
+                Format resmi: <span className="text-slate-600">admin.[wilayah]@sapakita.id</span>
               </p>
             </div>
 
@@ -581,7 +581,7 @@ export default function KanwilCreate() {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  name="kanwilAdminPassword"
+                  name="YayasanAdminPassword"
                   autoComplete="new-password"
                   required={!isEditing}
                   placeholder={isEditing ? 'Kosongkan jika sandi tetap' : 'Minimal 8 karakter'}
@@ -611,10 +611,10 @@ export default function KanwilCreate() {
               </div>
             </div>
 
-            {/* Status Operasional Kanwil */}
+            {/* Status Operasional Yayasan */}
             <div className="space-y-1.5 pt-1">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Status Operasional Kanwil
+                Status Operasional Yayasan
               </label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <button
@@ -635,7 +635,7 @@ export default function KanwilCreate() {
                     <p className={`text-xs font-bold ${formData.status === 'Aktif' ? 'text-emerald-800' : 'text-slate-700'}`}>
                       Langsung Aktif
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Admin dapat login dan menaungi UPT binaan</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Admin dapat login dan menaungi Kampus binaan</p>
                   </div>
                 </button>
 
@@ -669,14 +669,14 @@ export default function KanwilCreate() {
               <div className="space-y-0.5">
                 <p className="font-bold text-amber-900">Pemberitahuan Keamanan & Kredensial</p>
                 <p className="text-[11px] text-amber-700 leading-relaxed">
-                  Setelah disimpan, sistem akan menampilkan dialog kredensial yang dapat Anda salin langsung untuk diberikan kepada administrator Kantor Wilayah.
+                  Setelah disimpan, sistem akan menampilkan dialog kredensial yang dapat Anda salin langsung untuk diberikan kepada administrator Yayasan Pesantren.
                 </p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Zona Berbahaya: Hapus Kanwil (Khusus Mode Edit) */}
+        {/* Zona Berbahaya: Hapus Yayasan (Khusus Mode Edit) */}
         {isEditing && (
           <div className="bg-white rounded-2xl shadow-sm border border-rose-200/80 p-5 sm:p-6 space-y-4">
             <div className="flex items-start gap-3.5">
@@ -684,9 +684,9 @@ export default function KanwilCreate() {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-slate-800">Zona Berbahaya: Hapus Kantor Wilayah</h3>
+                <h3 className="text-sm font-bold text-slate-800">Zona Berbahaya: Hapus Yayasan Pesantren</h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Menghapus Kantor Wilayah bersifat permanen. Sesuai regulasi sistem, Kantor Wilayah hanya dapat dihapus apabila sudah tidak memiliki UPT binaan dan tidak ada akun admin kanwil terdaftar.
+                  Menghapus Yayasan Pesantren bersifat permanen. Sesuai regulasi sistem, Yayasan Pesantren hanya dapat dihapus apabila sudah tidak memiliki Kampus binaan dan tidak ada akun Admin Yayasan terdaftar.
                 </p>
               </div>
             </div>
@@ -694,7 +694,7 @@ export default function KanwilCreate() {
             <div className="pt-3 border-t border-rose-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="text-[11px] text-rose-600 font-medium flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0" />
-                <span>Pastikan cabang UPT binaan telah dipindahkan atau dikosongkan sebelum menghapus.</span>
+                <span>Pastikan cabang Kampus binaan telah dipindahkan atau dikosongkan sebelum menghapus.</span>
               </div>
               <button
                 type="button"
@@ -702,7 +702,7 @@ export default function KanwilCreate() {
                 className="px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-800 border border-rose-200 text-xs font-bold transition-all shadow-2xs hover:shadow-xs flex items-center justify-center gap-2 cursor-pointer self-end sm:self-auto"
               >
                 <Trash2 className="w-4 h-4 text-rose-600" />
-                <span>Hapus Kantor Wilayah</span>
+                <span>Hapus Yayasan Pesantren</span>
               </button>
             </div>
           </div>
@@ -716,13 +716,13 @@ export default function KanwilCreate() {
               onClick={handleDeleteClick}
               className="px-5 py-2.5 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50 hover:border-rose-300 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs"
             >
-              <Trash2 className="w-4 h-4" /> Hapus Kanwil
+              <Trash2 className="w-4 h-4" /> Hapus Yayasan
             </button>
           ) : <div />}
 
           <div className="flex items-center justify-end gap-3">
             <Link
-              to="/kanwil-management"
+              to="/Yayasan-management"
               className="px-5 py-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold transition-all text-center cursor-pointer"
             >
               Batal
@@ -740,7 +740,7 @@ export default function KanwilCreate() {
               ) : (
                 <>
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{isEditing ? 'Simpan Perubahan Kanwil' : 'Simpan Kantor Wilayah Baru'}</span>
+                  <span>{isEditing ? 'Simpan Perubahan Yayasan' : 'Simpan Yayasan Pesantren Baru'}</span>
                 </>
               )}
             </button>
@@ -749,7 +749,7 @@ export default function KanwilCreate() {
       </form>
 
       {/* ================================================================
-          SUCCESS MODAL: KREDENSIAL KANWIL BERHASIL DIBUAT
+          SUCCESS MODAL: KREDENSIAL Yayasan BERHASIL DIBUAT
           ================================================================ */}
       {createdCredentials && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
@@ -761,20 +761,20 @@ export default function KanwilCreate() {
               </div>
               <h3 className="text-lg font-black text-slate-900 tracking-tight">
                 {createdCredentials.isEdit 
-                  ? 'Kredensial Akun Administrator Kanwil Berhasil Diperbarui!' 
-                  : 'Kantor Wilayah & Akun Admin Berhasil Didaftarkan!'}
+                  ? 'Kredensial Akun Administrator Yayasan Berhasil Diperbarui!' 
+                  : 'Yayasan Pesantren & Akun Admin Berhasil Didaftarkan!'}
               </h3>
               <p className="text-xs text-slate-500">
                 {createdCredentials.isEdit
-                  ? 'Kredensial login administrator kantor wilayah telah diperbarui. Salin dan berikan kredensial login berikut kepada admin kanwil.'
-                  : 'Salin dan berikan kredensial login berikut kepada administrator kantor wilayah yang bersangkutan.'}
+                  ? 'Kredensial login administrator Yayasan Pesantren telah diperbarui. Salin dan berikan kredensial login berikut kepada Admin Yayasan.'
+                  : 'Salin dan berikan kredensial login berikut kepada administrator Yayasan Pesantren yang bersangkutan.'}
               </p>
             </div>
 
             {/* Credentials Card */}
             <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Kantor Wilayah</span>
+                <span className="text-slate-500 font-medium">Yayasan Pesantren</span>
                 <span className="font-bold text-slate-800">{createdCredentials.name} ({createdCredentials.code})</span>
               </div>
 
@@ -830,7 +830,7 @@ export default function KanwilCreate() {
               <button
                 type="button"
                 onClick={() => {
-                  const fullText = `*Kredensial Akun Administrator Kanwil Sadewa*\nKantor Wilayah: ${createdCredentials.name} (${createdCredentials.code})\nWilayah: ${createdCredentials.wilayah}\nProvinsi: ${(createdCredentials.provinces || []).join(', ')}\nNama Admin: ${createdCredentials.adminName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\n\nSilakan login di portal Sadewa.`;
+                  const fullText = `*Kredensial Akun Administrator Yayasan SapaKita*\nYayasan Pesantren: ${createdCredentials.name} (${createdCredentials.code})\nWilayah: ${createdCredentials.wilayah}\nProvinsi: ${(createdCredentials.provinces || []).join(', ')}\nNama Admin: ${createdCredentials.adminName}\nEmail: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\n\nSilakan login di portal SapaKita.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
@@ -853,7 +853,7 @@ export default function KanwilCreate() {
                 onClick={handleCloseSuccessModal}
                 className="w-full py-2.5 bg-primary hover:bg-primary-dark text-white font-bold text-xs rounded-xl transition shadow-md cursor-pointer"
               >
-                Selesai & Lihat Daftar Kanwil
+                Selesai & Lihat Daftar Yayasan
               </button>
             </div>
           </div>
@@ -861,7 +861,7 @@ export default function KanwilCreate() {
       )}
 
       {/* ================================================================
-          MODAL: KONFIRMASI HAPUS KANTOR WILAYAH
+          MODAL: KONFIRMASI HAPUS Yayasan Pesantren
           ================================================================ */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
@@ -871,7 +871,7 @@ export default function KanwilCreate() {
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Kantor Wilayah</h3>
+                <h3 className="text-sm font-bold text-slate-800">Konfirmasi Hapus Yayasan Pesantren</h3>
                 <p className="text-[11px] text-slate-400">Tindakan ini permanen dan tidak dapat dibatalkan</p>
               </div>
             </div>
@@ -888,10 +888,10 @@ export default function KanwilCreate() {
 
             <div className="p-3.5 bg-rose-50/70 border border-rose-100 rounded-xl text-xs text-rose-800 space-y-2">
               <p className="font-bold">
-                Apakah Anda yakin ingin menghapus <span className="underline">{formData.kanwilName || 'Kantor Wilayah ini'}</span> {formData.code ? `(${formData.code})` : ''}?
+                Apakah Anda yakin ingin menghapus <span className="underline">{formData.YayasanName || 'Yayasan Pesantren ini'}</span> {formData.code ? `(${formData.code})` : ''}?
               </p>
               <p className="text-[11px] text-rose-600 leading-relaxed">
-                Peringatan: Kantor Wilayah hanya diperbolehkan dihapus jika sudah tidak memiliki UPT binaan dan akun admin terdaftar.
+                Peringatan: Yayasan Pesantren hanya diperbolehkan dihapus jika sudah tidak memiliki Kampus binaan dan akun admin terdaftar.
               </p>
             </div>
 
@@ -921,7 +921,7 @@ export default function KanwilCreate() {
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    <span>Ya, Hapus Kantor Wilayah</span>
+                    <span>Ya, Hapus Yayasan Pesantren</span>
                   </>
                 )}
               </button>
@@ -932,3 +932,4 @@ export default function KanwilCreate() {
     </div>
   );
 }
+

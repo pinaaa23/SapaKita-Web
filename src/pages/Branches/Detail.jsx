@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -53,14 +53,14 @@ const Detail = () => {
     setIsLoading(true);
     try {
       const b = await getBranchById(id);
-      if (b && !b.kanwil && !b.kanwilName) {
+      if (b && !b.Yayasan && !b.YayasanName) {
         try {
           const kRes = await apiFetch('/api/kanwil');
-          const kanwils = kRes?.data || [];
-          for (const k of kanwils) {
+          const Yayasans = kRes?.data || [];
+          for (const k of Yayasans) {
             if (Array.isArray(k.branches) && k.branches.some((br) => (br.id || br) === b.id || (br.name && br.name === b.name))) {
-              b.kanwil = k;
-              b.kanwilName = k.name;
+              b.Yayasan = k;
+              b.YayasanName = k.name;
               break;
             }
           }
@@ -281,7 +281,7 @@ const Detail = () => {
               <span className="text-slate-300">•</span>
               <span className="flex items-center gap-1.5 font-medium text-slate-700">
                 <Landmark className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span>{branch.kanwil?.name || branch.kanwilName || 'Belum Terhubung ke Kanwil'}</span>
+                <span>{branch.Yayasan?.name || branch.YayasanName || 'Belum Terhubung ke Yayasan'}</span>
               </span>
               <span className="text-slate-300">•</span>
               <span>ID: {String(branch.id).toUpperCase()}</span>
@@ -392,8 +392,8 @@ const Detail = () => {
               <div className="h-full bg-emerald-500 rounded-full w-full"></div>
             </div>
             <div className="flex justify-between items-center text-[11px] font-medium text-slate-500 mt-1.5">
-              <span>{branchTransactions.length} Transaksi Kantin</span>
-              <span className="text-emerald-700 font-bold">100% Kas Kantin UPT</span>
+              <span>{branchTransactions.length} Transaksi Kopontren</span>
+              <span className="text-emerald-700 font-bold">100% Kas Kopontren UPT</span>
             </div>
           </div>
         </div>
@@ -423,7 +423,7 @@ const Detail = () => {
               ></div>
             </div>
             <div className="flex justify-between items-center text-[11px] font-medium text-slate-500 mt-1.5">
-              <span>{new Intl.NumberFormat('id-ID').format(branch.inmateCount)} WBP Aktif</span>
+              <span>{new Intl.NumberFormat('id-ID').format(branch.inmateCount)} Santri Aktif</span>
               <span>Kapasitas: {new Intl.NumberFormat('id-ID').format(branch.capacity)}</span>
             </div>
           </div>
@@ -462,21 +462,21 @@ const Detail = () => {
 
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Landmark className="w-3.5 h-3.5 text-slate-400" /> Kantor Wilayah (Kanwil)
+                  <Landmark className="w-3.5 h-3.5 text-slate-400" /> Kantor Wilayah (Yayasan)
                 </p>
-                {branch.kanwil?.name || branch.kanwilName ? (
+                {branch.Yayasan?.name || branch.YayasanName ? (
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-xs bg-blue-50 text-blue-700 border border-blue-200">
                       <Landmark className="w-3.5 h-3.5 text-blue-600" />
-                      {branch.kanwil?.name || branch.kanwilName}
+                      {branch.Yayasan?.name || branch.YayasanName}
                     </span>
-                    {branch.kanwil?.region && (
-                      <span className="text-[11px] text-slate-500 font-medium">({branch.kanwil.region})</span>
+                    {branch.Yayasan?.region && (
+                      <span className="text-[11px] text-slate-500 font-medium">({branch.Yayasan.region})</span>
                     )}
                   </div>
                 ) : (
                   <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                    Belum Ditetapkan ke Kanwil
+                    Belum Ditetapkan ke Yayasan
                   </span>
                 )}
               </div>
@@ -495,10 +495,10 @@ const Detail = () => {
                 <p className="text-slate-800 font-bold">{branch.phone || '-'}</p>
               </div>
 
-              {/* Email Kepala UPT */}
+              {/* Email Pimpinan Kampus */}
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Kepala UPT
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Pimpinan Kampus
                 </p>
                 <p className="text-slate-800 font-mono font-bold text-xs">
                   {adminEmailDisplay || 'Belum diatur'}
@@ -507,7 +507,7 @@ const Detail = () => {
 
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" /> Status Operasional Sadewa
+                  <ShieldCheck className="w-3.5 h-3.5 text-slate-400" /> Status Operasional SapaKita
                 </p>
                 <div className="flex items-center gap-2">
                   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-bold text-[11px] ${
@@ -532,7 +532,7 @@ const Detail = () => {
 
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-400" /> Jumlah WBP Terdaftar
+                  <Users className="w-3.5 h-3.5 text-slate-400" /> Jumlah Santri Terdaftar
                 </p>
                 <p className="text-slate-800 font-bold text-sm">
                   {new Intl.NumberFormat('id-ID').format(branch.inmateCount)} <span className="text-slate-500 font-normal text-xs">Orang</span>
@@ -561,11 +561,11 @@ const Detail = () => {
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Kepala UPT</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Pimpinan Kampus</span>
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKepalaUptPercent || 5}%</span>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Koperasi Lapas</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Koperasi Pesantren</span>
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKoperasiPercent || 30}%</span>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
@@ -573,7 +573,7 @@ const Detail = () => {
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareInkopasindoPercent || 10}%</span>
                   </div>
                   <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Vendor Sadewa</span>
+                    <span className="text-[10px] text-slate-400 block font-medium">Vendor SapaKita</span>
                     <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareVendorPercent || 55}%</span>
                   </div>
                 </div>
@@ -733,3 +733,5 @@ const Detail = () => {
 };
 
 export default Detail;
+
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -228,7 +228,7 @@ const Edit = () => {
             <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-blue-100 font-medium">
               <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
                 <Users className="w-3.5 h-3.5 text-blue-300" />
-                <span>Terisi: <strong className="text-white">{new Intl.NumberFormat('id-ID').format(initialBranch?.inmateCount || 0)} WBP</strong></span>
+                <span>Terisi: <strong className="text-white">{new Intl.NumberFormat('id-ID').format(initialBranch?.inmateCount || 0)} Santri</strong></span>
               </div>
               <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
                 <ShieldCheck className="w-3.5 h-3.5 text-blue-300" />
@@ -266,7 +266,7 @@ const Edit = () => {
             {/* Nama Cabang */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama Cabang (Lapas / Rutan) <span className="text-rose-500">*</span>
+                Nama Cabang (Kampus Pesantren) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -276,7 +276,7 @@ const Edit = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Lapas Kelas I Cipinang"
+                  placeholder="Contoh: Pesantren Kelas I Cipinang"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
@@ -337,7 +337,7 @@ const Edit = () => {
             {/* Kapasitas Maksimal */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Kapasitas Maksimal (Daya Tampung WBP) <span className="text-rose-500">*</span>
+                Kapasitas Maksimal (Daya Tampung Santri) <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -487,7 +487,7 @@ const Edit = () => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Kepala UPT (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Pimpinan Kampus (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -499,7 +499,7 @@ const Edit = () => {
                   />
                 </div>
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Lapas (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Pesantren (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -523,7 +523,7 @@ const Edit = () => {
                   />
                 </div>
                 <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Vendor Sadewa (%)</label>
+                  <label className="block text-[11px] font-bold text-slate-700">Vendor SapaKita (%)</label>
                   <input
                     type="number"
                     min="0"
@@ -573,4 +573,5 @@ const Edit = () => {
 };
 
 export default Edit;
+
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Download, 
   Calendar, 
@@ -27,13 +27,13 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { getKanwilReportSummary } from '../../services/kanwilService';
+import { getYayasanReportSummary } from '../../services/YayasanService';
 import { exportToExcel } from '../../utils/exportUtils';
 
-export default function KanwilReports() {
+export default function YayasanReports() {
   const { user } = useAuth();
-  const kanwilId = user?.kanwilId || user?.kanwil?.id;
-  const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+  const YayasanId = user?.YayasanId || user?.Yayasan?.id;
+  const YayasanName = user?.YayasanName || user?.Yayasan?.name || 'Yayasan Pesantren';
 
   const [periodFilter, setPeriodFilter] = useState('30days');
   const [toastMessage, setToastMessage] = useState({ text: '', type: '' });
@@ -49,7 +49,7 @@ export default function KanwilReports() {
     revenueGrowth: null,
     callsGrowth: null,
     successRateGrowth: null,
-    uptBreakdown: [],
+    KampusBreakdown: [],
   });
 
   const showToast = (text, type = 'info') => {
@@ -60,15 +60,15 @@ export default function KanwilReports() {
   const loadReport = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await getKanwilReportSummary(kanwilId, periodFilter);
+      const data = await getYayasanReportSummary(YayasanId, periodFilter);
       setReportData(data);
     } catch (err) {
-      console.error('Error loading kanwil report:', err);
+      console.error('Error loading Yayasan report:', err);
       showToast('Gagal memuat data laporan wilayah.', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [kanwilId, periodFilter]);
+  }, [YayasanId, periodFilter]);
 
   useEffect(() => {
     loadReport();
@@ -124,27 +124,27 @@ export default function KanwilReports() {
         });
       }
 
-      // 3. Breakdown Kinerja UPT
-      if (Array.isArray(reportData.uptBreakdown) && reportData.uptBreakdown.length > 0) {
-        reportData.uptBreakdown.forEach((u) => {
+      // 3. Breakdown Kinerja Kampus
+      if (Array.isArray(reportData.KampusBreakdown) && reportData.KampusBreakdown.length > 0) {
+        reportData.KampusBreakdown.forEach((u) => {
           rows.push({
-            Kategori: 'PERFORMA UPT',
+            Kategori: 'PERFORMA Kampus',
             Keterangan: u.name,
-            Nilai: `Kota: ${u.city} | WBP: ${u.inmateCount} / ${u.capacity} | Status: ${u.status}`,
+            Nilai: `Kota: ${u.city} | Santri: ${u.inmateCount} / ${u.capacity} | Status: ${u.status}`,
             Periode: periodLabel,
           });
         });
       }
 
-      const filename = `Laporan_Analitik_${kanwilName.replace(/\s+/g, '_')}_${periodFilter}.xlsx`;
+      const filename = `Laporan_Analitik_${YayasanName.replace(/\s+/g, '_')}_${periodFilter}.xlsx`;
       const success = exportToExcel(rows, filename, 'Laporan Wilayah', {
-        title: `LAPORAN ANALITIK KINERJA KOMUNIKASI - ${kanwilName.toUpperCase()}`,
-        subtitle: `Laporan Konsolidasi Seluruh UPT Pemasyarakatan di ${kanwilName}`,
+        title: `LAPORAN ANALITIK KINERJA KOMUNIKASI - ${YayasanName.toUpperCase()}`,
+        subtitle: `Laporan Konsolidasi Seluruh Kampus Pemasyarakatan di ${YayasanName}`,
         metadata: {
-          'Tingkat': 'Kantor Wilayah',
-          'Wilayah': kanwilName,
+          'Tingkat': 'Yayasan Pesantren',
+          'Wilayah': YayasanName,
           'Periode Laporan': periodLabel,
-          'Dicetak Oleh': `${user?.name || 'Admin Kanwil'} (Admin Kanwil)`,
+          'Dicetak Oleh': `${user?.name || 'Admin Yayasan'} (Admin Yayasan)`,
           'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         },
         summaryMetrics: [
@@ -192,7 +192,7 @@ export default function KanwilReports() {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h2 className="text-sm font-bold text-slate-800">Filter Analitik Wilayah</h2>
-            <p className="text-[11px] text-slate-400 font-medium">Pilih rentang waktu evaluasi performa seluruh UPT di {kanwilName}</p>
+            <p className="text-[11px] text-slate-400 font-medium">Pilih rentang waktu evaluasi performa seluruh Kampus di {YayasanName}</p>
           </div>
 
           <div className="flex items-center gap-2.5 w-full sm:w-auto self-end">
@@ -288,7 +288,7 @@ export default function KanwilReports() {
               {isLoading ? '...' : `${Math.floor((reportData.avgCallDurationSeconds || 0) / 60)}m ${(reportData.avgCallDurationSeconds || 0) % 60}s`}
             </p>
             <span className="text-[11px] text-slate-400 mt-1.5 inline-block">
-              Per sesi panggilan WBP
+              Per sesi panggilan Santri
             </span>
           </div>
         </div>
@@ -377,15 +377,15 @@ export default function KanwilReports() {
         </div>
       </div>
 
-      {/* Breakdown Kinerja UPT */}
+      {/* Breakdown Kinerja Kampus */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Performa & Keterisian UPT</h3>
-            <p className="text-[11px] text-slate-400">Distribusi operasional pada UPT di bawah {kanwilName}</p>
+            <h3 className="text-sm font-bold text-slate-800">Performa & Keterisian Kampus</h3>
+            <p className="text-[11px] text-slate-400">Distribusi operasional pada Kampus di bawah {YayasanName}</p>
           </div>
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-primary border border-blue-100">
-            {reportData.uptBreakdown?.length || 0} UPT Terdaftar
+            {reportData.KampusBreakdown?.length || 0} Kampus Terdaftar
           </span>
         </div>
 
@@ -393,28 +393,28 @@ export default function KanwilReports() {
           <table className="w-full text-left border-collapse min-w-[650px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3 px-4 text-left">Nama UPT</th>
+                <th className="py-3 px-4 text-left">Nama Kampus</th>
                 <th className="py-3 px-4 text-left">Kota / Wilayah</th>
-                <th className="py-3 px-4 text-left">Hunian WBP</th>
+                <th className="py-3 px-4 text-left">Hunian Santri</th>
                 <th className="py-3 px-4 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
-              {reportData.uptBreakdown && reportData.uptBreakdown.length > 0 ? (
-                reportData.uptBreakdown.map((upt, idx) => {
-                  const isAktif = upt.status === 'Aktif' || upt.status === 'Active';
+              {reportData.KampusBreakdown && reportData.KampusBreakdown.length > 0 ? (
+                reportData.KampusBreakdown.map((Kampus, idx) => {
+                  const isAktif = Kampus.status === 'Aktif' || Kampus.status === 'Active';
                   return (
                     <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
                       <td className="py-3 px-4 font-bold text-slate-800 flex items-center gap-2.5">
                         <div className="w-7 h-7 rounded-lg bg-blue-50 text-primary flex items-center justify-center font-bold">
                           <Building2 className="w-3.5 h-3.5" />
                         </div>
-                        <span>{upt.name}</span>
+                        <span>{Kampus.name}</span>
                       </td>
-                      <td className="py-3 px-4 text-slate-600 font-medium">{upt.city}</td>
+                      <td className="py-3 px-4 text-slate-600 font-medium">{Kampus.city}</td>
                       <td className="py-3 px-4 text-slate-700">
-                        <span className="font-extrabold text-slate-800">{upt.inmateCount}</span>
-                        <span className="text-slate-400 text-[11px] ml-1">/ {upt.capacity} Kapasitas</span>
+                        <span className="font-extrabold text-slate-800">{Kampus.inmateCount}</span>
+                        <span className="text-slate-400 text-[11px] ml-1">/ {Kampus.capacity} Kapasitas</span>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold ${
@@ -431,7 +431,7 @@ export default function KanwilReports() {
               ) : (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
-                    Tidak ada data performa UPT.
+                    Tidak ada data performa Kampus.
                   </td>
                 </tr>
               )}
@@ -442,3 +442,4 @@ export default function KanwilReports() {
     </div>
   );
 }
+

@@ -27,29 +27,17 @@
 import { apiFetch } from './api';
 import { generateRandomPassword } from './userService';
 
-const FINANCE_ACCOUNTS_STORAGE_KEY = 'pascall_finance_accounts_local_v1';
+const FINANCE_ACCOUNTS_STORAGE_KEY = 'sapakita_finance_accounts_local_v1';
 
-// Akun bawaan (sinkron dengan seed backend: finance@sadewa.id & inkopasindo@sadewa.id)
+// Akun bawaan Finance Platform
 const DEFAULT_ACCOUNTS = [
   {
     id: '88ba2074-df28-4ed2-a032-4a2c87c36f88',
-    name: 'Dewi Lestari (Finance)',
-    email: 'finance@sadewa.id',
+    name: 'Dewi Lestari (Finance Platform)',
+    email: 'finance@sapakita.id',
     phone: '081298765432',
     role: 'finance',
-    roleLabel: 'Admin Finance',
-    isActive: true,
-    status: 'Aktif',
-    createdAt: '2026-10-27T11:36:42.512Z',
-    isLocalMock: false,
-  },
-  {
-    id: '1328a05e-21f8-4e11-a3a7-7e5d7c9ddff7',
-    name: 'Inkopasindo Administrator',
-    email: 'inkopasindo@sadewa.id',
-    phone: '081399887766',
-    role: 'inkopasindo',
-    roleLabel: 'Inkopasindo',
+    roleLabel: 'Admin Finance Platform',
     isActive: true,
     status: 'Aktif',
     createdAt: '2026-10-27T11:36:42.512Z',

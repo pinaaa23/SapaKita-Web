@@ -34,21 +34,18 @@ const ProtectedRoute = ({ allowedRoles, children }) => {
         return <Navigate to="/kanwil/dashboard" replace />;
       }
       if (currentRole === ROLES.OPERATOR_KANTIN) {
-        return <Navigate to="/kantin" replace />;
+        return <Navigate to="/kopontren" replace />;
       }
       if (currentRole === ROLES.KEPALA_UPT || currentRole === ROLES.SUPERVISOR) {
         return <Navigate to="/branch/dashboard" replace />;
-      }
-      if (currentRole === ROLES.INKOPASINDO) {
-        return <Navigate to="/inkopasindo/dashboard" replace />;
       }
       return <Navigate to="/login" replace />;
     }
   }
 
-  // Operator Kantin mengakses layout admin utama: arahkan ke /kantin
+  // Operator Kopontren mengakses layout admin utama: arahkan ke /kopontren
   if (currentRole === ROLES.OPERATOR_KANTIN) {
-    return <Navigate to="/kantin" replace />;
+    return <Navigate to="/kopontren" replace />;
   }
 
   return children ? children : <Outlet />;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Volume2, 
@@ -21,8 +21,8 @@ import {
   ChevronRight,
   Download
 } from 'lucide-react';
-import { getKanwilCalls, getCallHistory } from '../../services/callService';
-import { getKanwilBranches } from '../../services/kanwilService';
+import { getYayasanCalls, getCallHistory } from '../../services/callService';
+import { getYayasanBranches } from '../../services/YayasanService';
 import { USE_MOCK_SUPERADMIN } from '../../services/mockStorage';
 import AudioPlayerPanel from '../../components/branch/AudioPlayerPanel';
 import { useAuth } from '../../context/AuthContext';
@@ -31,13 +31,13 @@ import { CallChannelBadge } from '../../utils/callChannel';
 import { CallStatusBadge, normalizeCallStatus } from '../../utils/callStatus';
 import CallChannelSummaryCards from '../../components/CallChannelSummaryCards';
 
-export default function KanwilCalls() {
+export default function YayasanCalls() {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
 
-  const kanwilId = user?.kanwilId || user?.kanwil?.id;
-  const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+  const YayasanId = user?.YayasanId || user?.Yayasan?.id;
+  const YayasanName = user?.YayasanName || user?.Yayasan?.name || 'Yayasan Pesantren';
 
   const [activeTab, setActiveTab] = useState('voice'); // 'voice' | 'video'
   const [searchInput, setSearchInput] = useState('');
@@ -65,13 +65,13 @@ export default function KanwilCalls() {
   const [selectedRecording, setSelectedRecording] = useState(null);
   const [transcriptModalCall, setTranscriptModalCall] = useState(null);
 
-  // 1. Ambil daftar UPT yang berada di bawah Kanwil ini
+  // 1. Ambil daftar Kampus yang berada di bawah Yayasan ini
   useEffect(() => {
     let isMounted = true;
     const fetchBranches = async () => {
       setIsLoadingBranches(true);
       try {
-        const res = await getKanwilBranches(kanwilId, { limit: 200 });
+        const res = await getYayasanBranches(YayasanId, { limit: 200 });
         const list = res.items || [];
         if (isMounted) {
           setBranches(list);
@@ -82,14 +82,14 @@ export default function KanwilCalls() {
           setBranchMap(map);
         }
       } catch (err) {
-        console.error('[KanwilCalls] Gagal memuat daftar UPT Kanwil:', err);
+        console.error('[YayasanCalls] Gagal memuat daftar Kampus Yayasan:', err);
       } finally {
         if (isMounted) setIsLoadingBranches(false);
       }
     };
     fetchBranches();
     return () => { isMounted = false; };
-  }, [kanwilId]);
+  }, [YayasanId]);
 
   // Debounce Search input 400ms
   useEffect(() => {
@@ -100,12 +100,12 @@ export default function KanwilCalls() {
     return () => clearTimeout(handler);
   }, [searchInput]);
 
-  // 2. Fetch call history dari endpoint resmi Kanwil /api/kanwil/calls
+  // 2. Fetch call history dari endpoint resmi Yayasan /api/Yayasan/calls
   const fetchCalls = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await getKanwilCalls({
+      const res = await getYayasanCalls({
         search: debouncedSearch,
         status: statusFilter,
         callType: activeTab,
@@ -117,16 +117,16 @@ export default function KanwilCalls() {
         limit: 50,
       });
 
-      // Batasi hanya UPT yang berada di bawah Kanwil ini jika daftar UPT sudah tersedia
-      const kanwilBranchIds = new Set(branches.map(b => b.id));
+      // Batasi hanya Kampus yang berada di bawah Yayasan ini jika daftar Kampus sudah tersedia
+      const YayasanBranchIds = new Set(branches.map(b => b.id));
       let items = res.items || [];
 
-      if (kanwilBranchIds.size > 0) {
+      if (YayasanBranchIds.size > 0) {
         items = items.filter(item => {
           const itemBranchId = item.branch?.id || item.branchId;
           const itemBranchName = item.branch?.name || item.branchName;
           if (!itemBranchId) return true;
-          return kanwilBranchIds.has(itemBranchId) || branches.some(b => b.name === itemBranchName);
+          return YayasanBranchIds.has(itemBranchId) || branches.some(b => b.name === itemBranchName);
         });
       }
 
@@ -142,11 +142,11 @@ export default function KanwilCalls() {
         return;
       }
       if (err?.status === 403) {
-        setError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Kanwil tidak memiliki izin mutasi data.');
+        setError(err?.data?.message || err?.message || 'Akses hanya lihat: Admin Yayasan tidak memiliki izin mutasi data.');
         setCallsData({ items: [], total: 0, totalPages: 1 });
         return;
       }
-      console.error('[KanwilCalls] Gagal memuat daftar rekaman:', err);
+      console.error('[YayasanCalls] Gagal memuat daftar rekaman:', err);
       setError('Gagal memuat data panggilan');
       setCallsData({ items: [], total: 0, totalPages: 1 });
     } finally {
@@ -180,11 +180,11 @@ export default function KanwilCalls() {
     setPage(1);
   };
 
-  // Client-side filtering terhadap jalur panggilan (Web / GSM), UPT, dan pencarian nama UPT
+  // Client-side filtering terhadap jalur panggilan (Web / GSM), Kampus, dan pencarian nama Kampus
   const filteredCalls = useMemo(() => {
     let list = callsData.items || [];
 
-    // Filter UPT
+    // Filter Kampus
     if (branchFilter !== 'All') {
       list = list.filter(c => {
         const cBranchId = c.branch?.id || c.branchId;
@@ -206,14 +206,14 @@ export default function KanwilCalls() {
       list = list.filter(c => c.channel === channelFilter);
     }
 
-    // Pencarian juga mencakup nama UPT
+    // Pencarian juga mencakup nama Kampus
     if (debouncedSearch.trim()) {
       const q = debouncedSearch.toLowerCase().trim();
       list = list.filter(c => {
         const inmateMatch = c.inmateName?.toLowerCase().includes(q) || c.inmateId?.toLowerCase().includes(q);
         const familyMatch = c.familyName?.toLowerCase().includes(q) || c.familyPhone?.toLowerCase().includes(q);
-        const uptMatch = (c.branch?.name || c.branchName || branchMap[c.branch?.id || c.branchId] || '').toLowerCase().includes(q);
-        return inmateMatch || familyMatch || uptMatch;
+        const KampusMatch = (c.branch?.name || c.branchName || branchMap[c.branch?.id || c.branchId] || '').toLowerCase().includes(q);
+        return inmateMatch || familyMatch || KampusMatch;
       });
     }
 
@@ -287,14 +287,14 @@ export default function KanwilCalls() {
             <div className="p-4 border-b border-slate-100 space-y-3">
               <div className="flex flex-col md:flex-row items-center gap-2.5 justify-between">
                 
-                {/* Search Bar (Nama WBP, NIP, Keluarga, UPT) */}
+                {/* Search Bar (Nama Santri, NIS, Keluarga, Kampus) */}
                 <div className="relative w-full md:w-80">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
-                    placeholder="Cari WBP, keluarga, nomor, atau UPT..."
+                    placeholder="Cari Santri, keluarga, nomor, atau Kampus..."
                     className="w-full pl-9 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
                   />
                   {searchInput && (
@@ -311,7 +311,7 @@ export default function KanwilCalls() {
                 {/* Dropdown Filters */}
                 <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
                   
-                  {/* Filter UPT (Baru) */}
+                  {/* Filter Kampus (Baru) */}
                   <div className="relative">
                     <select
                       value={branchFilter}
@@ -321,7 +321,7 @@ export default function KanwilCalls() {
                       }}
                       className="appearance-none pl-3 pr-8 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer transition-all"
                     >
-                      <option value="All">Semua UPT</option>
+                      <option value="All">Semua Kampus</option>
                       {branches.map((b) => (
                         <option key={b.id} value={b.id}>
                           {b.name}
@@ -450,7 +450,7 @@ export default function KanwilCalls() {
                   {activeTab === 'video' && (
                     <div className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
                       <Mic className="w-3 h-3 text-amber-600 shrink-0" />
-                      <span>Audio Only (Enkripsi Lapas)</span>
+                      <span>Audio Only (Enkripsi Pesantren)</span>
                     </div>
                   )}
                   <button
@@ -472,8 +472,8 @@ export default function KanwilCalls() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[18%]">Tanggal &amp; Waktu</th>
-                    <th className="py-3.5 px-3 whitespace-nowrap w-[20%]">UPT Asal</th>
-                    <th className="py-3.5 px-3 w-[22%]">WBP &amp; Tujuan</th>
+                    <th className="py-3.5 px-3 whitespace-nowrap w-[20%]">Kampus Asal</th>
+                    <th className="py-3.5 px-3 w-[22%]">Santri &amp; Tujuan</th>
                     <th className={`py-3.5 px-3 whitespace-nowrap w-[16%] ${isSplitView ? 'hidden' : 'table-cell'}`}>Durasi &amp; Biaya</th>
                     <th className="py-3.5 px-3 text-center whitespace-nowrap w-[12%]">Status</th>
                     <th className={`py-3.5 px-3 text-center whitespace-nowrap w-[10%] ${isSplitView ? 'hidden' : 'table-cell'}`}>Transkrip</th>
@@ -498,7 +498,7 @@ export default function KanwilCalls() {
                       const isSelected = selectedRecording?.id === call.id;
                       const isAnswered = call.status === 'Answered' || call.status === 'Terjawab';
                       const { date, time } = formatDate(call.date);
-                      const uptDisplayName = call.branch?.name || call.branchName || branchMap[call.branch?.id || call.branchId] || 'UPT Pemasyarakatan';
+                      const KampusDisplayName = call.branch?.name || call.branchName || branchMap[call.branch?.id || call.branchId] || 'Kampus Pemasyarakatan';
 
                       return (
                         <tr
@@ -513,17 +513,17 @@ export default function KanwilCalls() {
                             <p className="text-[11px] text-slate-400 font-mono">{time}</p>
                           </td>
 
-                          {/* Kolom UPT Asal (Spesifik Kanwil) */}
+                          {/* Kolom Kampus Asal (Spesifik Yayasan) */}
                           <td className="py-3.5 px-3">
                             <div className="flex items-center gap-1.5">
                               <Building2 className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                              <span className="font-bold text-slate-800 line-clamp-1" title={uptDisplayName}>
-                                {uptDisplayName}
+                              <span className="font-bold text-slate-800 line-clamp-1" title={KampusDisplayName}>
+                                {KampusDisplayName}
                               </span>
                             </div>
                           </td>
 
-                          {/* WBP & Tujuan */}
+                          {/* Santri & Tujuan */}
                           <td className="py-3.5 px-3">
                             <div className="space-y-0.5">
                               <p className="font-bold text-slate-800 line-clamp-1">{call.inmateName}</p>
@@ -640,7 +640,7 @@ export default function KanwilCalls() {
           </div>
         </div>
 
-        {/* Audio Player Panel (Split View seperti Kepala UPT) */}
+        {/* Audio Player Panel (Split View seperti Pimpinan Kampus) */}
         {isSplitView && (
           <div className="w-full lg:w-[35%] shrink-0 sticky top-4 animate-in slide-in-from-right-4 duration-300">
             <AudioPlayerPanel
@@ -665,7 +665,7 @@ export default function KanwilCalls() {
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Transkrip Percakapan Panggilan</h3>
                   <p className="text-[11px] text-slate-400">
-                    {transcriptModalCall.inmateName} • {transcriptModalCall.branchName || branchMap[transcriptModalCall.branchId] || 'UPT Lapas'}
+                    {transcriptModalCall.inmateName} • {transcriptModalCall.branchName || branchMap[transcriptModalCall.branchId] || 'Kampus Pesantren'}
                   </p>
                 </div>
               </div>
@@ -681,7 +681,7 @@ export default function KanwilCalls() {
             <div className="p-6 max-h-[60vh] overflow-y-auto space-y-3">
               <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl text-xs space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">WBP / NIP:</span>
+                  <span className="text-slate-400">Santri / NIS:</span>
                   <span className="font-bold text-slate-700">{transcriptModalCall.inmateName} ({transcriptModalCall.inmateId || '-'})</span>
                 </div>
                 <div className="flex justify-between">
@@ -725,7 +725,7 @@ export default function KanwilCalls() {
                     time: formatDate(transcriptModalCall.date).time,
                     duration: formatDuration(transcriptModalCall.durationSeconds),
                     transcript: transcriptModalCall.transcript,
-                    uptName: transcriptModalCall.branchName || branchMap[transcriptModalCall.branchId] || kanwilName,
+                    KampusName: transcriptModalCall.branchName || branchMap[transcriptModalCall.branchId] || YayasanName,
                   })}
                   className="px-3 py-1.5 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1.5 shadow-sm"
                 >
@@ -748,3 +748,4 @@ export default function KanwilCalls() {
     </div>
   );
 }
+

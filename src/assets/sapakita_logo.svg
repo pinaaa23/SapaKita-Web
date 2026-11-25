@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 64" fill="none">
+  <defs>
+    <linearGradient id="skLogoGrad" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0E8388" />
+      <stop offset="60%" stopColor="#1E658E" />
+      <stop offset="100%" stopColor="#28536B" />
+    </linearGradient>
+    <linearGradient id="skLeafGrad" x1="22" y1="18" x2="42" y2="38" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#76C893" />
+      <stop offset="100%" stopColor="#52B69A" />
+    </linearGradient>
+    <linearGradient id="skTextGrad" x1="72" y1="20" x2="220" y2="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#0E8388" />
+      <stop offset="70%" stopColor="#1E658E" />
+      <stop offset="100%" stopColor="#164E63" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon Emblem -->
+  <g transform="translate(6, 6)">
+    <rect width="52" height="52" rx="14" fill="url(#skLogoGrad)" />
+    <!-- Speech bubbles forming Sapaan / Silaturahmi connection -->
+    <path d="M16 23C16 16.925 20.925 12 27 12C33.075 12 38 16.925 38 23C38 25.64 37.07 28.06 35.52 29.96L36.8 36.2L30.63 34.66C29.47 35.34 28.11 35.73 26.67 35.73C20.6 35.73 15.67 30.8 15.67 24.73" stroke="white" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.95"/>
+    <path d="M22.5 24C22.5 21.2 24.7 19 27.5 19C30.3 19 32.5 21.2 32.5 24C32.5 26.8 30.3 29 27.5 29" stroke="url(#skLeafGrad)" stroke-width="2.75" stroke-linecap="round"/>
+    <circle cx="27.5" cy="24" r="2.2" fill="#FFFFFF" />
+  </g>
+
+  <!-- Typography -->
+  <text x="74" y="37" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="27" font-weight="800" letter-spacing="-0.5" fill="url(#skTextGrad)">
+    Sapa<tspan fill="#0E8388">Kita</tspan>
+  </text>
+  <text x="75" y="50" font-family="'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif" font-size="10.5" font-weight="600" letter-spacing="1.2" fill="#52796F">
+    WARTEL PESANTREN TERPADU
+  </text>
+</svg>

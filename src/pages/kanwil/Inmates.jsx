@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Search, 
@@ -18,14 +18,14 @@ import {
   FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getKanwilInmates, getKanwilBranches } from '../../services/kanwilService';
+import { getYayasanInmates, getYayasanBranches } from '../../services/YayasanService';
 import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
-export default function KanwilInmates() {
+export default function YayasanInmates() {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  const kanwilId = user?.kanwilId || user?.kanwil?.id;
-  const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+  const YayasanId = user?.YayasanId || user?.Yayasan?.id;
+  const YayasanName = user?.YayasanName || user?.Yayasan?.name || 'Yayasan Pesantren';
 
   const queryBranch = searchParams.get('branchId') || 'All';
 
@@ -63,12 +63,12 @@ export default function KanwilInmates() {
     setTimeout(() => setToastMessage({ text: '', type: '' }), 4000);
   };
 
-  // Load UPTs for filter dropdown
+  // Load Kampuss for filter dropdown
   useEffect(() => {
-    getKanwilBranches(kanwilId, { limit: 100 }).then((res) => {
+    getYayasanBranches(YayasanId, { limit: 100 }).then((res) => {
       setBranches(res.items || []);
     });
-  }, [kanwilId]);
+  }, [YayasanId]);
 
   // Debounce search
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function KanwilInmates() {
   const fetchInmatesData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getKanwilInmates(kanwilId, {
+      const res = await getYayasanInmates(YayasanId, {
         search: debouncedSearch,
         branchId: branchFilter,
         status: statusFilter,
@@ -94,15 +94,15 @@ export default function KanwilInmates() {
       setTotalCount(res.total || 0);
       setTotalPages(res.totalPages || 1);
     } catch (err) {
-      console.error('Error fetching kanwil inmates:', err);
-      showToast('Gagal memuat data WBP.', 'error');
+      console.error('Error fetching Yayasan inmates:', err);
+      showToast('Gagal memuat data Santri.', 'error');
       setInmates([]);
       setTotalCount(0);
       setTotalPages(1);
     } finally {
       setIsLoading(false);
     }
-  }, [kanwilId, debouncedSearch, branchFilter, statusFilter, page, limit]);
+  }, [YayasanId, debouncedSearch, branchFilter, statusFilter, page, limit]);
 
   useEffect(() => {
     fetchInmatesData();
@@ -110,21 +110,21 @@ export default function KanwilInmates() {
 
   const handleExportPDF = () => {
     if (inmates.length === 0) {
-      showToast('Tidak ada data WBP untuk diekspor.', 'error');
+      showToast('Tidak ada data Santri untuk diekspor.', 'error');
       return;
     }
 
-    getKanwilInmates(kanwilId, {
+    getYayasanInmates(YayasanId, {
       search: debouncedSearch,
       branchId: branchFilter,
       status: statusFilter,
       limit: 500,
     }).then((res) => {
       const allItems = res.items || [];
-      const headers = ['No', 'No. Registrasi / NIP', 'Nama WBP', 'UPT Asal', 'Blok / Kamar', 'Saldo (IDR)', 'Status Akun'];
+      const headers = ['No', 'No. Registrasi / NIS', 'Nama Santri', 'Kampus Asal', 'Asrama / Kamar', 'Saldo (IDR)', 'Status Akun'];
       const rows = allItems.map((w, idx) => [
         idx + 1,
-        w.nip || '-',
+        w.NIS || '-',
         w.name || '-',
         w.branchName || '-',
         w.block || '-',
@@ -135,30 +135,30 @@ export default function KanwilInmates() {
       const activeCount = allItems.filter(w => w.status === 'Aktif' || w.status === 'Active').length;
       const totalBalance = allItems.reduce((sum, w) => sum + (Number(w.balance) || 0), 0);
 
-      const filename = `Data_WBP_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      const filename = `Data_Santri_${YayasanName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       const success = exportToPDF({
-        title: `DATA WARGA BINAAN PEMASYARAKATAN (WBP) - ${kanwilName.toUpperCase()}`,
-        subtitle: `Daftar Gabungan WBP Seluruh UPT Pemasyarakatan Wilayah ${kanwilName}`,
+        title: `DATA Santri PEMASYARAKATAN (Santri) - ${YayasanName.toUpperCase()}`,
+        subtitle: `Daftar Gabungan Santri Seluruh Kampus Pemasyarakatan Wilayah ${YayasanName}`,
         filename,
         headers,
         rows,
         orientation: 'landscape',
         metadata: {
-          'Tingkat Wilayah': 'Kantor Wilayah Pemasyarakatan',
-          'Nama Kanwil': kanwilName,
-          'Filter UPT': branchFilter === 'All' ? 'Semua UPT' : (branches.find(b => b.id === branchFilter)?.name || branchFilter),
+          'Tingkat Wilayah': 'Yayasan Pesantren Pemasyarakatan',
+          'Nama Yayasan': YayasanName,
+          'Filter Kampus': branchFilter === 'All' ? 'Semua Kampus' : (branches.find(b => b.id === branchFilter)?.name || branchFilter),
           'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
           'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         },
         summaryMetrics: [
-          { label: 'TOTAL WARGA BINAAN', value: `${allItems.length} Orang` },
+          { label: 'TOTAL Santri', value: `${allItems.length} Orang` },
           { label: 'STATUS AKTIF', value: `${activeCount} Orang` },
           { label: 'TOTAL SALDO TERSIMPAN', value: new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalBalance) },
         ]
       });
 
       if (success !== false) {
-        showToast('Berhasil mengekspor data WBP ke format PDF!', 'success');
+        showToast('Berhasil mengekspor data Santri ke format PDF!', 'success');
       }
     });
   };
@@ -188,7 +188,7 @@ export default function KanwilInmates() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama atau NIP WBP..." 
+              placeholder="Cari nama atau NIS Santri..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-8 py-2.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium placeholder:text-slate-400"
@@ -209,7 +209,7 @@ export default function KanwilInmates() {
             onClick={handleExportPDF}
             disabled={inmates.length === 0}
             className="px-3.5 py-2.5 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer disabled:opacity-50"
-            title="Export data WBP ke format PDF (.pdf)"
+            title="Export data Santri ke format PDF (.pdf)"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" /> 
             <span>Export PDF</span>
@@ -223,7 +223,7 @@ export default function KanwilInmates() {
               <Filter className="w-3 h-3 text-slate-400" /> Filter:
             </span>
 
-            {/* Dropdown Filter UPT */}
+            {/* Dropdown Filter Kampus */}
             <div className="relative">
               <select 
                 value={branchFilter} 
@@ -237,7 +237,7 @@ export default function KanwilInmates() {
                     : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50 cursor-pointer'
                 }`}
               >
-                <option value="All">Semua UPT</option>
+                <option value="All">Semua Kampus</option>
                 {branches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -273,7 +273,7 @@ export default function KanwilInmates() {
 
           {/* Result Count Info */}
           <div className="text-slate-400 text-[11px] font-medium ml-auto">
-            Menampilkan <strong className="text-slate-700 font-bold">{inmates.length}</strong> dari {totalCount} WBP
+            Menampilkan <strong className="text-slate-700 font-bold">{inmates.length}</strong> dari {totalCount} Santri
           </div>
         </div>
       </div>
@@ -285,8 +285,8 @@ export default function KanwilInmates() {
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
                 <th className="py-3.5 pl-5 pr-3 font-bold text-left w-[30%]">Nama Lengkap</th>
-                <th className="py-3.5 px-3 font-bold text-left w-[25%]">UPT</th>
-                <th className="py-3.5 px-3 font-bold text-left w-[18%]">Blok / Kamar</th>
+                <th className="py-3.5 px-3 font-bold text-left w-[25%]">Kampus</th>
+                <th className="py-3.5 px-3 font-bold text-left w-[18%]">Asrama / Kamar</th>
                 <th className="py-3.5 px-3 font-bold text-left w-[13%]">Tgl Terdaftar</th>
                 <th className="py-3.5 px-3 font-bold text-center w-[14%]">Status Akun</th>
                 <th className="py-3.5 pr-5 pl-2 font-bold text-center">Aksi</th>
@@ -307,7 +307,7 @@ export default function KanwilInmates() {
               ) : inmates.length > 0 ? (
                 inmates.map((inmate) => (
                   <tr key={inmate.id} className="hover:bg-slate-50/70 transition-colors group">
-                    {/* Nama Lengkap + NIP */}
+                    {/* Nama Lengkap + NIS */}
                     <td className="py-3 pl-5 pr-3 text-left whitespace-nowrap">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
@@ -318,13 +318,13 @@ export default function KanwilInmates() {
                             {inmate.name || '-'}
                           </p>
                           <p className="text-[11px] font-mono text-slate-400 font-medium tracking-tight mt-0.5">
-                            {inmate.nip || '-'}
+                            {inmate.NIS || '-'}
                           </p>
                         </div>
                       </div>
                     </td>
 
-                    {/* UPT Asal */}
+                    {/* Kampus Asal */}
                     <td className="py-3 px-3 text-left">
                       <div className="flex items-center gap-1.5 text-slate-700 font-medium">
                         <Building2 className="w-3.5 h-3.5 text-slate-400 shrink-0" />
@@ -334,7 +334,7 @@ export default function KanwilInmates() {
                       </div>
                     </td>
 
-                    {/* Blok / Kamar */}
+                    {/* Asrama / Kamar */}
                     <td className="py-3 px-3 text-left text-slate-600 font-medium">
                       {inmate.block || '-'}
                     </td>
@@ -367,7 +367,7 @@ export default function KanwilInmates() {
                         type="button"
                         onClick={() => openDetailModal(inmate)}
                         className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
-                        title="Lihat Detail WBP"
+                        title="Lihat Detail Santri"
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -377,7 +377,7 @@ export default function KanwilInmates() {
               ) : (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400 text-xs">
-                    Tidak ada data WBP yang sesuai dengan filter pencarian.
+                    Tidak ada data Santri yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               )}
@@ -432,7 +432,7 @@ export default function KanwilInmates() {
         )}
       </div>
 
-      {/* Modal Detail WBP */}
+      {/* Modal Detail Santri */}
       {isDetailModalOpen && selectedInmate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90vh] overflow-y-auto flex flex-col">
@@ -442,8 +442,8 @@ export default function KanwilInmates() {
                   {selectedInmate.name ? selectedInmate.name.charAt(0).toUpperCase() : 'W'}
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-slate-800">Detail Warga Binaan</h3>
-                  <p className="text-[11px] text-slate-400">Informasi registrasi WBP di wilayah {kanwilName}</p>
+                  <h3 className="text-sm font-bold text-slate-800">Detail Santri</h3>
+                  <p className="text-[11px] text-slate-400">Informasi registrasi Santri di wilayah {YayasanName}</p>
                 </div>
               </div>
               <button 
@@ -462,14 +462,14 @@ export default function KanwilInmates() {
                   <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedInmate.name}</p>
                 </div>
                 <div>
-                  <p className="text-slate-400 font-medium">NIP / No. Registrasi</p>
-                  <p className="font-mono font-bold text-primary mt-0.5">{selectedInmate.nip}</p>
+                  <p className="text-slate-400 font-medium">NIS / No. Registrasi</p>
+                  <p className="font-mono font-bold text-primary mt-0.5">{selectedInmate.NIS}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                 <div>
-                  <p className="text-slate-400 font-medium">UPT Asal</p>
+                  <p className="text-slate-400 font-medium">Kampus Asal</p>
                   <p className="font-semibold text-slate-700 mt-0.5">{selectedInmate.branchName}</p>
                 </div>
                 <div>
@@ -530,3 +530,4 @@ export default function KanwilInmates() {
     </div>
   );
 }
+

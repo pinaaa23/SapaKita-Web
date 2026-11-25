@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import {
   Wallet,
   ShieldCheck,
@@ -27,7 +27,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import { formatRupiah, formatTanggal } from '../utils/formatKantin';
+import { formatRupiah, formatTanggal } from '../utils/formatKopontren';
 import {
   getSuperadminTopupHistory,
   approveTopupTransaction,
@@ -79,7 +79,7 @@ export default function CanteenTopup() {
 
   const [billingSubTab, setBillingSubTab] = useState('laporan'); // 'laporan' | 'konfirmasi' | 'riwayat'
 
-  // Tab 2: State Pengaturan Kontrak Seluruh Kantin
+  // Tab 2: State Pengaturan Kontrak Seluruh Kopontren
   const [contractsList, setContractsList] = useState([]);
   const [isLoadingContracts, setIsLoadingContracts] = useState(true);
   const [searchContract, setSearchContract] = useState('');
@@ -89,7 +89,7 @@ export default function CanteenTopup() {
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedYear, setSelectedYear] = useState(currentYear);
 
-  // 3. Data Laporan Tagihan Berbasis Detik Seluruh Kantin
+  // 3. Data Laporan Tagihan Berbasis Detik Seluruh Kopontren
   const [billingReports, setBillingReports] = useState([]);
   const [isLoadingBilling, setIsLoadingBilling] = useState(true);
   const [searchUpt, setSearchUpt] = useState('');
@@ -121,7 +121,7 @@ export default function CanteenTopup() {
   const [toastMessage, setToastMessage] = useState(null);
 
   // 6. Modal Edit Kontrak Tarif 4 Pihak (Khusus Superadmin)
-  const [editContractModal, setEditContractModal] = useState(null); // item objek kantin
+  const [editContractModal, setEditContractModal] = useState(null); // item objek Kopontren
   const [editRate, setEditRate] = useState('');
   const [editHasKepalaUpt, setEditHasKepalaUpt] = useState(false);
   const [editKepalaUptPercent, setEditKepalaUptPercent] = useState('');
@@ -131,7 +131,7 @@ export default function CanteenTopup() {
   const [editError, setEditError] = useState('');
   const [isSavingContract, setIsSavingContract] = useState(false);
 
-  // Tab 3: State Rincian Panggilan Seluruh UPT / Kantin (GET /api/canteen/billing/calls)
+  // Tab 3: State Rincian Panggilan Seluruh UPT / Kopontren (GET /api/canteen/billing/calls)
   const [saCallsData, setSaCallsData] = useState({
     items: [],
     totalItems: 0,
@@ -177,21 +177,21 @@ export default function CanteenTopup() {
       const bList = Array.isArray(branchesRes?.items) ? branchesRes.items : (Array.isArray(branchesRes) ? branchesRes : []);
       setBranchOptions(bList);
     } catch (err) {
-      console.error('Gagal memuat data tagihan kantin:', err);
+      console.error('Gagal memuat data tagihan Kopontren:', err);
     } finally {
       setIsLoadingBilling(false);
       setIsLoadingHistory(false);
     }
   };
 
-  // Load Data Kontrak Seluruh Kantin (Tab 2)
+  // Load Data Kontrak Seluruh Kopontren (Tab 2)
   const loadContractsData = async () => {
     setIsLoadingContracts(true);
     try {
       const list = await getAllCanteenContracts();
       setContractsList(list || []);
     } catch (err) {
-      console.error('Gagal memuat daftar kontrak kantin:', err);
+      console.error('Gagal memuat daftar kontrak Kopontren:', err);
     } finally {
       setIsLoadingContracts(false);
     }
@@ -201,7 +201,7 @@ export default function CanteenTopup() {
     loadData();
     loadContractsData();
 
-    // Event listener realtime saat kasir kantin submit bukti bayar atau ada perubahan kontrak
+    // Event listener realtime saat kasir Kopontren submit bukti bayar atau ada perubahan kontrak
     let debounceTimer = null;
     const handleRealtimeUpdate = () => {
       if (debounceTimer) clearTimeout(debounceTimer);
@@ -212,15 +212,15 @@ export default function CanteenTopup() {
     };
 
     window.addEventListener('canteen_topup_changed', handleRealtimeUpdate);
-    window.addEventListener('pascall_billing_updated', handleRealtimeUpdate);
-    window.addEventListener('pascall_contract_changed', handleRealtimeUpdate);
+    window.addEventListener('SapaKita_billing_updated', handleRealtimeUpdate);
+    window.addEventListener('SapaKita_contract_changed', handleRealtimeUpdate);
     window.addEventListener('storage', handleRealtimeUpdate);
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
       window.removeEventListener('canteen_topup_changed', handleRealtimeUpdate);
-      window.removeEventListener('pascall_billing_updated', handleRealtimeUpdate);
-      window.removeEventListener('pascall_contract_changed', handleRealtimeUpdate);
+      window.removeEventListener('SapaKita_billing_updated', handleRealtimeUpdate);
+      window.removeEventListener('SapaKita_contract_changed', handleRealtimeUpdate);
       window.removeEventListener('storage', handleRealtimeUpdate);
     };
   }, [selectedMonth, selectedYear]);
@@ -360,7 +360,7 @@ export default function CanteenTopup() {
   // Kalkulasi Statistik Real-Time
   const totalTagihanBulanIni = billingReports.reduce((acc, r) => acc + (r.isContractSet ? (Number(r.totalAmount) || 0) : 0), 0);
   const totalDetikBulanIni = billingReports.reduce((acc, r) => acc + (Number(r.totalSeconds) || 0), 0);
-  const kantinTerkonfigurasiCount = billingReports.filter((r) => r.isContractSet).length;
+  const KopontrenTerkonfigurasiCount = billingReports.filter((r) => r.isContractSet).length;
 
   // Handlers Edit Kontrak Tarif (Khusus Superadmin - 4 Pihak)
   const handleOpenEditContract = (target) => {
@@ -558,7 +558,7 @@ export default function CanteenTopup() {
       const { objectUrl } = await fetchTopupProofBlob(proofPreviewItem.id);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = `bukti-transfer-${proofPreviewItem.branchName || 'kantin'}-${proofPreviewItem.id}.jpg`;
+      link.download = `bukti-transfer-${proofPreviewItem.branchName || 'Kopontren'}-${proofPreviewItem.id}.jpg`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -793,7 +793,7 @@ export default function CanteenTopup() {
                 ? 'border-blue-400 ring-2 ring-blue-500/10 shadow-xs'
                 : 'border-slate-200/80 shadow-xs hover:shadow-md'
             }`}
-            title="Klik untuk melihat seluruh tagihan kantin"
+            title="Klik untuk melihat seluruh tagihan Kopontren"
           >
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -811,11 +811,11 @@ export default function CanteenTopup() {
             </div>
           </div>
 
-          {/* Kartu 2: Total Detik Panggilan WBP */}
+          {/* Kartu 2: Total Detik Panggilan Santri */}
           <div className="bg-white rounded-2xl p-4.5 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all duration-200 flex items-center justify-between group">
             <div className="space-y-1">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Durasi Bicara WBP
+                Total Durasi Bicara Santri
               </span>
               <div className="text-2xl font-black text-slate-800 tracking-tight">
                 {totalDetikBulanIni.toLocaleString('id-ID')}{' '}
@@ -846,7 +846,7 @@ export default function CanteenTopup() {
               </span>
               <div className="text-2xl font-black text-emerald-600 tracking-tight">
                 {billingReports.filter((r) => r.statusPembayaran === 'Lunas').length}{' '}
-                <span className="text-xs font-semibold text-slate-400">/ {billingReports.length} Kantin</span>
+                <span className="text-xs font-semibold text-slate-400">/ {billingReports.length} Kopontren</span>
               </div>
               <span className="text-[11px] font-semibold text-emerald-600 inline-flex items-center gap-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
@@ -955,17 +955,17 @@ export default function CanteenTopup() {
               </div>
 
               <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
-                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> Kantin UPT
+                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> Kopontren UPT
               </span>
             </div>
 
-            {/* Pencarian Kantin / UPT */}
+            {/* Pencarian Kopontren / UPT */}
             <div className="flex items-center gap-2 w-full lg:w-auto">
               <div className="relative flex-1 lg:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari Kantin, UPT, atau Kanwil..."
+                  placeholder="Cari Kopontren, UPT, atau Kanwil..."
                   value={searchUpt}
                   onChange={(e) => setSearchUpt(e.target.value)}
                   className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -985,7 +985,7 @@ export default function CanteenTopup() {
                 type="button"
                 onClick={() => setActiveMainTab('kontrak')}
                 className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-200 cursor-pointer shrink-0"
-                title="Buka Pengaturan Kontrak Tarif Kantin"
+                title="Buka Pengaturan Kontrak Tarif Kopontren"
               >
                 <Sliders className="w-3.5 h-3.5 text-indigo-600" />
                 <span className="hidden sm:inline">Pengaturan Kontrak</span>
@@ -1004,13 +1004,13 @@ export default function CanteenTopup() {
             </div>
           </div>
 
-          {/* TABEL DAFTAR SEMUA KANTIN DIKELOMPOKKAN PER UPT */}
+          {/* TABEL DAFTAR SEMUA Kopontren DIKELOMPOKKAN PER UPT */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
-                    <th className="py-3.5 px-4 text-left min-w-[200px]">Nama Kantin</th>
+                    <th className="py-3.5 px-4 text-left min-w-[200px]">Nama Kopontren</th>
                     <th className="py-3.5 px-4 text-left min-w-[180px]">UPT &amp; Kanwil</th>
                     <th className="py-3.5 px-4 text-center min-w-[130px]">Total Detik</th>
                     <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
@@ -1023,15 +1023,15 @@ export default function CanteenTopup() {
                     <tr>
                       <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
-                        <span>Memuat daftar tagihan detik kantin...</span>
+                        <span>Memuat daftar tagihan detik Kopontren...</span>
                       </td>
                     </tr>
                   ) : filteredBillingReports.length === 0 ? (
                     <tr>
                       <td colSpan="6" className="py-12 text-center text-slate-400">
                         <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-700">Tidak ada data kantin</p>
-                        <p className="text-[11px] text-slate-400">Tidak ada kantin yang cocok dengan filter yang dipilih.</p>
+                        <p className="text-xs font-bold text-slate-700">Tidak ada data Kopontren</p>
+                        <p className="text-[11px] text-slate-400">Tidak ada Kopontren yang cocok dengan filter yang dipilih.</p>
                       </td>
                     </tr>
                   ) : (
@@ -1039,7 +1039,7 @@ export default function CanteenTopup() {
                       const isPending = report.statusPembayaran === 'Menunggu ACC';
                       return (
                         <tr key={report.branchId} className="hover:bg-slate-50/80 transition-colors">
-                          {/* 1. Nama Kantin */}
+                          {/* 1. Nama Kopontren */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0">
@@ -1050,7 +1050,7 @@ export default function CanteenTopup() {
                                   {report.canteenName}
                                 </span>
                                 <span className="text-[11px] text-slate-400 font-medium block">
-                                  Operator Kantin Lapas
+                                  Operator Kopontren Pesantren
                                 </span>
                               </div>
                             </div>
@@ -1146,7 +1146,7 @@ export default function CanteenTopup() {
                                       handleOpenEditContract(report);
                                     }}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-500 transition shadow-2xs cursor-pointer"
-                                    title="Atur Kontrak Tarif Kantin Ini"
+                                    title="Atur Kontrak Tarif Kopontren Ini"
                                   >
                                     <Sliders className="w-3.5 h-3.5 text-amber-950" />
                                     <span>Atur Kontrak</span>
@@ -1220,7 +1220,7 @@ export default function CanteenTopup() {
       {/* END TAB 1: TAGIHAN BULANAN */}
 
       {/* =========================================================================
-          TAB 2: PENGATURAN KONTRAK TARIF KANTIN (BARU)
+          TAB 2: PENGATURAN KONTRAK TARIF Kopontren (BARU)
           ========================================================================= */}
       <div className={activeMainTab === 'kontrak' ? 'space-y-4' : 'hidden'}>
           {/* Header Banner Penjelasan */}
@@ -1236,16 +1236,16 @@ export default function CanteenTopup() {
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
                   <Sliders className="w-6 h-6 text-blue-400" />
-                  Pengaturan Kontrak Tarif Kantin
+                  Pengaturan Kontrak Tarif Kopontren
                 </h3>
                 <p className="text-xs text-blue-100/80 mt-1 max-w-2xl leading-relaxed">
-                  Konfigurasi tarif per detik dan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) yang bersifat tetap per kantin. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
+                  Konfigurasi tarif per detik dan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) yang bersifat tetap per Kopontren. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
                 </p>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
                 <div className="px-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[95px]">
-                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Total Kantin</span>
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Total Kopontren</span>
                   <span className="text-xl font-black text-white">{contractsList.length}</span>
                 </div>
                 <div className="px-4 py-3 bg-emerald-500/20 backdrop-blur-md rounded-2xl border border-emerald-400/30 text-center min-w-[95px]">
@@ -1278,17 +1278,17 @@ export default function CanteenTopup() {
               </div>
 
               <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
-                Menampilkan <strong>{filteredContracts.length}</strong> dari <strong>{contractsList.length}</strong> Kantin
+                Menampilkan <strong>{filteredContracts.length}</strong> dari <strong>{contractsList.length}</strong> Kopontren
               </span>
             </div>
 
-            {/* Pencarian Kantin / UPT / Kanwil */}
+            {/* Pencarian Kopontren / UPT / Kanwil */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari Kantin, UPT, atau Kanwil..."
+                  placeholder="Cari Kopontren, UPT, atau Kanwil..."
                   value={searchContract}
                   onChange={(e) => setSearchContract(e.target.value)}
                   className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
@@ -1327,13 +1327,13 @@ export default function CanteenTopup() {
             </div>
           </div>
 
-          {/* TABEL PENGATURAN KONTRAK TARIF KANTIN */}
+          {/* TABEL PENGATURAN KONTRAK TARIF Kopontren */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse min-w-[640px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className="py-3.5 px-6">Nama Kantin</th>
+                    <th className="py-3.5 px-6">Nama Kopontren</th>
                     <th className="py-3.5 px-4">UPT &amp; Kanwil</th>
                     <th className="py-3.5 px-4 text-right">Tarif per Detik</th>
                     <th className="py-3.5 px-4 text-center">Bagi Hasil 4 Pihak</th>
@@ -1345,21 +1345,21 @@ export default function CanteenTopup() {
                     <tr>
                       <td colSpan="5" className="py-12 text-center text-slate-400 font-semibold">
                         <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
-                        <span>Memuat data kontrak tarif kantin...</span>
+                        <span>Memuat data kontrak tarif Kopontren...</span>
                       </td>
                     </tr>
                   ) : filteredContracts.length === 0 ? (
                     <tr>
                       <td colSpan="5" className="py-12 text-center text-slate-400">
                         <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                        <p className="text-xs font-bold text-slate-700">Tidak ada data kantin</p>
-                        <p className="text-[11px] text-slate-400">Tidak ada kantin yang cocok dengan filter yang dipilih.</p>
+                        <p className="text-xs font-bold text-slate-700">Tidak ada data Kopontren</p>
+                        <p className="text-[11px] text-slate-400">Tidak ada Kopontren yang cocok dengan filter yang dipilih.</p>
                       </td>
                     </tr>
                   ) : (
                     filteredContracts.map((c) => (
                       <tr key={c.branchId} className="hover:bg-slate-50/80 transition-colors">
-                        {/* 1. Nama Kantin */}
+                        {/* 1. Nama Kopontren */}
                         <td className="py-4 px-6">
                           <div className="flex items-start gap-3">
                             <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -1370,7 +1370,7 @@ export default function CanteenTopup() {
                                 {c.canteenName}
                               </span>
                               <span className="text-[11px] text-slate-400 font-medium">
-                                Operator Kantin Lapas
+                                Operator Kopontren Pesantren
                               </span>
                             </div>
                           </div>
@@ -1436,7 +1436,7 @@ export default function CanteenTopup() {
                                   ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
                                   : 'bg-[#1565C0] hover:bg-[#0D47A1] text-white shadow-sm font-black'
                               }`}
-                              title={c.isContractSet ? 'Ubah kontrak tarif tetap kantin' : 'Atur kontrak tarif tetap kantin'}
+                              title={c.isContractSet ? 'Ubah kontrak tarif tetap Kopontren' : 'Atur kontrak tarif tetap Kopontren'}
                             >
                               <Sliders className="w-3.5 h-3.5" />
                               <span>{c.isContractSet ? 'Edit' : 'Atur'}</span>
@@ -1564,7 +1564,7 @@ export default function CanteenTopup() {
                 }}
                 className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer max-w-[200px] truncate"
               >
-                <option value="semua">Semua UPT Lapas</option>
+                <option value="semua">Semua UPT Pesantren</option>
                 {contractsList.map((c) => (
                   <option key={c.branchId} value={c.branchId}>
                     {c.uptName || c.canteenName}
@@ -1584,7 +1584,7 @@ export default function CanteenTopup() {
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder="Cari ID, nama WBP, atau NIP..."
+                placeholder="Cari ID, nama Santri, atau NIS..."
                 value={saCallsSearch}
                 onChange={(e) => {
                   setSaCallsSearch(e.target.value);
@@ -1628,7 +1628,7 @@ export default function CanteenTopup() {
                   <th className="py-3.5 px-4 text-left">No Transaksi</th>
                   <th className="py-3.5 px-4 text-left">Waktu</th>
                   <th className="py-3.5 px-4 text-left">ID / Kode</th>
-                  <th className="py-3.5 px-4 text-left">WBP (Penerima)</th>
+                  <th className="py-3.5 px-4 text-left">Santri (Penerima)</th>
                   <th className="py-3.5 px-4 text-right">Durasi</th>
                   <th className="py-3.5 px-4 text-center">Tarif / Detik</th>
                   <th className="py-3.5 px-4 text-center">Bagian SA</th>
@@ -1649,7 +1649,7 @@ export default function CanteenTopup() {
                       <Inbox className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                       <p className="text-xs font-bold text-slate-700">Tidak ada riwayat panggilan</p>
                       <p className="text-[11px] text-slate-400">
-                        {saCallsSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Belum ada panggilan WBP yang tercatat pada periode ini.'}
+                        {saCallsSearch ? 'Coba ubah kata kunci pencarian Anda.' : 'Belum ada panggilan Santri yang tercatat pada periode ini.'}
                       </p>
                     </td>
                   </tr>
@@ -1672,10 +1672,10 @@ export default function CanteenTopup() {
                       </td>
                       <td className="py-3.5 px-4">
                         <div className="font-bold text-slate-900 leading-tight">
-                          {call.inmateName || 'WBP'}
+                          {call.inmateName || 'Santri'}
                         </div>
                         <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          NIP: {call.inmateIdentifier || '-'}
+                          NIS: {call.inmateIdentifier || '-'}
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
@@ -1751,7 +1751,7 @@ export default function CanteenTopup() {
       </div>
 
       {/* =========================================================================
-          MODAL 1: EDIT KONTRAK TARIF KANTIN (HANYA SUPERADMIN)
+          MODAL 1: EDIT KONTRAK TARIF Kopontren (HANYA SUPERADMIN)
           ========================================================================= */}
       {editContractModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
@@ -1760,7 +1760,7 @@ export default function CanteenTopup() {
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
                   <Coins className="w-5 h-5 text-blue-600" />
-                  Atur Kontrak Tarif Kantin
+                  Atur Kontrak Tarif Kopontren
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
                   {editContractModal.canteenName} • {editContractModal.uptName}
@@ -1813,7 +1813,7 @@ export default function CanteenTopup() {
                   </p>
                 ) : (
                   <p className="text-[11px] text-slate-400 mt-1">
-                    {editRate ? `Setara Rp ${(Number(editRate) * 60).toLocaleString('id-ID')} / menit. Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.` : 'Tarif yang dikenakan untuk setiap 1 detik durasi panggilan WBP.'}
+                    {editRate ? `Setara Rp ${(Number(editRate) * 60).toLocaleString('id-ID')} / menit. Tarif yang dikenakan untuk setiap 1 detik durasi panggilan Santri.` : 'Tarif yang dikenakan untuk setiap 1 detik durasi panggilan Santri.'}
                   </p>
                 )}
               </div>
@@ -1849,7 +1849,7 @@ export default function CanteenTopup() {
                         <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
                           {editHasKepalaUpt ? (
                             <span className="text-purple-900 font-medium">
-                              Lapas ini meminta bagian Kepala UPT. Porsi <strong>5%</strong> dialokasikan dari hak Vendor (Vendor menjadi <strong>55%</strong>, Kepala UPT <strong>5%</strong>). Total setoran UPT tetap <strong>60%</strong>.
+                              Pesantren ini meminta bagian Kepala UPT. Porsi <strong>5%</strong> dialokasikan dari hak Vendor (Vendor menjadi <strong>55%</strong>, Kepala UPT <strong>5%</strong>). Total setoran UPT tetap <strong>60%</strong>.
                             </span>
                           ) : (
                             <span>
@@ -2093,7 +2093,7 @@ export default function CanteenTopup() {
                         Simulasi Rumus Tagihan 4 Pihak
                       </span>
                       <span className="text-blue-600 font-bold">
-                        {isSimulatedSec ? 'Contoh 1.140 Detik' : 'Detik Riil Kantin'}
+                        {isSimulatedSec ? 'Contoh 1.140 Detik' : 'Detik Riil Kopontren'}
                       </span>
                     </div>
 
@@ -2182,8 +2182,8 @@ export default function CanteenTopup() {
 
       {/* =========================================================================
           MODAL DETAIL TERPADU:
-          1. Rincian Perhitungan Tagihan Kantin Berbasis Detik
-          2. Detail Pembayaran & Bukti Transfer Kantin (Gambar & Aksi Berkas)
+          1. Rincian Perhitungan Tagihan Kopontren Berbasis Detik
+          2. Detail Pembayaran & Bukti Transfer Kopontren (Gambar & Aksi Berkas)
           3. Verifikasi Pembayaran (Jika Menunggu ACC) / Mode Review (Jika Lunas)
           ========================================================================= */}
       {detailModalItem && (() => {
@@ -2209,7 +2209,7 @@ export default function CanteenTopup() {
                     </span>
                     <div>
                       <h3 className="text-base sm:text-lg font-black text-slate-900 tracking-tight">
-                        Detail Tagihan & Pembayaran Kantin
+                        Detail Tagihan & Pembayaran Kopontren
                       </h3>
                       <p className="text-xs text-slate-500 font-medium">
                         {detailModalItem.canteenName} • {detailModalItem.uptName} • Periode {monthNames[selectedMonth - 1]} {selectedYear}
@@ -2293,13 +2293,13 @@ export default function CanteenTopup() {
                 {detailModalTab === 'summary' ? (
                   <>
                 {/* -------------------------------------------------------------
-                    BAGIAN 1: RINCIAN TAGIHAN KANTIN BERBASIS DETIK
+                    BAGIAN 1: RINCIAN TAGIHAN Kopontren BERBASIS DETIK
                     ------------------------------------------------------------- */}
                 <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-3.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                       <Coins className="w-4 h-4 text-blue-600" />
-                      1. Rincian Perhitungan Tagihan Kantin (Berbasis Detik)
+                      1. Rincian Perhitungan Tagihan Kopontren (Berbasis Detik)
                     </h4>
                     <span className="text-[11px] font-semibold text-slate-400">
                       Rumus: Detik × Tarif × % SA
@@ -2389,7 +2389,7 @@ export default function CanteenTopup() {
                   <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between">
                     <div>
                       <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
-                        Total Tagihan Bersih (Disetor Kantin ke Vendor / Superadmin):
+                        Total Tagihan Bersih (Disetor Kopontren ke Vendor / Superadmin):
                       </span>
                       <span className="text-[11px] text-blue-700 font-medium">
                         {detailModalItem.isContractSet
@@ -2412,7 +2412,7 @@ export default function CanteenTopup() {
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
                       <Receipt className="w-4 h-4 text-indigo-600" />
-                      2. Detail Pembayaran & Bukti Transfer Kantin
+                      2. Detail Pembayaran & Bukti Transfer Kopontren
                     </h4>
                     {hasPayment && (
                       <span className="text-[11px] font-mono text-slate-400">
@@ -2432,7 +2432,7 @@ export default function CanteenTopup() {
                           </span>
                         </div>
                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
-                          <span className="text-slate-500 block mb-0.5">Petugas Kantin Pengirim:</span>
+                          <span className="text-slate-500 block mb-0.5">Petugas Kopontren Pengirim:</span>
                           <span className="font-bold text-slate-800 block">
                             {payment.staffName || `Operator ${detailModalItem.canteenName}`}
                           </span>
@@ -2460,7 +2460,7 @@ export default function CanteenTopup() {
                           {proofResolvedUrl && proofResolvedUrl !== 'virtual-proof' ? (
                             <img
                               src={proofResolvedUrl}
-                              alt="Bukti Transfer Kantin"
+                              alt="Bukti Transfer Kopontren"
                               className="max-h-72 max-w-full rounded-xl object-contain border border-slate-200 shadow-sm bg-white"
                             />
                           ) : (
@@ -2468,7 +2468,7 @@ export default function CanteenTopup() {
                             <div className="w-full max-w-md bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                                 <div>
-                                  <span className="font-black text-sm text-[#1565C0] block">Sadewa Billing</span>
+                                  <span className="font-black text-sm text-[#1565C0] block">SapaKita Billing</span>
                                   <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
                                     Dokumen Struk Transfer Tagihan
                                   </span>
@@ -2485,7 +2485,7 @@ export default function CanteenTopup() {
                               </div>
                               <div className="space-y-1.5 text-xs">
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">Asal Kantin:</span>
+                                  <span className="text-slate-500">Asal Kopontren:</span>
                                   <span className="font-bold text-slate-800">{detailModalItem.canteenName}</span>
                                 </div>
                                 <div className="flex justify-between">
@@ -2533,16 +2533,16 @@ export default function CanteenTopup() {
                       </div>
                     </div>
                   ) : (
-                    /* Tampilan jika Kantin Belum Bayar / Belum Upload Bukti */
+                    /* Tampilan jika Kopontren Belum Bayar / Belum Upload Bukti */
                     <div className="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-300 text-center space-y-2">
                       <div className="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
                         <Inbox className="w-5 h-5" />
                       </div>
                       <p className="text-xs font-bold text-slate-700">
-                        Kantin Belum Mengunggah Bukti Pembayaran
+                        Kopontren Belum Mengunggah Bukti Pembayaran
                       </p>
                       <p className="text-[11px] text-slate-500 max-w-md mx-auto leading-relaxed">
-                        Tagihan periode {monthNames[selectedMonth - 1]} {selectedYear} belum dibayarkan oleh pengelola kantin. Pembayaran dapat dilakukan via Transfer Bank / QRIS dan struk diunggah oleh kantin sebelum batas jatuh tempo.
+                        Tagihan periode {monthNames[selectedMonth - 1]} {selectedYear} belum dibayarkan oleh pengelola Kopontren. Pembayaran dapat dilakukan via Transfer Bank / QRIS dan struk diunggah oleh Kopontren sebelum batas jatuh tempo.
                       </p>
                     </div>
                   )}
@@ -2595,7 +2595,7 @@ export default function CanteenTopup() {
                           type="text"
                           value={detailModalNotes}
                           onChange={(e) => setDetailModalNotes(e.target.value)}
-                          placeholder="Contoh: Dana telah masuk rekening giro BSI Sadewa"
+                          placeholder="Contoh: Dana telah masuk rekening giro BSI SapaKita"
                           className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                         />
                       </div>
@@ -2695,7 +2695,7 @@ export default function CanteenTopup() {
                   {!isPending && !isLunas && (
                     <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs text-slate-600 space-y-2">
                       <p className="leading-relaxed">
-                        Tagihan kantin ini masih menunggu pelunasan. Jika tarif per detik atau persentase bagi hasil perlu diubah sebelum kantin membayar, Anda dapat memperbaruinya di Tab Pengaturan Kontrak.
+                        Tagihan Kopontren ini masih menunggu pelunasan. Jika tarif per detik atau persentase bagi hasil perlu diubah sebelum Kopontren membayar, Anda dapat memperbaruinya di Tab Pengaturan Kontrak.
                       </p>
                     </div>
                   )}
@@ -2709,7 +2709,7 @@ export default function CanteenTopup() {
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                         <input
                           type="text"
-                          placeholder="Cari ID atau nama WBP..."
+                          placeholder="Cari ID atau nama Santri..."
                           value={modalCallsSearch}
                           onChange={(e) => {
                             setModalCallsSearch(e.target.value);
@@ -2749,7 +2749,7 @@ export default function CanteenTopup() {
                             <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                               <th className="py-3 px-3.5">Waktu</th>
                               <th className="py-3 px-3.5">ID / Kode</th>
-                              <th className="py-3 px-3.5">WBP</th>
+                              <th className="py-3 px-3.5">Santri</th>
                               <th className="py-3 px-3.5 text-right">Durasi</th>
                               <th className="py-3 px-3.5 text-center">Tarif</th>
                               <th className="py-3 px-3.5 text-center">% SA</th>
@@ -2787,10 +2787,10 @@ export default function CanteenTopup() {
                                   </td>
                                   <td className="py-3 px-3.5">
                                     <div className="font-bold text-slate-900 leading-tight">
-                                      {call.inmateName || 'WBP'}
+                                      {call.inmateName || 'Santri'}
                                     </div>
                                     <div className="text-[10px] font-mono text-slate-400">
-                                      NIP: {call.inmateIdentifier || '-'}
+                                      NIS: {call.inmateIdentifier || '-'}
                                     </div>
                                   </td>
                                   <td className="py-3 px-3.5 text-right font-mono font-bold text-slate-800 whitespace-nowrap">
@@ -2922,7 +2922,7 @@ export default function CanteenTopup() {
             <div className="space-y-3 text-xs mb-5">
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Asal UPT / Kantin:</span>
+                  <span className="text-slate-500">Asal UPT / Kopontren:</span>
                   <span className="font-bold text-slate-800">
                     {topupActionModal.item.branchName || topupActionModal.item.canteenName || '-'}
                   </span>
@@ -3003,7 +3003,7 @@ export default function CanteenTopup() {
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Receipt className="w-4 h-4 text-blue-600" />
-                Bukti Transfer Pembayaran Kantin
+                Bukti Transfer Pembayaran Kopontren
               </h4>
               <button
                 type="button"
@@ -3025,7 +3025,7 @@ export default function CanteenTopup() {
               ) : (
                 <div className="w-full max-w-sm bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                   <div className="text-center pb-3 border-b border-slate-100 mb-3">
-                    <span className="font-black text-base text-blue-600">Sadewa</span>
+                    <span className="font-black text-base text-blue-600">SapaKita</span>
                     <p className="text-[11px] text-slate-400 uppercase tracking-wider font-bold">
                       Dokumen Bukti Transfer Tagihan
                     </p>
@@ -3138,3 +3138,4 @@ export default function CanteenTopup() {
     </div>
   );
 }
+

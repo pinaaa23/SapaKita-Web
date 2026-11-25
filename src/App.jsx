@@ -10,7 +10,7 @@ import BranchCreate from './pages/Branches/Create';
 import BranchDetail from './pages/Branches/Detail';
 import BranchEdit from './pages/Branches/Edit';
 
-import InmatesList from './pages/Inmates/List';
+import SantriList from './pages/Santri/List';
 
 import CallsList from './pages/Calls/List';
 import CallDetail from './pages/Calls/Detail';
@@ -25,21 +25,20 @@ import CanteenTopup from './pages/CanteenTopup';
 import AppReleasesPage from './pages/AppReleases/AppReleasesPage';
 import MobileDownloadPage from './pages/MobileDownload/MobileDownloadPage';
 
-// Branch Admin Pages
+// Branch / Kampus Admin Pages
 import BranchDashboard from './pages/branch/Dashboard';
 import BranchRecordings from './pages/branch/Recordings';
 import BranchUsers from './pages/branch/Users';
 import BranchUsersCreate from './pages/branch/users/Create';
-import BranchContacts from './pages/branch/Contacts';
 import BranchTransactions from './pages/branch/Transactions';
 import BranchProfile from './pages/branch/Profile';
 import BranchReports from './pages/branch/Reports';
 import BranchPackages from './pages/branch/Packages';
 import BranchCctv from './pages/branch/Cctv';
-// Kanwil Pages (Demo Role: ADMIN_KANWIL)
+
+// Kanwil / Yayasan Pages
 import KanwilDashboard from './pages/kanwil/Dashboard';
 import KanwilBranches from './pages/kanwil/Branches';
-import KanwilBranchCreate from './pages/kanwil/branches/Create';
 import KanwilInmates from './pages/kanwil/Inmates';
 import KanwilReports from './pages/kanwil/Reports';
 import KanwilCalls from './pages/kanwil/Calls';
@@ -48,47 +47,41 @@ import KanwilManagement from './pages/kanwil/KanwilManagement';
 import KanwilCreate from './pages/kanwil/Create';
 import KanwilAdmins from './pages/kanwil/KanwilAdmins';
 
-// Finance Pages (Role: FINANCE)
+// Finance Pages (Role: FINANCE & SUPERADMIN)
 import FinanceDashboard from './pages/finance/Dashboard';
 import FinanceBilling from './pages/finance/Billing';
 import FinanceContracts from './pages/finance/Contracts';
 import FinanceReports from './pages/finance/Reports';
 import FinanceAccounts from './pages/finance/FinanceAccounts';
 
-// Inkopasindo Pages (Role: INKOPASINDO)
-import InkopasindoDashboard from './pages/inkopasindo/Dashboard';
-import InkopasindoBilling from './pages/inkopasindo/Billing';
-import InkopasindoReports from './pages/inkopasindo/Reports';
-
 import { ROLES } from './config/menuConfig';
 import { AuthProvider } from './context/AuthContext';
 
 import RoleGuard from './components/RoleGuard';
 
-// Branch Inmates Pages
-import BranchInmatesList from './pages/branch/inmates/List';
-import BranchInmatesCreate from './pages/branch/inmates/Create';
-import BranchInmatesDetail from './pages/branch/inmates/Detail';
-import BranchInmatesEdit from './pages/branch/inmates/Edit';
+// Branch Santri Pages
+import BranchSantriList from './pages/branch/santri/List';
+import BranchSantriCreate from './pages/branch/santri/Create';
+import BranchSantriDetail from './pages/branch/santri/Detail';
+import BranchSantriEdit from './pages/branch/santri/Edit';
 
-// Kantin Pages (Operator Kantin only -- route /kantin/*)
-import KantinLayout from './layouts/KantinLayout';
-import KantinProtectedRoute from './components/KantinProtectedRoute';
-import KantinPaket from './pages/kantin/PaketPage';
-import KantinStatusWartel from './pages/kantin/StatusWartelPage';
-import KantinRiwayat from './pages/kantin/RiwayatPage';
-import KantinTopUpSaldo from './pages/kantin/TopUpSaldoPage';
-import KantinVoucher from './pages/kantin/VoucherPage';
-import KantinStruk from './pages/kantin/StrukPage';
-import KantinKontak from './pages/kantin/KontakPage';
-import KantinTagihan from './pages/kantin/TagihanPage';
+// Kopontren Pages (Operator Kopontren only -- route /kopontren/*)
+import KopontrenLayout from './layouts/KopontrenLayout';
+import KopontrenProtectedRoute from './components/KopontrenProtectedRoute';
+import KopontrenPaket from './pages/kopontren/PaketPage';
+import KopontrenStatusWartel from './pages/kopontren/StatusWartelPage';
+import KopontrenRiwayat from './pages/kopontren/RiwayatPage';
+import KopontrenVoucher from './pages/kopontren/VoucherPage';
+import KopontrenStruk from './pages/kopontren/StrukPage';
+import KopontrenKontak from './pages/kopontren/KontakPage';
+import KopontrenTagihan from './pages/kopontren/TagihanPage';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Langsung redirect root ke halaman login */}
+          {/* Redirect root ke halaman login */}
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
           {/* Public Mobile Download Gateway (Scan Barcode / Download Link) */}
@@ -101,7 +94,7 @@ function App() {
               <Route element={<ProtectedRoute allowedRoles={[ROLES.SUPERADMIN]} />}>
                 <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* Branches Routes */}
+                {/* Kampus / Branches Routes */}
                 <Route path="branches">
                   <Route index element={<BranchesList />} />
                   <Route path="create" element={<BranchCreate />} />
@@ -109,11 +102,13 @@ function App() {
                   <Route path=":id/edit" element={<BranchEdit />} />
                 </Route>
 
-                {/* Superadmin Inmates Routes (Read-Only) */}
-                <Route path="inmates">
-                  <Route index element={<InmatesList />} />
-                  <Route path=":id" element={<BranchInmatesDetail />} />
+                {/* Superadmin Santri Routes */}
+                <Route path="santri">
+                  <Route index element={<SantriList />} />
+                  <Route path=":id" element={<BranchSantriDetail />} />
                 </Route>
+                <Route path="inmates" element={<Navigate to="/santri" replace />} />
+                <Route path="inmates/:id" element={<Navigate to="/santri" replace />} />
 
                 {/* Calls Routes */}
                 <Route path="calls">
@@ -127,7 +122,7 @@ function App() {
                   <Route path=":id" element={<TransactionDetail />} />
                 </Route>
 
-                {/* Superadmin Packages, Kanwil Management Routes (canteen-topup dialihkan ke dashboard) */}
+                {/* Superadmin Packages, Yayasan Management, Finance */}
                 <Route path="packages" element={<PackagesList />} />
                 <Route path="canteen-topup" element={<CanteenTopup />} />
                 <Route path="kanwil-management" element={<KanwilManagement />} />
@@ -143,33 +138,37 @@ function App() {
                 <Route path="app-releases" element={<AppReleasesPage />} />
               </Route>
 
-              {/* Branch Admin Routes (Kepala UPT & Supervisor) */}
+              {/* Branch Admin Routes (Pimpinan Kampus & Supervisor) */}
               <Route path="branch" element={<ProtectedRoute allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]} />}>
                 <Route index element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="dashboard" element={<BranchDashboard />} />
                 <Route path="cctv" element={<BranchCctv />} />
-                <Route path="inmates">
-                  <Route index element={<BranchInmatesList />} />
+                
+                {/* Santri CRUD */}
+                <Route path="santri">
+                  <Route index element={<BranchSantriList />} />
                   <Route 
                     path="create" 
                     element={
                       <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
-                        <BranchInmatesCreate />
+                        <BranchSantriCreate />
                       </RoleGuard>
                     } 
                   />
-                  <Route path=":id" element={<BranchInmatesDetail />} />
+                  <Route path=":id" element={<BranchSantriDetail />} />
                   <Route 
                     path=":id/edit" 
                     element={
                       <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
-                        <BranchInmatesEdit />
+                        <BranchSantriEdit />
                       </RoleGuard>
                     } 
                   />
                 </Route>
+                {/* Backward compatibility redirects */}
+                <Route path="inmates/*" element={<Navigate to="/branch/santri" replace />} />
 
-                {/* Rekaman Panggilan - Hanya Kepala UPT */}
+                {/* Rekaman Panggilan - Pimpinan Kampus */}
                 <Route
                   path="recordings"
                   element={
@@ -179,7 +178,7 @@ function App() {
                   }
                 />
 
-                {/* Kelola Pengguna - Hanya Kepala UPT */}
+                {/* Kelola Pengguna - Pimpinan Kampus */}
                 <Route
                   path="users"
                   element={
@@ -197,7 +196,7 @@ function App() {
                   }
                 />
 
-                {/* Kelola Paket - Khusus Supervisor UPT (pembuatan paket per UPT) */}
+                {/* Kelola Paket - Supervisor Kampus */}
                 <Route
                   path="packages"
                   element={
@@ -207,22 +206,13 @@ function App() {
                   }
                 />
 
-                {/* Persetujuan Kontak - Nonaktifkan (dialihkan ke Dashboard Cabang) */}
-                {/* <Route
-                  path="contacts"
-                  element={
-                    <RoleGuard allowedRoles={[ROLES.KEPALA_UPT, ROLES.SUPERVISOR]}>
-                      <BranchContacts />
-                    </RoleGuard>
-                  }
-                /> */}
                 <Route path="contacts" element={<Navigate to="/branch/dashboard" replace />} />
                 <Route path="transactions" element={<BranchTransactions />} />
                 <Route
                   path="billing"
                   element={
                     <RoleGuard allowedRoles={[ROLES.SUPERVISOR]}>
-                      <KantinTagihan />
+                      <KopontrenTagihan />
                     </RoleGuard>
                   }
                 />
@@ -230,14 +220,14 @@ function App() {
                 <Route path="profile" element={<BranchProfile />} />
               </Route>
 
-              {/* Kanwil Admin Routes (Admin Kanwil Demo) */}
+              {/* Yayasan Admin Routes (Admin Yayasan / KANWIL_ADMIN) */}
               <Route path="kanwil" element={<ProtectedRoute allowedRoles={[ROLES.ADMIN_KANWIL]} />}>
                 <Route index element={<Navigate to="/kanwil/dashboard" replace />} />
                 <Route path="dashboard" element={<KanwilDashboard />} />
                 <Route path="branches" element={<KanwilBranches />} />
-                {/* Proteksi route: Kanwil bersifat read-only, dialihkan kembali ke daftar UPT */}
                 <Route path="branches/create" element={<Navigate to="/kanwil/branches" replace />} />
-                <Route path="inmates" element={<KanwilInmates />} />
+                <Route path="santri" element={<KanwilInmates />} />
+                <Route path="inmates" element={<Navigate to="/kanwil/santri" replace />} />
                 <Route path="calls" element={<KanwilCalls />} />
                 <Route path="canteen-topup" element={<CanteenTopup />} />
                 <Route path="reports" element={<KanwilReports />} />
@@ -252,36 +242,27 @@ function App() {
                 <Route path="contracts" element={<FinanceContracts />} />
                 <Route path="reports" element={<FinanceReports />} />
               </Route>
-
-              {/* Inkopasindo Routes (Role: INKOPASINDO & SUPERADMIN) */}
-              <Route path="inkopasindo" element={<ProtectedRoute allowedRoles={[ROLES.INKOPASINDO, ROLES.SUPERADMIN]} />}>
-                <Route index element={<Navigate to="/inkopasindo/dashboard" replace />} />
-                <Route path="dashboard" element={<InkopasindoDashboard />} />
-                <Route path="billing" element={<InkopasindoBilling />} />
-                <Route path="reports" element={<InkopasindoReports />} />
-              </Route>
             </Route>
           </Route>
 
           {/* ============================================================
-              KANTIN ROUTES -- /kantin/* (Operator Kantin only)
-              Menggunakan KantinProtectedRoute + KantinLayout tersendiri.
-              Tidak menyentuh Layout dashboard role lain.
+              KOPONTREN ROUTES -- /kopontren/* (Operator Kopontren)
               ============================================================ */}
-          <Route element={<KantinProtectedRoute />}>
-            <Route element={<KantinLayout />}>
-              <Route path="/kantin" element={<KantinPaket />} />
-              <Route path="/kantin/kontak" element={<KantinKontak />} />
-              <Route path="/kantin/status-wartel" element={<KantinStatusWartel />} />
-              <Route path="/kantin/riwayat" element={<KantinRiwayat />} />
-              <Route path="/kantin/tagihan" element={<Navigate to="/kantin" replace />} />
-              <Route path="/kantin/top-up-saldo" element={<Navigate to="/kantin" replace />} />
-              <Route path="/kantin/voucher/:id" element={<KantinVoucher />} />
-              <Route path="/kantin/struk/:id" element={<KantinStruk />} />
-              {/* Fallback di dalam kantin -> kembali ke paket */}
-              <Route path="/kantin/*" element={<Navigate to="/kantin" replace />} />
+          <Route element={<KopontrenProtectedRoute />}>
+            <Route element={<KopontrenLayout />}>
+              <Route path="/kopontren" element={<KopontrenPaket />} />
+              <Route path="/kopontren/kontak" element={<KopontrenKontak />} />
+              <Route path="/kopontren/status-wartel" element={<KopontrenStatusWartel />} />
+              <Route path="/kopontren/riwayat" element={<KopontrenRiwayat />} />
+              <Route path="/kopontren/tagihan" element={<Navigate to="/kopontren" replace />} />
+              <Route path="/kopontren/voucher/:id" element={<KopontrenVoucher />} />
+              <Route path="/kopontren/struk/:id" element={<KopontrenStruk />} />
+              <Route path="/kopontren/*" element={<Navigate to="/kopontren" replace />} />
             </Route>
           </Route>
+
+          {/* Backward compatibility route for /kantin */}
+          <Route path="/kantin/*" element={<Navigate to="/kopontren" replace />} />
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>

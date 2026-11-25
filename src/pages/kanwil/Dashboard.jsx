@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Building2, 
@@ -25,30 +25,30 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { getKanwilDashboardSummary, getKanwilBranches } from '../../services/kanwilService';
+import { getYayasanDashboardSummary, getYayasanBranches } from '../../services/YayasanService';
 import CallPerformanceComparisonChart from '../../components/CallPerformanceComparisonChart';
 
-export default function KanwilDashboard() {
+export default function YayasanDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [branches, setBranches] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const kanwilId = user?.kanwilId || user?.kanwil?.id;
-  const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+  const YayasanId = user?.YayasanId || user?.Yayasan?.id;
+  const YayasanName = user?.YayasanName || user?.Yayasan?.name || 'Yayasan Pesantren';
 
   const fetchData = async () => {
     setIsLoading(true);
     try {
       const [sumData, branchData] = await Promise.all([
-        getKanwilDashboardSummary(kanwilId),
-        getKanwilBranches(kanwilId, { limit: 10 })
+        getYayasanDashboardSummary(YayasanId),
+        getYayasanBranches(YayasanId, { limit: 10 })
       ]);
       setSummary(sumData);
       setBranches(branchData.items || []);
     } catch (err) {
-      console.error('Error fetching kanwil dashboard data:', err);
+      console.error('Error fetching Yayasan dashboard data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -56,7 +56,7 @@ export default function KanwilDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [kanwilId, user]);
+  }, [YayasanId, user]);
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', {
@@ -71,23 +71,23 @@ export default function KanwilDashboard() {
   };
 
   // Compute aggregated stats
-  const totalUptsCount = summary?.totalUpts || branches.length || 0;
-  const activeUptsCount = summary?.activeBranches || branches.filter(b => b.status === 'Active' || b.status === 'Aktif').length || 0;
-  const totalWbpsCount = summary?.totalWbps || summary?.totalInmates || branches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+  const totalKampussCount = summary?.totalKampuss || branches.length || 0;
+  const activeKampussCount = summary?.activeBranches || branches.filter(b => b.status === 'Active' || b.status === 'Aktif').length || 0;
+  const totalSantrisCount = summary?.totalSantris || summary?.totalInmates || branches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
 
   return (
     <div className="space-y-5 relative">
       {/* 4 Clickable KPI Cards Grid - Seamless Integration with Pages */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        {/* Card 1: Total UPT -> Links to /kanwil/branches */}
+        {/* Card 1: Total Kampus -> Links to /Yayasan/branches */}
         <Link 
-          to="/kanwil/branches"
+          to="/Yayasan/branches"
           className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-primary/50 flex flex-col justify-between transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-primary transition-colors">
-              Total UPT
+              Total Kampus
             </span>
             <div className="flex items-center gap-1.5">
               <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold group-hover:bg-primary group-hover:text-white transition-all">
@@ -98,24 +98,24 @@ export default function KanwilDashboard() {
           <div className="mt-4">
             <div className="flex items-baseline justify-between">
               <p className="text-2xl font-extrabold text-slate-800 tracking-tight">
-                {isLoading ? '...' : totalUptsCount}
+                {isLoading ? '...' : totalKampussCount}
               </p>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-primary transition-colors" />
             </div>
             <span className="text-[11px] text-emerald-600 font-bold mt-1 inline-block">
-              {activeUptsCount} UPT Aktif Beroperasi
+              {activeKampussCount} Kampus Aktif Beroperasi
             </span>
           </div>
         </Link>
 
-        {/* Card 2: WBP Terdata -> Links to /kanwil/inmates */}
+        {/* Card 2: Santri Terdata -> Links to /Yayasan/inmates */}
         <Link 
-          to="/kanwil/inmates"
+          to="/Yayasan/inmates"
           className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-indigo-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-indigo-600 transition-colors">
-              WBP Terdata
+              Santri Terdata
             </span>
             <div className="flex items-center gap-1.5">
               <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold group-hover:bg-indigo-600 group-hover:text-white transition-all">
@@ -126,19 +126,19 @@ export default function KanwilDashboard() {
           <div className="mt-4">
             <div className="flex items-baseline justify-between">
               <p className="text-2xl font-extrabold text-slate-800 tracking-tight">
-                {isLoading ? '...' : formatNumber(totalWbpsCount)}
+                {isLoading ? '...' : formatNumber(totalSantrisCount)}
               </p>
               <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
             </div>
             <span className="text-[11px] text-slate-400 mt-1 inline-block">
-              Seluruh UPT di wilayah {kanwilName}
+              Seluruh Kampus di wilayah {YayasanName}
             </span>
           </div>
         </Link>
 
-        {/* Card 3: Success Rate -> Links to /kanwil/reports */}
+        {/* Card 3: Success Rate -> Links to /Yayasan/reports */}
         <Link 
-          to="/kanwil/reports"
+          to="/Yayasan/reports"
           className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-emerald-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between">
@@ -165,9 +165,9 @@ export default function KanwilDashboard() {
           </div>
         </Link>
 
-        {/* Card 4: Estimasi Transaksi -> Links to /kanwil/reports */}
+        {/* Card 4: Estimasi Transaksi -> Links to /Yayasan/reports */}
         <Link 
-          to="/kanwil/reports"
+          to="/Yayasan/reports"
           className="group p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs hover:shadow-md hover:border-amber-400 flex flex-col justify-between transition-all duration-200 cursor-pointer"
         >
           <div className="flex items-center justify-between">
@@ -201,10 +201,10 @@ export default function KanwilDashboard() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h3 className="text-sm font-bold text-slate-800">Tren Pendapatan Wilayah</h3>
-              <p className="text-[11px] text-slate-400">Konsolidasi seluruh UPT di bawah {kanwilName}</p>
+              <p className="text-[11px] text-slate-400">Konsolidasi seluruh Kampus di bawah {YayasanName}</p>
             </div>
             <Link 
-              to="/kanwil/reports"
+              to="/Yayasan/reports"
               className="text-primary hover:text-primary-dark text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
             >
               Lihat Laporan <ArrowUpRight className="w-3.5 h-3.5" />
@@ -271,30 +271,30 @@ export default function KanwilDashboard() {
         </div>
       </div>
 
-      {/* Diagram Batang Performa Panggilan Antar-Lapas & Bulanan */}
+      {/* Diagram Batang Performa Panggilan Antar-Pesantren & Bulanan */}
       <CallPerformanceComparisonChart 
-        role="kanwil" 
-        kanwilId={kanwilId} 
-        kanwilName={kanwilName} 
+        role="Yayasan" 
+        YayasanId={YayasanId} 
+        YayasanName={YayasanName} 
         initialBranches={branches}
       />
 
-      {/* Tabel UPT di Bawah Naungan Kanwil */}
+      {/* Tabel Kampus di Bawah Naungan Yayasan */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="p-5 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-800">Daftar UPT di Wilayah</h2>
-            <p className="text-[11px] text-slate-400">Monitoring operasional seluruh UPT di bawah naungan {kanwilName}</p>
+            <h2 className="text-sm font-bold text-slate-800">Daftar Kampus di Wilayah</h2>
+            <p className="text-[11px] text-slate-400">Monitoring operasional seluruh Kampus di bawah naungan {YayasanName}</p>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-50 text-primary border border-blue-100">
-              {branches.length} UPT Terdata
+              {branches.length} Kampus Terdata
             </span>
             <Link 
-              to="/kanwil/branches"
+              to="/Yayasan/branches"
               className="text-primary hover:text-primary-dark text-xs font-bold flex items-center gap-1 hover:underline cursor-pointer"
             >
-              Kelola UPT <ArrowUpRight className="w-3.5 h-3.5" />
+              Kelola Kampus <ArrowUpRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
@@ -303,9 +303,9 @@ export default function KanwilDashboard() {
           <table className="w-full text-left border-collapse min-w-[650px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-left w-[34%]">Nama UPT</th>
+                <th className="py-3.5 px-4 text-left w-[34%]">Nama Kampus</th>
                 <th className="py-3.5 px-4 text-left w-[22%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[24%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-left w-[24%]">Kapasitas & Santri</th>
                 <th className="py-3.5 px-4 text-center w-[10%]">Status</th>
                 <th className="py-3.5 px-4 text-center w-[10%]">Aksi</th>
               </tr>
@@ -335,7 +335,7 @@ export default function KanwilDashboard() {
                           </div>
                           <div>
                             <Link 
-                              to={`/kanwil/inmates?branchId=${b.id}`}
+                              to={`/Yayasan/inmates?branchId=${b.id}`}
                               className="font-bold text-slate-800 text-sm whitespace-nowrap hover:text-primary transition-colors inline-block"
                             >
                               {b.name}
@@ -352,8 +352,8 @@ export default function KanwilDashboard() {
                       </td>
                       <td className="py-3.5 px-4 text-slate-600">
                         <Link 
-                          to={`/kanwil/inmates?branchId=${b.id}`}
-                          title="Klik untuk melihat data WBP cabang ini"
+                          to={`/Yayasan/inmates?branchId=${b.id}`}
+                          title="Klik untuk melihat data Santri cabang ini"
                           className="group inline-block"
                         >
                           <div className="flex items-center gap-2">
@@ -387,10 +387,10 @@ export default function KanwilDashboard() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <Link 
-                          to={`/kanwil/inmates?branchId=${b.id}`}
+                          to={`/Yayasan/inmates?branchId=${b.id}`}
                           className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-primary hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                         >
-                          <span>Data WBP</span>
+                          <span>Data Santri</span>
                           <ExternalLink className="w-3 h-3" />
                         </Link>
                       </td>
@@ -404,9 +404,9 @@ export default function KanwilDashboard() {
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                         <Building2 className="w-6 h-6" />
                       </div>
-                      <p className="font-bold text-slate-700 text-sm">Belum ada UPT di wilayah ini</p>
+                      <p className="font-bold text-slate-700 text-sm">Belum ada Kampus di wilayah ini</p>
                       <p className="text-slate-400 max-w-sm">
-                        Kantor Wilayah {kanwilName} belum memiliki Unit Pelaksana Teknis yang terdaftar.
+                        Yayasan Pesantren {YayasanName} belum memiliki Unit Pelaksana Teknis yang terdaftar.
                       </p>
                     </div>
                   </td>
@@ -419,3 +419,4 @@ export default function KanwilDashboard() {
     </div>
   );
 }
+

@@ -1,4 +1,4 @@
-// Base API Service for PasCall Web Application
+// Base API Service for SapaKita Web Application (Wartel Pesantren Terpadu)
 export const API_BASE_URL = (() => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
@@ -10,12 +10,12 @@ export const API_BASE_URL = (() => {
 })();
 
 export const getAuthToken = () => {
-  return localStorage.getItem('token') || localStorage.getItem('pascall_token');
+  return localStorage.getItem('token') || localStorage.getItem('sapakita_token') || localStorage.getItem('pascall_token');
 };
 
 export const getAuthUser = () => {
   try {
-    const userStr = localStorage.getItem('user') || localStorage.getItem('pascall_user');
+    const userStr = localStorage.getItem('user') || localStorage.getItem('sapakita_user') || localStorage.getItem('pascall_user');
     return userStr ? JSON.parse(userStr) : null;
   } catch (err) {
     console.error('Error parsing stored user data:', err);
@@ -26,11 +26,11 @@ export const getAuthUser = () => {
 export const setAuthSession = (token, user) => {
   if (token) {
     localStorage.setItem('token', token);
-    localStorage.setItem('pascall_token', token);
+    localStorage.setItem('sapakita_token', token);
   }
   if (user) {
     localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('pascall_user', JSON.stringify(user));
+    localStorage.setItem('sapakita_user', JSON.stringify(user));
     if (user.role) {
       localStorage.setItem('role', user.role);
     }
@@ -39,10 +39,14 @@ export const setAuthSession = (token, user) => {
 
 export const clearAuthSession = () => {
   localStorage.removeItem('token');
+  localStorage.removeItem('sapakita_token');
   localStorage.removeItem('pascall_token');
   localStorage.removeItem('user');
+  localStorage.removeItem('sapakita_user');
   localStorage.removeItem('pascall_user');
   localStorage.removeItem('role');
+  localStorage.removeItem('sapakita_active_branch_id');
+  localStorage.removeItem('sapakita_active_branch_name');
   localStorage.removeItem('pascall_active_branch_id');
   localStorage.removeItem('pascall_active_branch_name');
   localStorage.removeItem('pascall_latest_branch_packages');
@@ -52,8 +56,6 @@ export const clearAuthSession = () => {
   } catch (e) {
     // ignore
   }
-  // Dispatch custom auth event to notify components that session was cleared.
-  // DO NOT dispatch fake 'storage' event which triggers recursive re-fetch loops in the same window!
   try {
     window.dispatchEvent(new CustomEvent('auth_session_cleared'));
   } catch (e) {

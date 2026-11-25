@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   Search, 
@@ -15,15 +15,15 @@ import {
   FileText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getKanwilBranches } from '../../services/kanwilService';
+import { getYayasanBranches } from '../../services/YayasanService';
 import { exportToExcel, exportToPDF } from '../../utils/exportUtils';
 
-export default function KanwilBranches() {
+export default function YayasanBranches() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const kanwilId = user?.kanwilId || user?.kanwil?.id;
-  const kanwilName = user?.kanwilName || user?.kanwil?.name || 'Kantor Wilayah';
+  const YayasanId = user?.YayasanId || user?.Yayasan?.id;
+  const YayasanName = user?.YayasanName || user?.Yayasan?.name || 'Yayasan Pesantren';
 
   const [searchInput, setSearchInput] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -66,19 +66,19 @@ export default function KanwilBranches() {
   const loadBranches = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await getKanwilBranches(kanwilId, {
+      const res = await getYayasanBranches(YayasanId, {
         search: debouncedSearch,
         limit: 50,
       });
       setBranchesData(res);
     } catch (err) {
-      console.error('Error fetching kanwil branches:', err);
-      showToast('Gagal memuat data UPT.', 'error');
+      console.error('Error fetching Yayasan branches:', err);
+      showToast('Gagal memuat data Kampus.', 'error');
       setBranchesData({ items: [], total: 0, totalPages: 1 });
     } finally {
       setIsLoading(false);
     }
-  }, [kanwilId, debouncedSearch]);
+  }, [YayasanId, debouncedSearch]);
 
   useEffect(() => {
     loadBranches();
@@ -95,11 +95,11 @@ export default function KanwilBranches() {
 
   const handleExportPDF = () => {
     if (filteredBranches.length === 0) {
-      showToast('Tidak ada data UPT untuk diekspor.', 'error');
+      showToast('Tidak ada data Kampus untuk diekspor.', 'error');
       return;
     }
 
-    const headers = ['No', 'Nama UPT', 'Lokasi / Kota', 'Provinsi', 'Kapasitas', 'Jumlah WBP', 'Status', 'Nomor Telepon'];
+    const headers = ['No', 'Nama Kampus', 'Lokasi / Kota', 'Provinsi', 'Kapasitas', 'Jumlah Santri', 'Status', 'Nomor Telepon'];
     const rows = filteredBranches.map((b, idx) => [
       idx + 1,
       b.name,
@@ -112,33 +112,33 @@ export default function KanwilBranches() {
     ]);
 
     const activeCount = filteredBranches.filter(b => b.status === 'Active' || b.status === 'Aktif').length;
-    const totalWbp = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
+    const totalSantri = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
     const totalCapacity = filteredBranches.reduce((sum, b) => sum + (b.capacity || 0), 0);
 
-    const filename = `Daftar_UPT_${kanwilName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+    const filename = `Daftar_Kampus_${YayasanName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
     const success = exportToPDF({
-      title: `DAFTAR UNIT PELAKSANA TEKNIS (UPT) - ${kanwilName.toUpperCase()}`,
-      subtitle: `Laporan Data Unit Pelaksana Teknis di Bawah Naungan ${kanwilName}`,
+      title: `DAFTAR UNIT PELAKSANA TEKNIS (Kampus) - ${YayasanName.toUpperCase()}`,
+      subtitle: `Laporan Data Unit Pelaksana Teknis di Bawah Naungan ${YayasanName}`,
       filename,
       headers,
       rows,
       orientation: 'landscape',
       metadata: {
-        'Tingkat Wilayah': 'Kantor Wilayah Pemasyarakatan',
-        'Nama Kanwil': kanwilName,
+        'Tingkat Wilayah': 'Yayasan Pesantren Pemasyarakatan',
+        'Nama Yayasan': YayasanName,
         'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Active' ? 'Aktif' : 'Nonaktif',
         'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
       summaryMetrics: [
-        { label: 'TOTAL UPT BINAAN', value: `${filteredBranches.length} UPT` },
-        { label: 'UPT AKTIF BEROPERASI', value: `${activeCount} UPT` },
-        { label: 'TOTAL WBP DI WILAYAH', value: `${totalWbp} Orang` },
+        { label: 'TOTAL Kampus BINAAN', value: `${filteredBranches.length} Kampus` },
+        { label: 'Kampus AKTIF BEROPERASI', value: `${activeCount} Kampus` },
+        { label: 'TOTAL Santri DI WILAYAH', value: `${totalSantri} Orang` },
         { label: 'TOTAL KAPASITAS', value: `${totalCapacity} Orang` },
       ]
     });
 
     if (success !== false) {
-      showToast('Berhasil mengekspor daftar UPT ke format PDF!', 'success');
+      showToast('Berhasil mengekspor daftar Kampus ke format PDF!', 'success');
     }
   };
 
@@ -161,7 +161,7 @@ export default function KanwilBranches() {
         </div>
       )}
 
-      {/* Control Bar: Search, Filters, Export & Tambah UPT */}
+      {/* Control Bar: Search, Filters, Export & Tambah Kampus */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           {/* Search */}
@@ -169,7 +169,7 @@ export default function KanwilBranches() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama UPT atau lokasi..." 
+              placeholder="Cari nama Kampus atau lokasi..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium"
@@ -220,7 +220,7 @@ export default function KanwilBranches() {
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-4 text-left w-[32%]">Nama Cabang</th>
                 <th className="py-3.5 px-4 text-left w-[24%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[26%]">Kapasitas & WBP</th>
+                <th className="py-3.5 px-4 text-left w-[26%]">Kapasitas & Santri</th>
                 <th className="py-3.5 px-4 text-center w-[10%]">Status</th>
                 <th className="py-3.5 px-4 text-center w-[8%]">Aksi</th>
               </tr>
@@ -291,12 +291,12 @@ export default function KanwilBranches() {
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center">
-                          {/* Ikon View: Melihat Detail Lengkap UPT (Read-Only) */}
+                          {/* Ikon View: Melihat Detail Lengkap Kampus (Read-Only) */}
                           <button 
                             type="button"
                             onClick={() => openDetailModal(branch)}
                             className="p-2 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all cursor-pointer shadow-2xs hover:shadow-xs"
-                            title="Lihat Detail UPT"
+                            title="Lihat Detail Kampus"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
@@ -308,7 +308,7 @@ export default function KanwilBranches() {
               ) : (
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-400 text-xs">
-                    Tidak ada data UPT yang sesuai dengan filter pencarian.
+                    Tidak ada data Kampus yang sesuai dengan filter pencarian.
                   </td>
                 </tr>
               )}
@@ -317,7 +317,7 @@ export default function KanwilBranches() {
         </div>
       </div>
 
-      {/* Modal Detail UPT */}
+      {/* Modal Detail Kampus */}
       {isDetailModalOpen && selectedBranch && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-xs p-4 animate-in fade-in overflow-y-auto">
           <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden my-auto max-h-[90vh] overflow-y-auto flex flex-col">
@@ -328,7 +328,7 @@ export default function KanwilBranches() {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Detail Unit Pelaksana Teknis</h3>
-                  <p className="text-[11px] text-slate-400">Informasi operasional UPT di wilayah {kanwilName}</p>
+                  <p className="text-[11px] text-slate-400">Informasi operasional Kampus di wilayah {YayasanName}</p>
                 </div>
               </div>
               <button 
@@ -343,7 +343,7 @@ export default function KanwilBranches() {
             <div className="p-6 space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-slate-400 font-medium">Nama UPT</p>
+                  <p className="text-slate-400 font-medium">Nama Kampus</p>
                   <p className="text-sm font-bold text-slate-800 mt-0.5">{selectedBranch.name}</p>
                 </div>
                 <div>
@@ -376,7 +376,7 @@ export default function KanwilBranches() {
 
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100 bg-slate-50/70 p-3.5 rounded-xl">
                 <div>
-                  <p className="text-slate-400 font-medium">Jumlah WBP Terdaftar</p>
+                  <p className="text-slate-400 font-medium">Jumlah Santri Terdaftar</p>
                   <p className="text-base font-extrabold text-primary mt-0.5">
                     {new Intl.NumberFormat('id-ID').format(selectedBranch.inmateCount || 0)} Orang
                   </p>
@@ -392,11 +392,11 @@ export default function KanwilBranches() {
 
             <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
               <Link
-                to={`/kanwil/inmates?branchId=${selectedBranch.id}`}
+                to={`/Yayasan/inmates?branchId=${selectedBranch.id}`}
                 className="px-4 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs transition-colors cursor-pointer inline-flex items-center gap-1.5 shadow-sm"
               >
                 <Users className="w-3.5 h-3.5" />
-                <span>Lihat Data WBP Cabang Ini</span>
+                <span>Lihat Data Santri Cabang Ini</span>
               </Link>
               <button 
                 type="button"
@@ -413,3 +413,4 @@ export default function KanwilBranches() {
     </div>
   );
 }
+
