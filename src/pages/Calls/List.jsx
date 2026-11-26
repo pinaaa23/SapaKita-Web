@@ -85,7 +85,7 @@ const CallsList = () => {
         const iList = iRes.status === 'fulfilled' ? (iRes.value.items || iRes.value || []) : [];
         const nMap = {};
         iList.forEach((i) => {
-          const uName = bMap[i.branchId] || i.branchName || 'Lapas Kelas I';
+          const uName = bMap[i.branchId] || i.branchName || 'Pondok Pesantren';
           if (i.identifier) nMap[i.identifier] = uName;
           if (i.wbpRegNumber) nMap[i.wbpRegNumber] = uName;
           if (i.name) nMap[i.name] = uName;
@@ -212,9 +212,9 @@ const CallsList = () => {
     const exportData = filteredCalls.map((c, idx) => ({
       'No': idx + 1,
       'ID Panggilan': c.id,
-      'UPT': (c.branchName && c.branchName !== '-' && !c.branchName.startsWith('b')) ? c.branchName : (branchesMap[c.branchId] || nipBranchMap[c.inmateId] || 'Lapas Kelas I'),
-      'Nama WBP': c.inmateName,
-      'NIP': c.inmateId,
+      'Pondok Pesantren': (c.branchName && c.branchName !== '-' && !c.branchName.startsWith('b')) ? c.branchName : (branchesMap[c.branchId] || nipBranchMap[c.inmateId] || 'Pondok Pesantren'),
+      'Nama Santri': c.inmateName,
+      'NIS': c.inmateId,
       'No. Telepon Tujuan': c.targetPhone || c.familyPhone || '-',
       'Durasi': `${Math.floor((c.durationSeconds || 0) / 60)}m ${(c.durationSeconds || 0) % 60}s`,
       'Biaya': `Rp ${new Intl.NumberFormat('id-ID').format(c.cost || 0)}`,
@@ -228,10 +228,10 @@ const CallsList = () => {
     const rejectedCount = filteredCalls.filter(c => normalizeCallStatus(c.status, c.rawStatus) === 'Rejected').length;
     const totalCost = filteredCalls.reduce((sum, c) => sum + (c.cost || 0), 0);
 
-    const filename = `Riwayat_Panggilan_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = `Riwayat_Panggilan_SapaKita_${new Date().toISOString().split('T')[0]}.xlsx`;
     const success = exportToExcel(exportData, filename, 'Riwayat Panggilan', {
-      title: 'LAPORAN RIWAYAT PANGGILAN NASIONAL SADEWA',
-      subtitle: 'Log Komunikasi Telepon & Video Call Warga Binaan Pemasyarakatan Nasional',
+      title: 'LAPORAN RIWAYAT PANGGILAN NASIONAL SAPAKITA',
+      subtitle: 'Log Komunikasi Telepon & Video Call Santri Seluruh Pondok Pesantren',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
@@ -282,10 +282,10 @@ const CallsList = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="Cari NIP, nama WBP, atau no. tujuan..."
+              placeholder="Cari NIS, nama santri, atau no. tujuan..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-9 pr-8 py-2.5 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition font-medium text-slate-800 placeholder-slate-400 shadow-2xs"
+              className="w-full pl-9 pr-8 py-2.5 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition font-medium text-slate-800 placeholder-slate-400 shadow-2xs"
             />
             {searchInput && (
               <button
@@ -308,7 +308,7 @@ const CallsList = () => {
               }}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'voice'
-                  ? 'bg-white text-primary shadow-xs'
+                  ? 'bg-white text-[#0D7A73] shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -324,7 +324,7 @@ const CallsList = () => {
               }}
               className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'video'
-                  ? 'bg-white text-primary shadow-xs'
+                  ? 'bg-white text-[#0D7A73] shadow-xs'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -341,7 +341,7 @@ const CallsList = () => {
               <Filter className="w-3 h-3 text-slate-400" /> Filter:
             </span>
 
-            {/* Cabang UPT Filter */}
+            {/* Pondok Filter */}
             <div className="relative">
               <select
                 value={branchFilter}
@@ -351,11 +351,11 @@ const CallsList = () => {
                 }}
                 className={`pl-3 pr-7 py-2 rounded-xl text-xs font-bold border transition appearance-none cursor-pointer ${
                   branchFilter !== 'All'
-                    ? 'bg-blue-50 border-blue-200 text-primary'
+                    ? 'bg-teal-50 border-teal-200 text-[#0D7A73]'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/70'
                 }`}
               >
-                <option value="All">Semua Cabang UPT</option>
+                <option value="All">Semua Pondok</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -375,7 +375,7 @@ const CallsList = () => {
                 }}
                 className={`pl-3 pr-7 py-2 rounded-xl text-xs font-bold border transition appearance-none cursor-pointer ${
                   statusFilter !== 'All'
-                    ? 'bg-blue-50 border-blue-200 text-primary'
+                    ? 'bg-teal-50 border-teal-200 text-[#0D7A73]'
                     : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/70'
                 }`}
               >
@@ -399,7 +399,7 @@ const CallsList = () => {
                   }}
                   className={`pl-3 pr-7 py-2 rounded-xl text-xs font-bold border transition appearance-none cursor-pointer ${
                     channelFilter !== 'All'
-                      ? 'bg-blue-50 border-blue-200 text-primary'
+                      ? 'bg-teal-50 border-teal-200 text-[#0D7A73]'
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100/70'
                   }`}
                 >
@@ -455,7 +455,7 @@ const CallsList = () => {
           <button
             type="button"
             onClick={handleExport}
-            className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer ml-auto"
+            className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-[#0D7A73] rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer ml-auto"
             title="Export Riwayat Panggilan (.xlsx)"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
@@ -471,28 +471,28 @@ const CallsList = () => {
         <div className={`transition-all duration-300 w-full ${isSplitView ? 'xl:w-[calc(100%-380px)] min-w-0' : 'w-full'}`}>
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left table-fixed min-w-[760px]">
+              <table className="w-full text-left table-fixed min-w-[820px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'w-[30%]' : 'w-[14%]'}`}>
+                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'w-[28%]' : 'w-[14%]'}`}>
                       Tanggal / Waktu
                     </th>
-                    <th className={`py-3.5 px-4 ${isSplitView ? 'w-[36%]' : 'w-[17%]'}`}>
+                    <th className={`py-3.5 px-4 ${isSplitView ? 'w-[36%]' : 'w-[22%]'}`}>
                       Dari &amp; Tujuan
                     </th>
-                    <th className={`py-3.5 px-4 ${isSplitView ? 'hidden' : 'table-cell w-[17%]'}`}>
-                      UPT
+                    <th className={`py-3.5 px-4 ${isSplitView ? 'hidden' : 'table-cell w-[18%]'}`}>
+                      Pondok Pesantren
                     </th>
-                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[16%]'}`}>
+                    <th className={`py-3.5 px-4 whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[15%]'}`}>
                       Durasi / Biaya
                     </th>
-                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'w-[18%]' : 'w-[13%]'}`}>
+                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'w-[18%]' : 'w-[11%]'}`}>
                       Status
                     </th>
-                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[13%]'}`}>
+                    <th className={`py-3.5 px-3 text-center whitespace-nowrap ${isSplitView ? 'hidden' : 'table-cell w-[11%]'}`}>
                       Transkrip
                     </th>
-                    <th className={`py-3.5 px-4 text-center whitespace-nowrap ${isSplitView ? 'w-[16%]' : 'w-[10%]'}`}>
+                    <th className={`py-3.5 px-4 text-center whitespace-nowrap ${isSplitView ? 'w-[18%]' : 'w-[9%]'}`}>
                       Aksi
                     </th>
                   </tr>
@@ -518,14 +518,14 @@ const CallsList = () => {
                       const resolvedUptName = 
                         (call.branchName && call.branchName !== '-' && !call.branchName.startsWith('b')) 
                           ? call.branchName 
-                          : (branchesMap[call.branchId] || nipBranchMap[call.inmateId] || nipBranchMap[call.inmateName] || (branches[0]?.name || 'Lapas Kelas I'));
+                          : (branchesMap[call.branchId] || nipBranchMap[call.inmateId] || nipBranchMap[call.inmateName] || (branches[0]?.name || 'Pondok Pesantren'));
 
                       return (
                         <tr 
                           key={call.id} 
                           className={`transition-colors ${
                             isSelected 
-                              ? 'bg-blue-50/70 border-l-4 border-l-primary' 
+                              ? 'bg-teal-50/70 border-l-4 border-l-[#0D7A73]' 
                               : 'hover:bg-slate-50/60'
                           }`}
                         >
@@ -540,19 +540,31 @@ const CallsList = () => {
                           </td>
 
                           {/* Dari & Tujuan */}
-                          <td className="py-3.5 px-4 min-w-0 max-w-[180px]">
+                          <td className="py-3.5 px-4 min-w-0">
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
-                            <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.targetPhone || call.familyPhone || '-'}>
-                              <span>→</span>
-                              <span className="truncate">{call.targetPhone || call.familyPhone || '-'}</span>
+                            <div className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium mt-0.5 truncate">
+                              {call.inmateId && (
+                                <span className="font-mono text-slate-400 shrink-0" title={`NIS: ${call.inmateId}`}>
+                                  {call.inmateId}
+                                </span>
+                              )}
+                              {call.inmateId && (call.targetPhone || call.familyPhone) && (
+                                <span className="text-slate-300">•</span>
+                              )}
+                              {(call.targetPhone || call.familyPhone) && (
+                                <span className="truncate flex items-center gap-0.5 text-slate-500" title={call.targetPhone || call.familyPhone}>
+                                  <span>→</span>
+                                  <span>{call.targetPhone || call.familyPhone}</span>
+                                </span>
+                              )}
                             </div>
                           </td>
 
-                          {/* UPT */}
+                          {/* Pondok Pesantren */}
                           <td className={`py-3.5 px-4 text-slate-700 ${isSplitView ? 'hidden' : 'table-cell'}`}>
-                            <span className="font-medium text-slate-700 text-xs truncate max-w-[160px] block" title={resolvedUptName}>
+                            <span className="font-medium text-slate-700 text-xs truncate max-w-[170px] block" title={resolvedUptName}>
                               {resolvedUptName}
                             </span>
                           </td>
@@ -585,10 +597,10 @@ const CallsList = () => {
                               <button 
                                 type="button" 
                                 onClick={() => setTranscriptModalCall(call)}
-                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 text-slate-700 hover:bg-blue-50 hover:text-primary rounded-xl text-xs font-semibold transition-all border border-slate-200/60 cursor-pointer shadow-2xs"
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-slate-100/80 text-slate-700 hover:bg-teal-50 hover:text-[#0D7A73] hover:border-teal-200 rounded-xl text-xs font-semibold transition-all border border-slate-200/60 cursor-pointer shadow-2xs"
                                 title="Lihat Transkrip Audio"
                               >
-                                <FileText className="w-3.5 h-3.5 text-primary" />
+                                <FileText className="w-3.5 h-3.5 text-[#0D7A73]" />
                                 <span>Transkrip</span>
                               </button>
                             ) : (
@@ -604,8 +616,8 @@ const CallsList = () => {
                                 onClick={() => handlePlayRecording(call)}
                                 className={`p-2 rounded-xl transition-all cursor-pointer ${
                                   isSelected 
-                                    ? 'bg-primary text-white shadow-md shadow-blue-500/20 scale-105 ring-2 ring-primary/30' 
-                                    : 'bg-blue-50 text-primary hover:bg-blue-100'
+                                    ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/20 scale-105 ring-2 ring-[#0D7A73]/30' 
+                                    : 'bg-teal-50 text-[#0D7A73] hover:bg-teal-100'
                                 }`} 
                                 title={isSelected ? "Sedang Diputar di Pemutar" : "Putar Audio Rekaman"}
                               >
@@ -622,11 +634,28 @@ const CallsList = () => {
                     })
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center">
-                        <div className="flex flex-col items-center justify-center text-slate-400">
-                          <SearchX className="w-10 h-10 mb-2 text-slate-300" />
-                          <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                          <p className="text-[11px] mt-0.5">Tidak ada riwayat rekaman yang sesuai dengan filter.</p>
+                      <td colSpan={7} className="py-16 text-center text-slate-500">
+                        <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-2">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
+                            <SearchX className="w-6 h-6 text-slate-400" />
+                          </div>
+                          <p className="text-sm font-bold text-slate-700">
+                            {hasActiveFilters ? 'Tidak ada riwayat panggilan' : 'Belum ada data panggilan'}
+                          </p>
+                          <p className="text-xs text-slate-400">
+                            {hasActiveFilters 
+                              ? 'Tidak ada riwayat rekaman panggilan yang cocok dengan filter pencarian.' 
+                              : 'Belum ada riwayat panggilan santri yang tercatat di SapaKita.'}
+                          </p>
+                          {hasActiveFilters && (
+                            <button 
+                              type="button" 
+                              onClick={handleResetFilters} 
+                              className="mt-3 px-3.5 py-1.5 bg-[#0D7A73]/10 hover:bg-[#0D7A73]/20 text-[#0D7A73] font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                            >
+                              Hapus Filter Pencarian
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -660,7 +689,7 @@ const CallsList = () => {
                         onClick={() => setPage(pageNum)}
                         className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
                           page === pageNum
-                            ? 'border border-primary bg-primary text-white shadow-2xs'
+                            ? 'border border-[#0D7A73] bg-[#0D7A73] text-white shadow-2xs'
                             : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
                         }`}
                       >
@@ -702,13 +731,13 @@ const CallsList = () => {
             {/* Header Modal */}
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold">
+                <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center font-bold">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-800">Transkrip Percakapan</h3>
                   <p className="text-xs text-slate-400 font-medium">
-                    {transcriptModalCall.inmateName} (NIP: {transcriptModalCall.inmateId}) → {transcriptModalCall.familyPhone || '-'}
+                    {transcriptModalCall.inmateName} (NIS: {transcriptModalCall.inmateId}) → {transcriptModalCall.familyPhone || '-'}
                   </p>
                 </div>
               </div>
@@ -745,7 +774,7 @@ const CallsList = () => {
                     setSelectedRecording(transcriptModalCall);
                     setTranscriptModalCall(null);
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-primary text-white rounded-xl text-xs font-bold hover:bg-primary-dark transition-all cursor-pointer shadow-xs"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-[#0D7A73] text-white rounded-xl text-xs font-bold hover:bg-[#0B6660] transition-all cursor-pointer shadow-xs"
                 >
                   <Play className="w-3.5 h-3.5 fill-current" />
                   <span>Putar Rekaman</span>
@@ -760,12 +789,12 @@ const CallsList = () => {
                         transcriptData: transcriptModalCall.transcriptData,
                         callInfo: transcriptModalCall,
                         inmateInfo: { name: transcriptModalCall.inmateName, wbpRegNumber: transcriptModalCall.inmateId },
-                        uptName: transcriptModalCall.branchName || 'Lapas Pusat',
+                        uptName: transcriptModalCall.branchName || 'Pondok Pesantren',
                         printedBy: `${userName || 'Super Administrator'} (Super Administrator)`,
                         filename: `Transkrip_${name}_${transcriptModalCall.id}.pdf`
                       });
                     }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-teal-50 hover:text-[#0D7A73] rounded-xl text-xs font-bold transition-all cursor-pointer shadow-2xs"
                   >
                     <span>Unduh Transkrip</span>
                   </button>

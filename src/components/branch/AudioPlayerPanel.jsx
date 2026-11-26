@@ -221,8 +221,8 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
       transcriptData: call.transcriptData,
       callInfo: call,
       inmateInfo: { name: call.inmateName, wbpRegNumber: call.inmateId },
-      uptName: uptName || 'UPT Pemasyarakatan',
-      printedBy: `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+      uptName: uptName || 'Pondok Pesantren',
+      printedBy: `${userName || 'Petugas'} (${roleLabel || 'Pimpinan Pondok'})`,
       filename
     });
   };
@@ -256,7 +256,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
       {/* Header Panel */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-blue-50 text-primary flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center">
             <Volume2 className="w-4 h-4 animate-pulse" />
           </div>
           <div>
@@ -284,7 +284,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                isVideo ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
+                isVideo ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-800'
               }`}>
                 {isVideo ? <Video className="w-2.5 h-2.5" /> : <PhoneCall className="w-2.5 h-2.5" />}
                 {isVideo ? 'Video Call' : 'Voice Call'}
@@ -292,12 +292,9 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
               <CallStatusBadge status={call.status} rawStatus={call.rawStatus} />
             </div>
             
-            <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName || call.inmate?.name || 'WBP'}>
+            <h4 className="text-sm font-bold text-slate-900 mt-2 truncate" title={call.inmateName || call.inmate?.name || 'Santri'}>
               {call.inmateName}
             </h4>
-            {/* <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={`${call.familyName} (${call.familyPhone})`}>
-              Tujuan: <span className="font-semibold text-slate-700">{call.familyName}</span> ({call.familyPhone})
-            </p> */}
             <p className="text-xs text-slate-500 font-medium truncate mt-0.5" title={call.familyPhone || call.destinationPhone || call.targetPhone || '-'}>
               Tujuan: <span className="font-semibold text-slate-700">{call.familyPhone || '-'}</span>
             </p>
@@ -323,7 +320,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
             <button
               type="button"
               onClick={togglePlay}
-              className="w-13 h-13 rounded-full bg-primary hover:bg-primary-dark text-white shadow-md shadow-blue-500/20 flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 mb-3"
+              className="w-13 h-13 rounded-full bg-[#0D7A73] hover:bg-[#0B6660] text-white shadow-md shadow-teal-700/20 flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 mb-3"
               title={isPlaying ? 'Jeda Audio' : 'Putar Audio'}
             >
               {isPlaying ? (
@@ -346,7 +343,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
                 onMouseUp={handleSeekMouseUp}
                 onTouchStart={handleSeekMouseDown}
                 onTouchEnd={handleSeekMouseUp}
-                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none"
+                className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0D7A73] focus:outline-none"
               />
               <div className="flex justify-between items-center text-[11px] text-slate-500 font-semibold mt-1">
                 <span>{formatSeconds(currentTime)}</span>
@@ -365,7 +362,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
                     onClick={() => handleSpeedChange(spd)}
                     className={`px-2 py-0.5 text-[11px] font-bold rounded-md transition-all cursor-pointer ${
                       playbackSpeed === spd
-                        ? 'bg-primary text-white shadow-2xs'
+                        ? 'bg-[#0D7A73] text-white shadow-2xs'
                         : 'bg-white text-slate-600 hover:bg-slate-200/70 border border-slate-200/70'
                     }`}
                   >
@@ -377,7 +374,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
               <button
                 type="button"
                 onClick={handleDownloadAudio}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:text-primary-dark transition-colors px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 cursor-pointer"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0D7A73] hover:text-[#0B6660] transition-colors px-2.5 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 cursor-pointer"
                 title="Unduh Rekaman Suara"
               >
                 <Download className="w-3.5 h-3.5" />
@@ -398,7 +395,7 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
       <div className="p-4 flex-1 flex flex-col min-h-0 bg-white overflow-hidden">
         <div className="flex items-center justify-between mb-2.5 shrink-0">
           <div className="flex items-center gap-1.5">
-            <FileText className="w-4 h-4 text-primary" />
+            <FileText className="w-4 h-4 text-[#0D7A73]" />
             <h5 className="text-xs font-bold text-slate-800">
               Transkrip Percakapan
             </h5>
@@ -408,10 +405,10 @@ const AudioPlayerPanel = ({ call: propCall, recording, onClose, onOpenTranscript
             <button
               type="button"
               onClick={handleDownloadTranscript}
-              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 hover:text-primary hover:bg-blue-50 px-2 py-1 rounded-md border border-slate-200 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-600 hover:text-[#0D7A73] hover:bg-teal-50 px-2 py-1 rounded-md border border-slate-200 transition-colors cursor-pointer"
               title="Unduh Transkrip Percakapan"
             >
-              <FileDown className="w-3 h-3 text-primary" />
+              <FileDown className="w-3 h-3 text-[#0D7A73]" />
               <span>Unduh Transkrip</span>
             </button>
           )}
