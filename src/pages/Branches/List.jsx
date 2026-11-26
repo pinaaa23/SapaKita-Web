@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Plus, Eye, Edit, Download, Building2, MapPin, SearchX, X, AlertCircle, Trash2, AlertTriangle, Landmark } from 'lucide-react';
 import { getBranches, deleteBranch } from '../../services/branchService';
@@ -120,29 +120,30 @@ const List = () => {
 
   const handleExport = () => {
     if (filteredBranches.length === 0) {
-      showToast('Tidak ada data cabang untuk diekspor.', 'error');
+      showToast('Tidak ada data pondok untuk diekspor.', 'error');
       return;
     }
     const exportData = filteredBranches.map((b, idx) => ({
       'No': idx + 1,
-      'ID Cabang': b.id,
-      'Nama UPT / Cabang': b.name,
+      'ID Pondok': b.id,
+      'Nama Pondok Pesantren': b.name,
       'Lokasi': b.location,
-      'Wilayah Yayasan': getResolvedYayasanName(b) || 'Belum Terhubung',
+      'Yayasan': getResolvedYayasanName(b) || 'Belum Terhubung',
+      'Pimpinan Pondok': b.headName || b.head?.name || b.adminUser?.name || 'Belum diatur',
       'Alamat Lengkap': b.address,
       'Nomor Telepon': b.phone,
-      'Kapasitas Maksimal': b.capacity,
+      'Kapasitas Santri': b.capacity,
       'Jumlah Santri': b.inmateCount,
-      'Jumlah Admin / Petugas': b.adminCount,
+      'Jumlah Petugas': b.adminCount,
       'Status Operasional': b.status === 'Active' ? 'Aktif' : 'Nonaktif'
     }));
 
     const activeCount = filteredBranches.filter(b => b.status === 'Active').length;
     const totalSantri = filteredBranches.reduce((sum, b) => sum + (b.inmateCount || 0), 0);
 
-    const filename = `Daftar_Cabang_UPT_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = `Daftar_Pondok_Pesantren_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
     const success = exportToExcel(exportData, filename, 'Pondok Pesantren', {
-      title: 'LAPORAN DATA MASTER Pondok Pesantren',
+      title: 'LAPORAN DATA MASTER PONDOK PESANTREN',
       subtitle: 'Daftar Seluruh Pondok Pesantren Se-Indonesia',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
@@ -151,9 +152,9 @@ const List = () => {
         'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
       summaryMetrics: [
-        { label: 'Total Cabang / UPT', value: `${filteredBranches.length} UPT` },
-        { label: 'Cabang Aktif', value: `${activeCount} UPT` },
-        { label: 'Total Warga Binaan', value: `${totalSantri} Orang` },
+        { label: 'Total Pondok Pesantren', value: `${filteredBranches.length} Pondok` },
+        { label: 'Pondok Aktif', value: `${activeCount} Pondok` },
+        { label: 'Total Santri', value: `${totalSantri} Santri` },
       ]
     });
 
@@ -182,7 +183,7 @@ const List = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama cabang atau lokasi..." 
+              placeholder="Cari nama pondok atau lokasi..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-9 pr-8 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium"
@@ -229,7 +230,7 @@ const List = () => {
               to="/branches/create" 
               className="px-4 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold flex items-center gap-1.5 shadow-md transition-all text-xs cursor-pointer"
             >
-              <Plus className="w-4 h-4" /> Tambah Kampus
+              <Plus className="w-4 h-4" /> Tambah Pondok
             </Link>
           </div>
         </div>
@@ -239,15 +240,16 @@ const List = () => {
       {/* Table Card */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
         <div className="overflow-x-auto w-full">
-          <table className="w-full text-left border-collapse min-w-[760px]">
+          <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4 text-left w-[26%]">Nama Cabang</th>
-                <th className="py-3.5 px-4 text-left w-[18%]">Lokasi</th>
-                <th className="py-3.5 px-4 text-left w-[20%]">Wilayah Yayasan</th>
-                <th className="py-3.5 px-4 text-left w-[18%]">Kapasitas & Santri</th>
-                <th className="py-3.5 px-4 text-center w-[9%]">Status</th>
-                <th className="py-3.5 px-4 text-center w-[9%]">Aksi</th>
+                <th className="py-3.5 px-4 text-left w-[28%]">Nama Pondok</th>
+                <th className="py-3.5 px-4 text-left w-[18%]">Yayasan</th>
+                <th className="py-3.5 px-4 text-left w-[14%]">Lokasi</th>
+                <th className="py-3.5 px-4 text-left w-[17%]">Pimpinan Pondok</th>
+                <th className="py-3.5 px-4 text-left w-[13%]">Santri / Kapasitas</th>
+                <th className="py-3.5 px-4 text-center w-[5%]">Status</th>
+                <th className="py-3.5 px-4 text-center w-[5%]">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs">
@@ -255,11 +257,12 @@ const List = () => {
                 Array.from({ length: 4 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
                     <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-36 mb-1" /><div className="h-3 bg-slate-100 rounded w-20" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
                     <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-28" /></td>
-                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24 mb-1.5" /><div className="h-1.5 bg-slate-100 rounded w-36" /></td>
-                    <td className="py-4 px-4 text-center"><div className="h-6 bg-slate-200 rounded-full w-16 mx-auto" /></td>
-                    <td className="py-4 px-4 text-right"><div className="h-7 bg-slate-200 rounded-lg w-14 ml-auto" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-24" /></td>
+                    <td className="py-4 px-4"><div className="h-4 bg-slate-200 rounded w-20 mb-1.5" /><div className="h-1.5 bg-slate-100 rounded w-24" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-6 bg-slate-200 rounded-full w-14 mx-auto" /></td>
+                    <td className="py-4 px-4 text-center"><div className="h-7 bg-slate-200 rounded-lg w-16 mx-auto" /></td>
                   </tr>
                 ))
               ) : filteredBranches.length > 0 ? (
@@ -267,19 +270,13 @@ const List = () => {
                   <tr key={branch.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-blue-50 text-primary flex items-center justify-center font-bold shrink-0 border border-blue-100/80">
+                        <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center font-bold shrink-0 border border-teal-100/80">
                           <Building2 className="w-4 h-4" />
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-800 text-sm whitespace-nowrap">{branch.name}</p>
-                          <p className="text-[11px] text-slate-400 font-medium">{branch.phone || '-'}</p>
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-800 text-xs truncate max-w-[200px]" title={branch.name}>{branch.name}</p>
+                          <p className="text-[11px] font-mono font-medium text-slate-400 mt-0.5">{branch.code || (branch.id ? String(branch.id).slice(0, 8).toUpperCase() : '-')}</p>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-700 font-medium">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span>{branch.location}</span>
                       </div>
                     </td>
                     <td className="py-3.5 px-4 text-slate-700 font-medium">
@@ -287,9 +284,9 @@ const List = () => {
                         const YayasanName = getResolvedYayasanName(branch);
                         if (YayasanName) {
                           return (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 truncate">
                               <Landmark className="w-3.5 h-3.5 text-primary shrink-0" />
-                              <span className="font-semibold text-slate-800 text-xs">{YayasanName}</span>
+                              <span className="font-semibold text-slate-800 text-xs truncate max-w-[150px]">{YayasanName}</span>
                             </div>
                           );
                         }
@@ -300,19 +297,30 @@ const List = () => {
                         );
                       })()}
                     </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-slate-800 text-sm">
-                          {new Intl.NumberFormat('id-ID').format(branch.inmateCount)}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-medium">/ {branch.capacity} Kapasitas</span>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span className="truncate max-w-[120px]">{branch.location || '-'}</span>
                       </div>
-                      <div className="w-36 bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1.5">
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 whitespace-nowrap">
+                      <p className="font-semibold text-slate-800 text-xs truncate max-w-[150px]" title={branch.headName || branch.head?.name || branch.adminUser?.name || 'Belum diatur'}>
+                        {branch.headName || branch.head?.name || branch.adminUser?.name || 'Belum diatur'}
+                      </p>
+                      <p className="text-[11px] text-slate-400 font-mono truncate max-w-[150px] mt-0.5">
+                        {branch.adminEmail || branch.headEmail || '-'}
+                      </p>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 whitespace-nowrap">
+                      <div className="font-bold text-slate-800 text-xs">
+                        {new Intl.NumberFormat('id-ID').format(branch.inmateCount || 0)} / {new Intl.NumberFormat('id-ID').format(branch.capacity || 0)}
+                      </div>
+                      <div className="w-24 bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1.5">
                         <div 
                           className={`h-full rounded-full ${
-                            (branch.inmateCount / branch.capacity) > 1 
+                            (branch.inmateCount / (branch.capacity || 1)) > 1 
                               ? 'bg-rose-500' 
-                              : (branch.inmateCount / branch.capacity) > 0.8 
+                              : (branch.inmateCount / (branch.capacity || 1)) > 0.8 
                                 ? 'bg-amber-500' 
                                 : 'bg-primary'
                           }`}
@@ -330,18 +338,18 @@ const List = () => {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1">
                         <button 
                           onClick={() => navigate(`/branches/${branch.id}`)}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                          title="Lihat Detail Cabang"
+                          className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                          title="Lihat Detail Pondok"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
                         <button 
                           onClick={() => navigate(`/branches/${branch.id}/edit`)}
-                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
-                          title="Edit Data Cabang"
+                          className="p-1.5 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors cursor-pointer"
+                          title="Edit Data Pondok"
                         >
                           <Edit className="w-4 h-4" />
                         </button>
@@ -350,7 +358,7 @@ const List = () => {
                             setBranchToDelete(branch);
                             setIsDeleteModalOpen(true);
                           }}
-                          className="p-2 text-rose-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                           title="Hapus Pondok Pesantren"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -361,12 +369,12 @@ const List = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="py-16 text-center">
+                  <td colSpan="7" className="py-16 text-center">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-10 h-10 mb-2 text-slate-300" />
-                      <p className="font-semibold text-slate-700 text-sm">Belum ada data cabang</p>
+                      <p className="font-semibold text-slate-700 text-sm">Belum ada data pondok</p>
                       <p className="text-xs text-slate-400 mt-1">
-                        {searchInput ? 'Tidak ada cabang yang sesuai dengan kata kunci pencarian.' : 'Belum ada data cabang yang terdaftar di sistem.'}
+                        {searchInput ? 'Tidak ada pondok yang sesuai dengan kata kunci pencarian.' : 'Belum ada data pondok yang terdaftar di sistem.'}
                       </p>
                     </div>
                   </td>
@@ -378,7 +386,7 @@ const List = () => {
         
         {/* Footer */}
         <div className="px-6 py-3.5 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 text-xs text-slate-500 bg-slate-50/50">
-          <div className="text-center sm:text-left">Menampilkan <span className="font-bold text-slate-700">{filteredBranches.length}</span> dari {branchesData.total || filteredBranches.length} cabang terdaftar</div>
+          <div className="text-center sm:text-left">Menampilkan <span className="font-bold text-slate-700">{filteredBranches.length}</span> dari {branchesData.total || filteredBranches.length} pondok terdaftar</div>
           {branchesData.totalPages > 1 && (
             <div className="flex items-center gap-1.5">
               <button 
@@ -421,7 +429,7 @@ const List = () => {
                 Apakah Anda yakin ingin menghapus <span className="underline">{branchToDelete.name}</span>?
               </p>
               <p className="text-[11px] text-rose-600 leading-relaxed">
-                Peringatan: Seluruh data terkait UPT ini (termasuk akun Pimpinan Kampus, petugas, dan riwayat operasional cabang) akan ikut terhapus atau dinonaktifkan dari sistem.
+                Peringatan: Seluruh data terkait pondok ini (termasuk akun Pimpinan Pondok, petugas, dan riwayat operasional pondok) akan ikut terhapus atau dinonaktifkan dari sistem.
               </p>
             </div>
 
@@ -445,12 +453,12 @@ const List = () => {
                   setIsDeleting(true);
                   try {
                     await deleteBranch(branchToDelete.id);
-                    showToast(`Cabang ${branchToDelete.name} berhasil dihapus dari sistem.`, 'success');
+                    showToast(`Pondok ${branchToDelete.name} berhasil dihapus dari sistem.`, 'success');
                     setIsDeleteModalOpen(false);
                     setBranchToDelete(null);
                     await loadBranches();
                   } catch (err) {
-                    console.error('[BranchesList] Gagal hapus cabang:', err);
+                    console.error('[BranchesList] Gagal hapus pondok:', err);
                     if (err?.status === 401) {
                       logout();
                       navigate('/login', { replace: true });
@@ -471,7 +479,7 @@ const List = () => {
                 ) : (
                   <>
                     <Trash2 className="w-3.5 h-3.5" />
-                    Ya, Hapus Cabang
+                    Ya, Hapus Pondok
                   </>
                 )}
               </button>

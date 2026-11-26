@@ -125,7 +125,7 @@ const Detail = () => {
     const nextStatus = !branch.isActive;
     try {
       await updateBranchStatus(id, nextStatus ? 'Aktif' : 'Nonaktif');
-      showToast(nextStatus ? 'Cabang berhasil diaktifkan.' : 'Cabang berhasil dinonaktifkan.');
+      showToast(nextStatus ? 'Pondok berhasil diaktifkan.' : 'Pondok berhasil dinonaktifkan.');
       await loadBranchDetail();
     } catch (err) {
       if (err?.status === 401) {
@@ -133,7 +133,7 @@ const Detail = () => {
         navigate('/login', { replace: true });
         return;
       }
-      showToast(err?.data?.message || err?.message || 'Gagal mengubah status cabang.');
+      showToast(err?.data?.message || err?.message || 'Gagal mengubah status pondok.');
     }
   };
 
@@ -198,13 +198,13 @@ const Detail = () => {
       <div className="space-y-5 max-w-lg mx-auto py-12">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center">
           <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-base font-bold text-slate-800">Cabang Tidak Ditemukan</h2>
-          <p className="text-xs text-slate-500 mt-1">Data cabang dengan ID {id} tidak ditemukan atau belum tersedia.</p>
+          <h2 className="text-base font-bold text-slate-800">Pondok Tidak Ditemukan</h2>
+          <p className="text-xs text-slate-500 mt-1">Data pondok pesantren dengan ID {id} tidak ditemukan atau belum tersedia.</p>
           <Link 
             to="/branches" 
             className="inline-block mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-colors"
           >
-            Kembali ke Daftar Cabang
+            Kembali ke Daftar Pondok
           </Link>
         </div>
       </div>
@@ -258,7 +258,7 @@ const Detail = () => {
           <Link 
             to="/branches"
             className="p-2.5 bg-slate-50 border border-slate-200/80 rounded-xl hover:bg-slate-100 transition-colors text-slate-600 shadow-2xs"
-            title="Kembali ke Daftar Cabang"
+            title="Kembali ke Daftar Pondok"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -294,7 +294,7 @@ const Detail = () => {
             to={`/branches/${id}/edit`}
             className="flex-1 sm:flex-initial px-4 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer"
           >
-            <Edit className="w-3.5 h-3.5 text-primary" /> Edit Cabang
+            <Edit className="w-3.5 h-3.5 text-primary" /> Edit Pondok
           </Link>
           <button 
             type="button"
@@ -306,7 +306,7 @@ const Detail = () => {
             }`}
           >
             <AlertTriangle className="w-3.5 h-3.5" /> 
-            {branch.status === 'Active' ? 'Nonaktifkan Cabang' : 'Aktifkan Cabang'}
+            {branch.status === 'Active' ? 'Nonaktifkan Pondok' : 'Aktifkan Pondok'}
           </button>
         </div>
       </div>
@@ -317,7 +317,7 @@ const Detail = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Panggilan (Cabang)</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Panggilan (Pondok)</p>
               <div className="flex items-baseline gap-2 mt-1">
                 <h3 className="text-xl font-extrabold text-slate-800">{totalCalls} Panggilan</h3>
                 {totalCalls > 0 && (
@@ -380,7 +380,7 @@ const Detail = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pendapatan (Cabang)</p>
+              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Pendapatan (Pondok)</p>
               <h3 className="text-xl font-extrabold text-slate-800 mt-1">{formatCurrency(totalRevenue)}</h3>
             </div>
             <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100">
@@ -495,10 +495,10 @@ const Detail = () => {
                 <p className="text-slate-800 font-bold">{branch.phone || '-'}</p>
               </div>
 
-              {/* Email Pimpinan Kampus */}
+              {/* Email Pimpinan Pondok */}
               <div className="space-y-1">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Pimpinan Kampus
+                  <Mail className="w-3.5 h-3.5 text-slate-400" /> Email Login Pimpinan Pondok
                 </p>
                 <p className="text-slate-800 font-mono font-bold text-xs">
                   {adminEmailDisplay || 'Belum diatur'}
@@ -554,27 +554,23 @@ const Detail = () => {
                 </div>
               </div>
 
-              {/* Bagi Hasil 4 Pihak */}
+              {/* Bagi Hasil 2 Pihak */}
               <div className="md:col-span-2 space-y-2 bg-slate-50/70 p-3.5 rounded-xl border border-slate-100">
                 <p className="text-slate-400 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1.5">
-                  <Wallet className="w-3.5 h-3.5 text-slate-400" /> Porsi Bagi Hasil 4 Pihak
+                  <Wallet className="w-3.5 h-3.5 text-slate-400" /> Porsi Bagi Hasil
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Pimpinan Kampus</span>
-                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKepalaUptPercent || 5}%</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                    <span className="text-[11px] text-slate-500 block font-medium">Pondok Pesantren</span>
+                    <span className="font-bold text-[#0D7A73] font-mono text-base">
+                      {branch.sharePondokPercent ?? branch.shareKoperasiPercent ?? 70}%
+                    </span>
                   </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Koperasi Pesantren</span>
-                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareKoperasiPercent || 30}%</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Inkopasindo</span>
-                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareInkopasindoPercent || 10}%</span>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200/80">
-                    <span className="text-[10px] text-slate-400 block font-medium">Vendor SapaKita</span>
-                    <span className="font-bold text-slate-800 font-mono text-sm">{branch.shareVendorPercent || 55}%</span>
+                  <div className="bg-white p-3 rounded-xl border border-slate-200/80">
+                    <span className="text-[11px] text-slate-500 block font-medium">Developer</span>
+                    <span className="font-bold text-slate-800 font-mono text-base">
+                      {branch.shareDeveloperPercent ?? branch.shareVendorPercent ?? 30}%
+                    </span>
                   </div>
                 </div>
               </div>

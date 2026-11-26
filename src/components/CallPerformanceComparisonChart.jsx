@@ -57,7 +57,7 @@ export default function CallPerformanceComparisonChart({
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  const [viewMode, setViewMode] = useState('by_branch'); // 'by_branch' (Komparasi Kampus Pondok) | 'by_month' (Tren Bulanan)
+  const [viewMode, setViewMode] = useState('by_branch'); // 'by_branch' (Komparasi Pondok Pesantren) | 'by_month' (Tren Bulanan)
   const [metricType, setMetricType] = useState('calls'); // 'calls' (Volume Panggilan) | 'duration' (Durasi Menit)
   const [selectedMonth, setSelectedMonth] = useState('all');
   const [selectedBranchId, setSelectedBranchId] = useState('all');
@@ -210,14 +210,14 @@ export default function CallPerformanceComparisonChart({
 
   const formatNumber = (num) => new Intl.NumberFormat('id-ID').format(num || 0);
 
-  // 1. PROSES DATA KOMPARASI ANTAR KAMPUS PONDOK (View Mode: by_branch)
+  // 1. PROSES DATA KOMPARASI ANTAR PONDOK PESANTREN (View Mode: by_branch)
   const comparisonByBranchData = useMemo(() => {
     const branchStats = new Map();
 
-    // Pastikan setiap kampus yang terdaftar di naungan ini muncul di diagram
+    // Pastikan setiap pondok yang terdaftar di naungan ini muncul di diagram
     branches.forEach((b) => {
       const bId = b.id || b._id;
-      const bName = b.name || b.branchName || 'Kampus Pondok';
+      const bName = b.name || b.branchName || 'Pondok Pesantren';
       branchStats.set(bId, {
         branchId: bId,
         branchName: bName,
@@ -240,7 +240,7 @@ export default function CallPerformanceComparisonChart({
         return;
       }
 
-      // Cocokkan cabang/kampus asosiasi
+      // Cocokkan pondok asosiasi
       const callBranchId = call.branchId || call.inmate?.branchId || call.branch?.id;
       let matchedBranchId = null;
 
@@ -256,10 +256,10 @@ export default function CallPerformanceComparisonChart({
         }
       }
 
-      // Jika cabang belum ada di map dan diperbolehkan
+      // Jika pondok belum ada di map dan diperbolehkan
       if (!matchedBranchId) {
         matchedBranchId = callBranchId || 'unknown_branch';
-        const name = call.branchName || call.inmate?.branchName || call.branch?.name || 'Kampus Pesantren';
+        const name = call.branchName || call.inmate?.branchName || call.branch?.name || 'Pondok Pesantren';
         if (!branchStats.has(matchedBranchId)) {
           branchStats.set(matchedBranchId, {
             branchId: matchedBranchId,
@@ -307,7 +307,7 @@ export default function CallPerformanceComparisonChart({
       };
     });
 
-    // Urutkan dari Kampus Pondok dengan total panggilan tertinggi
+    // Urutkan dari Pondok Pesantren dengan total panggilan tertinggi
     const sorted = result.sort((a, b) => b.totalCalls - a.totalCalls);
     if (topLimit !== 'all' && viewMode === 'by_branch') {
       const limitNum = parseInt(topLimit, 10);
@@ -352,7 +352,7 @@ export default function CallPerformanceComparisonChart({
       const callYear = callDate.getFullYear();
       if (callYear !== targetYear) return;
 
-      // Filter spesifik Kampus jika dipilih
+      // Filter spesifik Pondok jika dipilih
       if (selectedBranchId !== 'all') {
         const callBranchId = String(call.branchId || call.inmate?.branchId || call.branch?.id || '');
         const targetId = String(selectedBranchId);
@@ -381,7 +381,7 @@ export default function CallPerformanceComparisonChart({
 
       entry.totalCalls += 1;
       if (!entry.branchMap) entry.branchMap = {};
-      const bName = call.branchName || call.inmate?.branchName || call.branch?.name || 'Kampus Pondok';
+      const bName = call.branchName || call.inmate?.branchName || call.branch?.name || 'Pondok Pesantren';
       entry.branchMap[bName] = (entry.branchMap[bName] || 0) + 1;
 
       if (isAnswered) {
@@ -538,7 +538,7 @@ export default function CallPerformanceComparisonChart({
 
         {/* Action Controls & Filters */}
         <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
-          {/* Switcher Tampilan (Komparasi Kampus Pondok vs Tren Bulanan) */}
+          {/* Switcher Tampilan (Komparasi Pondok Pesantren vs Tren Bulanan) */}
           <div className="inline-flex p-1 bg-slate-100/90 rounded-xl text-xs font-semibold border border-slate-200/50">
             <button
               type="button"

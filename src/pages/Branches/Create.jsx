@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -89,11 +89,13 @@ const Create = () => {
     capacity: '',
     status: 'Active',
     headName: '',
-    contractRatePerSecond: 15,
-    shareKepalaUptPercent: 5,
-    shareKoperasiPercent: 30,
-    shareInkopasindoPercent: 10,
-    shareVendorPercent: 55
+    contractRatePerSecond: '',
+    sharePondokPercent: '',
+    shareDeveloperPercent: '',
+    shareKepalaUptPercent: 0,
+    shareKoperasiPercent: 0,
+    shareInkopasindoPercent: 0,
+    shareVendorPercent: 0
   });
 
   useEffect(() => {
@@ -170,34 +172,34 @@ const Create = () => {
     setErrorMsg('');
 
     if (!formData.name.trim()) {
-      setErrorMsg('Nama cabang / UPT tidak boleh kosong.');
+      setErrorMsg('Nama Pondok Pesantren tidak boleh kosong.');
       return;
     }
-    if (Yayasans.length > 0 && !formData.YayasanId) {
-      setErrorMsg('Yayasan Induk pengawas wajib dipilih.');
+    if (!formData.YayasanId) {
+      setErrorMsg('Yayasan Induk wajib dipilih.');
       return;
     }
     if (!formData.location.trim()) {
-      setErrorMsg('Kota / wilayah tidak boleh kosong.');
+      setErrorMsg('Kota/Kabupaten tidak boleh kosong.');
       return;
     }
     if (!formData.capacity || Number(formData.capacity) <= 0) {
-      setErrorMsg('Kapasitas maksimal harus lebih besar dari 0.');
+      setErrorMsg('Kapasitas Santri harus lebih besar dari 0.');
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!adminEmail.trim()) {
-      setErrorMsg('Email login admin cabang wajib diisi.');
+      setErrorMsg('Email login Pimpinan Pondok wajib diisi.');
       return;
     }
     if (!emailRegex.test(adminEmail.trim())) {
-      setErrorMsg('Format email login admin cabang tidak valid.');
+      setErrorMsg('Format email login Pimpinan Pondok tidak valid.');
       return;
     }
 
     if (!adminPassword) {
-      setErrorMsg('Password akun Pimpinan Kampus wajib diisi.');
+      setErrorMsg('Password akun Pimpinan Pondok wajib diisi.');
       return;
     }
     if (adminPassword.length < 8) {
@@ -210,15 +212,31 @@ const Create = () => {
       return;
     }
 
-    const totalSplit = Number(formData.shareKepalaUptPercent) + Number(formData.shareKoperasiPercent) + Number(formData.shareInkopasindoPercent) + Number(formData.shareVendorPercent);
+    if (formData.sharePondokPercent === '' || formData.shareDeveloperPercent === '') {
+      setErrorMsg('Persentase bagi hasil Pondok Pesantren dan Developer wajib diisi.');
+      return;
+    }
+
+    const pondokPercent = Number(formData.sharePondokPercent);
+    const developerPercent = Number(formData.shareDeveloperPercent);
+    const totalSplit = pondokPercent + developerPercent;
     if (Math.abs(totalSplit - 100) > 0.01) {
-      setErrorMsg(`Total persentase bagi hasil 4 pihak harus tepat 100%. Saat ini: ${totalSplit}%`);
+      setErrorMsg(`Total persentase bagi hasil harus tepat 100%. Saat ini: ${totalSplit}%`);
       return;
     }
 
     setIsSubmitting(true);
 
-    const payload = buildCreateBranchPayload(formData, {
+    // Jika BE masih mewajibkan 4 field persen, kirim 0 untuk field yang tidak dipakai dan petakan porsi 2 pihak
+    const payload = buildCreateBranchPayload({
+      ...formData,
+      shareKepalaUptPercent: 0,
+      shareKoperasiPercent: pondokPercent,
+      shareInkopasindoPercent: 0,
+      shareVendorPercent: developerPercent,
+      sharePondokPercent: pondokPercent,
+      shareDeveloperPercent: developerPercent,
+    }, {
       email: adminEmail.trim(),
       password: adminPassword
     });
@@ -271,25 +289,24 @@ const Create = () => {
           to="/branches"
           className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Daftar Cabang
+          <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Pondok
         </Link>
       </div>
 
       {/* Hero Overview Banner Card */}
-      <div className="bg-gradient-to-r from-[#0B3D91] via-[#1E5FCC] to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#1E5D88] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10">
           <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md p-1 border-2 border-white/30 flex items-center justify-center shrink-0 shadow-inner">
             <Building2 className="w-8 h-8 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
-            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran UPT & Akun Pimpinan Kampus</h2>
-            <p className="text-blue-100 text-xs">
-              Daftarkan Pesantren atau Pesantren baru dan buatkan akun login untuk Pimpinan Kampus
+            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Pondok Pesantren & Akun Pimpinan</h2>
+            <p className="text-teal-100 text-xs">
+              Daftarkan pondok pesantren baru dan buatkan akun login untuk Pimpinan Pondok
             </p>
           </div>
         </div>
       </div>
-
 
       {/* Validation Error Alert */}
       {errorMsg && (
@@ -302,20 +319,20 @@ const Create = () => {
       {/* Main Form */}
       <form onSubmit={handleSubmit} autoComplete="off" className="space-y-5">
         
-        {/* Section 1: Identitas & Status Operasional */}
+        {/* Section 1: Informasi Utama Pondok */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+            <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Informasi Utama UPT</h3>
-              <p className="text-[11px] text-slate-500">Nama resmi fasilitas pemasyarakatan dan status operasional sistem</p>
+              <h3 className="text-sm font-bold text-slate-800">Informasi Utama Pondok</h3>
+              <p className="text-[11px] text-slate-500">Nama resmi pondok pesantren dan status operasional sistem</p>
             </div>
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Nama UPT */}
+            {/* Nama Pondok Pesantren */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Nama Pondok Pesantren <span className="text-rose-500">*</span>
@@ -328,7 +345,7 @@ const Create = () => {
                   value={formData.name}
                   onChange={handleBranchNameChange}
                   required
-                  placeholder="Contoh: Pesantren Kelas I Cipinang"
+                  placeholder="Contoh: Pondok Pesantren Al-Hikmah"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
@@ -337,7 +354,7 @@ const Create = () => {
             {/* Yayasan Induk */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Yayasan Induk {Yayasans.length > 0 && <span className="text-rose-500">*</span>}
+                Yayasan Induk <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
@@ -345,7 +362,7 @@ const Create = () => {
                   name="YayasanId"
                   value={formData.YayasanId}
                   onChange={(e) => setFormData(prev => ({ ...prev, YayasanId: e.target.value }))}
-                  required={Yayasans.length > 0}
+                  required
                   className="w-full pl-10 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs cursor-pointer"
                 >
                   <option value="">-- Pilih Yayasan Induk --</option>
@@ -356,10 +373,10 @@ const Create = () => {
                   ))}
                 </select>
               </div>
-              <p className="text-[11px] text-slate-400">Pilih Kantor Wilayah Kementerian Hukum dan HAM pengawas UPT ini.</p>
+              <p className="text-[11px] text-slate-400">Pilih Yayasan pembina resmi pondok pesantren ini.</p>
             </div>
 
-            {/* Status Operasional Toggle */}
+            {/* Status Awal Layanan Toggle */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Status Awal Layanan
@@ -383,7 +400,7 @@ const Create = () => {
                     <p className={`text-xs font-bold ${formData.status === 'Active' ? 'text-emerald-800' : 'text-slate-700'}`}>
                       Langsung Aktif
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">UPT langsung siap digunakan dan terhubung ke server</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Pondok langsung siap digunakan dan terhubung ke server</p>
                   </div>
                 </button>
 
@@ -411,10 +428,10 @@ const Create = () => {
               </div>
             </div>
 
-            {/* Kapasitas Maksimal */}
+            {/* Kapasitas Santri */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Kapasitas Maksimal (Daya Tampung Santri) <span className="text-rose-500">*</span>
+                Kapasitas Santri <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -425,33 +442,33 @@ const Create = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, capacity: e.target.value }))}
                   required
                   min="1"
-                  placeholder="Contoh: 2500"
+                  placeholder="Contoh: 500"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
-              <p className="text-[11px] text-slate-400">Digunakan untuk menghitung rasio kepadatan dan alokasi bilik komunikasi.</p>
+              <p className="text-[11px] text-slate-400">Digunakan untuk menghitung rasio kepadatan dan alokasi bilik komunikasi santri.</p>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Lokasi & Kontak */}
+        {/* Section 2: Lokasi & Kontak Pondok */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+            <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Lokasi & Informasi Kontak</h3>
-              <p className="text-[11px] text-slate-500">Detail alamat fisik dan saluran komunikasi resmi UPT</p>
+              <h3 className="text-sm font-bold text-slate-800">Lokasi & Kontak Pondok</h3>
+              <p className="text-[11px] text-slate-500">Detail alamat fisik dan nomor telepon resmi pondok pesantren</p>
             </div>
           </div>
 
           <div className="p-6 space-y-5">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Kota / Wilayah */}
+              {/* Kota/Kabupaten */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Kota / Wilayah <span className="text-rose-500">*</span>
+                  Kota/Kabupaten <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -486,10 +503,10 @@ const Create = () => {
               </div>
             </div>
 
-            {/* Alamat Lengkap */}
+            {/* Alamat Lengkap Pondok */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Alamat Lengkap Fasilitas
+                Alamat Lengkap Pondok
               </label>
               <div className="relative">
                 <Map className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
@@ -498,7 +515,7 @@ const Create = () => {
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   rows="3"
-                  placeholder="Masukkan alamat jalan, nomor, kecamatan, dan kode pos..."
+                  placeholder="Masukkan alamat jalan, nomor, kecamatan, dan kode pos pondok..."
                   className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs resize-none leading-relaxed"
                 ></textarea>
               </div>
@@ -506,17 +523,17 @@ const Create = () => {
           </div>
         </div>
 
-        {/* Section 3: Tarif Billing & Pembagian Hasil Kontrak */}
+        {/* Section 3: Tarif Billing & Bagi Hasil */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
                 <Receipt className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Tarif Billing & Bagi Hasil UPT</h3>
+                <h3 className="text-sm font-bold text-slate-800">Tarif Billing & Bagi Hasil</h3>
                 <p className="text-[11px] text-slate-500">
-                  Tarif panggilan warga binaan per detik dan porsi bagi hasil 4 pihak (otomatis sinkron ke Modul Keuangan)
+                  Tarif panggilan santri per detik dan porsi bagi hasil 2 pihak (Pondok Pesantren dan Developer)
                 </p>
               </div>
             </div>
@@ -535,103 +552,96 @@ const Create = () => {
                   step="0.01"
                   min="1"
                   name="contractRatePerSecond"
+                  placeholder="Contoh: 15"
                   value={formData.contractRatePerSecond}
                   onChange={(e) => setFormData(prev => ({ ...prev, contractRatePerSecond: e.target.value }))}
                   required
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
-              <p className="text-[11px] text-blue-600 font-semibold">
-                Setara Rp {(Number(formData.contractRatePerSecond || 0) * 60).toLocaleString('id-ID')} / menit
+              <p className="text-[11px] text-[#0D7A73] font-semibold">
+                {formData.contractRatePerSecond 
+                  ? `Setara Rp ${(Number(formData.contractRatePerSecond || 0) * 60).toLocaleString('id-ID')} / menit`
+                  : 'Masukkan tarif per detik untuk menghitung perkiraan biaya per menit.'}
               </p>
             </div>
 
-            {/* Bagi Hasil 4 Pihak */}
+            {/* Bagi Hasil 2 Pihak: Pondok Pesantren & Developer */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Porsi Bagi Hasil 4 Pihak</h4>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Porsi Bagi Hasil (2 Pihak)</h4>
                   <p className="text-[11px] text-slate-400">Total akumulasi wajib tepat 100%</p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${
-                  Math.abs((Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)) - 100) < 0.01
+                  Math.abs((Number(formData.sharePondokPercent || 0) + Number(formData.shareDeveloperPercent || 0)) - 100) < 0.01
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
-                  Total: {Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)}%
+                  Total: {Number(formData.sharePondokPercent || 0) + Number(formData.shareDeveloperPercent || 0)}%
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Pimpinan Kampus (%)</label>
+              {/* 2 Kolom Persen Lebar Sama Rata */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Pondok Pesantren (%) <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
                     max="100"
-                    name="shareKepalaUptPercent"
-                    value={formData.shareKepalaUptPercent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, shareKepalaUptPercent: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    step="0.1"
+                    placeholder="0"
+                    name="sharePondokPercent"
+                    value={formData.sharePondokPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, sharePondokPercent: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary shadow-2xs"
                   />
+                  <p className="text-[11px] text-slate-400">Porsi bagi hasil untuk pihak Pondok Pesantren</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Pesantren (%)</label>
+
+                <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">
+                    Developer (%) <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="number"
                     min="0"
                     max="100"
-                    name="shareKoperasiPercent"
-                    value={formData.shareKoperasiPercent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, shareKoperasiPercent: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    step="0.1"
+                    placeholder="0"
+                    name="shareDeveloperPercent"
+                    value={formData.shareDeveloperPercent}
+                    onChange={(e) => setFormData(prev => ({ ...prev, shareDeveloperPercent: e.target.value }))}
+                    required
+                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary shadow-2xs"
                   />
-                </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Inkopasindo (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    name="shareInkopasindoPercent"
-                    value={formData.shareInkopasindoPercent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, shareInkopasindoPercent: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Vendor SapaKita (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    name="shareVendorPercent"
-                    value={formData.shareVendorPercent}
-                    onChange={(e) => setFormData(prev => ({ ...prev, shareVendorPercent: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
+                  <p className="text-[11px] text-slate-400">Porsi bagi hasil untuk pengembang platform</p>
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Section 4: Akun Pimpinan Kampus */}
+        {/* Section 4: Akun Pimpinan Pondok */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+              <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
                 <Shield className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Akun Pimpinan Kampus</h3>
-                <p className="text-[11px] text-slate-500">Akun ini dipakai Pimpinan Kampus untuk login ke dashboard</p>
+                <h3 className="text-sm font-bold text-slate-800">Akun Pimpinan Pondok</h3>
+                <p className="text-[11px] text-slate-500">Akun ini dipakai Pimpinan Pondok untuk login ke dashboard</p>
               </div>
             </div>
             <button
               type="button"
               onClick={handleAutoGeneratePassword}
-              className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+              className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-[#0D7A73] border border-teal-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>Acak Ulang Password</span>
@@ -639,10 +649,10 @@ const Create = () => {
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Nama Lengkap Pimpinan Kampus */}
+            {/* Nama Lengkap Pimpinan Pondok */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama Lengkap Pejabat / Pimpinan Kampus
+                Nama Pimpinan Pondok
               </label>
               <div className="relative">
                 <Shield className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -651,12 +661,12 @@ const Create = () => {
                   name="headName"
                   value={formData.headName}
                   onChange={(e) => setFormData(prev => ({ ...prev, headName: e.target.value }))}
-                  placeholder="Contoh: Dr. H. Hendra Setiawan, S.H., M.H."
+                  placeholder="Contoh: KH. Abdullah Gymnastiar"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
               <p className="text-[11px] text-slate-400 leading-normal">
-                Opsional. Jika dikosongkan, sistem akan otomatis menggunakan format "Kepala [Nama Cabang]".
+                Opsional. Jika dikosongkan, sistem akan otomatis menggunakan format "Pimpinan [Nama Pondok]".
               </p>
             </div>
 
@@ -664,7 +674,7 @@ const Create = () => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Email Login <span className="text-rose-500">*</span>
+                  Email Login Pimpinan <span className="text-rose-500">*</span>
                 </label>
                 {adminEmail && (
                   <button
@@ -686,26 +696,25 @@ const Create = () => {
                   value={adminEmail}
                   onChange={handleEmailChange}
                   required
-                  placeholder={`pimpinan.Pesantren-surakarta@${ADMIN_EMAIL_DOMAIN}`}
+                  placeholder={`pimpinan.al-hikmah@${ADMIN_EMAIL_DOMAIN}`}
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
               <p className="text-[11px] text-slate-400 leading-normal">
-                Email ini terisi otomatis dari nama UPT dan lokasi. Tetap bisa disesuaikan manual oleh Admin Pusat.
+                Email ini terisi otomatis dari nama pondok dan lokasi. Tetap bisa disesuaikan manual oleh Admin Pusat.
               </p>
             </div>
 
-            {/* Password Akun Pimpinan Kampus (Dibuat Otomatis & Dapat Disesuaikan) */}
+            {/* Password Akun Pimpinan Pondok */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                    Password Akun Pimpinan Kampus <span className="text-rose-500">*</span>
+                    Password Akun Pimpinan Pondok <span className="text-rose-500">*</span>
                   </label>
                   <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Rekomendasi Otomatis
                   </span>
-
                 </div>
                 <button
                   type="button"
@@ -785,7 +794,7 @@ const Create = () => {
             ) : (
               <>
                 <Plus className="w-3.5 h-3.5" />
-                <span>Daftarkan UPT & Akun Pimpinan Kampus</span>
+                <span>Daftarkan Pondok & Akun Pimpinan</span>
               </>
             )}
           </button>
@@ -798,7 +807,7 @@ const Create = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 my-auto max-h-[90vh] flex flex-col overflow-y-auto">
             {/* Header */}
-            <div className="p-6 bg-gradient-to-r from-emerald-600 to-teal-700 text-white relative">
+            <div className="p-6 bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#1E5D88] text-white relative">
               <button
                 type="button"
                 onClick={handleCloseSuccessModal}
@@ -811,8 +820,8 @@ const Create = () => {
                   <CheckCircle2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold">UPT dan Akun Pimpinan Kampus Berhasil Dibuat</h3>
-                  <p className="text-xs text-emerald-100 mt-0.5">{createdCredentials.branchName}</p>
+                  <h3 className="text-base font-bold">Pondok Pesantren & Akun Pimpinan Berhasil Dibuat</h3>
+                  <p className="text-xs text-teal-100 mt-0.5">{createdCredentials.branchName}</p>
                 </div>
               </div>
             </div>
@@ -831,7 +840,7 @@ const Create = () => {
               <div className="space-y-3">
                 <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Login Pimpinan Kampus</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Email Login Pimpinan Pondok</p>
                     <p className="text-xs font-bold text-slate-800 font-mono truncate mt-0.5">{createdCredentials.email}</p>
                   </div>
                   <button
@@ -852,15 +861,13 @@ const Create = () => {
                   <button
                     type="button"
                     onClick={() => handleCopy(createdCredentials.password, 'modal-password')}
-                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+                    className="px-3 py-1.5 bg-primary hover:bg-primary-dark text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
                   >
                     {copiedField === 'modal-password' ? <Check className="w-3.5 h-3.5 text-white" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedField === 'modal-password' ? 'Disalin!' : 'Salin'}</span>
                   </button>
                 </div>
               </div>
-
-
 
               {/* Close Action */}
               <div className="pt-2">

@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -29,11 +29,13 @@ const Edit = () => {
     phone: '',
     capacity: '',
     status: 'Active',
-    contractRatePerSecond: 15,
-    shareKepalaUptPercent: 5,
-    shareKoperasiPercent: 30,
-    shareInkopasindoPercent: 10,
-    shareVendorPercent: 55
+    contractRatePerSecond: '',
+    sharePondokPercent: '',
+    shareDeveloperPercent: '',
+    shareKepalaUptPercent: 0,
+    shareKoperasiPercent: 0,
+    shareInkopasindoPercent: 0,
+    shareVendorPercent: 0
   });
 
   const [initialBranch, setInitialBranch] = useState(null);
@@ -49,6 +51,8 @@ const Edit = () => {
         if (!isMounted) return;
         if (branch) {
           setInitialBranch(branch);
+          const pondokP = branch.sharePondokPercent ?? branch.shareKoperasiPercent ?? '';
+          const devP = branch.shareDeveloperPercent ?? branch.shareVendorPercent ?? '';
           setFormData({
             name: branch.name || '',
             location: branch.location || '',
@@ -56,11 +60,13 @@ const Edit = () => {
             phone: branch.phone === '-' ? '' : (branch.phone || ''),
             capacity: branch.capacity || '',
             status: branch.status === 'Active' || branch.status === 'Aktif' ? 'Active' : 'Inactive',
-            contractRatePerSecond: branch.contractRatePerSecond ? Number(branch.contractRatePerSecond) : 15,
-            shareKepalaUptPercent: branch.shareKepalaUptPercent ? Number(branch.shareKepalaUptPercent) : 5,
-            shareKoperasiPercent: branch.shareKoperasiPercent ? Number(branch.shareKoperasiPercent) : 30,
-            shareInkopasindoPercent: branch.shareInkopasindoPercent ? Number(branch.shareInkopasindoPercent) : 10,
-            shareVendorPercent: branch.shareVendorPercent ? Number(branch.shareVendorPercent) : 55
+            contractRatePerSecond: branch.contractRatePerSecond ? Number(branch.contractRatePerSecond) : '',
+            sharePondokPercent: pondokP !== '' ? Number(pondokP) : '',
+            shareDeveloperPercent: devP !== '' ? Number(devP) : '',
+            shareKepalaUptPercent: 0,
+            shareKoperasiPercent: pondokP !== '' ? Number(pondokP) : 0,
+            shareInkopasindoPercent: 0,
+            shareVendorPercent: devP !== '' ? Number(devP) : 0
           });
         }
       })
@@ -92,15 +98,15 @@ const Edit = () => {
     setErrorMsg('');
 
     if (!formData.name.trim()) {
-      setErrorMsg('Nama cabang tidak boleh kosong.');
+      setErrorMsg('Nama Pondok Pesantren tidak boleh kosong.');
       return;
     }
     if (!formData.location.trim()) {
-      setErrorMsg('Kota / wilayah tidak boleh kosong.');
+      setErrorMsg('Kota/Kabupaten tidak boleh kosong.');
       return;
     }
     if (!formData.capacity || Number(formData.capacity) <= 0) {
-      setErrorMsg('Kapasitas maksimal harus lebih besar dari 0.');
+      setErrorMsg('Kapasitas Santri harus lebih besar dari 0.');
       return;
     }
     if (!formData.contractRatePerSecond || Number(formData.contractRatePerSecond) <= 0) {
@@ -108,9 +114,16 @@ const Edit = () => {
       return;
     }
 
-    const totalSplit = Number(formData.shareKepalaUptPercent) + Number(formData.shareKoperasiPercent) + Number(formData.shareInkopasindoPercent) + Number(formData.shareVendorPercent);
+    if (formData.sharePondokPercent === '' || formData.shareDeveloperPercent === '') {
+      setErrorMsg('Persentase bagi hasil Pondok Pesantren dan Developer wajib diisi.');
+      return;
+    }
+
+    const pondokPercent = Number(formData.sharePondokPercent);
+    const developerPercent = Number(formData.shareDeveloperPercent);
+    const totalSplit = pondokPercent + developerPercent;
     if (Math.abs(totalSplit - 100) > 0.01) {
-      setErrorMsg(`Total persentase bagi hasil 4 pihak harus tepat 100%. Saat ini: ${totalSplit}%`);
+      setErrorMsg(`Total persentase bagi hasil harus tepat 100%. Saat ini: ${totalSplit}%`);
       return;
     }
 
@@ -124,10 +137,12 @@ const Edit = () => {
         capacity: parseInt(formData.capacity, 10),
         status: formData.status === 'Active' ? 'Aktif' : 'Nonaktif',
         contractRatePerSecond: Number(formData.contractRatePerSecond),
-        shareKepalaUptPercent: Number(formData.shareKepalaUptPercent),
-        shareKoperasiPercent: Number(formData.shareKoperasiPercent),
-        shareInkopasindoPercent: Number(formData.shareInkopasindoPercent),
-        shareVendorPercent: Number(formData.shareVendorPercent),
+        shareKepalaUptPercent: 0,
+        shareKoperasiPercent: pondokPercent,
+        shareInkopasindoPercent: 0,
+        shareVendorPercent: developerPercent,
+        sharePondokPercent: pondokPercent,
+        shareDeveloperPercent: developerPercent,
       });
       navigate('/branches');
     } catch (err) {
@@ -141,12 +156,12 @@ const Edit = () => {
       } else if (err?.status === 400) {
         const errorDetail = Array.isArray(err?.data?.errors)
           ? err.data.errors.map(e => `${e.field}: ${e.message}`).join(', ')
-          : (err?.message || 'Data cabang tidak valid.');
+          : (err?.message || 'Data pondok tidak valid.');
         setErrorMsg(errorDetail);
       } else if (err?.status === 404 || err?.status === 405 || err?.isNetworkError || err?.status === 0) {
         setErrorMsg('Fitur ini belum tersedia di sistem backend.');
       } else {
-        setErrorMsg(err?.message || 'Gagal menyimpan perubahan cabang.');
+        setErrorMsg(err?.message || 'Gagal menyimpan perubahan data pondok.');
       }
     } finally {
       setIsSubmitting(false);
@@ -171,18 +186,22 @@ const Edit = () => {
       <div className="space-y-5">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 text-center">
           <AlertCircle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
-          <h2 className="text-base font-bold text-slate-800">Cabang Tidak Ditemukan</h2>
-          <p className="text-xs text-slate-500 mt-1">Data cabang dengan ID {id} tidak ada di sistem.</p>
+          <h2 className="text-base font-bold text-slate-800">Pondok Tidak Ditemukan</h2>
+          <p className="text-xs text-slate-500 mt-1">Data pondok pesantren dengan ID {id} tidak ada di sistem.</p>
           <Link 
             to="/branches"
             className="inline-block mt-4 px-4 py-2 bg-primary text-white text-xs font-bold rounded-xl hover:bg-primary-dark transition-colors"
           >
-            Kembali ke Daftar Cabang
+            Kembali ke Daftar Pondok
           </Link>
         </div>
       </div>
     );
   }
+
+  const pondokPercentVal = Number(formData.sharePondokPercent || 0);
+  const developerPercentVal = Number(formData.shareDeveloperPercent || 0);
+  const currentTotalSplit = pondokPercentVal + developerPercentVal;
 
   return (
     <div className="max-w-4xl mx-auto space-y-5 pb-8">
@@ -210,28 +229,28 @@ const Edit = () => {
       </div>
 
       {/* Hero Overview Banner Card */}
-      <div className="bg-gradient-to-r from-[#0B3D91] via-[#1E5FCC] to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#1E5D88] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10">
           <div className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-md p-1 border-2 border-white/30 flex items-center justify-center shrink-0 shadow-inner">
             <Building2 className="w-10 h-10 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1.5">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-              <h2 className="text-xl font-black text-white tracking-tight">{formData.name || 'Cabang Tanpa Nama'}</h2>
+              <h2 className="text-xl font-black text-white tracking-tight">{formData.name || 'Pondok Tanpa Nama'}</h2>
               <span className="font-mono text-[11px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">
                 {id?.toUpperCase()}
               </span>
             </div>
-            <p className="text-blue-100 text-xs font-medium flex items-center justify-center sm:justify-start gap-1.5">
-              <MapPin className="w-3.5 h-3.5 text-blue-200" /> {formData.location || 'Wilayah Belum Ditentukan'}
+            <p className="text-teal-100 text-xs font-medium flex items-center justify-center sm:justify-start gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-teal-200" /> {formData.location || 'Wilayah Belum Ditentukan'}
             </p>
-            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-blue-100 font-medium">
+            <div className="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-teal-100 font-medium">
               <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
-                <Users className="w-3.5 h-3.5 text-blue-300" />
+                <Users className="w-3.5 h-3.5 text-teal-300" />
                 <span>Terisi: <strong className="text-white">{new Intl.NumberFormat('id-ID').format(initialBranch?.inmateCount || 0)} Santri</strong></span>
               </div>
               <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1 rounded-lg">
-                <ShieldCheck className="w-3.5 h-3.5 text-blue-300" />
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-300" />
                 <span>Petugas: <strong className="text-white">{initialBranch?.adminCount || 1} Petugas</strong></span>
               </div>
             </div>
@@ -253,17 +272,17 @@ const Edit = () => {
         {/* Section 1: Identitas & Status Operasional */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+            <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
               <Building2 className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Informasi Utama Cabang</h3>
-              <p className="text-[11px] text-slate-500">Nama resmi fasilitas pemasyarakatan dan status operasional sistem</p>
+              <h3 className="text-sm font-bold text-slate-800">Informasi Utama Pondok</h3>
+              <p className="text-[11px] text-slate-500">Nama resmi pondok pesantren dan status operasional sistem</p>
             </div>
           </div>
 
           <div className="p-6 space-y-5">
-            {/* Nama Cabang */}
+            {/* Nama Pondok */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                 Nama Pondok Pesantren <span className="text-rose-500">*</span>
@@ -276,7 +295,7 @@ const Edit = () => {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Pesantren Kelas I Cipinang"
+                  placeholder="Contoh: Pondok Pesantren Al-Hikmah"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
@@ -304,7 +323,7 @@ const Edit = () => {
                   </div>
                   <div>
                     <p className={`text-xs font-bold ${formData.status === 'Active' ? 'text-emerald-800' : 'text-slate-700'}`}>
-                      Cabang Aktif
+                      Pondok Aktif
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5">Layanan bilik telepon & operasional aktif berjalan</p>
                   </div>
@@ -326,7 +345,7 @@ const Edit = () => {
                   </div>
                   <div>
                     <p className={`text-xs font-bold ${formData.status === 'Inactive' ? 'text-rose-800' : 'text-slate-700'}`}>
-                      Nonaktifkan Cabang
+                      Nonaktifkan Pondok
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5">Akses operator & komunikasi bilik ditangguhkan</p>
                   </div>
@@ -334,10 +353,10 @@ const Edit = () => {
               </div>
             </div>
 
-            {/* Kapasitas Maksimal */}
+            {/* Kapasitas Santri */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Kapasitas Maksimal (Daya Tampung Santri) <span className="text-rose-500">*</span>
+                Kapasitas Santri <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -348,24 +367,24 @@ const Edit = () => {
                   onChange={handleChange}
                   required
                   min="1"
-                  placeholder="Contoh: 2500"
+                  placeholder="Contoh: 500"
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
-              <p className="text-[11px] text-slate-400">Digunakan untuk menghitung rasio kepadatan dan alokasi bilik komunikasi.</p>
+              <p className="text-[11px] text-slate-400">Digunakan untuk menghitung rasio santri dan alokasi bilik komunikasi.</p>
             </div>
           </div>
         </div>
 
-        {/* Section 2: Lokasi & Kontak */}
+        {/* Section 2: Lokasi & Kontak Pondok */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+            <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
               <MapPin className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Lokasi & Informasi Kontak</h3>
-              <p className="text-[11px] text-slate-500">Detail alamat fisik dan saluran komunikasi resmi cabang</p>
+              <h3 className="text-sm font-bold text-slate-800">Lokasi & Kontak Pondok</h3>
+              <p className="text-[11px] text-slate-500">Detail alamat fisik dan saluran komunikasi resmi pondok</p>
             </div>
           </div>
 
@@ -374,7 +393,7 @@ const Edit = () => {
               {/* Kota / Wilayah */}
               <div className="space-y-1.5">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Kota / Wilayah <span className="text-rose-500">*</span>
+                  Kota/Kabupaten <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
                   <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -384,7 +403,7 @@ const Edit = () => {
                     value={formData.location}
                     onChange={handleChange}
                     required
-                    placeholder="Contoh: Jakarta Timur"
+                    placeholder="Contoh: Jombang"
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                   />
                 </div>
@@ -402,7 +421,7 @@ const Edit = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    placeholder="Contoh: 021-8190001"
+                    placeholder="Contoh: 0321-861000"
                     className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                   />
                 </div>
@@ -412,7 +431,7 @@ const Edit = () => {
             {/* Alamat Lengkap */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Alamat Lengkap Fasilitas
+                Alamat Lengkap Pondok
               </label>
               <div className="relative">
                 <Map className="absolute left-3.5 top-3.5 text-slate-400 w-4 h-4" />
@@ -429,17 +448,17 @@ const Edit = () => {
           </div>
         </div>
 
-        {/* Section 3: Tarif Billing & Pembagian Hasil Kontrak */}
+        {/* Section 3: Tarif Billing & Bagi Hasil */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
+              <div className="p-2 rounded-xl bg-teal-50 text-[#0D7A73]">
                 <Receipt className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-slate-800">Tarif Billing & Bagi Hasil UPT</h3>
+                <h3 className="text-sm font-bold text-slate-800">Tarif Billing & Bagi Hasil</h3>
                 <p className="text-[11px] text-slate-500">
-                  Tarif panggilan warga binaan per detik dan porsi bagi hasil 4 pihak (otomatis sinkron ke Modul Keuangan)
+                  Tarif panggilan santri per detik dan persentase bagi hasil 2 pihak (Pondok & Developer)
                 </p>
               </div>
             </div>
@@ -460,79 +479,65 @@ const Edit = () => {
                   name="contractRatePerSecond"
                   value={formData.contractRatePerSecond}
                   onChange={handleChange}
+                  placeholder="Masukkan tarif per detik"
                   required
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
                 />
               </div>
-              <p className="text-[11px] text-blue-600 font-semibold">
-                Setara Rp {(Number(formData.contractRatePerSecond || 0) * 60).toLocaleString('id-ID')} / menit
-              </p>
+              {formData.contractRatePerSecond ? (
+                <p className="text-[11px] text-[#0D7A73] font-semibold">
+                  Setara Rp {(Number(formData.contractRatePerSecond || 0) * 60).toLocaleString('id-ID')} / menit
+                </p>
+              ) : null}
             </div>
 
-            {/* Bagi Hasil 4 Pihak */}
+            {/* Bagi Hasil 2 Pihak */}
             <div className="space-y-3 pt-2 border-t border-slate-100">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Porsi Bagi Hasil 4 Pihak</h4>
-                  <p className="text-[11px] text-slate-400">Total akumulasi wajib tepat 100%</p>
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Porsi Bagi Hasil (Total Harus 100%)</h4>
+                  <p className="text-[11px] text-slate-400">Pembagian pendapatan bersih antara Pondok Pesantren dan Developer</p>
                 </div>
                 <span className={`px-2.5 py-0.5 rounded-full text-xs font-black font-mono ${
-                  Math.abs((Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)) - 100) < 0.01
+                  Math.abs(currentTotalSplit - 100) < 0.01
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
-                  Total: {Number(formData.shareKepalaUptPercent || 0) + Number(formData.shareKoperasiPercent || 0) + Number(formData.shareInkopasindoPercent || 0) + Number(formData.shareVendorPercent || 0)}%
+                  Total: {currentTotalSplit}%
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Pimpinan Kampus (%)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Pondok Pesantren (%) <span className="text-rose-500">*</span></label>
                   <input
                     type="number"
                     min="0"
                     max="100"
-                    name="shareKepalaUptPercent"
-                    value={formData.shareKepalaUptPercent}
+                    name="sharePondokPercent"
+                    value={formData.sharePondokPercent}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder="Contoh: 70"
+                    required
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
+                  <p className="text-[11px] text-slate-400">Persentase bagian pihak pondok pesantren</p>
                 </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Koperasi Pesantren (%)</label>
+
+                <div className="p-4 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
+                  <label className="block text-xs font-bold text-slate-700">Developer (%) <span className="text-rose-500">*</span></label>
                   <input
                     type="number"
                     min="0"
                     max="100"
-                    name="shareKoperasiPercent"
-                    value={formData.shareKoperasiPercent}
+                    name="shareDeveloperPercent"
+                    value={formData.shareDeveloperPercent}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    placeholder="Contoh: 30"
+                    required
+                    className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
-                </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Inkopasindo (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    name="shareInkopasindoPercent"
-                    value={formData.shareInkopasindoPercent}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
-                </div>
-                <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-200/80 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-700">Vendor SapaKita (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    name="shareVendorPercent"
-                    value={formData.shareVendorPercent}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  />
+                  <p className="text-[11px] text-slate-400">Persentase bagian developer penyedia sistem</p>
                 </div>
               </div>
             </div>
@@ -573,5 +578,3 @@ const Edit = () => {
 };
 
 export default Edit;
-
-
