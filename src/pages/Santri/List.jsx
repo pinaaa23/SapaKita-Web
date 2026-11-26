@@ -305,7 +305,7 @@ const InmatesList = () => {
                       : 'bg-white border-slate-200/80 text-slate-600 hover:bg-slate-50 cursor-pointer'
                 }`}
               >
-                <option value="All">Semua Cabang</option>
+                <option value="All">Semua Pondok</option>
                 {branches.map(b => (
                   <option key={b.id} value={b.id}>{b.name}</option>
                 ))}
@@ -326,7 +326,7 @@ const InmatesList = () => {
               {[
                 { key: 'All', label: 'Semua Status' },
                 { key: 'Aktif', label: 'Aktif' },
-                { key: 'Suspended', label: 'Suspended' }
+                { key: 'Suspended', label: 'Nonaktif' }
               ].map(item => (
                 <button
                   type="button"
@@ -383,17 +383,18 @@ const InmatesList = () => {
           onScroll={checkScroll}
           className="overflow-x-auto w-full"
         >
-          <table className="w-full text-left border-collapse min-w-[760px]">
+          <table className="w-full text-left border-collapse min-w-[850px]">
             <thead>
               <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 text-[11px] font-bold uppercase tracking-wider whitespace-nowrap">
-                <th className={`py-3 pl-5 pr-3 font-bold text-left sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
+                <th className={`py-3.5 px-4 font-bold text-left w-[25%] sticky left-0 z-20 bg-slate-50 transition-shadow ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                   Nama Lengkap
                 </th>
-                <th className="py-3 px-3 font-bold text-left">Pondok Pesantren</th>
-                <th className="py-3 px-2.5 font-bold text-left">Asrama / Kamar</th>
-                <th className="py-3 px-2.5 font-bold text-left">Tgl Masuk</th>
-                <th className="py-3 px-3 font-bold text-center">Status Izin</th>
-                <th className={`py-3 pl-3 pr-5 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''} w-28`}>
+                <th className="py-3.5 px-4 font-bold text-left w-[18%]">Pondok Pesantren</th>
+                <th className="py-3.5 px-4 font-bold text-left w-[13%]">Asrama / Kamar</th>
+                <th className="py-3.5 px-4 font-bold text-left w-[15%]">Wali Santri</th>
+                <th className="py-3.5 px-4 font-bold text-left w-[11%]">Tgl Masuk</th>
+                <th className="py-3.5 px-4 font-bold text-center w-[10%]">Izin Telepon</th>
+                <th className={`py-3.5 px-4 font-bold text-center sticky right-0 z-20 bg-slate-50 transition-shadow ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''} w-28`}>
                   Aksi
                 </th>
               </tr>
@@ -403,23 +404,26 @@ const InmatesList = () => {
                 // Skeletons
                 [...Array(5)].map((_, i) => (
                   <tr key={i} className="animate-pulse">
-                    <td className={`py-3 pl-5 pr-3 text-left sticky left-0 z-10 bg-white ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
+                    <td className={`py-3.5 px-4 text-left sticky left-0 z-10 bg-white ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                       <div className="h-4 bg-slate-200 rounded w-28 mb-1"></div>
                       <div className="h-3 bg-slate-100 rounded w-16"></div>
                     </td>
-                    <td className="py-3 px-3 text-left">
-                      <div className="h-4 bg-slate-200 rounded w-24"></div>
+                    <td className="py-3.5 px-4 text-left">
+                      <div className="h-4 bg-slate-200 rounded w-28"></div>
                     </td>
-                    <td className="py-3 px-2.5 text-left">
+                    <td className="py-3.5 px-4 text-left">
                       <div className="h-4 bg-slate-200 rounded w-20"></div>
                     </td>
-                    <td className="py-3 px-2.5 text-left">
+                    <td className="py-3.5 px-4 text-left">
+                      <div className="h-4 bg-slate-200 rounded w-24"></div>
+                    </td>
+                    <td className="py-3.5 px-4 text-left">
                       <div className="h-4 bg-slate-200 rounded w-16"></div>
                     </td>
-                    <td className="py-3 px-3 text-center">
+                    <td className="py-3.5 px-4 text-center">
                       <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto"></div>
                     </td>
-                    <td className={`py-3 pl-3 pr-5 text-center sticky right-0 z-10 bg-white ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
+                    <td className={`py-3.5 px-4 text-center sticky right-0 z-10 bg-white ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                       <div className="h-7 bg-slate-200 rounded-lg w-20 mx-auto"></div>
                     </td>
                   </tr>
@@ -427,17 +431,17 @@ const InmatesList = () => {
               ) : inmates.length > 0 ? (
                 inmates.map((inmate) => {
                   const resolvedBranchName = (inmate.branchId && branchesMap[inmate.branchId]) ? branchesMap[inmate.branchId] : (inmate.branchName || '-');
-                  const nisIdentifier = inmate.wbpRegNumber || inmate.identifier;
+                  const nisIdentifier = inmate.nis || inmate.wbpRegNumber || inmate.identifier;
 
                   return (
                     <tr key={inmate.id || nisIdentifier} className="hover:bg-slate-50/70 transition-colors group">
-                      {/* Nama Lengkap + NIS Badge (Sticky Left) */}
-                      <td className={`py-2.5 pl-5 pr-3 text-left whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
+                      {/* Nama Lengkap + NIS Teks Kecil Abu-abu di Bawah Nama (Sticky Left) */}
+                      <td className={`py-3 px-4 text-left whitespace-nowrap sticky left-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledLeft ? 'shadow-[4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-100 text-teal-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
+                          <div className="w-8 h-8 rounded-xl bg-teal-50 border border-teal-100 text-[#0D7A73] flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                             {inmate.name && inmate.name !== '-' ? inmate.name.charAt(0).toUpperCase() : 'S'}
                           </div>
-                          <div className="min-w-0 max-w-[160px]">
+                          <div className="min-w-0 max-w-[170px]">
                             <p className="font-bold text-slate-800 text-xs leading-tight group-hover:text-teal-700 transition-colors truncate" title={inmate.name}>
                               {inmate.name || '-'}
                             </p>
@@ -449,26 +453,44 @@ const InmatesList = () => {
                       </td>
 
                       {/* Pondok Pesantren */}
-                      <td className="py-2.5 px-3 text-left whitespace-nowrap">
-                        <span className="text-slate-700 font-medium text-xs max-w-[150px] truncate block" title={resolvedBranchName}>
+                      <td className="py-3 px-4 text-left whitespace-nowrap">
+                        <span className="text-slate-700 font-medium text-xs max-w-[160px] truncate block" title={resolvedBranchName}>
                           {resolvedBranchName}
                         </span>
                       </td>
 
                       {/* Asrama / Kamar */}
-                      <td className="py-2.5 px-2.5 font-medium text-slate-700 whitespace-nowrap text-xs">
-                        <span className="truncate max-w-[100px] block" title={inmate.blockRoom || '-'}>
+                      <td className="py-3 px-4 font-medium text-slate-700 whitespace-nowrap text-xs">
+                        <span className="truncate max-w-[110px] block" title={inmate.blockRoom || '-'}>
                           {inmate.blockRoom || '-'}
                         </span>
                       </td>
 
+                      {/* Wali Santri (Opsional: Nama & Nomor Telepon) */}
+                      <td className="py-3 px-4 text-left text-xs whitespace-nowrap">
+                        {inmate.guardianName || inmate.guardianPhone || inmate.waliNama || inmate.waliTelepon ? (
+                          <div className="min-w-0 max-w-[140px]">
+                            <p className="font-semibold text-slate-800 text-xs truncate" title={inmate.guardianName || inmate.waliNama}>
+                              {inmate.guardianName || inmate.waliNama || '-'}
+                            </p>
+                            {(inmate.guardianPhone || inmate.waliTelepon) && (
+                              <p className="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
+                                {inmate.guardianPhone || inmate.waliTelepon}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-slate-400 font-medium text-xs">-</span>
+                        )}
+                      </td>
+
                       {/* Tgl Masuk */}
-                      <td className="py-2.5 px-2.5 font-medium text-slate-600 whitespace-nowrap text-xs">
+                      <td className="py-3 px-4 font-medium text-slate-600 whitespace-nowrap text-xs">
                         {inmate.entryDate ? new Date(inmate.entryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '-'}
                       </td>
 
-                      {/* Status Akun */}
-                      <td className="py-2.5 px-3.5 text-center whitespace-nowrap">
+                      {/* Izin Telepon */}
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
                         {inmate.commStatus ? (
                           <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${
                             inmate.commStatus === 'Aktif' 
@@ -484,7 +506,7 @@ const InmatesList = () => {
                       </td>
 
                       {/* Aksi (Sticky Right) */}
-                      <td className={`py-2.5 pl-3 pr-5 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
+                      <td className={`py-3 px-4 text-center whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50/90 transition-all ${scrolledRight ? 'shadow-[-4px_0_8px_-3px_rgba(0,0,0,0.08)]' : ''}`}>
                         <button 
                           type="button"
                           onClick={() => navigate(`/santri/${encodeURIComponent(nisIdentifier || inmate.id)}`)}
@@ -500,7 +522,7 @@ const InmatesList = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="8" className="px-6 py-16 text-center text-slate-500">
+                  <td colSpan="7" className="px-6 py-16 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center max-w-sm mx-auto space-y-2">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 mb-1">
                         <Users className="w-6 h-6" />
@@ -509,7 +531,7 @@ const InmatesList = () => {
                       <p className="text-xs text-slate-400">
                         {hasActiveFilters 
                           ? 'Tidak ada data santri yang cocok dengan filter atau kata kunci pencarian.' 
-                          : 'Belum ada data santri yang terdaftar di sistem kampus.'}
+                          : 'Belum ada data santri yang terdaftar di SapaKita'}
                       </p>
                       {hasActiveFilters && (
                         <button 

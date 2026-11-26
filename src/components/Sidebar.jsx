@@ -209,9 +209,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
             className="flex-1 overflow-y-auto py-1 flex flex-col gap-1.5 px-0 no-scrollbar [&::-webkit-scrollbar]:hidden" 
             style={{ 
               scrollbarWidth: 'none', 
-              msOverflowStyle: 'none',
-              maskImage: canScrollMore ? 'linear-gradient(to bottom, black calc(100% - 24px), transparent 100%)' : 'none',
-              WebkitMaskImage: canScrollMore ? 'linear-gradient(to bottom, black calc(100% - 24px), transparent 100%)' : 'none'
+              msOverflowStyle: 'none'
             }}
           >
             {menuItems.map((item) => {
