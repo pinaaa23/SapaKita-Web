@@ -64,7 +64,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branches')) return { title: 'Manajemen Pondok Pesantren', subtitle: 'Kelola data operasional seluruh pondok pesantren yang terdaftar' };
 
     if (pathname.startsWith('/yayasan-management') || pathname.startsWith('/kanwil-management')) return { title: 'Manajemen Yayasan Pesantren', subtitle: 'Kelola Yayasan / Pengurus Pusat sebagai induk pembina pondok pesantren' };
-    if (pathname.startsWith('/finance-accounts')) return { title: 'Akun Keuangan Platform', subtitle: 'Kelola akun tim keuangan platform untuk pemantauan billing dan setoran' };
+    if (pathname.startsWith('/finance-accounts')) return { title: 'Admin Keuangan', subtitle: 'Kelola akun tim keuangan SapaKita untuk memantau tagihan dan setoran' };
 
     if (pathname.startsWith('/santri/') || pathname.startsWith('/inmates/')) return { title: 'Detail Santri', subtitle: 'Informasi lengkap data santri' };
     if (pathname.startsWith('/santri') || pathname.startsWith('/inmates')) return { title: 'Data Santri', subtitle: 'Seluruh santri/santriwati di semua pondok pesantren' };
@@ -73,7 +73,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/calls')) return { title: 'Riwayat Panggilan', subtitle: 'Catatan panggilan seluruh pondok pesantren' };
 
     if (pathname.startsWith('/transactions/')) return { title: 'Detail Transaksi', subtitle: 'Rincian transaksi & status pembayaran voucher' };
-    if (pathname.startsWith('/transactions')) return { title: 'Data Transaksi', subtitle: 'Rekapitulasi penjualan voucher kopontren' };
+    if (pathname.startsWith('/transactions')) return { title: 'Transaksi Voucher', subtitle: 'Rekapitulasi penjualan voucher kopontren' };
 
     if (pathname.startsWith('/packages')) return { title: 'Katalog Paket Pondok', subtitle: 'Monitoring tarif, durasi, dan status paket panggilan seluruh pondok pesantren' };
     if (pathname.startsWith('/canteen-topup')) return { title: 'Tagihan Kopontren', subtitle: 'Laporan tagihan bulanan seluruh pondok pesantren, penggunaan detik bicara, dan verifikasi transfer' };
@@ -227,11 +227,11 @@ const Topbar = ({ toggleMobileMenu }) => {
     { title: 'Laporan Yayasan', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh pondok' },
   ] : [
     { title: 'Yayasan Pesantren', category: 'Halaman', link: '/yayasan-management', desc: 'Kelola Yayasan / Pengurus Pusat' },
-    { title: 'Akun Keuangan Platform', category: 'Halaman', link: '/finance-accounts', desc: 'Kelola akun tim Finance platform' },
+    { title: 'Admin Keuangan', category: 'Halaman', link: '/finance-accounts', desc: 'Kelola akun tim keuangan SapaKita' },
     { title: 'Pondok Pesantren', category: 'Halaman', link: '/branches', desc: 'Daftar & status pondok pesantren nasional' },
     { title: 'Data Santri', category: 'Halaman', link: '/santri', desc: 'Daftar santri seluruh pondok pesantren' },
     { title: 'Riwayat Panggilan', category: 'Halaman', link: '/calls', desc: 'Catatan panggilan seluruh pondok pesantren' },
-    { title: 'Data Transaksi Nasional', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi penjualan voucher kopontren nasional' },
+    { title: 'Transaksi Voucher', category: 'Halaman', link: '/transactions', desc: 'Rekapitulasi penjualan voucher kopontren' },
     { title: 'Katalog Paket Pondok', category: 'Halaman', link: '/packages', desc: 'Monitoring paket panggilan seluruh pondok' },
     { title: 'Laporan Pusat', category: 'Halaman', link: '/reports', desc: 'Statistik & analitik agregat' },
     { title: 'Profil Admin Pusat', category: 'Pengaturan', link: '/profile', desc: 'Informasi akun Superadmin' },

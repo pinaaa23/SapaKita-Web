@@ -33,11 +33,11 @@ const FINANCE_ACCOUNTS_STORAGE_KEY = 'sapakita_finance_accounts_local_v1';
 const DEFAULT_ACCOUNTS = [
   {
     id: '88ba2074-df28-4ed2-a032-4a2c87c36f88',
-    name: 'Dewi Lestari (Finance Platform)',
+    name: 'Dewi Lestari',
     email: 'finance@sapakita.id',
     phone: '081298765432',
     role: 'finance',
-    roleLabel: 'Admin Finance Platform',
+    roleLabel: 'Admin Keuangan',
     isActive: true,
     status: 'Aktif',
     createdAt: '2026-10-27T11:36:42.512Z',
@@ -97,11 +97,11 @@ export const getFinanceAccounts = async ({ search = '', role = 'All', status = '
       const isInk = String(u.role).toUpperCase() === 'INKOPASINDO';
       return {
         id: u.id,
-        name: u.name,
+        name: u.name ? u.name.replace(/\s*\(Finance Platform\)/gi, '') : '',
         email: u.email,
         phone: u.phone || '-',
         role: isInk ? 'inkopasindo' : 'finance',
-        roleLabel: isInk ? 'Inkopasindo' : 'Admin Finance',
+        roleLabel: isInk ? 'Inkopasindo' : 'Admin Keuangan',
         isActive,
         status: u.status || (isActive ? 'Aktif' : 'Nonaktif'),
         createdAt: u.createdAt || new Date().toISOString(),
@@ -124,7 +124,11 @@ export const getFinanceAccounts = async ({ search = '', role = 'All', status = '
     const map = new Map();
     results.forEach((acc) => map.set(acc.id, acc));
     localAccounts.forEach((acc) => map.set(acc.id, acc));
-    results = Array.from(map.values());
+    results = Array.from(map.values()).map((acc) => ({
+      ...acc,
+      name: acc.name ? acc.name.replace(/\s*\(Finance Platform\)/gi, '') : '',
+      roleLabel: acc.role === 'inkopasindo' ? 'Inkopasindo' : 'Admin Keuangan',
+    }));
 
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
@@ -162,7 +166,7 @@ export const createFinanceAccount = async ({ name, email, phone = '', role = 'fi
   const targetIsActive = status === 'Aktif';
   const isInk = String(role).toLowerCase() === 'inkopasindo';
   const targetRole = isInk ? 'INKOPASINDO' : 'FINANCE';
-  const roleLabel = isInk ? 'Inkopasindo' : 'Admin Finance';
+  const roleLabel = isInk ? 'Inkopasindo' : 'Admin Keuangan';
 
   try {
     const res = await apiFetch('/api/finance/admins', {

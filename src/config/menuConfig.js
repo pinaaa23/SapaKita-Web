@@ -36,7 +36,7 @@ export const ROLE_LABELS = {
   [ROLES.KEPALA_UPT]: 'Pimpinan Kampus',
   [ROLES.SUPERVISOR]: 'Supervisor Kesantrian',
   [ROLES.OPERATOR_KANTIN]: 'Operator Kopontren',
-  [ROLES.FINANCE]: 'Admin Keuangan Platform',
+  [ROLES.FINANCE]: 'Admin Keuangan',
 };
 
 /**
@@ -135,10 +135,10 @@ export const getMenuItemsByRole = (role) => {
       { name: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
       { name: 'Yayasan Pesantren', icon: Landmark, path: '/yayasan-management' },
       { name: 'Pondok Pesantren', icon: Building2, path: '/branches' },
-      { name: 'Akun Keuangan', icon: CircleDollarSign, path: '/finance-accounts' },
+      { name: 'Admin Keuangan', icon: CircleDollarSign, path: '/finance-accounts' },
       { name: 'Data Santri', icon: Users, path: '/santri' },
-      { name: 'Panggilan', icon: PhoneCall, path: '/calls' },
-      { name: 'Transaksi', icon: CreditCard, path: '/transactions' },
+      { name: 'Riwayat Panggilan', icon: PhoneCall, path: '/calls' },
+      { name: 'Transaksi Voucher', icon: CreditCard, path: '/transactions' },
       { name: 'Tagihan & Setoran', icon: Receipt, path: '/billing' },
       { name: 'Kontrak & Bagi Hasil', icon: Wallet, path: '/contracts' },
       { name: 'Katalog Paket', icon: Package, path: '/packages' },

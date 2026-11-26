@@ -243,7 +243,7 @@ export default function FinanceAccounts() {
           name: addForm.name.trim(),
           email: finalEmail.toLowerCase(),
           role: 'finance',
-          roleLabel: 'Admin Finance Platform',
+          roleLabel: 'Admin Keuangan',
           password: addForm.password.trim(),
           status: addForm.status,
           source: res.source,
@@ -342,7 +342,7 @@ export default function FinanceAccounts() {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Cari nama atau email akun Finance..."
+            placeholder="Cari nama atau email akun keuangan..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-teal-600/20 focus:border-teal-700 text-slate-800 font-medium transition"
@@ -402,11 +402,11 @@ export default function FinanceAccounts() {
             <table className="w-full text-left border-collapse min-w-[700px] text-xs">
               <thead>
                 <tr className="bg-slate-50/80 border-b border-slate-200/80 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">NAMA</th>
-                  <th className="py-3 px-4">EMAIL</th>
-                  <th className="py-3 px-4">ROLE</th>
-                  <th className="py-3 px-4 text-center">STATUS</th>
-                  <th className="py-3 px-4 text-right">AKSI</th>
+                  <th className="py-3.5 px-4 text-left w-[32%]">NAMA</th>
+                  <th className="py-3.5 px-4 text-left w-[26%]">EMAIL</th>
+                  <th className="py-3.5 px-4 text-left w-[16%]">ROLE</th>
+                  <th className="py-3.5 px-4 text-center w-[10%]">STATUS</th>
+                  <th className="py-3.5 px-4 text-center w-[16%]">AKSI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -417,20 +417,22 @@ export default function FinanceAccounts() {
                       key={acc.id} 
                       className={`hover:bg-slate-50/70 transition-colors ${!acc.isActive ? 'bg-slate-50/40 opacity-75' : ''}`}
                     >
-                      {/* Nama Lengkap & Badge Pusat */}
+                      {/* Nama Lengkap & Subtitle Keuangan Pusat */}
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
                           <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 border ${
                             isInkopasindo
                               ? 'bg-purple-50 text-purple-700 border-purple-200'
-                              : 'bg-blue-50 text-blue-700 border-blue-200'
+                              : 'bg-teal-50 text-[#0D7A73] border-teal-200/80'
                           }`}>
                             {acc.name?.charAt(0).toUpperCase() || (isInkopasindo ? 'I' : 'F')}
                           </div>
                           <div>
-                            <span className="font-bold text-slate-800 block text-xs">{acc.name}</span>
+                            <span className="font-bold text-slate-800 block text-xs">
+                              {acc.name ? acc.name.replace(/\s*\(Finance Platform\)/gi, '') : '-'}
+                            </span>
                             <span className={`text-[10px] font-bold inline-flex items-center gap-1 mt-0.5 ${
-                              isInkopasindo ? 'text-purple-600' : 'text-blue-600'
+                              isInkopasindo ? 'text-purple-600' : 'text-[#0D7A73]'
                             }`}>
                               {isInkopasindo ? (
                                 <>
@@ -439,8 +441,8 @@ export default function FinanceAccounts() {
                                 </>
                               ) : (
                                 <>
-                                  <CircleDollarSign className="w-3 h-3" />
-                                  <span>Finance Pusat</span>
+                                  <CircleDollarSign className="w-3 h-3 text-[#0D7A73]" />
+                                  <span>Keuangan Pusat</span>
                                 </>
                               )}
                             </span>
@@ -448,20 +450,20 @@ export default function FinanceAccounts() {
                         </div>
                       </td>
 
-                      {/* Email */}
+                      {/* Email (Font biasa, bukan monospace) */}
                       <td className="py-3.5 px-4 text-slate-600">
-                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-600 font-normal">
                           <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                           <span>{acc.email}</span>
                         </div>
                       </td>
 
-                      {/* Role Pill */}
+                      {/* Role Pill (Hijau Toska) */}
                       <td className="py-3.5 px-4">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
                           isInkopasindo
                             ? 'bg-purple-50 text-purple-700 border-purple-200/80'
-                            : 'bg-blue-50 text-blue-700 border-blue-200/80'
+                            : 'bg-teal-50 text-[#0D7A73] border-teal-200/80'
                         }`}>
                           {isInkopasindo ? (
                             <>
@@ -470,8 +472,8 @@ export default function FinanceAccounts() {
                             </>
                           ) : (
                             <>
-                              <CircleDollarSign className="w-3 h-3 text-blue-600" />
-                              <span>Admin Finance</span>
+                              <CircleDollarSign className="w-3 h-3 text-[#0D7A73]" />
+                              <span>Admin Keuangan</span>
                             </>
                           )}
                         </span>
@@ -489,9 +491,9 @@ export default function FinanceAccounts() {
                         </span>
                       </td>
 
-                      {/* Aksi: Reset Password & Nonaktifkan/Aktifkan */}
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center gap-1">
+                      {/* Aksi: Reset Password & Nonaktifkan/Aktifkan (Sejajar dengan judul AKSI) */}
+                      <td className="py-3.5 px-4 text-center">
+                        <div className="flex items-center justify-center gap-1">
                           <button
                             onClick={() => {
                               setSelectedAccountForReset(acc);
@@ -536,12 +538,12 @@ export default function FinanceAccounts() {
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-100 overflow-hidden flex flex-col max-h-[92vh] my-auto">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60 shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center border border-teal-100">
                   <Plus className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-800">Tambah Akun Keuangan Platform</h2>
-                  <p className="text-[11px] text-slate-500">Buat akses tim Keuangan Platform SapaKita</p>
+                  <h2 className="text-sm font-bold text-slate-800">Tambah Admin Keuangan</h2>
+                  <p className="text-[11px] text-slate-500">Buat akses tim keuangan SapaKita</p>
                 </div>
               </div>
               <button
@@ -560,9 +562,9 @@ export default function FinanceAccounts() {
                 </div>
               )}
 
-              {/* Peran Akun (Role: Finance) */}
+              {/* Peran Akun (Role: Admin Keuangan) */}
               <div className="space-y-1.5">
-                <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Peran Akun
                 </label>
                 <div className="p-3.5 rounded-xl border bg-teal-50/80 border-teal-300 ring-2 ring-teal-500/20 shadow-xs flex items-center gap-3">
@@ -571,38 +573,38 @@ export default function FinanceAccounts() {
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-bold text-xs text-teal-950">
-                      Admin Keuangan Platform (Finance)
+                      Admin Keuangan
                     </p>
-                    <p className="text-[10px] text-slate-600 mt-0.5 leading-snug">
-                      Manajemen billing pascabayar, penagihan kopontren, dan verifikasi transfer setoran
+                    <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                      Kelola tagihan bulanan pondok dan verifikasi bukti setoran
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Nama Lengkap */}
-              <div className="space-y-1">
-                <label className="block text-slate-700 font-bold">
-                  Nama Lengkap Petugas <span className="text-rose-500">*</span>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Nama Lengkap <span className="text-rose-500">*</span>
                 </label>
                 <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    placeholder={addForm.role === 'inkopasindo' ? 'Contoh: Ahmad Subardjo (Inkopasindo)' : 'Contoh: Dewi Lestari (Finance)'}
+                    placeholder="Contoh: Dewi Lestari"
                     value={addForm.name}
                     onChange={(e) => handleNameChange(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-800 text-xs font-medium transition shadow-2xs"
                   />
                 </div>
               </div>
 
-              {/* Email Login (Domain @sadewa.id) */}
-              <div className="space-y-1">
+              {/* Email Login (Domain @sapakita.id) */}
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-700 font-bold">
-                    Email Login (@sadewa.id) <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    Email Login (@sapakita.id) <span className="text-rose-500">*</span>
                   </label>
                   {isEmailCustomized && addForm.name && (
                     <button
@@ -615,56 +617,56 @@ export default function FinanceAccounts() {
                   )}
                 </div>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     required
-                    placeholder={addForm.role === 'inkopasindo' ? 'inkopasindo.nama@sadewa.id' : 'finance.nama@sadewa.id'}
+                    placeholder="finance.nama@sapakita.id"
                     value={addForm.email}
                     onChange={(e) => handleEmailChange(e.target.value)}
-                    className="w-full pl-9 pr-24 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono font-medium"
+                    className="w-full pl-10 pr-24 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-800 text-xs font-medium shadow-2xs"
                   />
                   {!addForm.email.includes('@') && (
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded">
-                      @sadewa.id
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                      @sapakita.id
                     </span>
                   )}
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Rekomendasi format: <code className="text-primary font-bold font-mono">{addForm.role === 'inkopasindo' ? 'inkopasindo.<nama>@sadewa.id' : 'finance.<nama>@sadewa.id'}</code>
+                  Rekomendasi format: <code className="text-[#0D7A73] font-bold font-mono">finance.&lt;nama&gt;@sapakita.id</code>
                 </p>
               </div>
 
               {/* Nomor Handphone / WhatsApp (Opsional) */}
-              <div className="space-y-1">
-                <label className="block text-slate-700 font-bold">
-                  Nomor Telepon / WhatsApp <span className="text-slate-400 font-normal">(Opsional)</span>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  Nomor Telepon / WhatsApp <span className="text-slate-400 font-normal lowercase">(opsional)</span>
                 </label>
                 <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Phone className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   <input
                     type="tel"
                     placeholder="Contoh: 081298765432"
                     value={addForm.phone}
                     onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
-                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-medium transition"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-800 text-xs font-medium transition shadow-2xs"
                   />
                 </div>
               </div>
 
               {/* Password Akun */}
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <label className="block text-slate-700 font-bold">
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Password Akun <span className="text-rose-500">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={handleRegeneratePassword}
-                    className="inline-flex items-center gap-1 text-[11px] font-bold text-primary hover:underline cursor-pointer"
+                    className="inline-flex items-center gap-1 text-[11px] font-bold text-[#0D7A73] hover:underline cursor-pointer"
                     title="Buat kata sandi acak baru"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                    <Sparkles className="w-3.5 h-3.5 text-[#0D7A73]" />
                     <span>Acak Ulang</span>
                   </button>
                 </div>
@@ -676,9 +678,9 @@ export default function FinanceAccounts() {
                     placeholder="Masukkan password atau gunakan acak"
                     value={addForm.password}
                     onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                    className="w-full pl-3 pr-20 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-slate-800 font-mono tracking-wider font-bold"
+                    className="w-full pl-4 pr-20 py-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary text-slate-800 font-mono tracking-wider font-bold text-xs shadow-2xs"
                   />
-                  <div className="absolute right-2 flex items-center gap-1">
+                  <div className="absolute right-2.5 flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => handleCopy(addForm.password, 'form-pass')}
@@ -706,20 +708,20 @@ export default function FinanceAccounts() {
                   </div>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Password otomatis di-generate. Dapat diubah secara bebas oleh Superadmin.
+                  Password otomatis di-generate. Dapat disesuaikan bila diperlukan.
                 </p>
               </div>
 
               {/* Status Akun */}
-              <div className="space-y-1">
-                <label className="block text-slate-700 font-bold">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Status Akun Awal <span className="text-rose-500">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3 pt-0.5">
                   <button
                     type="button"
                     onClick={() => setAddForm({ ...addForm, status: 'Aktif' })}
-                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2.5 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       addForm.status === 'Aktif'
                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700 ring-2 ring-emerald-500/20'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -732,7 +734,7 @@ export default function FinanceAccounts() {
                   <button
                     type="button"
                     onClick={() => setAddForm({ ...addForm, status: 'Nonaktif' })}
-                    className={`py-2 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    className={`py-2.5 px-3 rounded-xl font-bold border transition cursor-pointer flex items-center justify-center gap-1.5 ${
                       addForm.status === 'Nonaktif'
                         ? 'bg-slate-100 border-slate-400 text-slate-800 ring-2 ring-slate-400/20'
                         : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
@@ -750,7 +752,7 @@ export default function FinanceAccounts() {
                   type="button"
                   disabled={isSubmittingAdd}
                   onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-100 cursor-pointer"
                 >
                   Batal
                 </button>
@@ -806,7 +808,7 @@ export default function FinanceAccounts() {
                 </div>
                 <div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Peran / Role</span>
-                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 mt-0.5">
+                  <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold bg-teal-50 text-[#0D7A73] border border-teal-200/80 mt-0.5">
                     {newlyCreatedAccount.roleLabel}
                   </span>
                 </div>
