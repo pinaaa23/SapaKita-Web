@@ -81,9 +81,9 @@ export default function Login() {
           }
         }
       } catch (apiErr) {
-        const isDemoIdentifier = idLower.includes('kantin') || idLower.includes('kasir') || idLower.includes('kopontren') ||
-          idLower.includes('superadmin') || idLower.includes('super') ||
-          idLower.includes('spv') || idLower.includes('supervisor') ||
+        const isDemoIdentifier = idLower.includes('spv') || idLower.includes('supervisor') ||
+          idLower.includes('kantin') || idLower.includes('kasir') || idLower.includes('kopontren') ||
+          idLower.includes('superadmin') || (idLower.includes('super') && !idLower.includes('supervisor')) ||
           idLower.includes('kepala') || idLower.includes('pondok') || idLower.includes('pimpinan') ||
           idLower.includes('kanwil') || idLower.includes('yayasan') ||
           idLower.includes('finance') || idLower.includes('keuangan');
@@ -93,7 +93,20 @@ export default function Login() {
         }
 
         if (import.meta.env.DEV || isDemoIdentifier) {
-          if (idLower.includes('kantin') || idLower.includes('kasir') || idLower.includes('kopontren')) {
+          if (idLower.includes('spv') || idLower.includes('supervisor')) {
+            responseData = {
+              token: 'mock-jwt-token-spv-' + Date.now(),
+              user: {
+                id: 'u-spv-demo',
+                name: 'Ustadz Budi Santoso (Supervisor Kesantrian)',
+                email: idLower.includes('@') ? idLower : 'supervisor@sapakita.id',
+                role: 'supervisor',
+                branchId: 'b1',
+                branchName: 'Pondok Putra Darussalam',
+                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
+              },
+            };
+          } else if (idLower.includes('kantin') || idLower.includes('kasir') || idLower.includes('kopontren')) {
             responseData = {
               token: 'mock-jwt-token-kantin-' + Date.now(),
               user: {
@@ -106,7 +119,7 @@ export default function Login() {
                 branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
               },
             };
-          } else if (idLower.includes('superadmin') || idLower.includes('super')) {
+          } else if (idLower.includes('superadmin') || (idLower.includes('super') && !idLower.includes('supervisor')) || idLower.includes('pusat')) {
             responseData = {
               token: 'mock-jwt-token-superadmin-' + Date.now(),
               user: {
@@ -114,19 +127,6 @@ export default function Login() {
                 name: 'Super Administrator',
                 email: idLower.includes('@') ? idLower : 'superadmin@sapakita.id',
                 role: 'superadmin',
-              },
-            };
-          } else if (idLower.includes('spv') || idLower.includes('supervisor')) {
-            responseData = {
-              token: 'mock-jwt-token-spv-' + Date.now(),
-              user: {
-                id: 'u-spv-demo',
-                name: 'Ustadz Budi Santoso',
-                email: idLower.includes('@') ? idLower : 'supervisor@sapakita.id',
-                role: 'supervisor',
-                branchId: 'b1',
-                branchName: 'Pondok Putra Darussalam',
-                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
               },
             };
           } else if (idLower.includes('kepala') || idLower.includes('pondok') || idLower.includes('pimpinan')) {
@@ -224,7 +224,7 @@ export default function Login() {
       } else if (normalizedRole === 'kepala_upt' || normalizedRole === 'branch_admin' || normalizedRole === 'branch-admin' || normalizedRole === 'admin') {
         setAuthContextSession(token, { ...user, role: 'kepala_upt' });
         navigate('/branch/dashboard');
-      } else if (normalizedRole === 'supervisor') {
+      } else if (normalizedRole === 'supervisor' || normalizedRole === 'spv') {
         setAuthContextSession(token, { ...user, role: 'supervisor' });
         navigate('/branch/dashboard');
       } else if (normalizedRole === 'operator_kantin' || normalizedRole === 'canteen_staff' || normalizedRole === 'kantin') {
