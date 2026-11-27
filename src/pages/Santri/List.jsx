@@ -353,7 +353,7 @@ const InmatesList = () => {
 
             {!isFilterSupported && (
               <span className="text-[10px] text-slate-400 italic bg-slate-100 px-2 py-0.5 rounded-md">
-                Filter cabang & status belum didukung sistem backend
+                Filter pondok & status belum didukung sistem backend
               </span>
             )}
 

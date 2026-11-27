@@ -393,7 +393,7 @@ const Detail = () => {
             </div>
             <div className="flex justify-between items-center text-[11px] font-medium text-slate-500 mt-1.5">
               <span>{branchTransactions.length} Transaksi Kopontren</span>
-              <span className="text-emerald-700 font-bold">100% Kas Kopontren UPT</span>
+              <span className="text-emerald-700 font-bold">100% Kas Kopontren Pondok</span>
             </div>
           </div>
         </div>
@@ -635,7 +635,7 @@ const Detail = () => {
             ) : (
               <div className="p-8 text-center text-xs text-slate-400">
                 <Users className="w-8 h-8 text-slate-200 mx-auto mb-2" />
-                Belum ada data petugas yang terhubung ke cabang ini.
+                Belum ada data petugas yang terhubung ke pondok ini.
               </div>
             )}
           </div>
