@@ -80,15 +80,14 @@ export const extractBranchSlug = (branchName, user) => {
     }
   }
 
-  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.yogyakarta@sadewa.id -> yogyakarta)
+  // Coba ekstrak dari email user/kepala UPT jika ada (contoh: kepala.darussalam@sapakita.id -> darussalam)
   if (user?.email && user.email.includes('@')) {
     const localPart = user.email.split('@')[0];
     const parts = localPart.split('.');
     for (let i = parts.length - 1; i >= 0; i--) {
       const part = parts[i];
       const cleanSlug = part
-        .replace(/^(lapas|rutan|bapas|kls|kelas)-*/i, '')
-        .replace(/^(\d+|i|ii|iii|iv|v)[a-z]?-*/i, '')
+        .replace(/^(pesantren|ponpes|pondok|kampus|cabang)-*/i, '')
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
       if (cleanSlug && !isStopwordOrClassNumber(cleanSlug)) {
@@ -97,18 +96,18 @@ export const extractBranchSlug = (branchName, user) => {
     }
   }
 
-  return 'yogyakarta';
+  return 'darussalam';
 };
 
 /**
- * Generator rekomendasi email petugas UPT PasCall
- * Format: peran.nama.cabang@sadewa.id (Contoh: spv.salsabila.yogyakarta@sadewa.id)
+ * Generator rekomendasi email staf pondok SapaKita
+ * Format: peran.nama.pondok@sapakita.id (Contoh: spv.salsabila.darussalam@sapakita.id)
  */
 export const generateUserEmail = (name, role, branchName, user) => {
-  const roleSlug = role === ROLES.OPERATOR_KANTIN ? 'kantin' : 'spv';
+  const roleSlug = role === ROLES.OPERATOR_KANTIN ? 'kopontren' : 'spv';
   const branchSlug = extractBranchSlug(branchName, user);
 
-  // Ekstrak nama panggilan petugas (kata pertama nama, misal "salsabila")
+  // Ekstrak nama panggilan staf (kata pertama nama, misal "salsabila")
   let nameSlug = '';
   if (name && typeof name === 'string' && name.trim()) {
     const nameWords = name
@@ -123,7 +122,7 @@ export const generateUserEmail = (name, role, branchName, user) => {
   if (nameSlug) parts.push(nameSlug);
   if (branchSlug) parts.push(branchSlug);
 
-  return `${parts.join('.')}@sadewa.id`;
+  return `${parts.join('.')}@sapakita.id`;
 };
 
 const Create = () => {
@@ -133,10 +132,10 @@ const Create = () => {
   const getInitialBranch = () => {
     const isBad = (v) => !v || typeof v !== 'string' || !v.trim() || 
       ['upt anda', 'cabang terdaftar', 'upt terdaftar'].includes(v.trim().toLowerCase());
-    if (!isBad(uptName)) return uptName.trim();
-    if (!isBad(user?.branch?.name)) return user.branch.name.trim();
-    if (!isBad(user?.branchName)) return user.branchName.trim();
-    return 'Lapas II Yogyakarta';
+    if (!isBad(uptName)) return uptName.trim().replace(/Kampus/gi, 'Pondok');
+    if (!isBad(user?.branch?.name)) return user.branch.name.trim().replace(/Kampus/gi, 'Pondok');
+    if (!isBad(user?.branchName)) return user.branchName.trim().replace(/Kampus/gi, 'Pondok');
+    return 'Pesantren Modern Darussalam';
   };
 
   const [resolvedBranchName, setResolvedBranchName] = useState(getInitialBranch);
@@ -282,7 +281,7 @@ const Create = () => {
         password,
         status,
         phone: phone.trim() || '-',
-        branchName: resolvedBranchName || uptName || 'UPT Sadewa',
+        branchName: resolvedBranchName || uptName || 'Pondok Pesantren',
       });
     } catch (err) {
       console.log('[UserCreate] Error submit user:', err);
@@ -321,22 +320,22 @@ const Create = () => {
       <div className="flex items-center justify-between">
         <Link 
           to="/branch/users"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#0D7A73] transition-colors bg-white px-3.5 py-2 rounded-xl border border-slate-200/80 shadow-2xs"
         >
           <ArrowLeft className="w-4 h-4" /> Batal & Kembali ke Kelola Pengguna
         </Link>
       </div>
 
       {/* Hero Overview Banner Card */}
-      <div className="bg-gradient-to-r from-[#0B3D91] via-[#1E5FCC] to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#0A5A55] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 relative z-10">
           <div className="w-16 h-16 rounded-2xl bg-white/15 backdrop-blur-md p-1 border-2 border-white/30 flex items-center justify-center shrink-0 shadow-inner">
             <Users className="w-8 h-8 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
             <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Pengguna Baru Pondok</h2>
-            <p className="text-blue-100 text-xs">
-              Daftarkan akun staf Supervisor Kesantrian atau Operator Kopontren untuk mengelola operasional {uptName || 'Pondok'}
+            <p className="text-teal-100 text-xs">
+              Daftarkan akun staf pengurus Supervisor Kesantrian atau Operator Kopontren untuk mengelola operasional {uptName || 'Pondok Pesantren'}
             </p>
           </div>
         </div>
@@ -356,12 +355,12 @@ const Create = () => {
         {/* Section 1: Identitas & Peran Pengguna */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+            <div className="p-2 rounded-xl bg-[#E6F4F1] text-[#0D7A73]">
               <User className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Informasi Profil & Peran</h3>
-              <p className="text-[11px] text-slate-500">Nama lengkap petugas dan tingkat wewenang akses di cabang ini</p>
+              <h3 className="text-sm font-bold text-slate-800">Informasi Profil & Peran Staf</h3>
+              <p className="text-[11px] text-slate-500">Nama lengkap staf pengurus dan tingkat wewenang akses di pondok pesantren ini</p>
             </div>
           </div>
 
@@ -369,7 +368,7 @@ const Create = () => {
             {/* Nama Lengkap */}
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Nama Lengkap Petugas <span className="text-rose-500">*</span>
+                Nama Lengkap Staf / Pengurus <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -378,8 +377,8 @@ const Create = () => {
                   value={name}
                   onChange={handleNameChange}
                   required
-                  placeholder="Contoh: Salsabila Rahmawati"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                  placeholder="Contoh: Ustadz Ahmad Fauzi atau Salsabila Rahmawati"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all shadow-2xs"
                 />
               </div>
             </div>
@@ -396,7 +395,7 @@ const Create = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="Contoh: 081234567890"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all shadow-2xs"
                 />
               </div>
             </div>
@@ -413,22 +412,22 @@ const Create = () => {
                   onClick={() => handleRoleChange(ROLES.SUPERVISOR)}
                   className={`p-4 rounded-xl border flex items-start gap-3.5 transition-all cursor-pointer text-left ${
                     role === ROLES.SUPERVISOR
-                      ? 'bg-blue-50/80 border-blue-300 ring-2 ring-blue-500/20 shadow-sm'
+                      ? 'bg-[#E6F4F1] border-teal-300 ring-2 ring-[#0D7A73]/20 shadow-sm'
                       : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    role === ROLES.SUPERVISOR ? 'bg-primary text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                    role === ROLES.SUPERVISOR ? 'bg-[#0D7A73] text-white shadow-xs' : 'bg-slate-100 text-slate-400'
                   }`}>
                     <ShieldCheck className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className={`text-xs font-bold ${role === ROLES.SUPERVISOR ? 'text-primary' : 'text-slate-800'}`}>
+                      <p className={`text-xs font-bold ${role === ROLES.SUPERVISOR ? 'text-[#0D7A73]' : 'text-slate-800'}`}>
                         Supervisor (SPV)
                       </p>
                       {role === ROLES.SUPERVISOR && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#0D7A73] animate-pulse" />
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
@@ -437,32 +436,32 @@ const Create = () => {
                   </div>
                 </button>
 
-                {/* Operator Kantin Card */}
+                {/* Operator Kopontren Card */}
                 <button
                   type="button"
                   onClick={() => handleRoleChange(ROLES.OPERATOR_KANTIN)}
                   className={`p-4 rounded-xl border flex items-start gap-3.5 transition-all cursor-pointer text-left ${
                     role === ROLES.OPERATOR_KANTIN
-                      ? 'bg-amber-50/80 border-amber-300 ring-2 ring-amber-500/20 shadow-sm'
+                      ? 'bg-emerald-50/80 border-emerald-300 ring-2 ring-emerald-500/20 shadow-sm'
                       : 'bg-white border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                    role === ROLES.OPERATOR_KANTIN ? 'bg-amber-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
+                    role === ROLES.OPERATOR_KANTIN ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-100 text-slate-400'
                   }`}>
                     <Store className="w-5 h-5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className={`text-xs font-bold ${role === ROLES.OPERATOR_KANTIN ? 'text-amber-800' : 'text-slate-800'}`}>
-                        Operator Kantin
+                      <p className={`text-xs font-bold ${role === ROLES.OPERATOR_KANTIN ? 'text-emerald-800' : 'text-slate-800'}`}>
+                        Operator Kopontren
                       </p>
                       {role === ROLES.OPERATOR_KANTIN && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Layanan kasir pengisian paket, transaksi tunai, cetak struk/voucher, dan monitoring wartel.
+                      Layanan kasir pembelian paket santri, transaksi tunai, cetak struk/voucher, dan layanan bilik telepon santri.
                     </p>
                   </div>
                 </button>
@@ -488,14 +487,14 @@ const Create = () => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                  Email Login Petugas <span className="text-rose-500">*</span>
+                  Email Login Staf <span className="text-rose-500">*</span>
                 </label>
                 {role === ROLES.SUPERVISOR ? (
-                  <span className="text-[11px] text-primary font-semibold flex items-center gap-1">
+                  <span className="text-[11px] text-[#0D7A73] font-semibold flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Dibuat Otomatis (Read-only)
                   </span>
                 ) : !isEmailManuallyEdited ? (
-                  <span className="text-[11px] text-primary font-medium flex items-center gap-1">
+                  <span className="text-[11px] text-[#0D7A73] font-medium flex items-center gap-1">
                     <Sparkles className="w-3 h-3" /> Rekomendasi Otomatis
                   </span>
                 ) : (
@@ -505,7 +504,7 @@ const Create = () => {
                       setIsEmailManuallyEdited(false);
                       setEmail(generateUserEmail(name, role, resolvedBranchName, user));
                     }}
-                    className="text-[11px] text-primary hover:text-primary-dark font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"
+                    className="text-[11px] text-[#0D7A73] hover:text-[#0A5A55] font-medium inline-flex items-center gap-1 hover:underline cursor-pointer"
                   >
                     <Sparkles className="w-3 h-3" /> Gunakan Rekomendasi
                   </button>
@@ -519,16 +518,16 @@ const Create = () => {
                   onChange={handleEmailChange}
                   readOnly={role === ROLES.SUPERVISOR}
                   required
-                  placeholder="Contoh: spv.salsabila.cipinang@sadewa.id"
+                  placeholder="Contoh: spv.salsabila.darussalam@sapakita.id"
                   className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-xs font-medium placeholder-slate-400 focus:outline-none transition-all shadow-2xs font-mono ${
                     role === ROLES.SUPERVISOR
                       ? 'bg-slate-100/80 text-slate-600 border border-slate-200 cursor-not-allowed select-none'
-                      : 'bg-white border border-slate-200 text-slate-800 focus:ring-4 focus:ring-primary/10 focus:border-primary'
+                      : 'bg-white border border-slate-200 text-slate-800 focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73]'
                   }`}
                 />
               </div>
               <p className="text-[11px] text-slate-400 font-mono">
-                Format standar: <span className="text-slate-600">peran.nama.cabang@sadewa.id</span>
+                Format standar: <span className="text-slate-600">peran.nama.pondok@sapakita.id</span>
               </p>
             </div>
 
@@ -541,7 +540,7 @@ const Create = () => {
                 <button
                   type="button"
                   onClick={handleAutoGeneratePassword}
-                  className="text-[11px] text-primary hover:text-primary-dark font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
+                  className="text-[11px] text-[#0D7A73] hover:text-[#0A5A55] font-bold inline-flex items-center gap-1 hover:underline cursor-pointer"
                 >
                   <Sparkles className="w-3 h-3" /> Buat Ulang Password
                 </button>
@@ -555,13 +554,13 @@ const Create = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   placeholder="Minimal 8 karakter"
-                  className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs font-mono"
+                  className="w-full pl-10 pr-20 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all shadow-2xs font-mono"
                 />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <button
                     type="button"
                     onClick={() => handleCopy(password, 'password')}
-                    className="p-1.5 text-slate-400 hover:text-primary rounded-lg transition-colors cursor-pointer"
+                    className="p-1.5 text-slate-400 hover:text-[#0D7A73] rounded-lg transition-colors cursor-pointer"
                     title="Salin password"
                   >
                     {copiedField === 'password' ? (
@@ -605,7 +604,7 @@ const Create = () => {
                     <p className={`text-xs font-bold ${status === 'Active' ? 'text-emerald-800' : 'text-slate-700'}`}>
                       Langsung Aktif
                     </p>
-                    <p className="text-[11px] text-slate-500 mt-0.5">Petugas langsung dapat login menggunakan akun ini</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">Staf pengurus langsung dapat login menggunakan akun ini</p>
                   </div>
                 </button>
 
@@ -657,7 +656,7 @@ const Create = () => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2.5 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer flex items-center gap-2"
+            className="px-6 py-2.5 rounded-xl bg-[#0D7A73] hover:bg-[#0A5A55] text-white text-xs font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 cursor-pointer flex items-center gap-2"
           >
             {isSubmitting ? (
               <>
@@ -689,7 +688,7 @@ const Create = () => {
                 Akun Pengguna Baru Berhasil Didaftarkan!
               </h3>
               <p className="text-xs text-slate-500">
-                Kredensial login akun petugas telah berhasil dibuat. Salin dan berikan kredensial login berikut kepada staf yang bersangkutan.
+                Kredensial login akun staf pengurus telah berhasil dibuat. Salin dan berikan kredensial login berikut kepada staf yang bersangkutan.
               </p>
             </div>
 
@@ -703,7 +702,7 @@ const Create = () => {
               </div>
 
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">Nama Petugas</span>
+                <span className="text-slate-500 font-medium">Nama Staf</span>
                 <span className="font-bold text-slate-800">{createdCredentials.name}</span>
               </div>
 
@@ -711,8 +710,8 @@ const Create = () => {
                 <span className="text-slate-500 font-medium">Role Sistem</span>
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
                   createdCredentials.role === ROLES.OPERATOR_KANTIN
-                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                    : 'bg-blue-50 text-primary border border-blue-200'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-[#E6F4F1] text-[#0D7A73] border border-teal-200'
                 }`}>
                   {ROLE_LABELS[createdCredentials.role] || createdCredentials.role}
                 </span>
@@ -771,7 +770,7 @@ const Create = () => {
                   const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'Pondok Pesantren';
                   const roleLabel = ROLE_LABELS[createdCredentials.role] || createdCredentials.role;
                   const statusLabel = createdCredentials.status === 'Active' ? 'Aktif' : 'Nonaktif';
-                  const fullText = `*Kredensial Akun Pengguna SapaKita*\nPondok Pesantren: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal SapaKita.`;
+                  const fullText = `*Kredensial Akun Pengguna SapaKita*\nPondok Pesantren: ${bName}\nNama Staf: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal SapaKita.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

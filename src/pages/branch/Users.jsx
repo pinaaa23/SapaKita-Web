@@ -117,7 +117,7 @@ export default function BranchUsers() {
 
     const exportData = users.map((u, idx) => ({
       'No': idx + 1,
-      'Nama Petugas': u.name || '-',
+      'Nama Staf': u.name || '-',
       'Email Login': u.email || '-',
       'Nomor Telepon': u.phone && u.phone !== '-' ? u.phone : '-',
       'Peran / Role': u.role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : 'Supervisor Kesantrian',
@@ -135,7 +135,7 @@ export default function BranchUsers() {
 
     const success = exportToExcel(exportData, filename, 'Pengguna Pondok', {
       title: 'LAPORAN DATA PENGGUNA & STAF OPERASIONAL PONDOK',
-      subtitle: `Daftar Akun Supervisor dan Petugas Kopontren - ${currentBranchName}`,
+      subtitle: `Daftar Akun Supervisor dan Pengurus Kopontren - ${currentBranchName}`,
       metadata: {
         'Pondok Pesantren': currentBranchName,
         'Dicetak Oleh': `${user?.name || 'Pimpinan Pondok'} (Pimpinan Pondok)`,
@@ -607,7 +607,7 @@ export default function BranchUsers() {
             <div className="p-6 space-y-4">
               {/* Profile Card */}
               <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary font-black text-sm flex items-center justify-center shrink-0 border border-primary/20">
+                <div className="w-12 h-12 rounded-2xl bg-[#E6F4F1] text-[#0D7A73] font-black text-sm flex items-center justify-center shrink-0 border border-teal-200">
                   {getInitials(detailUser.name)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -615,8 +615,8 @@ export default function BranchUsers() {
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                       detailUser.role === ROLES.OPERATOR_KANTIN
-                        ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                        : 'bg-blue-50 text-primary border border-blue-200'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-[#E6F4F1] text-[#0D7A73] border border-teal-200'
                     }`}>
                       {ROLE_LABELS[detailUser.role] || detailUser.role}
                     </span>
@@ -786,7 +786,7 @@ export default function BranchUsers() {
                     onClick={() => setFormData({ ...formData, role: ROLES.SUPERVISOR })}
                     className={`p-3 rounded-xl border flex items-center gap-2.5 transition text-left cursor-pointer ${
                       formData.role === ROLES.SUPERVISOR
-                        ? 'bg-blue-50 border-primary ring-2 ring-primary/20 text-primary'
+                        ? 'bg-[#E6F4F1] border-[#0D7A73] ring-2 ring-[#0D7A73]/20 text-[#0D7A73]'
                         : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
@@ -839,7 +839,7 @@ export default function BranchUsers() {
                   <button
                     type="submit"
                     disabled={isSubmitting}
-                    className="px-5 py-2 bg-primary hover:bg-primary-dark text-white font-bold rounded-xl text-xs shadow-md shadow-primary/20 transition cursor-pointer disabled:opacity-50"
+                    className="px-5 py-2 bg-[#0D7A73] hover:bg-[#0A5A55] text-white font-bold rounded-xl text-xs shadow-md shadow-teal-900/20 transition cursor-pointer disabled:opacity-50"
                   >
                     {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </button>
