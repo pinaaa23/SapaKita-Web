@@ -480,42 +480,42 @@ export default function FinanceContracts() {
           </div>
 
           {/* 2. Pengaturan Tarif Global Nasional Card */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-teal-950 p-5 text-white shadow-md border border-slate-700/60 flex flex-col md:flex-row md:items-center justify-between gap-5">
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#0A5A55] p-5 text-white shadow-xs border border-teal-400/30 flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="space-y-1.5 max-w-xl">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] font-bold border border-emerald-500/30">
-                  <Globe className="w-3.5 h-3.5" />
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[11px] font-bold border border-white/25">
+                  <Globe className="w-3.5 h-3.5 text-teal-100" />
                   Tarif Acuan Global SapaKita
                 </span>
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-teal-100 font-medium">
                   {isSuperadmin ? '(Superadmin Akses Penuh)' : '(Mode Pantau Finance)'}
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
                 Pengaturan Tarif Panggilan Global Nasional
               </h3>
-              <p className="text-slate-300 text-xs leading-relaxed">
-                Tarif dasar sistem yang menjadi rujukan kalkulasi panggilan baru di seluruh kampus pondok pesantren secara nasional. {isSuperadmin ? 'Anda dapat mengubah tarif acuan ini dan menerapkannya serentak ke seluruh kampus.' : 'Role Finance berwenang memantau tarif dasar ini secara real-time.'}
+              <p className="text-teal-50/90 text-xs leading-relaxed">
+                Tarif dasar sistem yang menjadi rujukan kalkulasi panggilan baru di seluruh pondok pesantren secara nasional. {isSuperadmin ? 'Anda dapat mengubah tarif acuan ini dan menerapkannya serentak ke seluruh pondok pesantren.' : 'Role Finance berwenang memantau tarif dasar ini secara real-time.'}
               </p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
-              <div className="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center min-w-[170px]">
-                <span className="text-[11px] text-slate-300 block font-semibold uppercase tracking-wider">
+              <div className="bg-white/15 backdrop-blur-md rounded-xl p-3 border border-white/20 text-center min-w-[170px]">
+                <span className="text-[11px] text-teal-100 block font-semibold uppercase tracking-wider">
                   Tarif Acuan Saat Ini
                 </span>
                 <div className="mt-1 flex items-baseline justify-center gap-1">
-                  <span className="text-2xl font-black text-amber-400">
+                  <span className="text-2xl font-black text-amber-300">
                     Rp {globalSettings?.defaultRatePerSecond ?? 15}
                   </span>
-                  <span className="text-xs text-slate-300 font-bold">/ detik</span>
+                  <span className="text-xs text-teal-100 font-bold">/ detik</span>
                 </div>
-                <div className="mt-0.5 text-[11px] text-emerald-300 font-bold">
+                <div className="mt-0.5 text-[11px] text-white font-bold">
                   Rp {((globalSettings?.defaultRatePerSecond ?? 15) * 60).toLocaleString('id-ID')} / menit
                 </div>
                 {globalSettings?.totalBranches > 0 && (
-                  <span className="mt-1 block text-[10px] text-slate-400">
-                    {globalSettings.matchingBranches} dari {globalSettings.totalBranches} Kampus bersesuaian
+                  <span className="mt-1 block text-[10px] text-teal-100/80">
+                    {globalSettings.matchingBranches} dari {globalSettings.totalBranches} Pondok bersesuaian
                   </span>
                 )}
               </div>
@@ -537,12 +537,12 @@ export default function FinanceContracts() {
             </div>
           </div>
 
-          {/* 3. Tabel Kontrak per Kampus Pesantren */}
+          {/* 3. Tabel Kontrak per Pondok Pesantren */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
-                  Daftar Kontrak &amp; Pembagian Hasil per Kampus
+                  Daftar Kontrak &amp; Pembagian Hasil per Pondok Pesantren
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Setiap pondok pesantren memiliki konfigurasi tarif dan rekening kopontren resmi untuk pelunasan tagihan.

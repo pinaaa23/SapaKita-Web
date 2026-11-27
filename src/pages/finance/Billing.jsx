@@ -506,7 +506,7 @@ export default function FinanceBilling() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `Tagihan_Setoran_Kantin_${selectedYear}_${selectedMonth}.csv`);
+    link.setAttribute('download', `Tagihan_Setoran_Kopontren_${selectedYear}_${selectedMonth}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -593,7 +593,7 @@ export default function FinanceBilling() {
         </div>
         <h2 className="text-xl font-extrabold text-slate-800">Akses Dibatasi</h2>
         <p className="text-sm text-slate-500">
-          Halaman Tagihan &amp; Setoran Kantin ini hanya dapat diakses oleh akun dengan peran <strong>Super Administrator</strong> atau <strong>Admin Finance</strong>.
+          Halaman Tagihan &amp; Setoran Kopontren ini hanya dapat diakses oleh akun dengan peran <strong>Super Administrator</strong> atau <strong>Admin Finance</strong>.
         </p>
         <button
           onClick={() => navigate('/dashboard')}
@@ -664,12 +664,12 @@ export default function FinanceBilling() {
         </button>
       </div>
 
-      {/* Infografis Alur Kasir & Setoran Kantin (Responsif Penuh, Tanpa Scrollbar Horizontal) */}
-      <div className="rounded-2xl p-3.5 sm:p-4 bg-gradient-to-r from-blue-950 via-slate-900 to-[#1565C0] text-white shadow-xs relative overflow-hidden">
+      {/* Infografis Alur Kasir & Setoran Kopontren (Responsif Penuh, Tanpa Scrollbar Horizontal) */}
+      <div className="rounded-2xl p-3.5 sm:p-4 bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#0A5A55] text-white shadow-xs relative overflow-hidden">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4 relative z-10">
           <div className="space-y-1 max-w-xl">
             <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-blue-200">
+              <span className="px-2 py-0.5 rounded-full bg-white/20 text-[10px] font-bold uppercase tracking-wider text-teal-100 border border-white/25">
                 Alur Pascabayar
               </span>
               <h3 className="text-xs sm:text-sm font-bold text-white">
@@ -688,25 +688,25 @@ export default function FinanceBilling() {
                 <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span className="font-extrabold text-white text-[11px] truncate">1. Tunai Voucher</span>
               </div>
-              <span className="text-[10px] text-teal-200 block truncate">Kopontren pegang 100%</span>
+              <span className="text-[10px] text-teal-100 block truncate">Kopontren pegang 100%</span>
             </div>
 
             {/* Step 2 */}
             <div className="bg-white/10 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-white/10 text-center flex flex-col items-center justify-center min-w-0">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-0.5">
-                <Store className="w-3.5 h-3.5 text-sky-300 shrink-0" />
+                <Store className="w-3.5 h-3.5 text-sky-200 shrink-0" />
                 <span className="font-extrabold text-white text-[11px] truncate">2. Setor 60%</span>
               </div>
-              <span className="text-[10px] text-teal-200 block truncate">Upload bukti bayar</span>
+              <span className="text-[10px] text-teal-100 block truncate">Upload bukti bayar</span>
             </div>
 
             {/* Step 3 */}
-            <div className="bg-white/15 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-emerald-400/40 text-center flex flex-col items-center justify-center min-w-0">
+            <div className="bg-white/15 backdrop-blur-md px-2 sm:px-3 py-2 rounded-xl border border-white/20 text-center flex flex-col items-center justify-center min-w-0">
               <div className="flex items-center justify-center gap-1 sm:gap-1.5 mb-0.5">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span className="font-extrabold text-emerald-300 text-[11px] truncate">3. Superadmin ACC</span>
+                <span className="font-extrabold text-white text-[11px] truncate">3. Verifikasi ACC</span>
               </div>
-              <span className="text-[10px] text-emerald-200 block truncate">Lunas &amp; Bagi Hasil</span>
+              <span className="text-[10px] text-teal-100 block truncate">Lunas &amp; Bagi Hasil</span>
             </div>
           </div>
         </div>
@@ -916,7 +916,7 @@ export default function FinanceBilling() {
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Total Cash Kantin (100%)
+                  Total Cash Kopontren (100%)
                 </span>
                 <div className="text-2xl font-black text-slate-800 tracking-tight">
                   {formatRupiah(pendingGrossTotal)}
@@ -930,17 +930,17 @@ export default function FinanceBilling() {
               </div>
             </div>
 
-            {/* Kartu 3: Porsi 30% Koperasi */}
+            {/* Kartu 3: Porsi Kopontren */}
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                  Hak Internal UPT (40% Dikelola UPT)
+                  Hak Internal Pondok (40% Dikelola Kopontren)
                 </span>
                 <div className="text-2xl font-black text-sky-700 tracking-tight">
                   {formatRupiah(pendingKeepTotal)}
                 </div>
                 <span className="text-[11px] font-medium text-sky-600 block">
-                  Laba tetap disimpan di kantin UPT
+                  Laba tetap disimpan di kas Kopontren
                 </span>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0 border border-sky-100">
@@ -948,7 +948,7 @@ export default function FinanceBilling() {
               </div>
             </div>
 
-            {/* Kartu 4: Setoran ke Finance (70%) */}
+            {/* Kartu 4: Setoran ke Finance */}
             <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
@@ -958,7 +958,7 @@ export default function FinanceBilling() {
                   {formatRupiah(pendingDepositTotal)}
                 </div>
                 <span className="text-[11px] font-medium text-emerald-600 block">
-                  Wajib disetor ke Mandiri Finance
+                  Wajib disetor ke Platform Finance
                 </span>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
@@ -972,10 +972,10 @@ export default function FinanceBilling() {
             <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
-                  Daftar Setoran Masuk dari Kasir Kantin
+                  Daftar Setoran Masuk dari Kasir Kopontren
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Petugas kantin mentransfer 55% porsi Vendor dan mengunggah struk transfer. Klik "Lihat Struk" lalu setujui (ACC).
+                  Petugas kopontren mentransfer 60% porsi Platform SapaKita dan mengunggah struk transfer. Klik "Lihat Struk" lalu setujui (ACC).
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-bold self-start sm:self-auto">
@@ -986,7 +986,7 @@ export default function FinanceBilling() {
 
             {isLoading ? (
               <div className="py-16 text-center space-y-3">
-                <div className="w-10 h-10 border-3 border-blue-200 border-t-[#1565C0] rounded-full animate-spin mx-auto" />
+                <div className="w-10 h-10 border-3 border-teal-200 border-t-[#0D7A73] rounded-full animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-slate-500">Memuat berkas setoran masuk...</p>
               </div>
             ) : pendingRequestsList.length === 0 ? (
@@ -996,7 +996,7 @@ export default function FinanceBilling() {
                 </div>
                 <h4 className="font-bold text-slate-800 text-sm">Tidak Ada Antrean Setoran</h4>
                 <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Semua bukti setoran telah berhasil diverifikasi atau belum ada kantin yang mengirimkan setoran baru.
+                  Semua bukti setoran telah berhasil diverifikasi atau belum ada kopontren yang mengirimkan setoran baru.
                 </p>
               </div>
             ) : (
@@ -1162,7 +1162,7 @@ export default function FinanceBilling() {
                 </span>
                 <div className="text-2xl font-black text-emerald-600 tracking-tight">
                   {totalLunasCount}{' '}
-                  <span className="text-xs font-semibold text-slate-400">/ {filteredBillingList.length} Kantin</span>
+                  <span className="text-xs font-semibold text-slate-400">/ {filteredBillingList.length} Pondok</span>
                 </div>
                 <span className="text-[11px] font-semibold text-emerald-600 inline-flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1182,7 +1182,7 @@ export default function FinanceBilling() {
                 </span>
                 <div className="text-2xl font-black text-slate-800 tracking-tight">
                   {pendingTopups.length}{' '}
-                  <span className="text-xs font-semibold text-slate-400">Kantin</span>
+                  <span className="text-xs font-semibold text-slate-400">Kopontren</span>
                 </div>
                 <span className={`text-[11px] font-bold inline-flex items-center gap-1.5 ${
                   pendingTopups.length > 0 ? 'text-amber-600 font-extrabold' : 'text-slate-400'
@@ -1446,7 +1446,7 @@ export default function FinanceBilling() {
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
-                  Arsip Riwayat Verifikasi Setoran Kantin
+                  Arsip Riwayat Verifikasi Setoran Kopontren
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
                   Catatan transaksi pembayaran yang telah disetujui (ACC) atau ditolak oleh Admin Finance.
@@ -1680,7 +1680,7 @@ canApprove={canManageBilling}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div className="flex items-center gap-2 text-rose-600">
                 <AlertCircle className="w-5 h-5" />
-                <h3 className="font-bold text-slate-800 text-base">Tolak Setoran Kantin</h3>
+                <h3 className="font-bold text-slate-800 text-base">Tolak Setoran Kopontren</h3>
               </div>
               <button
                 onClick={() => setRejectModalItem(null)}
@@ -1739,15 +1739,15 @@ canApprove={canManageBilling}
           <div className="bg-white rounded-3xl max-w-3xl w-full p-6 md:p-8 shadow-2xl relative border border-slate-100 my-auto max-h-[90vh] overflow-y-auto flex flex-col">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-[#0B3D91]">
+                <div className="w-10 h-10 rounded-2xl bg-[#E6F4F1] flex items-center justify-center text-[#0D7A73] border border-teal-100">
                   <FileText className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-800">
-                    Rincian Tagihan &amp; Verifikasi Setoran Kantin
+                    Rincian Tagihan &amp; Verifikasi Setoran Kopontren
                   </h3>
                   <p className="text-xs text-slate-500 font-mono">
-                    {detailModalItem.canteenName || 'Kantin UPT'} • {detailModalItem.uptName || detailModalItem.branchName}
+                    {detailModalItem.canteenName || 'Kopontren Pondok'} • {detailModalItem.uptName || detailModalItem.branchName}
                   </p>
                 </div>
               </div>
@@ -1856,7 +1856,7 @@ canApprove={canManageBilling}
                     <div className="p-4 bg-amber-50/80 border border-amber-200 rounded-2xl space-y-3">
                       <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
                         <Clock className="w-4 h-4 text-amber-600" />
-                        <span>Aksi Verifikasi Setoran Kantin:</span>
+                        <span>Aksi Verifikasi Setoran Kopontren:</span>
                       </div>
 
                       {detailRejectMode ? (

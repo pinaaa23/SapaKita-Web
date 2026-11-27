@@ -59,37 +59,37 @@ export default function FinanceDashboard() {
   return (
     <div className="space-y-6 pb-12">
       {/* 1. Header Banner (Kompak, Ramping, & Sejajar) */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3D91] via-[#154db3] to-[#1E5FCC] p-4 sm:p-5 text-white shadow-xs">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#0A5A55] p-4 sm:p-5 text-white shadow-xs">
         <div className="absolute right-0 top-0 -mt-8 -mr-8 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
-        <div className="absolute left-1/3 bottom-0 -mb-8 w-48 h-48 rounded-full bg-blue-300/10 blur-2xl pointer-events-none"></div>
+        <div className="absolute left-1/3 bottom-0 -mb-8 w-48 h-48 rounded-full bg-teal-300/10 blur-2xl pointer-events-none"></div>
 
         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-md flex items-center justify-center text-white shrink-0">
-              <Wallet className="w-4 h-4 text-blue-200" />
+              <Wallet className="w-4 h-4 text-teal-100" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-blue-200 whitespace-nowrap shrink-0 border border-white/20">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/15 text-[10px] font-bold uppercase tracking-wider text-teal-100 whitespace-nowrap shrink-0 border border-white/20">
                   Rekapitulasi Pascabayar
                 </span>
-                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-blue-100 text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 border border-white/25">
+                <span className="px-2.5 py-0.5 rounded-full bg-white/20 text-white text-[10px] font-bold uppercase tracking-wider whitespace-nowrap shrink-0 border border-white/25">
                   Akses: Read-Only
                 </span>
                 <span className="text-xs font-semibold text-white/90 whitespace-nowrap hidden md:inline">
-                  • 4 Pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor)
+                  • 4 Pihak (Pimpinan Pondok, Kopontren, Yayasan, Vendor)
                 </span>
               </div>
-              <p className="text-blue-100/90 text-xs leading-relaxed mt-0.5 truncate">
-                Monitoring perputaran omset kotor nasional dan status setoran UPT berdasarkan periode buku.
+              <p className="text-teal-50/90 text-xs leading-relaxed mt-0.5 truncate">
+                Monitoring perputaran omset kotor nasional dan status setoran pondok pesantren berdasarkan periode buku.
               </p>
             </div>
           </div>
 
           {/* Quick Filter Bulan & Tahun (Sejajar Satu Baris) */}
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/15 backdrop-blur-md border border-white/20 rounded-xl text-xs font-semibold text-white shadow-2xs shrink-0 self-start sm:self-center">
-            <Calendar className="w-3.5 h-3.5 text-blue-200 shrink-0" />
-            <span className="text-blue-200 font-medium">Periode:</span>
+            <Calendar className="w-3.5 h-3.5 text-teal-100 shrink-0" />
+            <span className="text-teal-100 font-medium">Periode:</span>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
@@ -122,7 +122,7 @@ export default function FinanceDashboard() {
           <div>
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Omset Kotor</span>
-              <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-primary shrink-0 border border-blue-100/60">
+              <div className="w-10 h-10 rounded-xl bg-[#E6F4F1] flex items-center justify-center text-[#0D7A73] shrink-0 border border-teal-100">
                 <Wallet className="w-5 h-5" />
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function FinanceDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-1.5 mt-2.5 text-xs text-slate-500 whitespace-nowrap">
-            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-bold border border-blue-200/60 shrink-0">
+            <span className="px-2 py-0.5 rounded-full bg-[#E6F4F1] text-[#0D7A73] font-bold border border-teal-200 shrink-0">
               {summary?.totalRecords || 0} Invoice
             </span>
             <span className="text-[11px] text-slate-500 truncate">Total tercatat</span>
@@ -153,7 +153,7 @@ export default function FinanceDashboard() {
           </div>
           <div className="flex items-center gap-1.5 mt-2.5 text-xs text-slate-500 whitespace-nowrap">
             <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200/60 shrink-0">
-              {summary?.counts?.paid || 0} UPT
+              {summary?.counts?.paid || 0} Pondok
             </span>
             <span className="text-[11px] text-slate-500 truncate">Terverifikasi</span>
           </div>
@@ -174,7 +174,7 @@ export default function FinanceDashboard() {
           </div>
           <div className="flex items-center gap-1.5 mt-2.5 text-xs text-slate-500 whitespace-nowrap">
             <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold border border-amber-200/60 shrink-0">
-              {summary?.counts?.pending || 0} UPT
+              {summary?.counts?.pending || 0} Pondok
             </span>
             <span className="text-[11px] text-slate-500 truncate">Menunggu ACC</span>
           </div>
@@ -195,7 +195,7 @@ export default function FinanceDashboard() {
           </div>
           <div className="flex items-center gap-1.5 mt-2.5 text-xs text-slate-500 whitespace-nowrap">
             <span className="px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 font-bold border border-rose-200/60 shrink-0">
-              {summary?.counts?.unpaid || 0} UPT
+              {summary?.counts?.unpaid || 0} Pondok
             </span>
             <span className="text-[11px] text-slate-500 truncate">Jatuh tempo</span>
           </div>
@@ -210,14 +210,14 @@ export default function FinanceDashboard() {
               Alokasi Pembagian Hasil 4 Pihak
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Distribusi omset dari panggilan wartel berdasarkan formula kontrak kerja sama resmi.
+              Distribusi omset dari panggilan telekomunikasi santri berdasarkan formula kontrak kerja sama resmi.
             </p>
           </div>
 
           <button
             type="button"
             onClick={() => navigate('/finance/contracts')}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-[#E6F4F1] hover:bg-teal-100 text-[#0D7A73] border border-teal-200 text-xs font-bold transition-all shadow-2xs self-start sm:self-auto cursor-pointer"
           >
             <Eye className="w-3.5 h-3.5" />
             <span>Lihat Kontrak Bagi Hasil</span>
@@ -226,11 +226,11 @@ export default function FinanceDashboard() {
 
         {/* 4 Cards Alokasi Stakeholders (Seragam) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
-          {/* 1. Kepala UPT (5%) */}
+          {/* 1. Pimpinan Pondok (5%) */}
           <div className="rounded-2xl p-4 bg-purple-50/60 border border-purple-100 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">1. Kepala UPT</span>
+                <span className="text-xs font-bold text-purple-700 uppercase tracking-wide">1. Pimpinan Pondok</span>
                 <span className="px-2 py-0.5 rounded-full bg-purple-600 text-white font-black text-[11px]">5%</span>
               </div>
               <p className="text-lg font-black text-purple-950 mt-2.5">
@@ -242,16 +242,16 @@ export default function FinanceDashboard() {
                 <div className="bg-purple-600 h-1.5 rounded-full" style={{ width: '5%' }}></div>
               </div>
               <p className="text-[11px] text-purple-700/80 mt-2 font-medium truncate">
-                Pimpinan satuan kerja UPT Lapas/Rutan
+                Pimpinan Pondok Pesantren
               </p>
             </div>
           </div>
 
-          {/* 2. Koperasi (30%) */}
+          {/* 2. Kopontren (30%) */}
           <div className="rounded-2xl p-4 bg-sky-50/60 border border-sky-100 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">2. Koperasi Lapas</span>
+                <span className="text-xs font-bold text-sky-700 uppercase tracking-wide">2. Kopontren</span>
                 <span className="px-2 py-0.5 rounded-full bg-sky-600 text-white font-black text-[11px]">30%</span>
               </div>
               <p className="text-lg font-black text-sky-950 mt-2.5">
@@ -263,16 +263,16 @@ export default function FinanceDashboard() {
                 <div className="bg-sky-600 h-1.5 rounded-full" style={{ width: '30%' }}></div>
               </div>
               <p className="text-[11px] text-sky-700/80 mt-2 font-medium truncate">
-                Koperasi Pengayoman &amp; pengelola kantin
+                Koperasi Pondok Pesantren (Kopontren)
               </p>
             </div>
           </div>
 
-          {/* 3. Inkopasindo (10%) */}
+          {/* 3. Yayasan Pesantren (10%) */}
           <div className="rounded-2xl p-4 bg-amber-50/60 border border-amber-100 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">3. Inkopasindo</span>
+                <span className="text-xs font-bold text-amber-700 uppercase tracking-wide">3. Yayasan Pesantren</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white font-black text-[11px]">10%</span>
               </div>
               <p className="text-lg font-black text-amber-950 mt-2.5">
@@ -284,48 +284,48 @@ export default function FinanceDashboard() {
                 <div className="bg-amber-600 h-1.5 rounded-full" style={{ width: '10%' }}></div>
               </div>
               <p className="text-[11px] text-amber-700/80 mt-2 font-medium truncate">
-                Induk Koperasi Pemasyarakatan
+                Yayasan Pembina Pondok Pesantren
               </p>
             </div>
           </div>
 
           {/* 4. Vendor (55%) */}
-          <div className="rounded-2xl p-4 bg-indigo-50/60 border border-indigo-100 flex flex-col justify-between h-full">
+          <div className="rounded-2xl p-4 bg-teal-50/60 border border-teal-100 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-indigo-700 uppercase tracking-wide">4. Vendor (Sadewa)</span>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-600 text-white font-black text-[11px]">55%</span>
+                <span className="text-xs font-bold text-[#0D7A73] uppercase tracking-wide">4. Vendor (SapaKita)</span>
+                <span className="px-2 py-0.5 rounded-full bg-[#0D7A73] text-white font-black text-[11px]">55%</span>
               </div>
-              <p className="text-lg font-black text-indigo-950 mt-2.5">
+              <p className="text-lg font-black text-teal-950 mt-2.5">
                 {formatRupiah(summary?.shares?.vendor || 0)}
               </p>
             </div>
             <div>
-              <div className="w-full bg-indigo-200/60 rounded-full h-1.5 mt-3 overflow-hidden">
-                <div className="bg-indigo-600 h-1.5 rounded-full" style={{ width: '55%' }}></div>
+              <div className="w-full bg-teal-200/60 rounded-full h-1.5 mt-3 overflow-hidden">
+                <div className="bg-[#0D7A73] h-1.5 rounded-full" style={{ width: '55%' }}></div>
               </div>
-              <p className="text-[11px] text-indigo-700/80 mt-2 font-medium truncate">
-                Penyedia infrastruktur teknologi &amp; sistem
+              <p className="text-[11px] text-teal-700/80 mt-2 font-medium truncate">
+                Penyedia platform &amp; teknologi SapaKita
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 4. Rekap Transaksi & Status Penagihan UPT (Maksimal 5 Baris Terbaru) */}
+      {/* 4. Rekap Transaksi & Status Penagihan Pondok (Maksimal 5 Baris Terbaru) */}
       <div className="bg-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-black text-slate-800">
-                Rekap Status Tagihan UPT
+                Rekap Status Tagihan Pondok Pesantren
               </h2>
               <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold">
                 {selectedMonth === 'semua' ? 'Semua Bulan' : MONTH_NAMES[Number(selectedMonth) - 1]} {selectedYear}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Ringkasan status penagihan dan pelunasan setoran UPT pada periode terpilih.
+              Ringkasan status penagihan dan pelunasan setoran pondok pesantren pada periode terpilih.
             </p>
           </div>
 
@@ -344,7 +344,7 @@ export default function FinanceDashboard() {
                   onClick={() => setStatusFilter(item.key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     statusFilter === item.key
-                      ? 'bg-white text-primary shadow-2xs'
+                      ? 'bg-white text-[#0D7A73] shadow-2xs'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -370,7 +370,7 @@ export default function FinanceDashboard() {
             <thead>
               <tr className="border-b border-slate-200/80 text-slate-500 font-bold bg-slate-50/80">
                 <th className="py-3 px-4">No. Tagihan &amp; Periode</th>
-                <th className="py-3 px-4">Nama UPT</th>
+                <th className="py-3 px-4">Nama Pondok &amp; Kopontren</th>
                 <th className="py-3 px-4 text-right">Omset Kotor</th>
                 <th className="py-3 px-4 text-center">Status Pembayaran</th>
                 <th className="py-3 px-4 text-right">Aksi</th>
@@ -385,7 +385,7 @@ export default function FinanceDashboard() {
                     </div>
                     <p className="font-bold text-slate-700 text-xs sm:text-sm">Tidak ada data tagihan</p>
                     <p className="text-[11px] text-slate-400 mt-0.5">
-                      Tidak ditemukan tagihan UPT untuk filter atau periode yang dipilih.
+                      Tidak ditemukan tagihan pondok pesantren untuk filter atau periode yang dipilih.
                     </p>
                   </td>
                 </tr>
@@ -394,14 +394,14 @@ export default function FinanceDashboard() {
                   <tr key={b.id} className="hover:bg-slate-50/70 transition-colors">
                     {/* No. Tagihan & Periode */}
                     <td className="py-3 px-4">
-                      <div className="font-bold text-primary">{b.id}</div>
+                      <div className="font-bold text-[#0D7A73]">{b.id}</div>
                       <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
                         <Calendar className="w-3 h-3 text-slate-400" />
                         <span>{MONTH_NAMES[b.month - 1]} {b.year}</span>
                       </div>
                     </td>
 
-                    {/* Nama UPT */}
+                    {/* Nama Pondok & Kopontren */}
                     <td className="py-3 px-4">
                       <div className="font-bold text-slate-800">{b.branchName}</div>
                       <div className="text-[11px] text-slate-500">{b.canteenName}</div>
@@ -436,7 +436,7 @@ export default function FinanceDashboard() {
                     <td className="py-3 px-4 text-right">
                       <Link
                         to={`/finance/billing?id=${b.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-50 hover:bg-blue-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#E6F4F1] hover:bg-teal-100 text-[#0D7A73] border border-teal-200 text-xs font-bold transition shadow-2xs cursor-pointer"
                         title="Buka rincian tagihan & setoran"
                       >
                         <Eye className="w-3.5 h-3.5" />

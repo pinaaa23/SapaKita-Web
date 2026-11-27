@@ -130,15 +130,15 @@ export default function FinanceReports() {
   const handleExportCSV = () => {
     const headers = [
       'Bulan',
-      'Total UPT',
+      'Total Pondok Pesantren',
       'Omset Kotor (Rp)',
       'Lunas (Rp)',
       'Menunggu (Rp)',
       'Belum Bayar (Rp)',
-      'Hak Kepala UPT (Rp)',
-      'Hak Koperasi (Rp)',
-      'Hak Inkopasindo (Rp)',
-      'Hak Vendor (Rp)',
+      'Hak Pimpinan Pondok (Rp)',
+      'Hak Kopontren (Rp)',
+      'Hak Yayasan Pesantren (Rp)',
+      'Hak Vendor SapaKita (Rp)',
     ];
 
     const rows = monthlyData.map((m) => [
@@ -157,7 +157,7 @@ export default function FinanceReports() {
     const csv = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
     const link = document.createElement('a');
     link.href = encodeURI(csv);
-    link.download = `Laporan_Keuangan_Sadewa_${selectedYear}.csv`;
+    link.download = `Laporan_Keuangan_SapaKita_${selectedYear}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -172,7 +172,7 @@ export default function FinanceReports() {
       {/* 1. Top Action Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 -mt-1">
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-blue-50 text-primary border border-blue-200/80 text-xs font-bold whitespace-nowrap">
+          <span className="px-2.5 py-0.5 rounded-full bg-[#E6F4F1] text-[#0D7A73] border border-teal-200 text-xs font-bold whitespace-nowrap">
             Akumulasi Tahunan
           </span>
           <span className="text-xs text-slate-500 font-medium hidden sm:inline">
@@ -221,7 +221,7 @@ export default function FinanceReports() {
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Total Omset Kotor
             </span>
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-primary flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#E6F4F1] text-[#0D7A73] border border-teal-100 flex items-center justify-center shrink-0">
               <Wallet className="w-5 h-5" />
             </div>
           </div>
@@ -229,7 +229,7 @@ export default function FinanceReports() {
             <p className="text-xl lg:text-2xl font-black text-slate-900 tracking-tight whitespace-nowrap">
               {formatRupiah(grandTotals.omset)}
             </p>
-            <span className="text-[11px] text-primary font-semibold mt-1 block">
+            <span className="text-[11px] text-[#0D7A73] font-semibold mt-1 block">
               Tahun Buku {selectedYear}
             </span>
           </div>
@@ -290,7 +290,7 @@ export default function FinanceReports() {
               {formatRupiah(grandTotals.unpaid)}
             </p>
             <span className="text-[11px] text-rose-600 font-semibold mt-1 block">
-              Sisa tagihan berjalan UPT
+              Sisa tagihan berjalan Pondok Pesantren
             </span>
           </div>
         </div>
@@ -308,11 +308,11 @@ export default function FinanceReports() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-          {/* 1. Kepala UPT */}
+          {/* 1. Pimpinan Pondok */}
           <div className="p-4 rounded-xl bg-purple-50/70 border border-purple-200/70 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-purple-900">1. Kepala UPT</span>
+                <span className="text-xs font-bold text-purple-900">1. Pimpinan Pondok</span>
                 <span className="px-2 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-bold">5%</span>
               </div>
               <p className="text-lg font-black text-purple-950 mt-1 whitespace-nowrap">
@@ -331,11 +331,11 @@ export default function FinanceReports() {
             </div>
           </div>
 
-          {/* 2. Koperasi */}
+          {/* 2. Kopontren */}
           <div className="p-4 rounded-xl bg-sky-50/70 border border-sky-200/70 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-sky-900">2. Koperasi Lapas</span>
+                <span className="text-xs font-bold text-sky-900">2. Kopontren</span>
                 <span className="px-2 py-0.5 rounded-full bg-sky-200 text-sky-900 text-[10px] font-bold">30%</span>
               </div>
               <p className="text-lg font-black text-sky-950 mt-1 whitespace-nowrap">
@@ -354,11 +354,11 @@ export default function FinanceReports() {
             </div>
           </div>
 
-          {/* 3. Inkopasindo */}
+          {/* 3. Yayasan Pesantren */}
           <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200/70 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-amber-900">3. Inkopasindo</span>
+                <span className="text-xs font-bold text-amber-900">3. Yayasan Pesantren</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 text-[10px] font-bold">10%</span>
               </div>
               <p className="text-lg font-black text-amber-950 mt-1 whitespace-nowrap">
@@ -378,17 +378,17 @@ export default function FinanceReports() {
           </div>
 
           {/* 4. Vendor */}
-          <div className="p-4 rounded-xl bg-indigo-50/70 border border-indigo-200/70 flex flex-col justify-between h-full">
+          <div className="p-4 rounded-xl bg-teal-50/70 border border-teal-200/70 flex flex-col justify-between h-full">
             <div>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-indigo-900">4. Vendor Sadewa</span>
-                <span className="px-2 py-0.5 rounded-full bg-indigo-200 text-indigo-900 text-[10px] font-bold">55%</span>
+                <span className="text-xs font-bold text-[#0D7A73]">4. Vendor (SapaKita)</span>
+                <span className="px-2 py-0.5 rounded-full bg-teal-600 text-white text-[10px] font-bold">55%</span>
               </div>
-              <p className="text-lg font-black text-indigo-950 mt-1 whitespace-nowrap">
+              <p className="text-lg font-black text-teal-950 mt-1 whitespace-nowrap">
                 {formatRupiah(stakeholderTotals.vendor.total)}
               </p>
             </div>
-            <div className="mt-3 pt-2.5 border-t border-indigo-200/60 grid grid-cols-2 gap-2 text-[11px]">
+            <div className="mt-3 pt-2.5 border-t border-teal-200/60 grid grid-cols-2 gap-2 text-[11px]">
               <div className="bg-white/80 rounded-lg p-2">
                 <span className="text-slate-500 block text-[10px]">Terealisasi:</span>
                 <span className="font-bold text-emerald-700 block whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.paid)}</span>
@@ -423,14 +423,14 @@ export default function FinanceReports() {
             <thead>
               <tr className="border-b border-slate-100 text-slate-500 font-semibold bg-slate-50/70">
                 <th className="py-3 px-4 rounded-l-xl">Bulan</th>
-                <th className="py-3 px-4 text-center">Jumlah UPT</th>
+                <th className="py-3 px-4 text-center">Jumlah Pondok</th>
                 <th className="py-3 px-4 text-right">Omset Kotor</th>
                 <th className="py-3 px-4 text-right">Sudah Dibayar</th>
                 <th className="py-3 px-4 text-right">Belum Dibayar</th>
-                <th className="py-3 px-4 text-right">Kepala UPT (5%)</th>
-                <th className="py-3 px-4 text-right">Koperasi (30%)</th>
-                <th className="py-3 px-4 text-right">Inkopasindo (10%)</th>
-                <th className="py-3 px-4 text-right rounded-r-xl">Vendor (55%)</th>
+                <th className="py-3 px-4 text-right">Pimpinan Pondok (5%)</th>
+                <th className="py-3 px-4 text-right">Kopontren (30%)</th>
+                <th className="py-3 px-4 text-right">Yayasan (10%)</th>
+                <th className="py-3 px-4 text-right rounded-r-xl">Vendor SapaKita (55%)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -441,7 +441,7 @@ export default function FinanceReports() {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium text-xs whitespace-nowrap">
-                      {m.totalUpt} UPT
+                      {m.totalUpt} Pondok
                     </span>
                   </td>
                   <td className="py-3 px-4 text-right font-black text-slate-900 whitespace-nowrap">
@@ -462,7 +462,7 @@ export default function FinanceReports() {
                   <td className="py-3 px-4 text-right font-semibold text-amber-900 whitespace-nowrap">
                     {formatRupiah(m.shares.inkopasindo)}
                   </td>
-                  <td className="py-3 px-4 text-right font-semibold text-indigo-900 whitespace-nowrap">
+                  <td className="py-3 px-4 text-right font-semibold text-teal-900 whitespace-nowrap">
                     {formatRupiah(m.shares.vendor)}
                   </td>
                 </tr>
@@ -479,7 +479,7 @@ export default function FinanceReports() {
                 <td className="py-3 px-4 text-right text-purple-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.kepalaUpt.total)}</td>
                 <td className="py-3 px-4 text-right text-sky-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.koperasi.total)}</td>
                 <td className="py-3 px-4 text-right text-amber-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.inkopasindo.total)}</td>
-                <td className="py-3 px-4 text-right rounded-r-xl text-indigo-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.total)}</td>
+                <td className="py-3 px-4 text-right rounded-r-xl text-teal-900 whitespace-nowrap">{formatRupiah(stakeholderTotals.vendor.total)}</td>
               </tr>
             </tfoot>
           </table>

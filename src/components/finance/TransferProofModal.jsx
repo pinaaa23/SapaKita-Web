@@ -184,13 +184,13 @@ canApprove = true,
     };
 
     drawRow('Nomor Referensi', refNumber, true);
-    drawRow('Pengirim (Kantin UPT)', item.canteenName);
+    drawRow('Pengirim (Kopontren Pondok)', item.canteenName);
     drawRow('Rekening Pengirim', `${item.accountNumber} (${item.bankName})`);
-    drawRow('Penerima', 'PT Station Technology', true);
+    drawRow('Penerima', 'PT SapaKita Solusi Pesantren', true);
     drawRow('Bank Penerima', 'Bank Syariah Indonesia (BSI)');
     drawRow('Nomor Rekening Penerima', '711-22-3344556-0');
     drawRow('Total Cash di Kopontren', formatRupiah(item.grossAmount));
-    drawRow('Hak Internal Pesantren (50% Dikelola)', formatRupiah(canteenKeep));
+    drawRow('Hak Internal Pesantren (40% Dikelola)', formatRupiah(canteenKeep));
     drawRow('Jenis Setoran', 'Setoran Bagi Hasil SapaKita');
     drawRow('Catatan Petugas', 'Kewajiban setor periode ' + item.month + '/' + item.year);
 
@@ -203,7 +203,7 @@ canApprove = true,
     ctx.textAlign = 'center';
     ctx.fillStyle = '#475569';
     ctx.font = 'bold 11px Arial';
-    ctx.fillText('DOKUMEN RESMI RESI TRANSFER KANTIN KOPERASI PAS-CALL', 300, 715);
+    ctx.fillText('DOKUMEN RESMI BUKTI TRANSFER SETORAN KOPONTREN SAPAKITA', 300, 715);
     ctx.font = 'normal 10px Arial';
     ctx.fillText('Simpan resi ini sebagai bukti pembayaran yang sah', 300, 730);
 
@@ -222,13 +222,13 @@ canApprove = true,
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-100 text-[#0B3D91] flex items-center justify-center shadow-2xs">
+            <div className="w-10 h-10 rounded-2xl bg-[#E6F4F1] text-[#0D7A73] border border-teal-100 flex items-center justify-center shadow-2xs">
               <Receipt className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-extrabold text-slate-800">
-                  Foto Bukti Transfer Pembayaran Kantin
+                  Foto Bukti Transfer Pembayaran Kopontren
                 </h3>
                 <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800">
                   {item.status === 'PAID' ? 'Lunas (Disetujui)' : 'Menunggu Konfirmasi ACC'}
@@ -266,7 +266,7 @@ canApprove = true,
             <div className="w-full flex items-center justify-between z-10 pb-3 text-white text-xs border-b border-white/10">
               <span className="font-semibold text-slate-300 flex items-center gap-1.5">
                 <Smartphone className="w-4 h-4 text-emerald-400" />
-                <span>Screenshot Tangkapan Layar m-Banking Kantin</span>
+                <span>Screenshot Tangkapan Layar m-Banking Kopontren</span>
               </span>
 
               <div className="flex items-center gap-1 bg-white/10 px-2 py-1 rounded-xl backdrop-blur-md">
@@ -367,8 +367,8 @@ canApprove = true,
                       <div className="flex justify-between pb-1.5 border-b border-slate-200/70">
                         <span className="text-slate-500">Rekening Penerima:</span>
                         <div className="text-right">
-                          <span className="font-bold text-slate-800 block">PT Station Technology</span>
-                          <span className="text-[10px] text-slate-500 font-mono">168-00-9988112-7 (Bank Mandiri)</span>
+                          <span className="font-bold text-slate-800 block">PT SapaKita Solusi Pesantren</span>
+                          <span className="text-[10px] text-slate-500 font-mono">711-22-3344556-0 (BSI)</span>
                         </div>
                       </div>
                       <div className="flex justify-between pb-1.5 border-b border-slate-200/70">
@@ -379,7 +379,7 @@ canApprove = true,
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500">Status Validasi:</span>
-                        <span className="font-bold text-emerald-600">Terotentikasi Bank Mandiri</span>
+                        <span className="font-bold text-emerald-600">Terotentikasi BSI Mobile</span>
                       </div>
                     </div>
 
@@ -392,12 +392,12 @@ canApprove = true,
               </div>
             </div>
 
-            {/* Informasi Berkas Pengirim dari Kantin (Hanya Hak Baca / Read-Only) */}
+            {/* Informasi Berkas Pengirim dari Kopontren (Hanya Hak Baca / Read-Only) */}
             <div className="w-full pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-300">
               <div className="flex items-center gap-2 text-slate-300 text-[11px]">
                 <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>
-                  Berkas asli diunggah oleh <strong>{item.canteenName}</strong> melalui Portal Kantin
+                  Berkas asli diunggah oleh <strong>{item.canteenName}</strong> melalui Portal Kopontren
                 </span>
               </div>
               <span className="text-[10px] text-slate-400 font-mono bg-white/10 px-2 py-0.5 rounded-md">
@@ -418,19 +418,19 @@ canApprove = true,
                 </h4>
               </div>
 
-              {/* Rincian Kas yang Dipegang Kantin */}
+              {/* Rincian Kas yang Dipegang Kopontren */}
               <div className="space-y-2.5 text-xs">
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-slate-500">Total Cash Dipegang Kantin (100%):</span>
+                    <span className="text-slate-500">Total Cash Dipegang Kopontren (100%):</span>
                     <span className="font-extrabold text-slate-800">{formatRupiah(item.grossAmount)}</span>
                   </div>
                   <div className="flex justify-between text-sky-800">
-                    <span>Hak Internal UPT (45% Dikelola UPT):</span>
+                    <span>Hak Internal Pondok (40% Dikelola Kopontren):</span>
                     <span className="font-bold">-{formatRupiah(canteenKeep)}</span>
                   </div>
                   <div className="pt-2 border-t border-slate-200 flex justify-between items-center">
-                    <span className="font-bold text-slate-800">Harus Disetor ke Vendor (55%):</span>
+                    <span className="font-bold text-slate-800">Harus Disetor ke Platform (60%):</span>
                     <span className="font-black text-emerald-700 text-sm">
                       {formatRupiah(depositAmount)}
                     </span>
