@@ -89,18 +89,18 @@ export function findStoredContract(identifier, { branchName, canteenName } = {})
   // Fallback kontrak hanya jika mode dummy aktif (untuk demo lokal)
   if (isDummyMode()) {
     return {
-      branchId: identifier || 'b9',
-      branchName: branchName || 'Lapas Kelas I Ungaran',
-      canteenName: canteenName || 'Dzaki Ardyan',
+      branchId: identifier || 'b2',
+      branchName: branchName || 'Pondok Pesantren Darussalam',
+      canteenName: canteenName || 'Kopontren Darussalam',
       ratePerSecond: 15,
-      superadminPercent: 60,
-      canteenPercent: 40,
-      negotiationPercent: 60,
-      koperasiPercent: 30,
-      inkopasindoPercent: 10,
-      vendorPercent: 60,
+      superadminPercent: 50,
+      canteenPercent: 50,
+      negotiationPercent: 50,
+      koperasiPercent: 50,
+      inkopasindoPercent: 0,
+      vendorPercent: 50,
       isContractSet: true,
-      split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
+      split: { kepalaUpt: 0, koperasi: 50, inkopasindo: 0, vendor: 50, platform: 50, pesantren: 50 },
     };
   }
 

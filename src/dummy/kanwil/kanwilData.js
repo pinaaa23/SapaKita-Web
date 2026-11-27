@@ -47,15 +47,15 @@ export const INITIAL_KANWIL_ACCOUNTS = [
   },
 ];
 
-// Daftar Master UPT yang dinaungi Kanwil (DIPERTAHANKAN untuk struktur pengelompokan UPT)
+// Daftar Master Pondok Pesantren yang dinaungi Yayasan/Wilayah
 export const INITIAL_UPT_LIST = [
   // Jawa Barat
   {
     id: 'upt-cipinang',
     kanwilId: 'kanwil-jabar',
-    name: 'Lapas Kelas I Cipinang',
+    name: 'Pondok Pesantren Al-Hidayah Pusat',
     city: 'Jakarta Timur',
-    address: 'Jl. Bekasi Timur Raya No.170, Cipinang Besar Utara',
+    address: 'Jl. Bekasi Timur Raya No.170, Cipinang',
     status: 'Active',
     capacity: 3200,
     inmateCount: 0,
@@ -64,7 +64,7 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-gnsindur',
     kanwilId: 'kanwil-jabar',
-    name: 'Lapas Khusus Kelas IIA Gunung Sindur',
+    name: 'Pondok Pesantren Darussalam',
     city: 'Bogor',
     address: 'Jl. Pemuda No.1, Rawakalong, Gunung Sindur',
     status: 'Active',
@@ -75,7 +75,7 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-tangerang',
     kanwilId: 'kanwil-jabar',
-    name: 'Lapas Kelas IIA Tangerang',
+    name: 'Pondok Pesantren As-Syafi\'iyah',
     city: 'Tangerang',
     address: 'Jl. Daan Mogot No.59, Tanah Tinggi',
     status: 'Active',
@@ -88,9 +88,9 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-jogja',
     kanwilId: 'kanwil-diy',
-    name: 'Lapas Kelas IIA Yogyakarta',
+    name: 'Pondok Pesantren Krapyak',
     city: 'Yogyakarta',
-    address: 'Jl. Tamansiswa No.6, Wirogunan, Mergangsan',
+    address: 'Jl. KH. Ali Maksum, Krapyak Kulon, Bantul',
     status: 'Active',
     capacity: 850,
     inmateCount: 0,
@@ -101,9 +101,9 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-semarang',
     kanwilId: 'kanwil-jateng',
-    name: 'Lapas Kelas I Semarang',
+    name: 'Pondok Pesantren Gontor Putra',
     city: 'Semarang',
-    address: 'Jl. Raya Tugurejo No.1, Kedungpane, Ngaliyan',
+    address: 'Jl. Raya Tugurejo No.1, Kedungpane',
     status: 'Active',
     capacity: 1800,
     inmateCount: 0,
@@ -112,9 +112,9 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-purwokerto',
     kanwilId: 'kanwil-jateng',
-    name: 'Lapas Kelas IIA Purwokerto',
+    name: 'Pondok Pesantren Putri Al-Munawwir',
     city: 'Purwokerto',
-    address: 'Jl. Penjara No.1, Kranji, Purwokerto Timur',
+    address: 'Jl. Pondok Pesantren No.1, Kranji',
     status: 'Active',
     capacity: 900,
     inmateCount: 0,
@@ -125,9 +125,9 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-surabaya',
     kanwilId: 'kanwil-jatim',
-    name: 'Lapas Kelas I Surabaya',
-    city: 'Sidoarjo',
-    address: 'Jl. Raya Porong No.1, Kebonagung, Porong',
+    name: 'Pondok Pesantren Tebuireng',
+    city: 'Jombang',
+    address: 'Jl. Irian Jaya No.10, Cukir, Diwek',
     status: 'Active',
     capacity: 2500,
     inmateCount: 0,
@@ -136,9 +136,9 @@ export const INITIAL_UPT_LIST = [
   {
     id: 'upt-malang',
     kanwilId: 'kanwil-jatim',
-    name: 'Lapas Kelas I Malang',
-    city: 'Malang',
-    address: 'Jl. Asahan No.7, Bunulrejo, Blimbing',
+    name: 'Pondok Pesantren Sidogiri',
+    city: 'Pasuruan',
+    address: 'Sidogiri, Kec. Kraton, Pasuruan',
     status: 'Active',
     capacity: 1400,
     inmateCount: 0,

@@ -43,8 +43,8 @@ export const formatRupiah = (num) => {
 };
 
 // Storage Keys untuk Fallback
-const CONTRACTS_STORAGE_KEY = 'pascall_finance_contracts_v1';
-const BILLINGS_STORAGE_KEY = 'pascall_finance_billings_v1';
+const CONTRACTS_STORAGE_KEY = 'sapakita_finance_contracts_v2';
+const BILLINGS_STORAGE_KEY = 'sapakita_finance_billings_v2';
 
 // Daftar Cabang / UPT Awal untuk Fallback Offline
 export const INITIAL_BRANCH_CONTRACTS = [
@@ -183,21 +183,18 @@ const generateInitialBillings = () => {
       const grossAmount = baseSeconds * branch.ratePerSecond;
       const totalVouchers = Math.floor(baseSeconds / 300) + (m * 12);
 
-      // Pembagian hasil: Bulan 11 & 12 menggunakan porsi resmi 3 Pihak (Vendor 60%, UPT 30%, Inkopasindo 10%)
-      const isNovDec = m >= 11;
-      const s = isNovDec
-        ? { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 }
-        : branch.split;
+      // Pembagian hasil: Porsi resmi SapaKita (Platform 50%, Pesantren / Kopontren 50%)
+      const s = branch.split || { platform: 50, pesantren: 50, koperasi: 50, vendor: 50, kepalaUpt: 0, inkopasindo: 0 };
 
-      const kepalaUptAmount = Math.round(grossAmount * (s.kepalaUpt / 100));
-      const koperasiAmount = Math.round(grossAmount * (s.koperasi / 100));
-      const inkopasindoAmount = Math.round(grossAmount * (s.inkopasindo / 100));
-      const vendorAmount = grossAmount - kepalaUptAmount - koperasiAmount - inkopasindoAmount;
+      const kepalaUptAmount = 0;
+      const koperasiAmount = Math.round(grossAmount * ((s.pesantren ?? s.koperasi ?? 50) / 100));
+      const inkopasindoAmount = 0;
+      const vendorAmount = grossAmount - koperasiAmount;
 
       let status = 'PAID';
       let paymentDate = null;
       let paymentRef = null;
-      let paymentMethod = 'Bank Transfer Mandiri';
+      let paymentMethod = 'Bank Transfer BSI';
 
       if (m <= 8) {
         // Bulan 1 - 8: Semua lunas
@@ -253,8 +250,8 @@ const generateInitialBillings = () => {
         status = 'UNPAID';
       }
 
-      // Untuk November 2026 ke atas, depositAmountToFinance adalah 60% hak Vendor Sadewa
-      const depositAmountToFinance = isNovDec ? vendorAmount : (grossAmount - koperasiAmount);
+      // Untuk bagi hasil, depositAmountToFinance adalah porsi Platform SapaKita
+      const depositAmountToFinance = vendorAmount;
 
       billings.push({
         id: `BILL-2026-${String(m).padStart(2, '0')}-${branch.branchId.toUpperCase()}`,
@@ -274,10 +271,10 @@ const generateInitialBillings = () => {
         depositAmountToFinance,
         split: { ...s },
         shares: {
-          kepalaUpt: { percent: s.kepalaUpt, amount: kepalaUptAmount },
-          koperasi: { percent: s.koperasi, amount: koperasiAmount },
-          inkopasindo: { percent: s.inkopasindo, amount: inkopasindoAmount },
-          vendor: { percent: s.vendor, amount: vendorAmount },
+          kepalaUpt: { percent: 0, amount: 0 },
+          koperasi: { percent: s.pesantren ?? s.koperasi ?? 50, amount: koperasiAmount },
+          inkopasindo: { percent: 0, amount: 0 },
+          vendor: { percent: s.platform ?? s.vendor ?? 50, amount: vendorAmount },
         },
         status,
         paymentDate,
@@ -291,21 +288,21 @@ const generateInitialBillings = () => {
           senderBank: branch.bankName,
           senderAccount: branch.accountNumber,
           senderName: branch.accountHolder,
-          targetBank: 'Bank Mandiri (Rekening Penampung Vendor Sadewa)',
-          targetAccount: '168-00-9988112-7',
-          targetHolder: 'PT Station Technology',
+          targetBank: 'Bank Syariah Indonesia (BSI)',
+          targetAccount: '711-22-3344556-0',
+          targetHolder: 'PT SapaKita Solusi Pesantren',
           transferDate: paymentDate || '2026-11-07T09:30:00Z',
           nominalSetoran: depositAmountToFinance,
           totalUangTunaiKantin: grossAmount,
           potonganKoperasi: koperasiAmount,
           receiptNumber: `SLIP-${branch.branchId.toUpperCase()}-2026${String(m).padStart(2, '0')}`,
-          channel: 'ATM / Mobile Banking Transfer Mandiri',
+          channel: 'ATM / Mobile Banking BSI Transfer',
         },
         notes: status === 'PAID'
-          ? `Setoran tagihan vendor sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke vendor`
+          ? `Setoran tagihan platform sebesar ${depositAmountToFinance.toLocaleString('id-ID')} telah diverifikasi & dialokasikan ke Platform SapaKita`
           : status === 'PENDING_CONFIRMATION'
-            ? `Bukti transfer setoran 60% vendor telah diunggah oleh Inkopasindo, menunggu verifikasi Admin Finance`
-            : `Tagihan porsi vendor 60% belum dibayarkan oleh Inkopasindo`,
+            ? `Bukti transfer setoran bagi hasil platform telah diunggah oleh pihak pondok, menunggu verifikasi Admin Finance`
+            : `Tagihan porsi platform belum disetorkan oleh kopontren`,
         verifiedBy: status === 'PAID' ? 'Dewi Lestari (Finance)' : null,
         verifiedAt: status === 'PAID' ? paymentDate : null,
         rejectionReason: null,
@@ -318,29 +315,55 @@ const generateInitialBillings = () => {
 
 const getFinanceContractsFromStorage = () => {
   try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pascall_finance_contracts_v1');
+    }
     const raw = localStorage.getItem(CONTRACTS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasLegacyLapas = parsed.some(
+          (c) =>
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas|kanwil jawa|kanwil/i.test(c.branchName || '') ||
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas/i.test(c.canteenName || '') ||
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas|kanwil/i.test(c.kanwilName || '')
+        );
+        if (!hasLegacyLapas) {
+          return parsed;
+        }
+      }
     }
   } catch (e) {
     console.warn('[FinanceService] Fallback storage contracts error:', e);
   }
+  try {
+    localStorage.setItem(CONTRACTS_STORAGE_KEY, JSON.stringify(INITIAL_BRANCH_CONTRACTS));
+  } catch (_) {}
   return INITIAL_BRANCH_CONTRACTS;
 };
 
 // Fallback Helper: Get All Billings from localStorage
 const getAllFinanceBillingsFromStorage = () => {
   try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('pascall_finance_billings_v1');
+    }
     const raw = localStorage.getItem(BILLINGS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Cek apakah data tersimpan sudah mencakup bulan 11 & 12 dengan nominal omset non-zero
-        const hasNovNonZero = parsed.some((b) => b.month === 11 && Number(b.grossAmount || 0) > 0);
-        const hasDecNonZero = parsed.some((b) => b.month === 12 && Number(b.grossAmount || 0) > 0);
-        if (hasNovNonZero && hasDecNonZero) {
-          return parsed;
+        const hasLegacyLapas = parsed.some(
+          (b) =>
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas|kanwil jawa|kanwil/i.test(b.branchName || '') ||
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas/i.test(b.canteenName || '') ||
+            /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas|kanwil/i.test(b.kanwilName || '')
+        );
+        if (!hasLegacyLapas) {
+          const hasNovNonZero = parsed.some((b) => b.month === 11 && Number(b.grossAmount || 0) > 0);
+          const hasDecNonZero = parsed.some((b) => b.month === 12 && Number(b.grossAmount || 0) > 0);
+          if (hasNovNonZero && hasDecNonZero) {
+            return parsed;
+          }
         }
       }
     }

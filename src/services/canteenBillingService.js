@@ -33,28 +33,28 @@ export { formatDetikKeMenit, isCanteenContractConfigured, findStoredContract, ca
  * Digunakan jika backend offline atau belum ada transaksi agar perhitungan tagihan
  * (tarif Rp 15/detik, bagi hasil 60% vendor, 30% UPT, 10% Inkopasindo) dapat diuji secara visual.
  */
-export function generateDummyCanteenCalls(targetMonth = 11, targetYear = 2026, branchId = 'b9', branchName = 'Lapas Kelas I Ungaran') {
+export function generateDummyCanteenCalls(targetMonth = 11, targetYear = 2026, branchId = 'b2', branchName = 'Pondok Pesantren Darussalam') {
   const inmates = [
-    { name: 'Ahmad Fauzi', id: 'WBP-2024-0891', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Sadewa 01' },
-    { name: 'Budi Santoso', id: 'WBP-2024-1102', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Sadewa 02' },
-    { name: 'Dedi Kurniawan', id: 'WBP-2024-0433', pkg: 'Paket Ringkas 5 Menit', durMin: 5, room: 'Bilik Sadewa 01' },
-    { name: 'Eko Prasetyo', id: 'WBP-2024-0724', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Sadewa 03' },
-    { name: 'Fajar Hidayat', id: 'WBP-2024-0985', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Sadewa 02' },
-    { name: 'Hendra Wijaya', id: 'WBP-2024-1216', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Sadewa 04' },
-    { name: 'Rian Saputra', id: 'WBP-2024-0347', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Sadewa 01' },
-    { name: 'Agus Setiawan', id: 'WBP-2024-0558', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Sadewa 03' },
-    { name: 'Bambang Pamungkas', id: 'WBP-2024-0239', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Sadewa 02' },
-    { name: 'Doni Salmanan', id: 'WBP-2024-0670', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Sadewa 04' },
-    { name: 'Gilang Pratama', id: 'WBP-2024-0811', pkg: 'Paket Ringkas 5 Menit', durMin: 5, room: 'Bilik Sadewa 01' },
-    { name: 'Hariadi', id: 'WBP-2024-0922', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Sadewa 03' },
-    { name: 'Ilham Ramadhan', id: 'WBP-2024-0133', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Sadewa 02' },
-    { name: 'Joko Susilo', id: 'WBP-2024-0444', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Sadewa 04' },
-    { name: 'Kevin Sanjaya', id: 'WBP-2024-0755', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Sadewa 01' },
+    { name: 'Ahmad Fauzi', id: 'STR-2024-0891', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Santri 01' },
+    { name: 'Budi Santoso', id: 'STR-2024-1102', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Santri 02' },
+    { name: 'Dedi Kurniawan', id: 'STR-2024-0433', pkg: 'Paket Ringkas 5 Menit', durMin: 5, room: 'Bilik Santri 01' },
+    { name: 'Eko Prasetyo', id: 'STR-2024-0724', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Santri 03' },
+    { name: 'Fajar Hidayat', id: 'STR-2024-0985', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Santri 02' },
+    { name: 'Hendra Wijaya', id: 'STR-2024-1216', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Santri 04' },
+    { name: 'Rian Saputra', id: 'STR-2024-0347', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Santri 01' },
+    { name: 'Agus Setiawan', id: 'STR-2024-0558', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Santri 03' },
+    { name: 'Bambang Pamungkas', id: 'STR-2024-0239', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Santri 02' },
+    { name: 'Doni Salmanan', id: 'STR-2024-0670', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Santri 04' },
+    { name: 'Gilang Pratama', id: 'STR-2024-0811', pkg: 'Paket Ringkas 5 Menit', durMin: 5, room: 'Bilik Santri 01' },
+    { name: 'Hariadi', id: 'STR-2024-0922', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Santri 03' },
+    { name: 'Ilham Ramadhan', id: 'STR-2024-0133', pkg: 'Paket Reguler 10 Menit', durMin: 10, room: 'Bilik Santri 02' },
+    { name: 'Joko Susilo', id: 'STR-2024-0444', pkg: 'Paket Spesial 20 Menit', durMin: 20, room: 'Bilik Santri 04' },
+    { name: 'Kevin Sanjaya', id: 'STR-2024-0755', pkg: 'Paket Panjang 15 Menit', durMin: 15, room: 'Bilik Santri 01' },
   ];
 
   const rate = 15;
-  const vendorPct = 60;
-  const uptPct = 30;
+  const vendorPct = 50;
+  const uptPct = 50;
 
   return inmates.map((item, idx) => {
     const day = Math.min(28, (idx * 2) + 1);
@@ -72,8 +72,8 @@ export function generateDummyCanteenCalls(targetMonth = 11, targetYear = 2026, b
       createdAt: dateStr,
       waktu: dateStr,
       date: dateStr,
-      branchId: branchId || 'b9',
-      branchName: branchName || 'Lapas Kelas I Ungaran',
+      branchId: branchId || 'b2',
+      branchName: branchName || 'Pondok Pesantren Darussalam',
       kodeVoucher: `VCH-${targetYear}${monthStr}${dayStr}-${String(100 + idx)}`,
       inmate: {
         id: item.id,
@@ -191,20 +191,20 @@ export async function getCanteenBillingNational(month, year) {
 
   // Tambahkan juga dari cache kontrak Finance jika ada
   try {
-    const rawFinContracts = typeof window !== 'undefined' ? localStorage.getItem('pascall_finance_contracts_v1') : null;
+    const rawFinContracts = typeof window !== 'undefined' ? (localStorage.getItem('sapakita_finance_contracts_v2') || localStorage.getItem('pascall_finance_contracts_v1')) : null;
     if (rawFinContracts) {
       const parsedFin = JSON.parse(rawFinContracts);
       if (Array.isArray(parsedFin)) {
         parsedFin.forEach((fc) => {
-          const kop = fc.split?.koperasi ?? 30;
+          const kop = fc.split?.pesantren ?? fc.split?.koperasi ?? 50;
           const mapped = {
             branchId: fc.branchId,
             branchName: fc.branchName,
             canteenName: fc.canteenName,
-            ratePerSecond: Number(fc.ratePerSecond || 50),
-            superadminPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
-            canteenPercent: fc.split?.vendor ? Math.max(0, 100 - Number(fc.split.vendor)) : 45,
-            negotiationPercent: fc.split?.vendor ? Number(fc.split.vendor) : 55,
+            ratePerSecond: Number(fc.ratePerSecond || 15),
+            superadminPercent: fc.split?.platform ? Number(fc.split.platform) : (fc.split?.vendor ? Number(fc.split.vendor) : 50),
+            canteenPercent: kop,
+            negotiationPercent: fc.split?.platform ? Number(fc.split.platform) : 50,
             isContractSet: true,
             split: fc.split,
           };
@@ -250,9 +250,9 @@ export async function getCanteenBillingNational(month, year) {
     // Helper status kontrak TUNGGAL:
     const isContractSet = isCanteenContractConfigured(contract) || isCanteenContractConfigured(beBranchInfo);
 
-    const canteenName = contract?.canteenName || (b.name ? `Kantin ${b.name}` : 'Kantin Lapas');
+    const canteenName = contract?.canteenName || (b.name ? `Kopontren ${b.name}` : 'Kopontren Darussalam');
     const uptName = b.name;
-    const kanwilName = b.kanwil?.name || b.kanwilName || 'Kanwil Ditjenpas';
+    const kanwilName = b.kanwil?.name || b.kanwilName || 'Yayasan Pesantren';
 
     // Hitung total detik real dari menit durasi paket voucher yang dibeli di kantin pada bulan itu
     const rawTotalSec = Number(
@@ -515,18 +515,18 @@ export async function getCanteenBillingMonthly(month, year) {
   if (!contract || !isCanteenContractConfigured(contract)) {
     if (isDummyMode()) {
       contract = {
-        branchId: branchId || 'b9',
-        branchName: rawBranchName || 'Lapas Kelas I Ungaran',
-        canteenName: rawCanteenName || 'Dzaki Ardyan',
+        branchId: branchId || 'b2',
+        branchName: rawBranchName || 'Pondok Pesantren Darussalam',
+        canteenName: rawCanteenName || 'Kopontren Darussalam',
         ratePerSecond: 15,
-        superadminPercent: 60,
-        canteenPercent: 40,
-        negotiationPercent: 60,
-        koperasiPercent: 30,
-        inkopasindoPercent: 10,
-        vendorPercent: 60,
+        superadminPercent: 50,
+        canteenPercent: 50,
+        negotiationPercent: 50,
+        koperasiPercent: 50,
+        inkopasindoPercent: 0,
+        vendorPercent: 50,
         isContractSet: true,
-        split: { kepalaUpt: 0, koperasi: 30, inkopasindo: 10, vendor: 60 },
+        split: { kepalaUpt: 0, koperasi: 50, inkopasindo: 0, vendor: 50, platform: 50, pesantren: 50 },
       };
     } else {
       contract = null;
@@ -575,10 +575,10 @@ export async function getCanteenBillingMonthly(month, year) {
   });
 
   return {
-    branchId: branchId || 'b1',
-    canteenName: user?.canteenName || user?.name || (beBillingData?.branchName ? `Kantin ${beBillingData.branchName}` : 'Kantin Lapas'),
-    uptName: beBillingData?.branchName || user?.branchName || 'Lapas UPT',
-    kanwilName: user?.kanwilName || 'Kanwil Ditjenpas',
+    branchId: branchId || 'b2',
+    canteenName: user?.canteenName || user?.name || (beBillingData?.branchName ? `Kopontren ${beBillingData.branchName}` : 'Kopontren Darussalam'),
+    uptName: beBillingData?.branchName || user?.branchName || 'Pondok Pesantren Darussalam',
+    kanwilName: user?.kanwilName || 'Yayasan Pesantren Terpadu',
     period: beBillingData?.period || `${targetMonth}/${targetYear}`,
     invoiceNumber: beBillingData?.invoiceNumber || `INV-${targetYear}${String(targetMonth).padStart(2, '0')}-KTN`,
     month: targetMonth,
@@ -830,7 +830,7 @@ export async function getCanteenBillingCalls({ month, year, page = 1, limit = 20
   let finalAccumulatedSeconds = accumulatedSeconds;
 
   if (itemsToUse.length === 0 && isDummyMode()) {
-    const rawBranchName = user?.branchName || user?.branch?.name || 'Lapas Kelas I Ungaran';
+    const rawBranchName = user?.branchName || user?.branch?.name || 'Pondok Pesantren Darussalam';
     const dummyCalls = generateDummyCanteenCalls(targetMonth, targetYear, effectiveBranchId, rawBranchName);
     let filteredDummy = dummyCalls;
     if (search && search.trim()) {
@@ -1025,9 +1025,9 @@ export async function updateCanteenContract(branchId, payload) {
     isContractSet: true,
   });
 
-  // Simpan juga ke localStorage pascall_finance_contracts_v1 agar sinkron dengan Finance
+  // Simpan juga ke localStorage sapakita_finance_contracts_v2 agar sinkron dengan Finance
   try {
-    const rawFin = typeof window !== 'undefined' ? localStorage.getItem('pascall_finance_contracts_v1') : null;
+    const rawFin = typeof window !== 'undefined' ? localStorage.getItem('sapakita_finance_contracts_v2') : null;
     let finList = rawFin ? JSON.parse(rawFin) : [];
     if (Array.isArray(finList)) {
       const idx = finList.findIndex((fc) => String(fc.branchId).toLowerCase() === String(branchId).toLowerCase());
@@ -1041,6 +1041,8 @@ export async function updateCanteenContract(branchId, payload) {
           koperasi,
           inkopasindo,
           vendor,
+          platform: vendor,
+          pesantren: koperasi,
         },
         updatedAt: new Date().toISOString(),
       };
@@ -1049,7 +1051,7 @@ export async function updateCanteenContract(branchId, payload) {
       } else {
         finList.push(finItem);
       }
-      localStorage.setItem('pascall_finance_contracts_v1', JSON.stringify(finList));
+      localStorage.setItem('sapakita_finance_contracts_v2', JSON.stringify(finList));
     }
   } catch (_) {}
 

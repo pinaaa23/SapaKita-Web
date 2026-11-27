@@ -111,7 +111,15 @@ export default function FinanceContracts() {
 
   const loadContracts = async () => {
     try {
-      const list = await getFinanceContracts();
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pascall_finance_contracts_v1');
+      }
+      let list = await getFinanceContracts();
+      // Sanitasi tambahan jika masih ada data legacy lapas/sragen/ungaran
+      if (Array.isArray(list) && list.some(c => /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas/i.test(c.branchName || '') || /lapas|rutan|pengayoman|sragen|ungaran|kantin lapas/i.test(c.canteenName || ''))) {
+        localStorage.removeItem('sapakita_finance_contracts_v2');
+        list = await getFinanceContracts();
+      }
       setContracts(Array.isArray(list) ? list : []);
     } catch (err) {
       console.warn('[FinanceContracts] Gagal memuat kontrak:', err);
