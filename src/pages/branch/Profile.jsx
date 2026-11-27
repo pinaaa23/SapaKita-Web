@@ -24,25 +24,26 @@ const BranchProfile = () => {
   const navigate = useNavigate();
   const { user: authUser, roleLabel, isSupervisor, logout } = useAuth();
   
-  const displayRole = roleLabel || (isSupervisor ? 'Supervisor' : 'Kepala UPT');
+  const rawRole = roleLabel || (isSupervisor ? 'Supervisor Kesantrian' : 'Pimpinan Pondok');
+  const displayRole = rawRole.replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kepala UPT/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
 
   // State for Account Info initialized from logged in BE user without dummy data
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [accountInfo, setAccountInfo] = useState({
-    name: authUser?.name || displayRole,
+    name: (authUser?.name || displayRole).replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok'),
     email: authUser?.email || authUser?.identifier || '-',
     phone: authUser?.phone || '-',
-    branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'UPT Lapas')
+    branch: (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Pondok Pesantren')).replace(/Kampus/gi, 'Pondok')
   });
 
   // Sinkronisasi data akun ketika authUser dimuat dari backend
   useEffect(() => {
     if (authUser && !isEditingInfo) {
       setAccountInfo({
-        name: authUser?.name || displayRole,
+        name: (authUser?.name || displayRole).replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok'),
         email: authUser?.email || authUser?.identifier || '-',
         phone: authUser?.phone || '-',
-        branch: authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'UPT Lapas')
+        branch: (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : 'Pondok Pesantren')).replace(/Kampus/gi, 'Pondok')
       });
     }
   }, [authUser, isEditingInfo, displayRole]);
@@ -167,7 +168,7 @@ const BranchProfile = () => {
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-6">
       {/* Overview Banner Card */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-slate-800 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+      <div className="bg-gradient-to-r from-[#0D7A73] via-[#14968C] to-[#0A5A55] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
         <div className="absolute right-0 top-0 w-96 h-96 bg-white/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 relative z-10">
           {/* Avatar Container */}
@@ -189,16 +190,16 @@ const BranchProfile = () => {
               </span>
             </div>
             
-            <p className="text-blue-100 text-xs md:text-sm font-medium flex items-center justify-center md:justify-start gap-2">
-              <Building2 className="w-4 h-4 text-blue-200" /> {accountInfo.branch}
+            <p className="text-teal-100 text-xs md:text-sm font-medium flex items-center justify-center md:justify-start gap-2">
+              <Building2 className="w-4 h-4 text-teal-200" /> {accountInfo.branch}
             </p>
 
-            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-blue-100/90 font-medium">
+            <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs text-teal-100/90 font-medium">
               <div className="flex items-center gap-1.5 bg-black/15 px-3 py-1 rounded-lg">
-                <Mail className="w-3.5 h-3.5 text-blue-300" /> {accountInfo.email}
+                <Mail className="w-3.5 h-3.5 text-teal-300" /> {accountInfo.email}
               </div>
               <div className="flex items-center gap-1.5 bg-black/15 px-3 py-1 rounded-lg">
-                <Phone className="w-3.5 h-3.5 text-blue-300" /> {accountInfo.phone}
+                <Phone className="w-3.5 h-3.5 text-teal-300" /> {accountInfo.phone}
               </div>
             </div>
           </div>
@@ -236,12 +237,12 @@ const BranchProfile = () => {
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/60">
               <div className="flex items-center gap-2">
-                <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <div className="p-2 rounded-lg bg-[#E6F4F1] text-[#0D7A73]">
                   <User className="w-4 h-4" />
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-slate-800">Informasi Akun</h2>
-                  <p className="text-[11px] text-slate-500">Perbarui identitas & kontak operator cabang</p>
+                  <p className="text-[11px] text-slate-500">Perbarui identitas & kontak operator pondok</p>
                 </div>
               </div>
               
@@ -251,7 +252,7 @@ const BranchProfile = () => {
                   setInfoError('');
                 }}
                 className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  isEditingInfo ? 'text-slate-600 bg-slate-100 hover:bg-slate-200' : 'text-primary bg-primary/10 hover:bg-primary/20'
+                  isEditingInfo ? 'text-slate-600 bg-slate-100 hover:bg-slate-200' : 'text-[#0D7A73] bg-[#E6F4F1] hover:bg-teal-100'
                 }`}
               >
                 {isEditingInfo ? 'Batal Edit' : 'Edit Informasi'}
@@ -268,7 +269,7 @@ const BranchProfile = () => {
                         type="text" 
                         value={accountInfo.name}
                         onChange={(e) => setAccountInfo({...accountInfo, name: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] font-semibold"
                         required
                       />
                     ) : (
@@ -293,7 +294,7 @@ const BranchProfile = () => {
                         type="tel" 
                         value={accountInfo.phone}
                         onChange={(e) => setAccountInfo({...accountInfo, phone: e.target.value})}
-                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-semibold"
+                        className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] font-semibold"
                         required
                       />
                     ) : (
@@ -305,9 +306,9 @@ const BranchProfile = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Cabang Operasional</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">Pondok Pesantren Operasional</label>
                     <div className="bg-slate-50/80 border border-slate-200/60 rounded-xl p-3 text-xs font-bold text-slate-800 flex items-center gap-2">
-                      <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                      <Building2 className="w-3.5 h-3.5 text-[#0D7A73]" />
                       {accountInfo.branch}
                     </div>
                   </div>
@@ -316,7 +317,7 @@ const BranchProfile = () => {
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                   <div>
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Role Sistem</label>
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200/60">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#E6F4F1] text-[#0D7A73] border border-teal-200/60">
                       <ShieldCheck className="w-3.5 h-3.5" /> {displayRole}
                     </span>
                   </div>
@@ -325,7 +326,7 @@ const BranchProfile = () => {
                     <button 
                       type="submit" 
                       disabled={isSubmittingInfo}
-                      className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-xl hover:bg-primary-dark transition-all text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
+                      className="inline-flex items-center gap-2 px-5 py-2 bg-[#0D7A73] text-white rounded-xl hover:bg-[#0A5A55] transition-all text-xs font-bold shadow-md cursor-pointer disabled:opacity-50"
                     >
                       <Save className="w-3.5 h-3.5" /> {isSubmittingInfo ? 'Menyimpan...' : 'Simpan Perubahan'}
                     </button>
@@ -430,7 +431,7 @@ const BranchProfile = () => {
           {/* Activity Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="p-5 border-b border-slate-100 bg-slate-50/60 flex items-center gap-2">
-              <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600">
+              <div className="p-2 rounded-lg bg-[#E6F4F1] text-[#0D7A73]">
                 <Clock className="w-4 h-4" />
               </div>
               <div>
@@ -440,8 +441,8 @@ const BranchProfile = () => {
             </div>
             <div className="p-5 space-y-4">
               <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0 border border-blue-100">
-                  <Clock className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 rounded-full bg-[#E6F4F1] flex items-center justify-center shrink-0 border border-teal-200">
+                  <Clock className="w-4 h-4 text-[#0D7A73]" />
                 </div>
                 <div>
                   <p className="text-xs font-bold text-slate-800">Status Akses</p>

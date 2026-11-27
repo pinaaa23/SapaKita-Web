@@ -147,7 +147,7 @@ export default function BranchUsers() {
         { label: 'Total Pengguna', value: `${users.length} Akun` },
         { label: 'Pengguna Aktif', value: `${activeCount} Akun` },
         { label: 'Supervisor', value: `${spvCount} Orang` },
-        { label: 'Operator Kantin', value: `${canteenCount} Orang` },
+        { label: 'Operator Kopontren', value: `${canteenCount} Orang` },
       ]
     });
 
@@ -349,7 +349,7 @@ export default function BranchUsers() {
               >
                 <option value="All">Semua Role</option>
                 <option value={ROLES.SUPERVISOR}>Supervisor</option>
-                <option value={ROLES.OPERATOR_KANTIN}>Operator Kantin</option>
+                <option value={ROLES.OPERATOR_KANTIN}>Operator Kopontren</option>
               </select>
             </div>
 
@@ -395,13 +395,13 @@ export default function BranchUsers() {
           <table className="w-full text-left border-collapse min-w-[620px]">
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <th className="py-3 pl-4 pr-2 whitespace-nowrap">NAMA</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">EMAIL</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">ROLE</th>
-                <th className="py-3 px-2.5 text-center whitespace-nowrap">STATUS</th>
-                <th className="py-3 px-2.5 whitespace-nowrap">TERAKHIR LOGIN</th>
+                <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[26%]">NAMA</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[24%]">EMAIL</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[18%]">ROLE</th>
+                <th className="py-3.5 px-3 text-center whitespace-nowrap w-[10%]">STATUS</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[14%]">TERAKHIR LOGIN</th>
                 {canManageUsers && (
-                  <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-28">AKSI</th>
+                  <th className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap w-[8%]">AKSI</th>
                 )}
               </tr>
             </thead>
@@ -409,26 +409,26 @@ export default function BranchUsers() {
               {isLoading ? (
                 Array.from({ length: 3 }).map((_, idx) => (
                   <tr key={idx} className="animate-pulse">
-                    <td className="py-3.5 pl-4 pr-2">
+                    <td className="py-3.5 pl-5 pr-3">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-full bg-slate-200 shrink-0" />
                         <div className="h-4 bg-slate-200 rounded w-28" />
                       </div>
                     </td>
-                    <td className="py-3.5 px-2.5">
+                    <td className="py-3.5 px-3">
                       <div className="h-4 bg-slate-200 rounded w-32" />
                     </td>
-                    <td className="py-3.5 px-2.5">
+                    <td className="py-3.5 px-3">
                       <div className="h-5 bg-slate-200 rounded-full w-20" />
                     </td>
-                    <td className="py-3.5 px-2.5 text-center">
+                    <td className="py-3.5 px-3 text-center">
                       <div className="h-5 bg-slate-200 rounded-full w-14 mx-auto" />
                     </td>
-                    <td className="py-3.5 px-2.5">
+                    <td className="py-3.5 px-3">
                       <div className="h-4 bg-slate-200 rounded w-24" />
                     </td>
                     {canManageUsers && (
-                      <td className="py-3.5 pl-2 pr-4 text-center">
+                      <td className="py-3.5 pl-3 pr-5 text-center">
                         <div className="h-7 bg-slate-200 rounded-lg w-16 mx-auto" />
                       </td>
                     )}
@@ -445,11 +445,11 @@ export default function BranchUsers() {
                       className={`hover:bg-slate-50/70 transition-colors ${!user.isActive ? 'bg-slate-50/40 opacity-75' : ''}`}
                     >
                       {/* Nama dengan Avatar Inisial */}
-                      <td className="py-3 pl-4 pr-2">
+                      <td className="py-3.5 pl-5 pr-3">
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs ${
                             isSpv
-                              ? 'bg-blue-100 text-blue-800'
+                              ? 'bg-[#E6F4F1] text-[#0D7A73]'
                               : isKantin
                                 ? 'bg-emerald-100 text-emerald-800'
                                 : 'bg-slate-200 text-slate-700'
@@ -470,33 +470,33 @@ export default function BranchUsers() {
                       </td>
 
                       {/* Email */}
-                      <td className="py-3 px-2.5">
+                      <td className="py-3.5 px-3">
                         <div className="font-mono text-slate-600 text-xs truncate" title={user.email}>
                           {user.email}
                         </div>
                       </td>
 
                       {/* Role */}
-                      <td className="py-3 px-2.5 whitespace-nowrap">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         {isSpv ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/60 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#E6F4F1] text-[#0D7A73] border border-teal-200/60 shadow-2xs">
                             <ShieldCheck className="w-3 h-3" />
                             Supervisor
                           </span>
                         ) : isKantin ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-2xs">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 shadow-2xs">
                             <Store className="w-3 h-3" />
-                            Operator Kantin
+                            Operator Kopontren
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">
                             {ROLE_LABELS[user.role] || user.role}
                           </span>
                         )}
                       </td>
 
                       {/* Status */}
-                      <td className="py-3 px-2.5 text-center whitespace-nowrap">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           user.isActive
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60'
@@ -508,7 +508,7 @@ export default function BranchUsers() {
                       </td>
 
                       {/* Terakhir Login */}
-                      <td className="py-3 px-2.5 whitespace-nowrap">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="flex items-center gap-1 text-slate-500 text-[11px] font-medium">
                           <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                           <span>{user.lastLogin || 'Hari ini, 08:30'}</span>
@@ -517,7 +517,7 @@ export default function BranchUsers() {
 
                       {/* Aksi Baris */}
                       {canManageUsers && (
-                        <td className="py-3 pl-2 pr-4 text-center whitespace-nowrap">
+                        <td className="py-3.5 pl-3 pr-5 text-center whitespace-nowrap">
                           <div className="flex items-center justify-center gap-1.5">
                             {/* 1. Ikon Mata: Detail Lengkap Pengguna */}
                             <button
@@ -807,7 +807,7 @@ export default function BranchUsers() {
                   >
                     <Store className="w-4 h-4 shrink-0" />
                     <div>
-                      <p className="text-xs font-bold">Operator Kantin</p>
+                      <p className="text-xs font-bold">Operator Kopontren</p>
                     </div>
                   </button>
                 </div>

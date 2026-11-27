@@ -140,7 +140,7 @@ export default function BranchCctv() {
         data.map((s, idx) => ({
           channel: s.channel || idx + 1,
           name: s.name || `CCTV Slot ${idx + 1}`,
-          location: s.location || (idx === 0 ? 'Pintu Portir / Depan' : idx === 1 ? 'Ruang Kunjungan' : idx === 2 ? 'Koridor Blok Hunian' : 'Area Wartel & Kantin'),
+          location: s.location || (idx === 0 ? 'Gerbang Utama Pondok' : idx === 1 ? 'Ruang Kunjungan Wali Santri' : idx === 2 ? 'Koridor Asrama Santri' : 'Bilik Telepon Santri & Kasir Kopontren'),
           streamUrl: s.streamUrl || '',
           status: s.status || 'ACTIVE',
           isRecording: s.isRecording ?? true,
@@ -462,7 +462,7 @@ export default function BranchCctv() {
       const sampleData = [
         {
           channel: 1,
-          name: 'CCTV 01 - Pintu Portir / Depan',
+          name: 'CCTV 01 - Portir & Gerbang Utama',
           location: 'Gerbang Utama Pondok',
           streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
           status: 'ACTIVE',
@@ -470,24 +470,24 @@ export default function BranchCctv() {
         },
         {
           channel: 2,
-          name: 'CCTV 02 - Wartel Santri',
-          location: 'Wartel & Ruang Santri',
+          name: 'CCTV 02 - Ruang Kunjungan Santri',
+          location: 'Ruang Kunjungan Wali Santri',
           streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
           status: 'ACTIVE',
           isRecording: true,
         },
         {
           channel: 3,
-          name: 'CCTV 03 - Koridor Blok Hunian A',
-          location: 'Blok A Koridor Utama',
+          name: 'CCTV 03 - Koridor Asrama Santri',
+          location: 'Koridor Asrama Santri',
           streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
           status: 'ACTIVE',
           isRecording: true,
         },
         {
           channel: 4,
-          name: 'CCTV 04 - Area Wartel & Kantin',
-          location: 'Bilik Wartel & Ruang Kasir',
+          name: 'CCTV 04 - Area Bilik Telepon & Kopontren',
+          location: 'Bilik Telepon Santri & Kasir Kopontren',
           streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
           status: 'ACTIVE',
           isRecording: true,
@@ -624,7 +624,7 @@ export default function BranchCctv() {
               const camera = slots.find((s) => (s.channel || 1) === ch) || {
                 channel: ch,
                 name: `CCTV Slot ${ch}`,
-                location: ch === 1 ? 'Pintu Portir / Depan' : ch === 2 ? 'Ruang Kunjungan' : ch === 3 ? 'Koridor Blok Hunian' : 'Area Wartel & Kantin',
+                location: ch === 1 ? 'Gerbang Utama Pondok' : ch === 2 ? 'Ruang Kunjungan Wali Santri' : ch === 3 ? 'Koridor Asrama Santri' : 'Bilik Telepon Santri & Kasir Kopontren',
                 streamUrl: '',
                 status: 'INACTIVE',
               };
@@ -1214,7 +1214,7 @@ export default function BranchCctv() {
                           return u;
                         });
                       }}
-                      placeholder="Contoh: CCTV 01 - Pintu Portir / Depan"
+                      placeholder="Contoh: CCTV 01 - Portir & Gerbang Utama"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                     />
                   </div>

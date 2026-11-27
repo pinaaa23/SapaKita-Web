@@ -60,8 +60,31 @@ export const AuthProvider = ({ children }) => {
 
   const roleLabel = useMemo(() => {
     if (!role) return '';
-    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : (role === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
+    const label = ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : (role === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
+    return (label || '').replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
   }, [role]);
+
+  // Auto-sanitize legacy cached session in localStorage on mount
+  useEffect(() => {
+    try {
+      const rawUser = localStorage.getItem('user');
+      if (rawUser && (rawUser.includes('Kampus') || rawUser.includes('WBP') || rawUser.includes('warga binaan') || rawUser.includes('Lapas'))) {
+        const sanitized = rawUser
+          .replace(/Pimpinan Kampus/g, 'Pimpinan Pondok')
+          .replace(/Kampus Putra/g, 'Pondok Putra')
+          .replace(/Kampus Putri/g, 'Pondok Putri')
+          .replace(/Kampus/g, 'Pondok');
+        localStorage.setItem('user', sanitized);
+        setUser(JSON.parse(sanitized));
+      }
+      const rawRole = localStorage.getItem('role');
+      if (rawRole && (rawRole.includes('Kampus') || rawRole.includes('kampus'))) {
+        localStorage.setItem('role', 'kepala_upt');
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke token/email jika user.name kosong.
   const userName = useMemo(() => {
@@ -72,10 +95,10 @@ export const AuthProvider = ({ children }) => {
       return 'Kanwil Jawa Barat';
     }
     if (user?.name && user.name.trim() !== '') {
-      return user.name.trim();
+      return user.name.trim().replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
     }
     if (tokenPayload?.name && tokenPayload.name.trim() !== '') {
-      return tokenPayload.name.trim();
+      return tokenPayload.name.trim().replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
     }
     if (user?.email) {
       const cleanEmail = user.email.split('@')[0].replace(/[._]/g, ' ');
@@ -92,7 +115,7 @@ export const AuthProvider = ({ children }) => {
   const uptName = useMemo(() => {
     const direct = user?.branch?.name || user?.branchName || (typeof user?.branch === 'string' ? user.branch : '') || user?.uptName || user?.branchLocation || '';
     if (direct && direct.trim() !== '' && direct.trim().toLowerCase() !== 'upt anda' && direct.trim().toLowerCase() !== 'cabang terdaftar' && direct.trim().toLowerCase() !== 'upt terdaftar') {
-      return direct.trim();
+      return direct.trim().replace(/Kampus/gi, 'Pondok');
     }
     return '';
   }, [user]);

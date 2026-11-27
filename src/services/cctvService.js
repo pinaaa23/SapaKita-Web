@@ -1,28 +1,28 @@
 import { apiFetch, API_BASE_URL } from './api';
 
 const CCTV_ENDPOINT = '/api/cctv';
-const CCTV_LOCAL_STORAGE_KEY = 'pascall_cctv_slots_v1';
+const CCTV_LOCAL_STORAGE_KEY = 'sapakita_cctv_slots_v2';
 
 // Sample streaming URLs for quick preview / demo testing
 export const SAMPLE_CCTV_STREAMS = [
   {
-    name: 'CCTV 01 - Portir & Pintu Utama',
-    location: 'Gerbang Utama Lapas',
+    name: 'CCTV 01 - Portir & Gerbang Utama',
+    location: 'Gerbang Utama Pondok',
     url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
   },
   {
-    name: 'CCTV 02 - Ruang Kunjungan WBP',
-    location: 'Aula Kunjungan Lt 1',
+    name: 'CCTV 02 - Ruang Kunjungan Santri',
+    location: 'Ruang Kunjungan Wali Santri',
     url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
   },
   {
-    name: 'CCTV 03 - Koridor Blok Hunian A',
-    location: 'Blok A Koridor Tengah',
+    name: 'CCTV 03 - Koridor Asrama Santri',
+    location: 'Koridor Asrama Santri',
     url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
   },
   {
-    name: 'CCTV 04 - Area Wartel & Kantin',
-    location: 'Wartelsus & Ruang Kasir',
+    name: 'CCTV 04 - Area Bilik Telepon & Kopontren',
+    location: 'Bilik Telepon Santri & Kasir Kopontren',
     url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
   },
 ];
@@ -31,42 +31,42 @@ const getDefaultSlots = () => [
   {
     id: 'slot-1',
     channel: 1,
-    name: 'CCTV 01 - Portir & Pintu Utama',
-    location: 'Gerbang Utama Lapas',
+    name: 'CCTV 01 - Portir & Gerbang Utama',
+    location: 'Gerbang Utama Pondok',
     streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
     status: 'ACTIVE',
     isRecording: true,
-    notes: 'Pemantauan area keluar masuk portir lapas',
+    notes: 'Pemantauan area gerbang masuk utama pondok pesantren',
   },
   {
     id: 'slot-2',
     channel: 2,
-    name: 'CCTV 02 - Ruang Kunjungan WBP',
-    location: 'Aula Kunjungan Lt 1',
+    name: 'CCTV 02 - Ruang Kunjungan Santri',
+    location: 'Ruang Kunjungan Wali Santri',
     streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
     status: 'ACTIVE',
     isRecording: true,
-    notes: 'Monitoring aktivitas tatap muka keluarga & WBP',
+    notes: 'Monitoring aktivitas temu ramah santri bersama orang tua / wali santri',
   },
   {
     id: 'slot-3',
     channel: 3,
-    name: 'CCTV 03 - Koridor Blok Hunian A',
-    location: 'Blok A Koridor Tengah',
+    name: 'CCTV 03 - Koridor Asrama Santri',
+    location: 'Koridor Asrama Santri',
     streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
     status: 'ACTIVE',
     isRecording: true,
-    notes: 'Pemantauan lorong sel kamar warga binaan',
+    notes: 'Pemantauan lorong dan koridor asrama santri',
   },
   {
     id: 'slot-4',
     channel: 4,
-    name: 'CCTV 04 - Area Wartel & Kantin',
-    location: 'Wartelsus & Ruang Kasir',
+    name: 'CCTV 04 - Area Bilik Telepon & Kopontren',
+    location: 'Bilik Telepon Santri & Kasir Kopontren',
     streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
     status: 'ACTIVE',
     isRecording: true,
-    notes: 'Monitoring bilik telepon wartel & transaksi kantin',
+    notes: 'Monitoring bilik telepon santri & transaksi kasir kopontren',
   },
 ];
 

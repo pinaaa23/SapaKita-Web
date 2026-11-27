@@ -44,7 +44,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branch/santri/') || pathname.startsWith('/branch/inmates/')) return { title: 'Detail Santri', subtitle: 'Informasi lengkap data santri, asrama, dan kontak wali' };
     if (pathname.startsWith('/branch/santri') || pathname.startsWith('/branch/inmates')) return { title: 'Data Santri', subtitle: uptName ? `Kelola data santri di ${uptName}` : 'Kelola data santri di pondok pesantren Anda' };
 
-    if (pathname.startsWith('/branch/cctv')) return { title: 'Pemantauan CCTV', subtitle: uptName ? `Monitoring siaran langsung CCTV bilik wartel dan area antrean santri di ${uptName}` : 'Monitoring siaran langsung CCTV bilik wartel dan arsip rekaman video' };
+    if (pathname.startsWith('/branch/cctv')) return { title: 'Pemantauan CCTV', subtitle: uptName ? `Monitoring siaran langsung CCTV bilik telepon santri dan area antrean di ${uptName}` : 'Monitoring siaran langsung CCTV bilik telepon santri dan arsip rekaman video' };
     if (pathname.startsWith('/branch/recordings')) return { title: 'Rekaman Panggilan', subtitle: 'Log aktivitas panggilan, audio player, dan transkrip AI Whisper santri' };
     if (pathname.startsWith('/branch/contacts')) return { title: 'Persetujuan Kontak Wali Santri', subtitle: 'Verifikasi nomor telepon orang tua/wali santri' };
     if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna Pondok', subtitle: 'Manajemen akun Supervisor Kesantrian dan Operator Kopontren' };
@@ -53,7 +53,8 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik komunikasi santri pondok' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil staf pondok' };
     if (pathname === '/branch' || pathname === '/branch/' || pathname === '/branch/dashboard' || pathname.startsWith('/branch/dashboard')) {
-      const greetingName = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Pimpinan Pondok');
+      const rawGreeting = userName || userRole || (normRole === ROLES.SUPERVISOR ? 'Supervisor' : 'Pimpinan Pondok');
+      const greetingName = rawGreeting.replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
       return { title: 'Dashboard', subtitle: greetingName ? `Selamat Datang, ${greetingName}!` : 'Selamat Datang di SapaKita!' };
     }
     

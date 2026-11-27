@@ -125,12 +125,12 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
             : ROLES.KEPALA_UPT) 
         : (isKanwilAdmin ? ROLES.ADMIN_KANWIL : ROLES.SUPERADMIN));
   
-  const effectiveRoleLabel = roleLabel || 
+  const effectiveRoleLabel = (roleLabel || 
     ROLE_LABELS[effectiveRole] || 
     (effectiveRole === ROLES.FINANCE ? 'Admin Keuangan' :
      effectiveRole === ROLES.ADMIN_KANWIL ? 'Admin Yayasan' : 
      effectiveRole === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : 
-     effectiveRole === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : 'Super Administrator');
+     effectiveRole === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : 'Super Administrator')).replace(/Pimpinan Kampus/gi, 'Pimpinan Pondok').replace(/Kampus/gi, 'Pondok');
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;

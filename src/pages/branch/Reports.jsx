@@ -317,7 +317,7 @@ const BranchReports = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         
         {/* Card 1: Total Revenue Cabang */}
-        <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        <div className="bg-gradient-to-br from-[#0D7A73] via-[#14968C] to-[#0A5A55] text-white rounded-2xl p-5 shadow-lg shadow-teal-900/20 border border-teal-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
               <DollarSign className="w-5 h-5 text-white" />
@@ -332,11 +332,11 @@ const BranchReports = () => {
             )}
           </div>
           <div>
-            <p className="text-blue-100 text-xs font-semibold tracking-wide uppercase">Total Pendapatan</p>
+            <p className="text-teal-100 text-xs font-semibold tracking-wide uppercase">Total Pendapatan</p>
             <h3 className="text-2xl font-black mt-1">
               {isLoading ? '...' : formatCurrency(reportData.totalRevenue)}
             </h3>
-            <p className="text-[11px] text-blue-200/80 mt-1">
+            <p className="text-[11px] text-teal-200/80 mt-1">
               {periodFilter === '7days' ? '7 hari terakhir' : (periodFilter === '90days' ? '90 hari terakhir' : '30 hari terakhir')}
             </p>
           </div>
@@ -345,7 +345,7 @@ const BranchReports = () => {
         {/* Card 2: Total Calls */}
         <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80 flex flex-col justify-between hover:shadow-md transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-blue-50 text-primary rounded-xl flex items-center justify-center shrink-0 border border-blue-100">
+            <div className="w-11 h-11 bg-[#E6F4F1] text-[#0D7A73] rounded-xl flex items-center justify-center shrink-0 border border-teal-200">
               <Phone className="w-5 h-5" />
             </div>
             {reportData.callsGrowth !== null && (
@@ -418,7 +418,7 @@ const BranchReports = () => {
               <h3 className="font-bold text-sm text-slate-800">Tren Pendapatan</h3>
               <p className="text-xs text-slate-400">Pola perolehan saldo &amp; tagihan</p>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-blue-50 text-primary flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#E6F4F1] text-[#0D7A73] flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
@@ -441,7 +441,7 @@ const BranchReports = () => {
                     formatter={(value) => [formatCurrency(value), 'Pendapatan']}
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', border: 'none' }}
                   />
-                  <Line type="monotone" dataKey="amount" stroke="#0B3D91" strokeWidth={3} dot={{ r: 3, fill: '#0B3D91' }} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="amount" stroke="#0D7A73" strokeWidth={3} dot={{ r: 3, fill: '#0D7A73' }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -457,7 +457,7 @@ const BranchReports = () => {
               <h3 className="font-bold text-sm text-slate-800">Volume Panggilan</h3>
               <p className="text-xs text-slate-400">Distribusi jumlah panggilan per hari</p>
             </div>
-            <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#E6F4F1] text-[#0D7A73] flex items-center justify-center">
               <BarChart2 className="w-4 h-4" />
             </div>
           </div>
@@ -475,7 +475,7 @@ const BranchReports = () => {
                     formatter={(value) => [`${value} Panggilan`, 'Volume']}
                     contentStyle={{ backgroundColor: '#1e293b', borderRadius: '12px', color: '#fff', fontSize: '12px', border: 'none' }}
                   />
-                  <Bar dataKey="calls" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="calls" fill="#14968C" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -486,11 +486,11 @@ const BranchReports = () => {
 
       </div>
 
-      {/* Section 3: Indikator Kepatuhan & Audit Lapas */}
+      {/* Section 3: Indikator Kepatuhan & Audit Pondok */}
       <div className="bg-white rounded-2xl p-5 shadow-xs border border-slate-200/80">
         <div className="flex items-center justify-between mb-4 border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
+            <Target className="w-5 h-5 text-[#0D7A73]" />
             <div>
               <h3 className="font-bold text-sm text-slate-800">Kepatuhan Operasional &amp; Keamanan</h3>
               <p className="text-xs text-slate-400">Standar monitoring dan audit panggilan santri pondok</p>
@@ -499,7 +499,7 @@ const BranchReports = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100/80 flex items-center justify-between">
+          <div className="p-4 rounded-xl bg-teal-50/60 border border-teal-100/80 flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500">Tingkat Perekaman Audio</p>
               <h4 className="text-lg font-black text-slate-800 mt-0.5">
@@ -507,7 +507,7 @@ const BranchReports = () => {
               </h4>
               <p className="text-[11px] text-slate-400 mt-0.5">Seluruh sesi tersimpan otomatis di server</p>
             </div>
-            <div className="w-9 h-9 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold text-xs">
+            <div className="w-9 h-9 rounded-full bg-[#E6F4F1] text-[#0D7A73] flex items-center justify-center font-bold text-xs">
               100%
             </div>
           </div>
