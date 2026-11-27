@@ -830,10 +830,10 @@ export default function TagihanPage() {
 
       {/* =========================================================================
           KARTU ATAS: RINGKASAN PENDAPATAN & TAGIHAN Pesantren
-          Sesuai arahan: SPV hanya tahu jumlah pendapatan dan tagihan di kampus pesantren masing-masing.
+          Sesuai arahan: SPV hanya tahu jumlah pendapatan dan tagihan di pondok pesantren masing-masing.
           ========================================================================= */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-blue-950/20 relative overflow-hidden border border-slate-800">
-        <div className="absolute right-0 top-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-gradient-to-br from-[#0D7A73] via-[#14968C] to-[#0A5A55] text-white rounded-3xl p-6 sm:p-7 shadow-xl shadow-teal-950/20 relative overflow-hidden border border-teal-400/30">
+        <div className="absolute right-0 top-0 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           {/* Sisi Kiri (Kolom 7/12): Dua Metrik Utama (Pendapatan & Tagihan Pesantren) */}
@@ -841,8 +841,8 @@ export default function TagihanPage() {
             <div className="space-y-4">
               {/* Badges Berdampingan */}
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30 shrink-0">
-                  <Coins className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-white/20 text-white border border-white/30 shrink-0">
+                  <Coins className="w-3.5 h-3.5 text-teal-100 shrink-0" />
                   <span>Periode {monthOptions[selectedMonth - 1]?.label} {selectedYear}</span>
                 </span>
 
@@ -856,50 +856,50 @@ export default function TagihanPage() {
               {/* Grid 2 Metrik: Pendapatan Pesantren (100%) & Tagihan Vendor (60%) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                 {/* 1. Pendapatan Pesantren (100% Omset Kas Kopontren) */}
-                <div className="bg-white/10 backdrop-blur-xs rounded-2xl p-4 border border-white/15 flex flex-col justify-between space-y-2">
+                <div className="bg-white/15 backdrop-blur-xs rounded-2xl p-4 border border-white/25 flex flex-col justify-between space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                      <Coins className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-200 flex items-center gap-1.5">
+                      <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                       Pendapatan Pesantren (100%)
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-200 border border-amber-400/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-400/25 text-amber-100 border border-amber-300/40">
                       Kas Kopontren
                     </span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                     {isLoading ? '...' : isContractConfigured && subtotalTagihan !== null ? formatRupiah(subtotalTagihan) : '-'}
                   </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                  <p className="text-[11px] text-teal-50/90 leading-relaxed">
                     Total omset dari {totalSecondsAll.toLocaleString('id-ID')} detik ({formatDetikKeMenit(totalSecondsAll)}) penjualan voucher Santri.
                   </p>
                 </div>
 
                 {/* 2. Tagihan ke Vendor (60%) */}
-                <div className="bg-blue-500/20 backdrop-blur-xs rounded-2xl p-4 border border-blue-400/30 flex flex-col justify-between space-y-2">
+                <div className="bg-black/20 backdrop-blur-xs rounded-2xl p-4 border border-white/20 flex flex-col justify-between space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-200 flex items-center gap-1.5">
-                      <Building2 className="w-3.5 h-3.5 text-blue-300 shrink-0" />
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-teal-200 shrink-0" />
                       Tagihan Vendor (60%)
                     </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-500/30 text-blue-200 border border-blue-400/30">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/20 text-white border border-white/30">
                       Kewajiban Setor
                     </span>
                   </div>
                   <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
                     {isLoading ? '...' : isContractConfigured && payableAmount !== null ? formatRupiah(payableAmount) : '-'}
                   </div>
-                  <p className="text-[11px] text-blue-200/90 leading-relaxed">
+                  <p className="text-[11px] text-teal-100/90 leading-relaxed">
                     Porsi 60% tagihan vendor yang dikelola & dibayarkan ke Platform SapaKita.
                   </p>
                 </div>
               </div>
 
               {/* Jatuh Tempo & Sisa Hari */}
-              <div className="flex items-center gap-2 text-xs text-slate-300 pt-1">
-                <Clock className="w-4 h-4 text-blue-400 shrink-0" />
+              <div className="flex items-center gap-2 text-xs text-teal-100/90 pt-1">
+                <Clock className="w-4 h-4 text-teal-200 shrink-0" />
                 <span>
-                  Jatuh Tempo: <strong>{formatTanggal(dueDate)}</strong>{' '}
-                  <span className={isPastDue ? 'text-rose-400 font-bold' : remainingDays <= 3 ? 'text-amber-300 font-bold' : 'text-slate-400'}>
+                  Jatuh Tempo: <strong className="text-white">{formatTanggal(dueDate)}</strong>{' '}
+                  <span className={isPastDue ? 'text-rose-200 font-bold' : remainingDays <= 3 ? 'text-amber-200 font-bold' : 'text-teal-200'}>
                     ({isPastDue ? 'Telah Terlewati' : remainingDays === 0 ? 'Hari ini' : `${remainingDays} hari lagi`})
                   </span>
                 </span>
@@ -908,22 +908,22 @@ export default function TagihanPage() {
           </div>
 
           {/* Sisi Kanan (Kolom 5/12): Kartu Faktur & Aksi Pembayaran */}
-          <div className="lg:col-span-5 flex flex-col justify-between bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/15 min-w-0 space-y-4">
+          <div className="lg:col-span-5 flex flex-col justify-between bg-black/20 backdrop-blur-md rounded-2xl p-5 border border-white/20 min-w-0 space-y-4">
             <div>
-              <div className="text-[11px] uppercase tracking-wider text-slate-300 font-bold mb-1.5 flex items-center justify-between">
+              <div className="text-[11px] uppercase tracking-wider text-teal-100 font-bold mb-1.5 flex items-center justify-between">
                 <span>Faktur Tagihan Pesantren</span>
-                <span className="text-[10px] text-blue-300 font-normal">Sistem Pascabayar</span>
+                <span className="text-[10px] text-teal-200 font-normal">Sistem Pascabayar</span>
               </div>
-              <div className="flex items-center justify-between bg-black/25 px-3 py-2 rounded-xl border border-white/10 text-xs font-mono mb-3">
-                <span className="text-slate-200 truncate">{invoiceNumber}</span>
+              <div className="flex items-center justify-between bg-black/30 px-3 py-2 rounded-xl border border-white/15 text-xs font-mono mb-3">
+                <span className="text-slate-100 truncate">{invoiceNumber}</span>
                 <button
                   type="button"
                   onClick={handleCopyInvoice}
-                  className="text-slate-400 hover:text-white transition p-1 cursor-pointer shrink-0 ml-2"
+                  className="text-teal-200 hover:text-white transition p-1 cursor-pointer shrink-0 ml-2"
                   title="Salin nomor faktur"
                 >
                   {copiedInvoice ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5 text-emerald-300" />
                   ) : (
                     <Copy className="w-3.5 h-3.5" />
                   )}
@@ -932,16 +932,16 @@ export default function TagihanPage() {
 
               {/* Rincian Sisa Tagihan Jika Ada Pembayaran Sebagian */}
               {hasRemainingAfterPayment && (
-                <div className="mb-3 p-3 bg-blue-500/20 border border-blue-400/30 rounded-xl text-blue-200 text-xs space-y-1">
+                <div className="mb-3 p-3 bg-black/25 border border-white/20 rounded-xl text-teal-100 text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-slate-300">Total Akumulasi:</span>
+                    <span className="text-teal-200">Total Akumulasi:</span>
                     <span className="font-bold text-white">{formatRupiah(newTotalTagihan)}</span>
                   </div>
                   <div className="flex justify-between text-emerald-300">
                     <span>Telah Di-ACC:</span>
                     <span className="font-bold">{formatRupiah(totalApproved)}</span>
                   </div>
-                  <div className="flex justify-between pt-1 border-t border-blue-400/20 text-white font-bold">
+                  <div className="flex justify-between pt-1 border-t border-white/20 text-white font-bold">
                     <span>Sisa Tagihan:</span>
                     <span className="text-amber-300">{formatRupiah(sisaTagihan)}</span>
                   </div>
@@ -950,7 +950,7 @@ export default function TagihanPage() {
 
               {/* Info Status Menunggu ACC (Hanya jika belum lunas) */}
               {!isPaid && isPendingAcc && (
-                <div className="mb-3 p-3 bg-amber-500/20 border border-amber-400/30 rounded-xl text-amber-200 text-xs">
+                <div className="mb-3 p-3 bg-amber-500/25 border border-amber-300/40 rounded-xl text-amber-100 text-xs">
                   <div className="font-bold flex items-center gap-1.5 mb-0.5">
                     <Clock className="w-3.5 h-3.5 text-amber-300" />
                     <span>Menunggu ACC Admin Finance</span>
@@ -965,12 +965,12 @@ export default function TagihanPage() {
             {/* Aksi Pembayaran */}
             <div className="space-y-2.5">
               {!isMonthClosed && !isPaid && !isPendingAcc && (
-                <div className="p-3 bg-blue-500/15 border border-blue-400/30 rounded-2xl text-blue-200 text-xs space-y-1.5">
+                <div className="p-3 bg-black/20 border border-white/20 rounded-2xl text-teal-100 text-xs space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-white text-[11px]">
-                    <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                    <Clock className="w-3.5 h-3.5 text-teal-200 shrink-0" />
                     <span>Periode Masih Berjalan (Akumulasi Detik)</span>
                   </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed break-words">
+                  <p className="text-[11px] text-teal-100/90 leading-relaxed break-words">
                     Panggilan Santri terakumulasi otomatis hingga akhir bulan ({lastDayOfSelectedMonth} {monthOptions[selectedMonth - 1]?.label} {selectedYear}).
                   </p>
                 </div>
@@ -978,8 +978,8 @@ export default function TagihanPage() {
 
               {/* Tombol Bayar Tagihan (Hijau Aktif jika canPay) atau Tidak Ada Tagihan */}
               {isLoading ? (
-                <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/50 rounded-xl border border-slate-700/50 flex items-center justify-center gap-1.5">
-                  <Clock className="w-4 h-4 text-blue-400" />
+                <div className="text-center py-2.5 text-xs font-semibold text-teal-100 bg-black/30 rounded-xl border border-white/15 flex items-center justify-center gap-1.5">
+                  <Clock className="w-4 h-4 text-teal-200" />
                   <span>Memuat Status Pembayaran...</span>
                 </div>
               ) : !isContractConfigured ? (
@@ -998,13 +998,13 @@ export default function TagihanPage() {
                   <span>Menunggu Verifikasi Finance (Sedang Diproses Kopontren)</span>
                 </div>
               ) : !canPay ? (
-                <div className="text-center py-2.5 text-xs font-semibold text-slate-300 bg-slate-800/80 rounded-xl border border-slate-700/80 flex items-center justify-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-slate-400" />
+                <div className="text-center py-2.5 text-xs font-semibold text-teal-100 bg-black/25 rounded-xl border border-white/15 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-teal-200" />
                   <span>Tidak Ada Tagihan (Rp 0)</span>
                 </div>
               ) : (
-                <div className="text-center py-2.5 text-xs font-bold text-sky-200 bg-sky-500/20 rounded-xl border border-sky-400/30 flex items-center justify-center gap-1.5">
-                  <Building2 className="w-4 h-4 text-sky-300" />
+                <div className="text-center py-2.5 text-xs font-bold text-teal-100 bg-white/20 rounded-xl border border-white/30 flex items-center justify-center gap-1.5">
+                  <Building2 className="w-4 h-4 text-teal-200" />
                   <span>Pembayaran Tagihan Dikelola Terpusat oleh Kopontren</span>
                 </div>
               )}

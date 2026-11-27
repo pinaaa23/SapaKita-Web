@@ -50,6 +50,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/branch/users')) return { title: 'Kelola Pengguna Pondok', subtitle: 'Manajemen akun Supervisor Kesantrian dan Operator Kopontren' };
     if (pathname.startsWith('/branch/packages')) return { title: 'Kelola Paket', subtitle: uptName ? `Atur tarif dan durasi paket panggilan santri di ${uptName}` : 'Atur tarif dan paket layanan komunikasi untuk kasir Kopontren dan santri' };
     if (pathname.startsWith('/branch/transactions')) return { title: 'Riwayat Transaksi', subtitle: 'Data transaksi voucher & pembayaran kopontren' };
+    if (pathname.startsWith('/branch/billing')) return { title: 'Tagihan Bulanan', subtitle: 'Rekapitulasi tagihan pascabayar dan penggunaan layanan komunikasi pondok' };
     if (pathname.startsWith('/branch/reports')) return { title: 'Laporan & Analitik', subtitle: 'Ringkasan performa & statistik komunikasi santri pondok' };
     if (pathname.startsWith('/branch/profile')) return { title: 'Profil Pengguna', subtitle: 'Informasi akun & pengaturan profil staf pondok' };
     if (pathname === '/branch' || pathname === '/branch/' || pathname === '/branch/dashboard' || pathname.startsWith('/branch/dashboard')) {

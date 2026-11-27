@@ -89,8 +89,8 @@ const Transactions = () => {
       } else if (err?.isNetworkError || err?.status === 0) {
         showToast('Server tidak dapat dihubungi.', 'error');
       }
-      console.error('[BranchTransactions] Gagal memuat data transaksi kantin:', err);
-      setError('Gagal memuat data transaksi kantin');
+      console.error('[BranchTransactions] Gagal memuat data transaksi kopontren:', err);
+      setError('Gagal memuat data transaksi kopontren');
       setTransactionsData({
         items: [],
         total: 0,
@@ -193,7 +193,7 @@ const Transactions = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         {/* Card 1: Total Transaksi Pembelian */}
-        <div className="bg-gradient-to-br from-[#0B3D91] to-[#1E5FCC] text-white rounded-2xl p-5 shadow-lg shadow-blue-900/20 border border-blue-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        <div className="bg-gradient-to-br from-[#0D7A73] via-[#14968C] to-[#0A5A55] text-white rounded-2xl p-5 shadow-lg shadow-teal-900/15 border border-teal-400/20 flex flex-col justify-between hover:scale-[1.01] transition-all">
           <div className="flex justify-between items-start mb-3">
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
               <Receipt className="w-5 h-5 text-white" />
@@ -201,47 +201,47 @@ const Transactions = () => {
             <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Kopontren Pondok</span>
           </div>
           <div>
-            <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi Paket</h3>
+            <h3 className="text-teal-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi Paket</h3>
             <p className="text-2xl font-extrabold text-white">
               {isLoading ? '...' : (error ? '-' : (transactionsData.total || transactionsData.items.length).toString())}
             </p>
-            <p className="text-[10px] text-blue-200 font-medium mt-1">Transaksi pembelian paket voucher oleh santri</p>
+            <p className="text-[10px] text-teal-100 font-medium mt-1">Transaksi pembelian paket voucher oleh santri</p>
           </div>
         </div>
         
         {/* Card 2: Total Omzet Penjualan */}
-        <div className="bg-gradient-to-br from-[#10B981] via-[#059669] to-[#047857] text-white rounded-2xl p-5 shadow-lg shadow-emerald-900/20 border border-emerald-400/20 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        <div className="bg-white text-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md border border-slate-200/80 flex flex-col justify-between hover:scale-[1.01] transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
-              <TrendingUp className="w-5 h-5 text-white" />
+            <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 shrink-0 border border-emerald-100">
+              <TrendingUp className="w-5 h-5 text-emerald-600" />
             </div>
-            <span className="text-[10px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Penerimaan Tunai</span>
+            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60">Penerimaan Tunai</span>
           </div>
           <div>
-            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Paket Kopontren</h3>
-            <p className="text-2xl font-extrabold text-white">
+            <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Paket Kopontren</h3>
+            <p className="text-2xl font-extrabold text-slate-900">
               {isLoading ? '...' : (error ? '-' : formatCurrency(computedTotalOmzet))}
             </p>
-            <p className="text-[10px] text-emerald-100 font-semibold mt-1">
+            <p className="text-[10px] text-slate-500 font-medium mt-1">
               Akumulasi pembayaran tunai di kasir kopontren
             </p>
           </div>
         </div>
 
         {/* Card 3: Status Voucher Panggilan */}
-        <div className="bg-gradient-to-br from-[#FBBF24] via-[#F59E0B] to-[#D97706] text-[#0B3D91] rounded-2xl p-5 shadow-lg shadow-amber-500/20 border border-amber-300/40 flex flex-col justify-between hover:scale-[1.02] transition-all">
+        <div className="bg-white text-slate-800 rounded-2xl p-5 shadow-xs hover:shadow-md border border-slate-200/80 flex flex-col justify-between hover:scale-[1.01] transition-all">
           <div className="flex justify-between items-start mb-3">
-            <div className="w-11 h-11 bg-[#0B3D91]/15 backdrop-blur-md rounded-xl flex items-center justify-center text-[#0B3D91] shrink-0 border border-[#0B3D91]/20">
-              <Ticket className="w-5 h-5 text-[#0B3D91]" />
+            <div className="w-11 h-11 bg-[#E6F4F1] rounded-xl flex items-center justify-center text-[#0D7A73] shrink-0 border border-teal-100">
+              <Ticket className="w-5 h-5 text-[#0D7A73]" />
             </div>
-            <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">Voucher 5 Digit</span>
+            <span className="text-[10px] font-bold bg-[#E6F4F1] text-[#0D7A73] px-2.5 py-0.5 rounded-full border border-teal-200/60">Voucher 5 Digit</span>
           </div>
           <div>
-            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Status Voucher Santri</h3>
-            <p className="text-2xl font-extrabold text-[#0B3D91]">
+            <h3 className="text-slate-500 text-xs font-semibold uppercase tracking-wider mb-1">Status Voucher Santri</h3>
+            <p className="text-2xl font-extrabold text-[#0D7A73]">
               {isLoading ? '...' : `${computedVoucherUsed} Terpakai`}
             </p>
-            <p className="text-[10px] text-[#0B3D91]/80 font-bold mt-1">
+            <p className="text-[10px] text-slate-500 font-medium mt-1">
               {isLoading ? '...' : `${computedVoucherActive} Voucher aktif belum digunakan`}
             </p>
           </div>
@@ -435,7 +435,7 @@ const Transactions = () => {
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-12 h-12 mb-3 text-slate-300" />
                       <p className="font-bold text-slate-700">Belum ada transaksi</p>
-                      <p className="text-xs mt-1 text-slate-400">Tidak ada catatan transaksi pembelian paket kantin.</p>
+                      <p className="text-xs mt-1 text-slate-400">Tidak ada catatan transaksi pembelian paket kopontren.</p>
                     </div>
                   </td>
                 </tr>
