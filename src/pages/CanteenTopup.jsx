@@ -698,7 +698,7 @@ export default function CanteenTopup() {
             onClick={() => setActiveMainTab('tagihan')}
             className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeMainTab === 'tagihan'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/25 ring-2 ring-[#0D7A73]/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -723,7 +723,7 @@ export default function CanteenTopup() {
             onClick={() => setActiveMainTab('kontrak')}
             className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeMainTab === 'kontrak'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/25 ring-2 ring-[#0D7A73]/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -758,7 +758,7 @@ export default function CanteenTopup() {
             onClick={() => setActiveMainTab('calls')}
             className={`inline-flex items-center gap-2.5 px-5 py-3 rounded-xl sm:rounded-2xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeMainTab === 'calls'
-                ? 'bg-[#1565C0] text-white shadow-md shadow-blue-700/25 ring-2 ring-blue-600/20'
+                ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/25 ring-2 ring-[#0D7A73]/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
@@ -771,8 +771,8 @@ export default function CanteenTopup() {
         <div className="flex items-center gap-2 self-start md:self-center">
           <div className="flex items-center gap-2">
             <span className="hidden lg:inline text-xs font-semibold text-slate-400">Periode:</span>
-            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-blue-50 text-[#1565C0] border border-blue-200">
-              <Calendar className="w-3.5 h-3.5 text-[#1565C0]" />
+            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-50 text-[#0D7A73] border border-teal-200">
+              <Calendar className="w-3.5 h-3.5 text-[#0D7A73]" />
               {monthNames[selectedMonth - 1]} {selectedYear}
             </span>
           </div>
@@ -790,7 +790,7 @@ export default function CanteenTopup() {
             onClick={() => setStatusTagihanFilter('semua')}
             className={`bg-white rounded-2xl p-4.5 sm:p-5 border transition-all duration-200 flex items-center justify-between group cursor-pointer ${
               statusTagihanFilter === 'semua'
-                ? 'border-blue-400 ring-2 ring-blue-500/10 shadow-xs'
+                ? 'border-teal-500 ring-2 ring-teal-500/10 shadow-xs'
                 : 'border-slate-200/80 shadow-xs hover:shadow-md'
             }`}
             title="Klik untuk melihat seluruh tagihan Kopontren"
@@ -799,14 +799,14 @@ export default function CanteenTopup() {
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Tagihan {monthNames[selectedMonth - 1]} {selectedYear}
               </span>
-              <div className="text-2xl font-black text-[#1565C0] tracking-tight">
+              <div className="text-2xl font-black text-[#0D7A73] tracking-tight">
                 {formatRupiah(totalTagihanBulanIni)}
               </div>
               <span className="text-[11px] font-medium text-slate-500 block">
                 Rumus: Total Detik × Tarif per Detik (Bagi Hasil 4 Pihak)
               </span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100 group-hover:scale-105 transition-transform">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0D7A73] flex items-center justify-center shrink-0 border border-teal-100 group-hover:scale-105 transition-transform">
               <Receipt className="w-6 h-6" />
             </div>
           </div>
@@ -910,7 +910,7 @@ export default function CanteenTopup() {
             <div className="flex flex-wrap items-center gap-2.5">
               {/* Filter Periode Bulan & Tahun */}
               <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
-                <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+                <Calendar className="w-3.5 h-3.5 text-[#0D7A73] shrink-0" />
                 <span className="text-slate-500">Periode:</span>
                 <select
                   value={selectedMonth}
@@ -955,20 +955,20 @@ export default function CanteenTopup() {
               </div>
 
               <span className="text-[11px] text-slate-500 font-medium pl-1 hidden sm:inline">
-                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> Kopontren UPT
+                Menampilkan <strong>{filteredBillingReports.length}</strong> dari <strong>{billingReports.length}</strong> Kopontren Pondok
               </span>
             </div>
 
-            {/* Pencarian Kopontren / UPT */}
+            {/* Pencarian Kopontren / Pondok */}
             <div className="flex items-center gap-2 w-full lg:w-auto">
               <div className="relative flex-1 lg:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari Kopontren, UPT, atau Kanwil..."
+                  placeholder="Cari Kopontren, Pondok, atau Yayasan..."
                   value={searchUpt}
                   onChange={(e) => setSearchUpt(e.target.value)}
-                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] transition"
                 />
                 {searchUpt && (
                   <button
@@ -984,10 +984,10 @@ export default function CanteenTopup() {
               <button
                 type="button"
                 onClick={() => setActiveMainTab('kontrak')}
-                className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-indigo-200 cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-[#0D7A73] rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-teal-200 cursor-pointer shrink-0"
                 title="Buka Pengaturan Kontrak Tarif Kopontren"
               >
-                <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                <Sliders className="w-3.5 h-3.5 text-[#0D7A73]" />
                 <span className="hidden sm:inline">Pengaturan Kontrak</span>
               </button>
 
@@ -995,7 +995,7 @@ export default function CanteenTopup() {
                 type="button"
                 onClick={() => loadData()}
                 disabled={isLoadingBilling || isLoadingHistory}
-                className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-[#0D7A73] hover:bg-[#0A635E] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
                 title="Sinkronkan data tagihan"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBilling || isLoadingHistory ? 'animate-spin' : ''}`} />
@@ -1004,14 +1004,14 @@ export default function CanteenTopup() {
             </div>
           </div>
 
-          {/* TABEL DAFTAR SEMUA Kopontren DIKELOMPOKKAN PER UPT */}
+          {/* TABEL DAFTAR SEMUA Kopontren DIKELOMPOKKAN PER PONDOK */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto w-full">
               <table className="w-full text-left border-collapse table-auto">
                 <thead>
                   <tr className="bg-slate-50/90 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                     <th className="py-3.5 px-4 text-left min-w-[200px]">Nama Kopontren</th>
-                    <th className="py-3.5 px-4 text-left min-w-[180px]">UPT &amp; Kanwil</th>
+                    <th className="py-3.5 px-4 text-left min-w-[180px]">Pondok &amp; Yayasan</th>
                     <th className="py-3.5 px-4 text-center min-w-[130px]">Total Detik</th>
                     <th className="py-3.5 px-4 text-right min-w-[140px]">Total Tagihan</th>
                     <th className="py-3.5 px-4 text-center min-w-[140px]">Status Pembayaran</th>
@@ -1022,7 +1022,7 @@ export default function CanteenTopup() {
                   {isLoadingBilling ? (
                     <tr>
                       <td colSpan="6" className="py-12 text-center text-slate-400 font-semibold">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#0D7A73] mb-2" />
                         <span>Memuat daftar tagihan detik Kopontren...</span>
                       </td>
                     </tr>
@@ -1042,7 +1042,7 @@ export default function CanteenTopup() {
                           {/* 1. Nama Kopontren */}
                           <td className="py-3.5 px-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0D7A73] border border-teal-100 flex items-center justify-center shrink-0">
                                 <Store className="w-4 h-4" />
                               </div>
                               <div className="min-w-0">
@@ -1056,7 +1056,7 @@ export default function CanteenTopup() {
                             </div>
                           </td>
 
-                          {/* 2. UPT & Kanwil */}
+                          {/* 2. Pondok & Yayasan */}
                           <td className="py-3.5 px-4">
                             <span className="font-semibold text-slate-800 block leading-snug">
                               {report.uptName}
@@ -1080,7 +1080,7 @@ export default function CanteenTopup() {
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             {report.isContractSet ? (
                               <div>
-                                <div className="font-black text-[#1565C0] text-xs sm:text-sm">
+                                <div className="font-black text-[#0D7A73] text-xs sm:text-sm">
                                   {formatRupiah(report.totalAmount)}
                                 </div>
                                 <div className="text-[11px] text-slate-400 mt-0.5">
@@ -1117,8 +1117,8 @@ export default function CanteenTopup() {
                                 <span>Menunggu ACC</span>
                               </span>
                             ) : String(report.statusPembayaran || '').includes('Bulan Berjalan') ? (
-                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                                <Clock className="w-3.5 h-3.5 text-blue-600" />
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-teal-50 text-teal-700 border border-teal-200">
+                                <Clock className="w-3.5 h-3.5 text-[#0D7A73]" />
                                 <span>{report.statusPembayaran}</span>
                               </span>
                             ) : report.statusPembayaran === 'Telat' ? (
@@ -1198,10 +1198,10 @@ export default function CanteenTopup() {
                                 <button
                                   type="button"
                                   onClick={() => handleOpenDetailModal(report)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#1565C0] bg-blue-50 hover:bg-blue-100 border border-blue-200 transition cursor-pointer shadow-2xs"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-[#0D7A73] bg-teal-50 hover:bg-teal-100 border border-teal-200 transition cursor-pointer shadow-2xs"
                                   title="Lihat rincian tarif per detik, bagi hasil, dan formula tagihan"
                                 >
-                                  <FileText className="w-3.5 h-3.5 text-[#1565C0]" />
+                                  <FileText className="w-3.5 h-3.5 text-[#0D7A73]" />
                                   <span>Detail</span>
                                 </button>
                               )}
@@ -1224,28 +1224,28 @@ export default function CanteenTopup() {
           ========================================================================= */}
       <div className={activeMainTab === 'kontrak' ? 'space-y-4' : 'hidden'}>
           {/* Header Banner Penjelasan */}
-          <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden border border-blue-900/40">
+          <div className="bg-gradient-to-r from-slate-900 via-teal-950 to-slate-900 rounded-3xl p-6 text-white shadow-md relative overflow-hidden border border-teal-900/40">
             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-200 border border-blue-400/30">
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-teal-500/20 text-teal-200 border border-teal-400/30">
                     Master Pengaturan Kontrak
                   </span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-xs text-blue-200 font-medium">{isSuperadmin ? 'Khusus Superadmin' : 'Mode Akses: Hanya Lihat (Admin Kanwil)'}</span>
+                  <span className="text-xs text-teal-200 font-medium">{isSuperadmin ? 'Khusus Superadmin' : 'Mode Akses: Hanya Lihat (Admin Yayasan)'}</span>
                 </div>
                 <h3 className="text-xl sm:text-2xl font-black tracking-tight flex items-center gap-2.5">
-                  <Sliders className="w-6 h-6 text-blue-400" />
+                  <Sliders className="w-6 h-6 text-teal-400" />
                   Pengaturan Kontrak Tarif Kopontren
                 </h3>
-                <p className="text-xs text-blue-100/80 mt-1 max-w-2xl leading-relaxed">
-                  Konfigurasi tarif per detik dan persentase bagi hasil 4 pihak (Kepala UPT, Koperasi, Inkopasindo, Vendor) yang bersifat tetap per Kopontren. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh UPT.
+                <p className="text-xs text-teal-100/80 mt-1 max-w-2xl leading-relaxed">
+                  Konfigurasi tarif per detik dan persentase bagi hasil 4 pihak (Pimpinan Pondok, Kopontren, Yayasan Induk, Platform SapaKita) yang bersifat tetap per Kopontren. Tarif yang ditetapkan di sini akan otomatis diterapkan pada perhitungan Tagihan Bulanan seluruh Pondok.
                 </p>
               </div>
 
               <div className="flex items-center gap-2.5 shrink-0">
                 <div className="px-4 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10 text-center min-w-[95px]">
-                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Total Kopontren</span>
+                  <span className="text-[10px] uppercase font-bold text-teal-200 block">Total Kopontren</span>
                   <span className="text-xl font-black text-white">{contractsList.length}</span>
                 </div>
                 <div className="px-4 py-3 bg-emerald-500/20 backdrop-blur-md rounded-2xl border border-emerald-400/30 text-center min-w-[95px]">
@@ -1282,16 +1282,16 @@ export default function CanteenTopup() {
               </span>
             </div>
 
-            {/* Pencarian Kopontren / UPT / Kanwil */}
+            {/* Pencarian Kopontren / Pondok / Yayasan */}
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <div className="relative flex-1 sm:w-72">
                 <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari Kopontren, UPT, atau Kanwil..."
+                  placeholder="Cari Kopontren, Pondok, atau Yayasan..."
                   value={searchContract}
                   onChange={(e) => setSearchContract(e.target.value)}
-                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                  className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] transition"
                 />
                 {searchContract && (
                   <button
@@ -1307,10 +1307,10 @@ export default function CanteenTopup() {
               <button
                 type="button"
                 onClick={() => setActiveMainTab('tagihan')}
-                className="px-3.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-[#1565C0] rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-blue-200 cursor-pointer shrink-0"
+                className="px-3.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-[#0D7A73] rounded-xl text-xs font-bold transition flex items-center gap-1.5 border border-teal-200 cursor-pointer shrink-0"
                 title="Kembali ke Tab Tagihan Bulanan"
               >
-                <Receipt className="w-3.5 h-3.5 text-[#1565C0]" />
+                <Receipt className="w-3.5 h-3.5 text-[#0D7A73]" />
                 <span className="hidden sm:inline">Tagihan Bulanan</span>
               </button>
 
@@ -1318,7 +1318,7 @@ export default function CanteenTopup() {
                 type="button"
                 onClick={() => loadContractsData()}
                 disabled={isLoadingContracts}
-                className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+                className="px-3.5 py-1.5 bg-[#0D7A73] hover:bg-[#0A635E] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
                 title="Muat ulang daftar kontrak"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${isLoadingContracts ? 'animate-spin' : ''}`} />
@@ -1334,7 +1334,7 @@ export default function CanteenTopup() {
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                     <th className="py-3.5 px-6">Nama Kopontren</th>
-                    <th className="py-3.5 px-4">UPT &amp; Kanwil</th>
+                    <th className="py-3.5 px-4">Pondok &amp; Yayasan</th>
                     <th className="py-3.5 px-4 text-right">Tarif per Detik</th>
                     <th className="py-3.5 px-4 text-center">Bagi Hasil 4 Pihak</th>
                     <th className="py-3.5 px-6 text-center">Aksi</th>
@@ -1344,7 +1344,7 @@ export default function CanteenTopup() {
                   {isLoadingContracts ? (
                     <tr>
                       <td colSpan="5" className="py-12 text-center text-slate-400 font-semibold">
-                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                        <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#0D7A73] mb-2" />
                         <span>Memuat data kontrak tarif Kopontren...</span>
                       </td>
                     </tr>
@@ -1362,7 +1362,7 @@ export default function CanteenTopup() {
                         {/* 1. Nama Kopontren */}
                         <td className="py-4 px-6">
                           <div className="flex items-start gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center shrink-0 mt-0.5">
+                            <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0D7A73] border border-teal-100 flex items-center justify-center shrink-0 mt-0.5">
                               <Store className="w-4 h-4" />
                             </div>
                             <div className="min-w-0">
@@ -1376,7 +1376,7 @@ export default function CanteenTopup() {
                           </div>
                         </td>
 
-                        {/* 2. UPT & Kanwil */}
+                        {/* 2. Pondok & Yayasan */}
                         <td className="py-4 px-4">
                           <span className="font-semibold text-slate-800 block leading-snug">
                             {c.uptName}
@@ -1404,17 +1404,17 @@ export default function CanteenTopup() {
                         <td className="py-4 px-4 text-center whitespace-nowrap">
                           {c.isContractSet ? (
                             <div className="flex flex-wrap items-center justify-center gap-1 text-[11px] font-bold">
-                              <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Kepala UPT">
-                                UPT: {c.kepalaUptPercent ?? c.split?.kepalaUpt ?? 5}%
+                              <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200" title="Pimpinan Pondok">
+                                Pim: {c.kepalaUptPercent ?? c.split?.kepalaUpt ?? 5}%
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200" title="Koperasi">
+                              <span className="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200" title="Kopontren">
                                 Kop: {c.koperasiPercent ?? c.split?.koperasi ?? c.canteenPercent ?? 30}%
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Inkopasindo">
-                                Inko: {c.inkopasindoPercent ?? c.split?.inkopasindo ?? 10}%
+                              <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200" title="Yayasan Induk">
+                                Yayasan: {c.inkopasindoPercent ?? c.split?.inkopasindo ?? 10}%
                               </span>
-                              <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200" title="Vendor">
-                                Ven: {c.vendorPercent ?? c.split?.vendor ?? 55}%
+                              <span className="px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200" title="Platform SapaKita">
+                                Platform: {c.vendorPercent ?? c.split?.vendor ?? 55}%
                               </span>
                             </div>
                           ) : (
@@ -1434,7 +1434,7 @@ export default function CanteenTopup() {
                               className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer ${
                                 c.isContractSet
                                   ? 'bg-white hover:bg-slate-100 text-slate-800 border border-slate-200'
-                                  : 'bg-[#1565C0] hover:bg-[#0D47A1] text-white shadow-sm font-black'
+                                  : 'bg-[#0D7A73] hover:bg-[#0A635E] text-white shadow-sm font-black'
                               }`}
                               title={c.isContractSet ? 'Ubah kontrak tarif tetap Kopontren' : 'Atur kontrak tarif tetap Kopontren'}
                             >
@@ -1475,7 +1475,7 @@ export default function CanteenTopup() {
                 Periode {monthNames[selectedMonth - 1]} {selectedYear}
               </span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0D7A73] flex items-center justify-center shrink-0 border border-teal-100">
               <FileText className="w-6 h-6" />
             </div>
           </div>
@@ -1500,16 +1500,16 @@ export default function CanteenTopup() {
           <div className="bg-white rounded-2xl p-4.5 border border-slate-200/80 shadow-xs flex items-center justify-between">
             <div>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
-                Total Tagihan Bagian SA
+                Total Tagihan Bagian Platform
               </span>
-              <div className="text-2xl font-black text-[#1565C0] tracking-tight">
+              <div className="text-2xl font-black text-[#0D7A73] tracking-tight">
                 {formatRupiah(saCallsData.totalTagihan)}
               </div>
               <span className="text-[11px] font-semibold text-slate-500">
                 Hasil perhitungan kontrak tarif
               </span>
             </div>
-            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1565C0] flex items-center justify-center shrink-0 border border-blue-100">
+            <div className="w-12 h-12 rounded-2xl bg-teal-50 text-[#0D7A73] flex items-center justify-center shrink-0 border border-teal-100">
               <Receipt className="w-6 h-6" />
             </div>
           </div>
@@ -1520,7 +1520,7 @@ export default function CanteenTopup() {
           <div className="flex flex-wrap items-center gap-2.5">
             {/* Filter Periode Bulan & Tahun */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700">
-              <Calendar className="w-3.5 h-3.5 text-[#1565C0] shrink-0" />
+              <Calendar className="w-3.5 h-3.5 text-[#0D7A73] shrink-0" />
               <span className="text-slate-500">Periode:</span>
               <select
                 value={selectedMonth}
@@ -1553,7 +1553,7 @@ export default function CanteenTopup() {
               </select>
             </div>
 
-            {/* Filter UPT / Cabang */}
+            {/* Filter Pondok Pesantren */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700">
               <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
               <select
@@ -1564,7 +1564,7 @@ export default function CanteenTopup() {
                 }}
                 className="bg-transparent font-semibold text-slate-800 focus:outline-none cursor-pointer max-w-[200px] truncate"
               >
-                <option value="semua">Semua UPT Pesantren</option>
+                <option value="semua">Semua Pondok Pesantren</option>
                 {contractsList.map((c) => (
                   <option key={c.branchId} value={c.branchId}>
                     {c.uptName || c.canteenName}
@@ -1590,7 +1590,7 @@ export default function CanteenTopup() {
                   setSaCallsSearch(e.target.value);
                   setSaCallsPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition"
+                className="w-full pl-9 pr-8 py-1.5 bg-slate-50 hover:bg-white focus:bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] transition"
               />
               {saCallsSearch && (
                 <button
@@ -1610,7 +1610,7 @@ export default function CanteenTopup() {
               type="button"
               onClick={() => fetchSaCalls(selectedMonth, selectedYear, saCallsPage, saCallsSearch, saCallsBranchId)}
               disabled={isLoadingSaCalls}
-              className="px-3.5 py-1.5 bg-[#1565C0] hover:bg-[#0D47A1] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
+              className="px-3.5 py-1.5 bg-[#0D7A73] hover:bg-[#0A635E] text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 disabled:opacity-50"
               title="Perbarui data rincian panggilan"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSaCalls ? 'animate-spin' : ''}`} />
@@ -1639,7 +1639,7 @@ export default function CanteenTopup() {
                 {isLoadingSaCalls ? (
                   <tr>
                     <td colSpan="8" className="py-12 text-center text-slate-400 font-semibold">
-                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-blue-500 mb-2" />
+                      <RefreshCw className="w-6 h-6 animate-spin mx-auto text-[#0D7A73] mb-2" />
                       <span>Memuat log rincian panggilan...</span>
                     </td>
                   </tr>
@@ -1666,7 +1666,7 @@ export default function CanteenTopup() {
                         })}
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
-                        <span className="font-mono font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                        <span className="font-mono font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
                           {call.id.slice(-8).toUpperCase()}
                         </span>
                       </td>
@@ -1684,7 +1684,7 @@ export default function CanteenTopup() {
                       <td className="py-3.5 px-4 text-center font-mono text-slate-700 whitespace-nowrap">
                         {formatRupiah(call.ratePerSecond)}/dtk
                       </td>
-                      <td className="py-3.5 px-4 text-center font-bold text-blue-700 whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center font-bold text-teal-800 whitespace-nowrap">
                         {call.superadminPercent}%
                       </td>
                       <td className="py-3.5 px-4 text-right font-black text-slate-900 font-mono whitespace-nowrap">
@@ -1701,13 +1701,13 @@ export default function CanteenTopup() {
                     <td colSpan="4" className="py-3.5 px-4 text-slate-700">
                       Total Akumulasi Periode {monthNames[selectedMonth - 1]} {selectedYear}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-blue-900 font-black whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right font-mono text-teal-900 font-black whitespace-nowrap">
                       {Number(saCallsData.totalSeconds || 0).toLocaleString('id-ID')} Detik
                     </td>
                     <td colSpan="2" className="py-3.5 px-4 text-center text-slate-500 font-normal">
                       ≈ {Math.floor((saCallsData.totalSeconds || 0) / 60).toLocaleString('id-ID')} menit
                     </td>
-                    <td className="py-3.5 px-4 text-right font-mono text-[#1565C0] font-black text-sm whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right font-mono text-[#0D7A73] font-black text-sm whitespace-nowrap">
                       {formatRupiah(saCallsData.totalTagihan)}
                     </td>
                   </tr>
@@ -1759,7 +1759,7 @@ export default function CanteenTopup() {
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
               <div>
                 <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
-                  <Coins className="w-5 h-5 text-blue-600" />
+                  <Coins className="w-5 h-5 text-[#0D7A73]" />
                   Atur Kontrak Tarif Kopontren
                 </h4>
                 <p className="text-xs text-slate-500 mt-0.5">
@@ -1803,7 +1803,7 @@ export default function CanteenTopup() {
                     className={`w-full pl-9 pr-4 py-2 bg-slate-50 border rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 ${
                       editRate !== '' && !isRateValid
                         ? 'border-rose-400 focus:ring-rose-500/20'
-                        : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                        : 'border-slate-200 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73]'
                     }`}
                   />
                 </div>
@@ -1818,9 +1818,9 @@ export default function CanteenTopup() {
                 )}
               </div>
 
-              {/* Pembagian Hasil Utama & Klausul Opsional Kepala UPT */}
+              {/* Pembagian Hasil Utama & Klausul Opsional Pimpinan Pondok */}
               <div className="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/70 space-y-4">
-                {/* Modern Interactive Toggle Card untuk Kepala UPT */}
+                {/* Modern Interactive Toggle Card untuk Pimpinan Pondok */}
                 <div className={`p-3.5 rounded-2xl border transition-all ${
                   editHasKepalaUpt 
                     ? 'bg-gradient-to-r from-purple-50/90 via-purple-50/50 to-indigo-50/40 border-purple-200 shadow-xs' 
@@ -1836,24 +1836,24 @@ export default function CanteenTopup() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-black text-slate-800">
-                            Porsi Tambahan Kepala UPT (5%)
+                            Porsi Pimpinan Pondok (5%)
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
                             editHasKepalaUpt 
                               ? 'bg-purple-100 text-purple-700 border border-purple-200' 
                               : 'bg-slate-100 text-slate-500'
                           }`}>
-                            {editHasKepalaUpt ? 'Aktif (5% dari Vendor)' : 'Nonaktif (0%)'}
+                            {editHasKepalaUpt ? 'Aktif (5% dari Platform)' : 'Nonaktif (0%)'}
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-500 leading-relaxed mt-0.5">
                           {editHasKepalaUpt ? (
                             <span className="text-purple-900 font-medium">
-                              Pesantren ini meminta bagian Kepala UPT. Porsi <strong>5%</strong> dialokasikan dari hak Vendor (Vendor menjadi <strong>55%</strong>, Kepala UPT <strong>5%</strong>). Total setoran UPT tetap <strong>60%</strong>.
+                              Pondok ini meminta bagian Pimpinan Pondok. Porsi <strong>5%</strong> dialokasikan dari hak Platform (Platform menjadi <strong>55%</strong>, Pimpinan Pondok <strong>5%</strong>). Total setoran Pondok tetap <strong>60%</strong>.
                             </span>
                           ) : (
                             <span>
-                              Skema standar aktif: Inkopasindo 10%, UPT 30%, dan Vendor 60% utuh. Aktifkan toggle jika UPT ini meminta alokasi 5% untuk Kepala UPT.
+                              Skema standar aktif: Yayasan Induk 10%, Pondok 30%, dan Platform SapaKita 60% utuh. Aktifkan toggle jika pondok ini meminta alokasi 5% untuk Pimpinan Pondok.
                             </span>
                           )}
                         </p>
@@ -1876,7 +1876,7 @@ export default function CanteenTopup() {
                           setEditVendorPercent('60');
                         }
                       }}
-                      title={editHasKepalaUpt ? 'Nonaktifkan porsi Kepala UPT' : 'Aktifkan porsi Kepala UPT (5% dari Vendor)'}
+                      title={editHasKepalaUpt ? 'Nonaktifkan porsi Pimpinan Pondok' : 'Aktifkan porsi Pimpinan Pondok (5% dari Platform)'}
                       className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                         editHasKepalaUpt ? 'bg-purple-600' : 'bg-slate-300'
                       }`}
@@ -1898,7 +1898,7 @@ export default function CanteenTopup() {
                         Rincian Alokasi Bagi Hasil
                       </h4>
                       <span className="text-[11px] text-slate-500">
-                        {editHasKepalaUpt ? 'Skema 4 Pihak (dengan klausul Kepala UPT)' : 'Skema Standar 3 Pihak Resmi'}
+                        {editHasKepalaUpt ? 'Skema 4 Pihak (dengan klausul Pimpinan Pondok)' : 'Skema Standar 3 Pihak Resmi'}
                       </span>
                     </div>
                     <div className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold ${
@@ -1913,23 +1913,23 @@ export default function CanteenTopup() {
                     <div 
                       style={{ width: `${editInkopasindoPercent || 0}%` }} 
                       className="bg-amber-500 h-full transition-all duration-300" 
-                      title={`Inkopasindo: ${editInkopasindoPercent}%`} 
+                      title={`Yayasan Induk: ${editInkopasindoPercent}%`} 
                     />
                     <div 
                       style={{ width: `${editKoperasiPercent || 0}%` }} 
                       className="bg-sky-500 h-full transition-all duration-300" 
-                      title={`UPT: ${editKoperasiPercent}%`} 
+                      title={`Pondok: ${editKoperasiPercent}%`} 
                     />
                     <div 
                       style={{ width: `${editVendorPercent || 0}%` }} 
-                      className="bg-indigo-600 h-full transition-all duration-300" 
-                      title={`Vendor: ${editVendorPercent}%`} 
+                      className="bg-[#0D7A73] h-full transition-all duration-300" 
+                      title={`Platform: ${editVendorPercent}%`} 
                     />
                     {Number(editKepalaUptPercent) > 0 && (
                       <div 
                         style={{ width: `${editKepalaUptPercent}%` }} 
                         className="bg-purple-600 h-full transition-all duration-300" 
-                        title={`Kepala UPT: ${editKepalaUptPercent}%`} 
+                        title={`Pimpinan Pondok: ${editKepalaUptPercent}%`} 
                       />
                     )}
                   </div>
@@ -1937,10 +1937,10 @@ export default function CanteenTopup() {
 
                 {/* 4 Cards Alokasi */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-                  {/* 1. Inkopasindo */}
+                  {/* 1. Yayasan Induk */}
                   <div className="bg-white p-3 rounded-2xl border border-amber-200 shadow-2xs">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-amber-900 font-bold text-[11px]">1. Inkopasindo</label>
+                      <label className="text-amber-900 font-bold text-[11px]">1. Yayasan Induk</label>
                       <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded">Hak 10%</span>
                     </div>
                     <div className="relative">
@@ -1957,10 +1957,10 @@ export default function CanteenTopup() {
                     </div>
                   </div>
 
-                  {/* 2. UPT */}
+                  {/* 2. Pondok (Kopontren) */}
                   <div className="bg-white p-3 rounded-2xl border border-sky-200 shadow-2xs">
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-sky-900 font-bold text-[11px]">2. UPT (Koperasi)</label>
+                      <label className="text-sky-900 font-bold text-[11px]">2. Pondok (Kopontren)</label>
                       <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 px-1.5 py-0.2 rounded">Hak 30%</span>
                     </div>
                     <div className="relative">
@@ -1977,13 +1977,13 @@ export default function CanteenTopup() {
                     </div>
                   </div>
 
-                  {/* 3. Vendor */}
+                  {/* 3. Platform SapaKita */}
                   <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
-                    editHasKepalaUpt ? 'bg-indigo-50/40 border-indigo-300' : 'bg-white border-indigo-200'
+                    editHasKepalaUpt ? 'bg-teal-50/40 border-teal-300' : 'bg-white border-teal-200'
                   }`}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-indigo-900 font-bold text-[11px]">3. Vendor</label>
-                      <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1.5 py-0.2 rounded">
+                      <label className="text-[#0D7A73] font-bold text-[11px]">3. Platform SapaKita</label>
+                      <span className="text-[10px] font-semibold text-teal-800 bg-teal-50 px-1.5 py-0.2 rounded">
                         {editHasKepalaUpt ? '55% Bersih' : '60% Utuh'}
                       </span>
                     </div>
@@ -1994,23 +1994,23 @@ export default function CanteenTopup() {
                         max="100"
                         value={editVendorPercent}
                         onChange={(e) => setEditVendorPercent(e.target.value)}
-                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-indigo-950 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                        className="w-full pr-7 pl-3 py-1.5 rounded-xl border border-slate-200 font-extrabold text-teal-950 focus:outline-none focus:ring-2 focus:ring-teal-400"
                         required
                       />
                       <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
                     </div>
                   </div>
 
-                  {/* 4. Kepala UPT */}
+                  {/* 4. Pimpinan Pondok */}
                   <div className={`p-3 rounded-2xl border shadow-2xs transition-all ${
                     editHasKepalaUpt ? 'bg-purple-50/60 border-purple-300 ring-2 ring-purple-500/20' : 'bg-slate-100/60 border-slate-200 opacity-60'
                   }`}>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-purple-900 font-bold text-[11px]">Kepala UPT</label>
+                      <label className="text-purple-900 font-bold text-[11px]">Pimpinan Pondok</label>
                       <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
                         editHasKepalaUpt ? 'text-purple-700 bg-purple-100 font-bold' : 'text-slate-400'
                       }`}>
-                        {editHasKepalaUpt ? 'Dari Vendor' : 'Opsional'}
+                        {editHasKepalaUpt ? 'Dari Platform' : 'Opsional'}
                       </span>
                     </div>
                     <div className="relative">
@@ -2045,7 +2045,7 @@ export default function CanteenTopup() {
                   <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-700">
                     <CheckCircle2 className="w-4 h-4 shrink-0" />
                     <span>
-                      Total persentase valid (100%). {editHasKepalaUpt ? 'Skema menyertakan 5% Kepala UPT dari vendor.' : 'Skema standar 3 pihak siap diterapkan.'}
+                      Total persentase valid (100%). {editHasKepalaUpt ? 'Skema menyertakan 5% Pimpinan Pondok dari platform.' : 'Skema standar 3 pihak siap diterapkan.'}
                     </span>
                   </div>
                 )}
@@ -2089,10 +2089,10 @@ export default function CanteenTopup() {
                   <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200/90 space-y-3">
                     <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
-                        <Calculator className="w-3.5 h-3.5 text-blue-600" />
+                        <Calculator className="w-3.5 h-3.5 text-[#0D7A73]" />
                         Simulasi Rumus Tagihan 4 Pihak
                       </span>
-                      <span className="text-blue-600 font-bold">
+                      <span className="text-[#0D7A73] font-bold">
                         {isSimulatedSec ? 'Contoh 1.140 Detik' : 'Detik Riil Kopontren'}
                       </span>
                     </div>
@@ -2116,26 +2116,26 @@ export default function CanteenTopup() {
                         <span className="text-[11px] font-bold text-slate-600 block mb-1.5">Porsi Pembagian Hasil:</span>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                           <div className="bg-white p-2 rounded-lg border border-purple-100">
-                            <span className="text-purple-800 font-semibold block text-[10px]">Kepala UPT ({kuNum}%):</span>
+                            <span className="text-purple-800 font-semibold block text-[10px]">Pimpinan Pondok ({kuNum}%):</span>
                             <span className="font-bold text-purple-950 text-xs block mt-0.5">
                               {formatRupiah(nominalKepalaUpt)}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-sky-100">
-                            <span className="text-sky-800 font-semibold block text-[10px]">Koperasi ({kopNum}%):</span>
+                            <span className="text-sky-800 font-semibold block text-[10px]">Kopontren ({kopNum}%):</span>
                             <span className="font-bold text-sky-950 text-xs block mt-0.5">
                               {formatRupiah(nominalKoperasi)}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-amber-100">
-                            <span className="text-amber-800 font-semibold block text-[10px]">Inkopasindo ({inkoNum}%):</span>
+                            <span className="text-amber-800 font-semibold block text-[10px]">Yayasan Induk ({inkoNum}%):</span>
                             <span className="font-bold text-amber-950 text-xs block mt-0.5">
                               {formatRupiah(nominalInkopasindo)}
                             </span>
                           </div>
-                          <div className="bg-white p-2 rounded-lg border border-indigo-100">
-                            <span className="text-indigo-800 font-semibold block text-[10px]">Vendor ({venNum}%):</span>
-                            <span className="font-bold text-indigo-950 text-xs block mt-0.5">
+                          <div className="bg-white p-2 rounded-lg border border-teal-100">
+                            <span className="text-teal-800 font-semibold block text-[10px]">Platform SapaKita ({venNum}%):</span>
+                            <span className="font-bold text-teal-950 text-xs block mt-0.5">
                               {formatRupiah(nominalVendor)}
                             </span>
                           </div>
@@ -2145,12 +2145,12 @@ export default function CanteenTopup() {
                       {/* Total Tagihan Disetor */}
                       <div className="flex justify-between items-center pt-2.5 border-t border-slate-200 text-slate-900 font-black text-sm">
                         <div>
-                          <span>Total Tagihan Disetor (Superadmin / Pusat):</span>
+                          <span>Total Tagihan Disetor (Platform SapaKita / Pusat):</span>
                           <span className="block text-[10px] text-slate-500 font-normal">
-                            Subtotal × {disetorPercent}% (Porsi Kepala UPT, Inkopasindo, dan Vendor)
+                            Subtotal × {disetorPercent}% (Porsi Pimpinan Pondok, Yayasan Induk, dan Platform)
                           </span>
                         </div>
-                        <span className="text-blue-600 font-black text-base">
+                        <span className="text-[#0D7A73] font-black text-base">
                           {formatRupiah(totalTagihanDisetor)}
                         </span>
                       </div>
@@ -2170,7 +2170,7 @@ export default function CanteenTopup() {
                 <button
                   type="submit"
                   disabled={isSavingContract || !isContractFormValid}
-                  className="px-5 py-2 bg-[#1565C0] hover:bg-[#0D47A1] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
+                  className="px-5 py-2 bg-[#0D7A73] hover:bg-[#0A635E] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
                 >
                   {isSavingContract ? 'Menyimpan...' : 'Simpan Kontrak Tarif'}
                 </button>
@@ -2204,7 +2204,7 @@ export default function CanteenTopup() {
               <div className="p-5 sm:p-6 border-b border-slate-100 flex items-start justify-between gap-4 bg-white shrink-0">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2.5">
-                    <span className="p-2.5 rounded-2xl bg-blue-50 text-[#1565C0] border border-blue-100 flex items-center justify-center">
+                    <span className="p-2.5 rounded-2xl bg-teal-50 text-[#0D7A73] border border-teal-100 flex items-center justify-center">
                       <Calculator className="w-5 h-5" />
                     </span>
                     <div>
@@ -2231,8 +2231,8 @@ export default function CanteenTopup() {
                       <span>Menunggu ACC</span>
                     </span>
                   ) : String(detailModalItem.statusPembayaran || '').includes('Bulan Berjalan') ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
-                      <Clock className="w-3.5 h-3.5 text-blue-600" />
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                      <Clock className="w-3.5 h-3.5 text-[#0D7A73]" />
                       <span>{detailModalItem.statusPembayaran}</span>
                     </span>
                   ) : isTelat ? (
@@ -2267,7 +2267,7 @@ export default function CanteenTopup() {
                   onClick={() => setDetailModalTab('summary')}
                   className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
                     detailModalTab === 'summary'
-                      ? 'border-[#1565C0] text-[#1565C0]'
+                      ? 'border-[#0D7A73] text-[#0D7A73]'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -2279,7 +2279,7 @@ export default function CanteenTopup() {
                   onClick={() => setDetailModalTab('calls')}
                   className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center gap-2 ${
                     detailModalTab === 'calls'
-                      ? 'border-[#1565C0] text-[#1565C0]'
+                      ? 'border-[#0D7A73] text-[#0D7A73]'
                       : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -2298,7 +2298,7 @@ export default function CanteenTopup() {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-3.5">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <Coins className="w-4 h-4 text-blue-600" />
+                      <Coins className="w-4 h-4 text-[#0D7A73]" />
                       1. Rincian Perhitungan Tagihan Kopontren (Berbasis Detik)
                     </h4>
                     <span className="text-[11px] font-semibold text-slate-400">
@@ -2355,26 +2355,26 @@ export default function CanteenTopup() {
                       {detailModalItem.isContractSet ? (
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-0.5 text-xs">
                           <div className="bg-white p-2 rounded-lg border border-purple-200">
-                            <span className="text-purple-800 font-semibold block text-[10px]">Kepala UPT ({detailModalItem.kepalaUptPercent ?? detailModalItem.split?.kepalaUpt ?? 5}%):</span>
+                            <span className="text-purple-800 font-semibold block text-[10px]">Pimpinan Pondok ({detailModalItem.kepalaUptPercent ?? detailModalItem.split?.kepalaUpt ?? 5}%):</span>
                             <span className="font-bold text-purple-950 text-xs block mt-0.5">
                               {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.kepalaUptPercent ?? detailModalItem.split?.kepalaUpt ?? 5) / 100)))}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-sky-200">
-                            <span className="text-sky-800 font-semibold block text-[10px]">Koperasi ({detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30}%):</span>
+                            <span className="text-sky-800 font-semibold block text-[10px]">Kopontren ({detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30}%):</span>
                             <span className="font-bold text-sky-950 text-xs block mt-0.5">
                               {formatRupiah(detailModalItem.canteenShare || Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.koperasiPercent ?? detailModalItem.split?.koperasi ?? detailModalItem.canteenPercent ?? 30) / 100)))}
                             </span>
                           </div>
                           <div className="bg-white p-2 rounded-lg border border-amber-200">
-                            <span className="text-amber-800 font-semibold block text-[10px]">Inkopasindo ({detailModalItem.inkopasindoPercent ?? detailModalItem.split?.inkopasindo ?? 10}%):</span>
+                            <span className="text-amber-800 font-semibold block text-[10px]">Yayasan Induk ({detailModalItem.inkopasindoPercent ?? detailModalItem.split?.inkopasindo ?? 10}%):</span>
                             <span className="font-bold text-amber-950 text-xs block mt-0.5">
                               {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.inkopasindoPercent ?? detailModalItem.split?.inkopasindo ?? 10) / 100)))}
                             </span>
                           </div>
-                          <div className="bg-white p-2 rounded-lg border border-indigo-200">
-                            <span className="text-indigo-800 font-semibold block text-[10px]">Vendor ({detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? 55}%):</span>
-                            <span className="font-bold text-indigo-950 text-xs block mt-0.5">
+                          <div className="bg-white p-2 rounded-lg border border-teal-200">
+                            <span className="text-teal-800 font-semibold block text-[10px]">Platform SapaKita ({detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? 55}%):</span>
+                            <span className="font-bold text-teal-950 text-xs block mt-0.5">
                               {formatRupiah(Math.round((detailModalItem.subtotal || 0) * (Number(detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? 55) / 100)))}
                             </span>
                           </div>
@@ -2386,19 +2386,19 @@ export default function CanteenTopup() {
                   </div>
 
                   {/* Highlight Total Tagihan yang Disetor */}
-                  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex items-center justify-between">
+                  <div className="p-4 bg-gradient-to-r from-teal-50 to-slate-50 border border-teal-200 rounded-2xl flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-black text-blue-950 uppercase tracking-wider block">
-                        Total Tagihan Bersih (Disetor Kopontren ke Vendor / Superadmin):
+                      <span className="text-xs font-black text-teal-950 uppercase tracking-wider block">
+                        Total Tagihan Bersih (Disetor Kopontren ke Platform SapaKita):
                       </span>
-                      <span className="text-[11px] text-blue-700 font-medium">
+                      <span className="text-[11px] text-teal-700 font-medium">
                         {detailModalItem.isContractSet
-                          ? `Total Penjualan ${formatRupiah(detailModalItem.subtotal)} × ${detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? detailModalItem.superadminPercent ?? 55}% Porsi Vendor (Sisa 45% Dikelola Internal UPT)`
+                          ? `Total Penjualan ${formatRupiah(detailModalItem.subtotal)} × ${detailModalItem.vendorPercent ?? detailModalItem.split?.vendor ?? detailModalItem.superadminPercent ?? 55}% Porsi Platform (Sisa 45% Dikelola Internal Pondok)`
                           : 'Menunggu pengaturan kontrak tarif'}
                       </span>
                     </div>
                     <div className="text-right">
-                      <span className="text-xl sm:text-2xl font-black text-[#1565C0] tracking-tight">
+                      <span className="text-xl sm:text-2xl font-black text-[#0D7A73] tracking-tight">
                         {detailModalItem.isContractSet ? formatRupiah(detailModalItem.totalAmount) : '-'}
                       </span>
                     </div>
@@ -2411,7 +2411,7 @@ export default function CanteenTopup() {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-2xs space-y-4">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
                     <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <Receipt className="w-4 h-4 text-indigo-600" />
+                      <Receipt className="w-4 h-4 text-teal-600" />
                       2. Detail Pembayaran & Bukti Transfer Kopontren
                     </h4>
                     {hasPayment && (
@@ -2439,7 +2439,7 @@ export default function CanteenTopup() {
                         </div>
                         <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/70">
                           <span className="text-slate-500 block mb-0.5">Nominal Ditransfer:</span>
-                          <span className="font-black text-sm text-[#1565C0] block">
+                          <span className="font-black text-sm text-[#0D7A73] block">
                             {formatRupiah(payment.totalBayar || payment.nominal || detailModalItem.totalAmount)}
                           </span>
                         </div>
@@ -2468,7 +2468,7 @@ export default function CanteenTopup() {
                             <div className="w-full max-w-md bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                               <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
                                 <div>
-                                  <span className="font-black text-sm text-[#1565C0] block">SapaKita Billing</span>
+                                  <span className="font-black text-sm text-[#0D7A73] block">SapaKita Billing</span>
                                   <span className="text-[10px] text-slate-400 uppercase tracking-wider font-bold">
                                     Dokumen Struk Transfer Tagihan
                                   </span>
@@ -2489,12 +2489,12 @@ export default function CanteenTopup() {
                                   <span className="font-bold text-slate-800">{detailModalItem.canteenName}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">UPT Cabang:</span>
+                                  <span className="text-slate-500">Asal Pondok:</span>
                                   <span className="font-bold text-slate-800">{detailModalItem.uptName}</span>
                                 </div>
                                 <div className="flex justify-between">
                                   <span className="text-slate-500">Nominal Transfer:</span>
-                                  <span className="font-black text-[#1565C0]">
+                                  <span className="font-black text-[#0D7A73]">
                                     {formatRupiah(payment.totalBayar || payment.nominal || detailModalItem.totalAmount)}
                                   </span>
                                 </div>
@@ -2513,7 +2513,7 @@ export default function CanteenTopup() {
                                   handleViewProof(detailModalItem);
                                 }
                               }}
-                              className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-blue-200 shadow-2xs hover:bg-blue-50 transition"
+                              className="text-xs font-bold text-teal-700 hover:text-teal-800 flex items-center gap-1.5 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-teal-200 shadow-2xs hover:bg-teal-50 transition"
                             >
                               <ExternalLink className="w-3.5 h-3.5" />
                               <span>Buka Ukuran Penuh (Tab Baru)</span>
@@ -2703,7 +2703,7 @@ export default function CanteenTopup() {
                   </>
                 ) : (
                   <div className="space-y-4">
-                    {/* Pencarian Panggilan UPT */}
+                    {/* Pencarian Panggilan Pondok */}
                     <div className="flex items-center justify-between gap-3">
                       <div className="relative flex-1">
                         <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -2715,7 +2715,7 @@ export default function CanteenTopup() {
                             setModalCallsSearch(e.target.value);
                             setModalCallsPage(1);
                           }}
-                          className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          className="w-full pl-9 pr-8 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73]"
                         />
                         {modalCallsSearch && (
                           <button
@@ -2734,14 +2734,14 @@ export default function CanteenTopup() {
                         type="button"
                         onClick={() => fetchModalCalls(selectedMonth, selectedYear, modalCallsPage, modalCallsSearch, detailModalItem.branchId)}
                         disabled={isLoadingModalCalls}
-                        className="px-3.5 py-2 bg-blue-50 text-[#1565C0] border border-blue-200 rounded-xl text-xs font-bold hover:bg-blue-100 flex items-center gap-1.5 cursor-pointer"
+                        className="px-3.5 py-2 bg-teal-50 text-[#0D7A73] border border-teal-200 rounded-xl text-xs font-bold hover:bg-teal-100 flex items-center gap-1.5 cursor-pointer"
                       >
                         <RefreshCw className={`w-3.5 h-3.5 ${isLoadingModalCalls ? 'animate-spin' : ''}`} />
                         <span>Refresh</span>
                       </button>
                     </div>
 
-                    {/* Tabel Panggilan UPT */}
+                    {/* Tabel Panggilan Pondok */}
                     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
@@ -2760,8 +2760,8 @@ export default function CanteenTopup() {
                             {isLoadingModalCalls ? (
                               <tr>
                                 <td colSpan="7" className="py-8 text-center text-slate-400 font-semibold">
-                                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-blue-500 mb-1.5" />
-                                  <span>Memuat panggilan UPT...</span>
+                                  <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#0D7A73] mb-1.5" />
+                                  <span>Memuat panggilan pondok...</span>
                                 </td>
                               </tr>
                             ) : modalCallsData.items.length === 0 ? (
@@ -2782,7 +2782,7 @@ export default function CanteenTopup() {
                                       minute: '2-digit',
                                     })}
                                   </td>
-                                  <td className="py-3 px-3.5 whitespace-nowrap font-mono text-blue-700 font-bold">
+                                  <td className="py-3 px-3.5 whitespace-nowrap font-mono text-teal-800 font-bold">
                                     {call.id.slice(-8).toUpperCase()}
                                   </td>
                                   <td className="py-3 px-3.5">
@@ -2799,7 +2799,7 @@ export default function CanteenTopup() {
                                   <td className="py-3 px-3.5 text-center font-mono text-slate-700 whitespace-nowrap">
                                     {formatRupiah(call.ratePerSecond)}/dtk
                                   </td>
-                                  <td className="py-3 px-3.5 text-center font-bold text-blue-700 whitespace-nowrap">
+                                  <td className="py-3 px-3.5 text-center font-bold text-teal-800 whitespace-nowrap">
                                     {call.superadminPercent}%
                                   </td>
                                   <td className="py-3 px-3.5 text-right font-black text-slate-900 font-mono whitespace-nowrap">
@@ -2815,13 +2815,13 @@ export default function CanteenTopup() {
                                 <td colSpan="3" className="py-3 px-3.5 text-slate-700">
                                   Total Akumulasi Periode Ini
                                 </td>
-                                <td className="py-3 px-3.5 text-right font-mono text-blue-900 font-black whitespace-nowrap">
+                                <td className="py-3 px-3.5 text-right font-mono text-teal-900 font-black whitespace-nowrap">
                                   {Number(modalCallsData.totalSeconds || 0).toLocaleString('id-ID')} dtk
                                 </td>
                                 <td colSpan="2" className="py-3 px-3.5 text-center text-slate-500 font-normal">
                                   ≈ {Math.floor((modalCallsData.totalSeconds || 0) / 60)} mnt
                                 </td>
-                                <td className="py-3 px-3.5 text-right font-mono text-[#1565C0] font-black whitespace-nowrap">
+                                <td className="py-3 px-3.5 text-right font-mono text-[#0D7A73] font-black whitespace-nowrap">
                                   {formatRupiah(modalCallsData.totalTagihan)}
                                 </td>
                               </tr>
@@ -2875,9 +2875,9 @@ export default function CanteenTopup() {
                       setActiveMainTab('kontrak');
                       handleOpenEditContract(item);
                     }}
-                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2 bg-teal-50 hover:bg-teal-100 text-[#0D7A73] border border-teal-200 font-bold rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Sliders className="w-3.5 h-3.5 text-indigo-600" />
+                    <Sliders className="w-3.5 h-3.5 text-[#0D7A73]" />
                     <span>Ubah Kontrak Tarif Ini</span>
                   </button>
                 )}
@@ -2922,14 +2922,14 @@ export default function CanteenTopup() {
             <div className="space-y-3 text-xs mb-5">
               <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-slate-500">Asal UPT / Kopontren:</span>
+                  <span className="text-slate-500">Asal Pondok / Kopontren:</span>
                   <span className="font-bold text-slate-800">
                     {topupActionModal.item.branchName || topupActionModal.item.canteenName || '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Nominal Transfer:</span>
-                  <span className="font-black text-[#1565C0]">
+                  <span className="font-black text-[#0D7A73]">
                     {formatRupiah(topupActionModal.item.totalBayar || topupActionModal.item.nominal)}
                   </span>
                 </div>
@@ -2945,7 +2945,7 @@ export default function CanteenTopup() {
                     value={actionNotes}
                     onChange={(e) => setActionNotes(e.target.value)}
                     placeholder="Contoh: Pembayaran tagihan telah diverifikasi masuk rekening"
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73]"
                   />
                 </div>
               ) : (
@@ -3002,7 +3002,7 @@ export default function CanteenTopup() {
           <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 text-left animate-in zoom-in-95 duration-200 max-h-[90vh] my-auto flex flex-col">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
               <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-blue-600" />
+                <Receipt className="w-4 h-4 text-[#0D7A73]" />
                 Bukti Transfer Pembayaran Kopontren
               </h4>
               <button
@@ -3025,19 +3025,19 @@ export default function CanteenTopup() {
               ) : (
                 <div className="w-full max-w-sm bg-white p-5 rounded-2xl border border-slate-200 shadow-xs text-left">
                   <div className="text-center pb-3 border-b border-slate-100 mb-3">
-                    <span className="font-black text-base text-blue-600">SapaKita</span>
+                    <span className="font-black text-base text-[#0D7A73]">SapaKita</span>
                     <p className="text-[11px] text-slate-400 uppercase tracking-wider font-bold">
                       Dokumen Bukti Transfer Tagihan
                     </p>
                   </div>
                   <div className="space-y-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-slate-500">Asal UPT:</span>
+                      <span className="text-slate-500">Asal Pondok:</span>
                       <span className="font-bold text-slate-800">{proofPreviewItem?.branchName || '-'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-slate-500">Nominal Tagihan:</span>
-                      <span className="font-black text-[#1565C0]">
+                      <span className="font-black text-[#0D7A73]">
                         {formatRupiah(proofPreviewItem?.totalBayar || proofPreviewItem?.nominal || 0)}
                       </span>
                     </div>
@@ -3051,7 +3051,7 @@ export default function CanteenTopup() {
                 <button
                   type="button"
                   onClick={handleOpenNewTabProof}
-                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-teal-700 hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Buka Tab Baru</span>
@@ -3102,7 +3102,7 @@ export default function CanteenTopup() {
 
             <div className="space-y-2.5 text-xs">
               <div className="flex justify-between text-slate-600">
-                <span>Asal UPT:</span>
+                <span>Asal Pondok:</span>
                 <span className="font-bold text-slate-800">{historyDetailModalItem.branchName}</span>
               </div>
               <div className="flex justify-between text-slate-600">
@@ -3111,7 +3111,7 @@ export default function CanteenTopup() {
               </div>
               <div className="flex justify-between text-slate-800 font-bold pt-2 border-t border-slate-100">
                 <span>Total Transfer:</span>
-                <span className="text-[#1565C0] font-black text-sm">{formatRupiah(historyDetailModalItem.totalBayar || historyDetailModalItem.nominal)}</span>
+                <span className="text-[#0D7A73] font-black text-sm">{formatRupiah(historyDetailModalItem.totalBayar || historyDetailModalItem.nominal)}</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-100">
                 <span>Status:</span>

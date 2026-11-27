@@ -157,7 +157,7 @@ export default function FinanceBilling() {
             branchId: b.branchId,
             uptName: b.branchName || b.uptName,
             branchName: b.branchName || b.uptName,
-            canteenName: b.canteenName || (b.branchName ? `Kantin ${b.branchName}` : 'Kantin Lapas'),
+            canteenName: b.canteenName || (b.branchName ? `Kopontren ${b.branchName}` : 'Kopontren Pondok'),
             kanwilName: b.kanwilName || 'Kantor Wilayah',
             staffName: b.verifiedByName || b.rejectedByName || 'Kasir Kantin',
             verifiedBy: b.verifiedByName || b.rejectedByName || (isRej ? (b.rejectedBy || 'Admin Finance') : 'Admin Finance'),
@@ -223,7 +223,7 @@ export default function FinanceBilling() {
           createdAt: b.paymentDate || b.updatedAt || new Date().toISOString(),
           branchId: b.branchId,
           branchName: b.branchName || b.uptName,
-          canteenName: b.canteenName || (b.branchName ? `Kantin ${b.branchName}` : 'Kantin Lapas'),
+          canteenName: b.canteenName || (b.branchName ? `Kopontren ${b.branchName}` : 'Kopontren Pondok'),
           staffName: b.verifiedByName || 'Kasir Kantin',
           nominal: Number(b.depositAmountToFinance || b.grossAmount || 0),
           totalBayar: Number(b.depositAmountToFinance || b.grossAmount || 0),
@@ -250,9 +250,9 @@ export default function FinanceBilling() {
           tanggal: b.paymentProof?.createdAt || b.paymentProof?.tanggal || new Date().toISOString(),
           createdAt: b.paymentProof?.createdAt || b.paymentProof?.tanggal || new Date().toISOString(),
           branchId: b.branchId || b.id,
-          branchName: b.uptName || b.branchName || 'Cabang Lapas',
-          canteenName: b.canteenName || (b.uptName ? `Kantin ${b.uptName}` : 'Kantin Lapas'),
-          staffName: b.paymentProof?.staffName || 'Kasir Kantin',
+          branchName: b.uptName || b.branchName || 'Pondok Pesantren',
+          canteenName: b.canteenName || (b.uptName ? `Kopontren ${b.uptName}` : 'Kopontren Pondok'),
+          staffName: b.paymentProof?.staffName || 'Kasir Kopontren',
           nominal: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.60 || 50000,
           totalBayar: Number(b.totalAmount || b.subtotal || b.grossAmount || 0) * 0.60 || 50000,
           status: 'Menunggu',
@@ -294,8 +294,8 @@ export default function FinanceBilling() {
             branchId: fb.branchId,
             uptName: fb.branchName || fb.uptName,
             branchName: fb.branchName || fb.uptName,
-            canteenName: fb.canteenName || (fb.branchName ? `Kantin ${fb.branchName}` : 'Kantin Lapas'),
-            kanwilName: fb.kanwilName || 'Kantor Wilayah',
+            canteenName: fb.canteenName || (fb.branchName ? `Kopontren ${fb.branchName}` : 'Kopontren Pondok'),
+            kanwilName: fb.kanwilName || 'Yayasan Pesantren',
             totalSeconds: Number(fb.totalSeconds || 0),
             totalMinutes: Number(fb.totalMinutes || Math.floor((fb.totalSeconds || 0) / 60)),
             ratePerSecond: Number(fb.ratePerSecond || 15),
@@ -472,15 +472,15 @@ export default function FinanceBilling() {
 
     const headers = [
       'No Tagihan/Transaksi',
-      'Nama UPT',
-      'Kantin/Koperasi',
-      'Kanwil',
+      'Pondok Pesantren',
+      'Kopontren',
+      'Yayasan',
       'Periode',
       'Total Menit',
       'Total Detik',
-      'Total Cash Kantin (Rp)',
-      'Hak Internal UPT 40% (Rp)',
-      'Setoran ke Vendor 60% (Rp)',
+      'Total Cash Kopontren (Rp)',
+      'Hak Internal Pondok 40% (Rp)',
+      'Setoran ke Platform 60% (Rp)',
       'Status Pembayaran',
       'Tanggal Verifikasi',
       'No Referensi',
@@ -673,11 +673,11 @@ export default function FinanceBilling() {
                 Alur Pascabayar
               </span>
               <h3 className="text-xs sm:text-sm font-bold text-white">
-                Kantin Pegang Cash 100% → Setor 60% ke Vendor
+                Kopontren Pegang Cash 100% → Setor 60% ke Platform
               </h3>
             </div>
-            <p className="text-[11px] text-blue-100/90 leading-relaxed">
-              Kasir kantin mengelola porsi 40% (UPT 30%, Inkopasindo 10%) di UPT, lalu mentransfer 60% porsi Vendor ke rekening penampung resmi dan mengunggah struk transfer untuk diverifikasi (ACC).
+            <p className="text-[11px] text-teal-100/90 leading-relaxed">
+              Kasir kopontren mengelola porsi bagi hasil di pondok pesantren, lalu mentransfer porsi Platform SapaKita ke rekening resmi dan mengunggah struk transfer untuk diverifikasi (ACC).
             </p>
           </div>
 
@@ -688,7 +688,7 @@ export default function FinanceBilling() {
                 <Coins className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span className="font-extrabold text-white text-[11px] truncate">1. Tunai Voucher</span>
               </div>
-              <span className="text-[10px] text-blue-200 block truncate">Kantin pegang 100%</span>
+              <span className="text-[10px] text-teal-200 block truncate">Kopontren pegang 100%</span>
             </div>
 
             {/* Step 2 */}
@@ -697,7 +697,7 @@ export default function FinanceBilling() {
                 <Store className="w-3.5 h-3.5 text-sky-300 shrink-0" />
                 <span className="font-extrabold text-white text-[11px] truncate">2. Setor 60%</span>
               </div>
-              <span className="text-[10px] text-blue-200 block truncate">Upload bukti bayar</span>
+              <span className="text-[10px] text-teal-200 block truncate">Upload bukti bayar</span>
             </div>
 
             {/* Step 3 */}
@@ -715,18 +715,18 @@ export default function FinanceBilling() {
       {/* 3 Sub-Tabs Navigasi Berstandar (Satu Baris, Scroll Mandiri di Wadah Jika Sangat Sempit) */}
       <div className="bg-white rounded-2xl p-2 sm:p-2.5 border border-slate-200/90 shadow-xs overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex items-center gap-2 whitespace-nowrap min-w-max sm:min-w-0">
-          {/* Tab 1: Konfirmasi Setoran Kantin */}
+          {/* Tab 1: Konfirmasi Setoran Kopontren */}
           <button
             type="button"
             onClick={() => setActiveSubTab('konfirmasi')}
             className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeSubTab === 'konfirmasi'
-                ? 'bg-primary text-white shadow-md shadow-primary/25 ring-2 ring-primary/20'
+                ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/25 ring-2 ring-[#0D7A73]/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
             <Wallet className={`w-4 h-4 shrink-0 ${activeSubTab === 'konfirmasi' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Konfirmasi Setoran Masuk Kantin</span>
+            <span>Konfirmasi Setoran Masuk Kopontren</span>
             {pendingRequestsList.length > 0 && (
               <span
                 className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-black ${
@@ -740,18 +740,18 @@ export default function FinanceBilling() {
             )}
           </button>
 
-          {/* Tab 2: Rekap Tagihan Bulanan Seluruh UPT */}
+          {/* Tab 2: Rekap Tagihan Bulanan Seluruh Pondok */}
           <button
             type="button"
             onClick={() => setActiveSubTab('rekap')}
             className={`flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black transition-all duration-200 cursor-pointer ${
               activeSubTab === 'rekap'
-                ? 'bg-primary text-white shadow-md shadow-primary/25 ring-2 ring-primary/20'
+                ? 'bg-[#0D7A73] text-white shadow-md shadow-teal-700/25 ring-2 ring-[#0D7A73]/20'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900'
             }`}
           >
             <Receipt className={`w-4 h-4 shrink-0 ${activeSubTab === 'rekap' ? 'text-white' : 'text-slate-500'}`} />
-            <span>Rekap Tagihan Bulanan Seluruh UPT</span>
+            <span>Rekap Tagihan Bulanan Seluruh Pondok</span>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${
                 activeSubTab === 'rekap'
@@ -845,7 +845,7 @@ export default function FinanceBilling() {
               <>Menampilkan <strong>{pendingRequestsList.length}</strong> setoran menunggu ACC</>
             )}
             {activeSubTab === 'rekap' && (
-              <>Menampilkan <strong>{filteredBillingList.length}</strong> dari <strong>{nationalBillingReports.length}</strong> Kantin UPT</>
+              <>Menampilkan <strong>{filteredBillingList.length}</strong> dari <strong>{nationalBillingReports.length}</strong> Kopontren Pondok</>
             )}
             {activeSubTab === 'riwayat' && (
               <>Menampilkan <strong>{paidHistoryList.length}</strong> transaksi terverifikasi</>
@@ -853,15 +853,15 @@ export default function FinanceBilling() {
           </span>
         </div>
 
-        {/* Pencarian Kantin / UPT */}
+        {/* Pencarian Kopontren / Pondok */}
         <div className="relative w-full lg:w-72">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
-            placeholder={activeSubTab === 'konfirmasi' ? 'Cari ID, UPT, kasir...' : 'Cari Kantin, UPT, atau Kanwil...'}
+            placeholder={activeSubTab === 'konfirmasi' ? 'Cari ID, pondok, kasir...' : 'Cari Kopontren, Pondok, atau Yayasan...'}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-1.5 bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565C0]/20 focus:border-[#1565C0] shadow-2xs transition"
+            className="w-full pl-9 pr-8 py-1.5 bg-slate-50/80 hover:bg-white focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] shadow-2xs transition"
           />
           {searchQuery && (
             <button
@@ -1005,10 +1005,10 @@ export default function FinanceBilling() {
                   <thead>
                     <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 font-black uppercase text-[11px] tracking-wider">
                       <th className="py-3 px-4">No. Pengajuan &amp; Tanggal</th>
-                      <th className="py-3 px-4">Nama UPT &amp; Kantin</th>
+                      <th className="py-3 px-4">Nama Pondok &amp; Kopontren</th>
                       <th className="py-3 px-4 text-right">Cash Bruto (100%)</th>
-                      <th className="py-3 px-4 text-right">Hak Internal UPT (40%)</th>
-                      <th className="py-3 px-4 text-right font-bold text-primary">Setoran Vendor (60%)</th>
+                      <th className="py-3 px-4 text-right">Hak Internal Pondok (40%)</th>
+                      <th className="py-3 px-4 text-right font-bold text-[#0D7A73]">Setoran Platform (60%)</th>
                       <th className="py-3 px-4 text-center">Bukti Transfer</th>
                       <th className="py-3 px-4 text-center">Status Verifikasi</th>
                     </tr>
@@ -1023,26 +1023,26 @@ export default function FinanceBilling() {
                         <tr key={item.id} className="hover:bg-amber-50/25 transition-colors">
                           {/* No Pengajuan */}
                           <td className="py-3 px-4 font-mono whitespace-nowrap">
-                            <div className="font-bold text-primary">{item.id}</div>
+                            <div className="font-bold text-[#0D7A73]">{item.id}</div>
                             <div className="text-[11px] text-slate-400">{formatTanggal(item.createdAt || item.tanggal)}</div>
                           </td>
 
-                          {/* UPT & Kantin */}
+                          {/* Pondok & Kopontren */}
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-800">{item.branchName}</div>
-                            <div className="text-[11px] text-slate-500">{item.canteenName || 'Operator Kantin Lapas'}</div>
+                            <div className="text-[11px] text-slate-500">{item.canteenName || 'Kopontren Pondok'}</div>
                           </td>
 
-                          {/* Total Cash Dipegang Kantin (100%) */}
+                          {/* Total Cash Dipegang Kopontren (100%) */}
                           <td className="py-3 px-4 text-right font-semibold text-slate-800 whitespace-nowrap">
                             {formatRupiah(gross)}
                             <span className="text-[10px] text-slate-400 block font-normal">(100% uang tunai)</span>
                           </td>
 
-                          {/* Porsi Koperasi Ditahan (30%) */}
+                          {/* Porsi Pondok Ditahan (40%) */}
                           <td className="py-3 px-4 text-right font-semibold text-sky-800 whitespace-nowrap">
                             {formatRupiah(keep)}
-                            <span className="text-[10px] text-sky-600 block font-normal">Hak internal UPT (40%)</span>
+                            <span className="text-[10px] text-sky-600 block font-normal">Hak internal Pondok (40%)</span>
                           </td>
 
                           {/* Nominal Disetor ke Finance (70%) */}
@@ -1057,7 +1057,7 @@ export default function FinanceBilling() {
                               type="button"
                               onClick={() => setProofPreviewItem({
                                 ...item,
-                                canteenName: item.canteenName || 'Operator Kantin Lapas',
+                                canteenName: item.canteenName || 'Kopontren Pondok',
                                 depositAmountToFinance: deposit,
                                 grossAmount: gross,
                                 canteenKeepAmount: keep,
@@ -1210,20 +1210,20 @@ export default function FinanceBilling() {
             <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-bold text-slate-800">
-                  Daftar Tagihan Bulanan Berbasis Detik Seluruh Kantin Lapas
+                  Daftar Tagihan Bulanan Berbasis Detik Seluruh Kopontren Pondok
                 </h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Perhitungan tagihan otomatis berdasarkan detik durasi bicara WBP dikalikan tarif per detik &amp; persen porsi kewajiban setor.
+                  Perhitungan tagihan otomatis berdasarkan detik durasi bicara santri dikalikan tarif per detik &amp; persen porsi kewajiban setor.
                 </p>
               </div>
               <span className="text-xs text-slate-500 font-medium">
-                Total: <strong>{filteredBillingList.length}</strong> Kantin
+                Total: <strong>{filteredBillingList.length}</strong> Kopontren
               </span>
             </div>
 
             {isLoading ? (
               <div className="py-16 text-center space-y-3">
-                <div className="w-10 h-10 border-3 border-blue-200 border-t-[#1565C0] rounded-full animate-spin mx-auto" />
+                <div className="w-10 h-10 border-3 border-teal-200 border-t-[#0D7A73] rounded-full animate-spin mx-auto" />
                 <p className="text-xs font-semibold text-slate-500">Memuat rekapitulasi tagihan...</p>
               </div>
             ) : filteredBillingList.length === 0 ? (
@@ -1241,8 +1241,8 @@ export default function FinanceBilling() {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 font-black uppercase text-[11px] tracking-wider">
-                      <th className="py-3 px-4">Nama Kantin &amp; Koperasi</th>
-                      <th className="py-3 px-4">UPT &amp; Kanwil</th>
+                      <th className="py-3 px-4">Nama Kopontren &amp; Pondok</th>
+                      <th className="py-3 px-4">Pondok &amp; Yayasan</th>
                       <th className="py-3 px-4 text-center">Total Durasi</th>
                       <th className="py-3 px-4 text-right">Total Tagihan (Detik × Tarif)</th>
                       <th className="py-3 px-4 text-center">Pembagian Hasil</th>
@@ -1260,7 +1260,7 @@ export default function FinanceBilling() {
                           {/* Nama Kantin */}
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-8 h-8 rounded-xl bg-blue-50 text-primary border border-blue-100 flex items-center justify-center shrink-0">
+                              <div className="w-8 h-8 rounded-xl bg-teal-50 text-[#0D7A73] border border-teal-100 flex items-center justify-center shrink-0">
                                 <Store className="w-4 h-4" />
                               </div>
                               <div>
@@ -1268,13 +1268,13 @@ export default function FinanceBilling() {
                                   {item.canteenName}
                                 </span>
                                 <span className="text-[11px] text-slate-400 block">
-                                  Operator Kantin Lapas
+                                  Kopontren Pondok
                                 </span>
                               </div>
                             </div>
                           </td>
 
-                          {/* UPT & Kanwil */}
+                          {/* Pondok & Yayasan */}
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-800">{item.uptName || item.branchName}</div>
                             <div className="text-[11px] text-slate-500">{item.kanwilName}</div>
@@ -1292,7 +1292,7 @@ export default function FinanceBilling() {
 
                           {/* Total Tagihan */}
                           <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <div className="font-extrabold text-primary text-sm">
+                            <div className="font-extrabold text-[#0D7A73] text-sm">
                               {formatRupiah(item.totalAmount || item.grossAmount || 0)}
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">
@@ -1300,17 +1300,17 @@ export default function FinanceBilling() {
                             </div>
                           </td>
 
-                          {/* Pembagian Hasil 4 Pihak Ringkas */}
+                          {/* Pembagian Hasil 2 Pihak Ringkas */}
                           <td className="py-3 px-4">
                             <div className="flex flex-col gap-1 text-[11px] min-w-[200px]">
                               <div className="flex justify-between bg-sky-50 text-sky-900 px-2 py-0.5 rounded">
-                                <span>Hak UPT (45% Dikelola UPT):</span>
+                                <span>Hak Pondok (40% Dikelola Pondok):</span>
                                 <span className="font-bold">
                                   {formatRupiah(item.canteenKeepAmount || item.shares?.koperasi?.amount || Math.round((item.totalAmount || 0) * 0.40))}
                                 </span>
                               </div>
                               <div className="flex justify-between bg-emerald-50 text-emerald-900 px-2 py-0.5 rounded">
-                                <span>Setor ke Vendor (60%):</span>
+                                <span>Setoran ke Platform (60%):</span>
                                 <span className="font-bold">
                                   {formatRupiah(item.depositAmountToFinance || Math.round((item.totalAmount || 0) * 0.60))}
                                 </span>
@@ -1479,7 +1479,7 @@ export default function FinanceBilling() {
                   <thead>
                     <tr className="bg-slate-50/90 border-b border-slate-200/80 text-slate-500 font-black uppercase text-[11px] tracking-wider">
                       <th className="py-3 px-4">No. Referensi &amp; Tanggal</th>
-                      <th className="py-3 px-4">UPT &amp; Kantin</th>
+                      <th className="py-3 px-4">Pondok &amp; Kopontren</th>
                       <th className="py-3 px-4 text-right">Nominal Setoran</th>
                       <th className="py-3 px-4">Verifikator Finance</th>
                       <th className="py-3 px-4 text-center">Bukti Struk</th>
@@ -1500,10 +1500,10 @@ export default function FinanceBilling() {
                             </div>
                           </td>
 
-                          {/* UPT */}
+                          {/* Pondok & Kopontren */}
                           <td className="py-3 px-4">
                             <div className="font-bold text-slate-800">{item.branchName}</div>
-                            <div className="text-[11px] text-slate-500">{item.canteenName || 'Operator Kantin Lapas'}</div>
+                            <div className="text-[11px] text-slate-500">{item.canteenName || 'Kopontren Pondok'}</div>
                           </td>
 
                           {/* Nominal */}
@@ -1525,7 +1525,7 @@ export default function FinanceBilling() {
                               type="button"
                               onClick={() => setProofPreviewItem({
                                 ...item,
-                                canteenName: item.canteenName || 'Operator Kantin Lapas',
+                                canteenName: item.canteenName || 'Kopontren Pondok',
                                 depositAmountToFinance: item.totalBayar || item.nominal || item.depositAmountToFinance || item.grossAmount,
                                 grossAmount: item.totalBayar || item.nominal || item.grossAmount,
                               })}
@@ -1613,8 +1613,8 @@ canApprove={canManageBilling}
             <form onSubmit={handleConfirmApprove} className="py-4 space-y-4 text-xs">
               <div className="p-4 bg-slate-50 border border-slate-200/90 rounded-2xl space-y-2.5">
                 <div className="flex justify-between items-center text-slate-700">
-                  <span className="text-slate-500 font-medium">UPT &amp; Kantin:</span>
-                  <span className="font-bold text-slate-900 text-right">{approveModalItem.branchName || approveModalItem.uptName} &bull; {approveModalItem.canteenName || 'Kantin'}</span>
+                  <span className="text-slate-500 font-medium">Pondok &amp; Kopontren:</span>
+                  <span className="font-bold text-slate-900 text-right">{approveModalItem.branchName || approveModalItem.uptName} &bull; {approveModalItem.canteenName || 'Kopontren'}</span>
                 </div>
                 <div className="flex justify-between items-center text-slate-700">
                   <span className="text-slate-500 font-medium">Total Cash Bruto (100%):</span>
@@ -1623,13 +1623,13 @@ canApprove={canManageBilling}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sky-800">
-                  <span className="text-slate-500 font-medium">Hak Dikelola UPT (40%):</span>
+                  <span className="text-slate-500 font-medium">Hak Dikelola Pondok (40%):</span>
                   <span className="font-bold text-sky-700">
                     {formatRupiah(approveModalItem.canteenKeepAmount || Math.round((approveModalItem.grossAmount || approveModalItem.nominal || 0) * 0.40))}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-sm font-black">
-                  <span className="text-slate-900">Setoran Diterima Vendor (60%):</span>
+                  <span className="text-slate-900">Setoran Diterima Platform (60%):</span>
                   <span className="text-emerald-600 text-base">
                     {formatRupiah(approveModalItem.depositAmountToFinance || approveModalItem.totalBayar || approveModalItem.nominal || Math.round((approveModalItem.grossAmount || 0) * 0.60))}
                   </span>
@@ -1732,7 +1732,7 @@ canApprove={canManageBilling}
 
       {/* =========================================================================
           MODAL DETAIL TERPADU (Layout & Komponen dari CanteenTopup Superadmin)
-          Memuat: Rincian Tagihan, Log Panggilan WBP, Struk Transfer, dan Aksi ACC/Tolak
+          Memuat: Rincian Tagihan, Log Panggilan Santri, Struk Transfer, dan Aksi ACC/Tolak
           ========================================================================= */}
       {detailModalItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
@@ -1778,12 +1778,12 @@ canApprove={canManageBilling}
                 onClick={() => setDetailModalTab('calls')}
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-bold transition cursor-pointer ${
                   detailModalTab === 'calls'
-                    ? 'bg-[#0B3D91] text-white shadow-2xs'
+                    ? 'bg-[#0D7A73] text-white shadow-2xs'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 }`}
               >
                 <PhoneCall className="w-3.5 h-3.5" />
-                <span>Log Rincian Panggilan WBP</span>
+                <span>Log Rincian Panggilan Santri</span>
                 {modalCallsData.totalItems > 0 && (
                   <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-[10px]">
                     {modalCallsData.totalItems}
@@ -1795,25 +1795,25 @@ canApprove={canManageBilling}
             <div className="py-4 space-y-4 max-h-[65vh] overflow-y-auto pr-1">
               {detailModalTab === 'summary' ? (
                 <>
-                  {/* UPT Info Card */}
+                  {/* Pondok Info Card */}
                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                       <div>
-                        <span className="text-slate-400 font-medium">Satuan Kerja / UPT:</span>
+                        <span className="text-slate-400 font-medium">Pondok Pesantren:</span>
                         <p className="font-bold text-slate-800 text-sm mt-0.5">{detailModalItem.uptName || detailModalItem.branchName}</p>
-                        <p className="text-slate-500">{detailModalItem.kanwilName || 'Kanwil Ditjenpas'}</p>
+                        <p className="text-slate-500">{detailModalItem.kanwilName || 'Yayasan Pesantren'}</p>
                       </div>
                       <div>
-                        <span className="text-slate-400 font-medium">Pengelola Kantin:</span>
+                        <span className="text-slate-400 font-medium">Pengelola Kopontren:</span>
                         <p className="font-bold text-slate-800 text-sm mt-0.5">{detailModalItem.canteenName}</p>
-                        <p className="text-slate-500">Rekening Tujuan: Bank Mandiri Sadewa</p>
+                        <p className="text-slate-500">Rekening Tujuan: Bank Mandiri SapaKita</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Rincian Finansial Detik & Nilai Tagihan */}
-                  <div className="p-4 rounded-2xl border border-blue-100 bg-blue-50/40 space-y-3">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#0B3D91]">
+                  <div className="p-4 rounded-2xl border border-teal-100 bg-teal-50/40 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#0D7A73]">
                       Kalkulasi Tagihan Berbasis Detik Panggilan
                     </h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
@@ -1834,18 +1834,18 @@ canApprove={canManageBilling}
                         <span className="text-[10px] text-slate-400 font-normal">Omset kotor voucher</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-sky-700 block">Hak Internal UPT (40%):</span>
+                        <span className="text-sky-700 block">Hak Internal Pondok (40%):</span>
                         <span className="font-bold text-sky-900 text-sm mt-1 block">
                           {formatRupiah(detailModalItem.canteenKeepAmount || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.40))}
                         </span>
-                        <span className="text-[10px] text-sky-600 font-normal">Dikelola internal UPT</span>
+                        <span className="text-[10px] text-sky-600 font-normal">Dikelola internal Pondok</span>
                       </div>
                       <div className="bg-white p-3 rounded-xl border border-slate-100">
-                        <span className="text-emerald-700 block">Setor ke Vendor (60%):</span>
+                        <span className="text-emerald-700 block">Setor ke Platform (60%):</span>
                         <span className="font-extrabold text-emerald-800 text-sm mt-1 block">
                           {formatRupiah(detailModalItem.depositAmountToFinance || Math.round((detailModalItem.grossAmount || detailModalItem.totalAmount || 0) * 0.60))}
                         </span>
-                        <span className="text-[10px] text-emerald-600 font-normal">Disetor ke vendor</span>
+                        <span className="text-[10px] text-emerald-600 font-normal">Disetor ke Platform</span>
                       </div>
                     </div>
                   </div>
@@ -1964,15 +1964,15 @@ canApprove={canManageBilling}
                   )}
                 </>
               ) : (
-                /* Tab 2 Dalam Modal: Log Rincian Panggilan WBP */
+                /* Tab 2 Dalam Modal: Log Rincian Panggilan Santri */
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-bold text-slate-700">
-                      Log Sesi Panggilan WBP UPT Ini (Total: {modalCallsData.totalItems})
+                      Log Sesi Panggilan Santri Pondok Ini (Total: {modalCallsData.totalItems})
                     </span>
                     <input
                       type="text"
-                      placeholder="Cari nomor / nama WBP..."
+                      placeholder="Cari NIS / nama santri..."
                       value={modalCallsSearch}
                       onChange={(e) => {
                         setModalCallsSearch(e.target.value);
@@ -1984,7 +1984,7 @@ canApprove={canManageBilling}
 
                   {isLoadingModalCalls ? (
                     <div className="py-8 text-center text-slate-400 text-xs">
-                      <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#0B3D91] mb-1" />
+                      <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[#0D7A73] mb-1" />
                       <span>Memuat log panggilan...</span>
                     </div>
                   ) : modalCallsData.items?.length === 0 ? (
@@ -1997,7 +1997,7 @@ canApprove={canManageBilling}
                         <thead>
                           <tr className="bg-slate-50 text-slate-500 font-semibold border-b border-slate-100">
                             <th className="py-2 px-3">Waktu</th>
-                            <th className="py-2 px-3">Nama WBP</th>
+                            <th className="py-2 px-3">Nama Santri</th>
                             <th className="py-2 px-3">Tujuan</th>
                             <th className="py-2 px-3 text-right">Durasi</th>
                             <th className="py-2 px-3 text-right">Tagihan</th>
@@ -2024,10 +2024,10 @@ canApprove={canManageBilling}
                                   {formattedDate}
                                 </td>
                                 <td className="py-2.5 px-3">
-                                  <div className="font-semibold text-slate-800">{c.inmateName || 'WBP'}</div>
+                                  <div className="font-semibold text-slate-800">{c.inmateName || 'Santri'}</div>
                                   {(c.inmateIdentifier || c.kodeVoucher) && (
                                     <div className="text-[10px] text-slate-400 font-mono">
-                                      {c.inmateIdentifier ? `NIP: ${c.inmateIdentifier}` : `Kode: ${c.kodeVoucher}`}
+                                      {c.inmateIdentifier ? `NIS: ${c.inmateIdentifier}` : `Kode: ${c.kodeVoucher}`}
                                     </div>
                                   )}
                                 </td>
@@ -2037,7 +2037,7 @@ canApprove={canManageBilling}
                                 <td className="py-2.5 px-3 text-right font-medium text-slate-800 whitespace-nowrap">
                                   {callDuration.toLocaleString('id-ID')} dtk
                                 </td>
-                                <td className="py-2.5 px-3 text-right font-bold text-[#0B3D91] whitespace-nowrap">
+                                <td className="py-2.5 px-3 text-right font-bold text-[#0D7A73] whitespace-nowrap">
                                   {formatRupiah(callCost)}
                                 </td>
                               </tr>

@@ -410,7 +410,7 @@ export default function FinanceContracts() {
           onClick={() => setActiveTab('contracts')}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'contracts'
-              ? 'bg-primary text-white shadow-sm shadow-primary/20'
+              ? 'bg-[#0D7A73] text-white shadow-sm shadow-teal-700/20'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
           }`}
         >
@@ -423,7 +423,7 @@ export default function FinanceContracts() {
           onClick={() => setActiveTab('payment-settings')}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'payment-settings'
-              ? 'bg-primary text-white shadow-sm shadow-primary/20'
+              ? 'bg-[#0D7A73] text-white shadow-sm shadow-teal-700/20'
               : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200/80'
           }`}
         >
@@ -556,7 +556,7 @@ export default function FinanceContracts() {
                   placeholder="Cari pondok, kopontren, yayasan..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary font-medium"
+                  className="w-full pl-9 pr-3.5 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73] font-medium"
                 />
               </div>
             </div>
@@ -650,8 +650,8 @@ export default function FinanceContracts() {
                             {isSuperadmin ? (
                               <button
                                 onClick={() => openEditModal(c)}
-                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-primary text-xs font-bold transition shadow-2xs cursor-pointer border border-teal-200/60"
-                                title="Ubah persentase & tarif kontrak kampus ini"
+                                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-teal-50 hover:bg-teal-100 text-[#0D7A73] text-xs font-bold transition shadow-2xs cursor-pointer border border-teal-200/60"
+                                title="Ubah persentase & tarif kontrak pondok ini"
                               >
                                 <Sliders className="w-3.5 h-3.5" />
                                 <span>Ubah Persentase</span>
@@ -685,7 +685,7 @@ export default function FinanceContracts() {
         <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
           <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-teal-50/70 via-cyan-50/40 to-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-md shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[#0D7A73] text-white flex items-center justify-center shadow-md shrink-0">
                 <QrCode className="w-5 h-5" />
               </div>
               <div>
@@ -769,7 +769,7 @@ export default function FinanceContracts() {
                         placeholder="Contoh: Bank Syariah Indonesia (BSI)"
                         className={`w-full pl-10 pr-3 py-2.5 border rounded-xl text-xs font-semibold shadow-2xs ${
                           isSuperadmin
-                            ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary bg-white'
+                            ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] bg-white'
                             : 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed'
                         }`}
                         required
@@ -790,7 +790,7 @@ export default function FinanceContracts() {
                       placeholder="Contoh: 711-22-3344556-0"
                       className={`w-full px-3 py-2.5 border rounded-xl text-xs font-mono font-bold shadow-2xs ${
                         isSuperadmin
-                          ? 'border-slate-200 text-slate-900 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary bg-white'
+                          ? 'border-slate-200 text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] bg-white'
                           : 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed'
                       }`}
                       required
@@ -810,7 +810,7 @@ export default function FinanceContracts() {
                       placeholder="Contoh: PT SapaKita Solusi Pesantren"
                       className={`w-full px-3 py-2.5 border rounded-xl text-xs font-semibold shadow-2xs ${
                         isSuperadmin
-                          ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary bg-white'
+                          ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] bg-white'
                           : 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed'
                       }`}
                       required
@@ -878,7 +878,7 @@ export default function FinanceContracts() {
                               <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-primary border border-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                                className="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-[#0D7A73] border border-teal-200 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-2xs"
                               >
                                 <Upload className="w-3.5 h-3.5" />
                                 <span>{qrisPreview ? 'Ganti Barcode QRIS...' : 'Unggah Barcode QRIS...'}</span>
@@ -945,7 +945,7 @@ export default function FinanceContracts() {
                       placeholder="Instruksi transfer dan konfirmasi..."
                       className={`w-full px-3.5 py-2.5 border rounded-xl text-xs font-medium shadow-2xs resize-none ${
                         isSuperadmin
-                          ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary bg-white'
+                          ? 'border-slate-200 text-slate-800 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] bg-white'
                           : 'border-slate-200 bg-slate-50 text-slate-600 cursor-not-allowed'
                       }`}
                     />
@@ -958,7 +958,7 @@ export default function FinanceContracts() {
                   <button
                     type="submit"
                     disabled={isSavingPayment}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-primary hover:bg-primary-dark text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#0D7A73] hover:bg-[#0B6660] text-white text-xs font-bold rounded-xl shadow-sm transition-all cursor-pointer disabled:opacity-50"
                   >
                     {isSavingPayment ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     <span>Simpan Pengaturan Pembayaran</span>
@@ -1008,7 +1008,7 @@ export default function FinanceContracts() {
                     step="1"
                     value={globalFormRate}
                     onChange={(e) => setGlobalFormRate(e.target.value)}
-                    className="w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    className="w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#0D7A73]/20 focus:border-[#0D7A73]"
                     placeholder="15"
                     required
                     autoFocus
@@ -1028,16 +1028,16 @@ export default function FinanceContracts() {
                     type="checkbox"
                     checked={applyToAllBranches}
                     onChange={(e) => setApplyToAllBranches(e.target.checked)}
-                    className="w-4 h-4 mt-0.5 rounded border-slate-300 text-primary focus:ring-primary cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded border-slate-300 text-[#0D7A73] focus:ring-[#0D7A73] cursor-pointer"
                   />
                   <div className="text-xs">
                     <span className="font-bold text-slate-800 block">
-                      Terapkan juga tarif ini ke seluruh Kampus Pesantren aktif saat ini
+                      Terapkan juga tarif ini ke seluruh Pondok Pesantren aktif saat ini
                     </span>
                     <span className="text-slate-500 text-[11px] leading-relaxed block mt-0.5">
                       {applyToAllBranches
-                        ? 'Seluruh data kampus dan kontrak aktif akan otomatis diperbarui ke tarif ini.'
-                        : 'Tarif hanya akan disimpan sebagai default acuan global baru untuk pendaftaran kampus baru.'}
+                        ? 'Seluruh data pondok dan kontrak aktif akan otomatis diperbarui ke tarif ini.'
+                        : 'Tarif hanya akan disimpan sebagai default acuan global baru untuk pendaftaran pondok baru.'}
                     </span>
                   </div>
                 </label>
@@ -1055,7 +1055,7 @@ export default function FinanceContracts() {
                 <button
                   type="submit"
                   disabled={isSavingGlobal}
-                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-[#0D7A73] hover:bg-[#0B6660] text-white text-xs font-bold transition-all shadow-md cursor-pointer disabled:opacity-50"
                 >
                   {isSavingGlobal ? (
                     <>

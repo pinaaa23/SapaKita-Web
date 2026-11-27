@@ -137,15 +137,15 @@ const List = () => {
       return {
         'ID Transaksi': t.id,
         'Kode Voucher': t.kodeVoucher,
-        'Nama WBP': t.inmateName,
-        'NIP': t.inmateId,
-        'Blok/Kamar': t.inmateBlock || '-',
+        'Nama Santri': t.inmateName,
+        'NIS': t.inmateId,
+        'Asrama / Kamar': t.inmateBlock || '-',
         'Paket': t.packageName,
         'Durasi (Menit)': t.durationMinutes || 0,
         'Nominal (Rp)': t.amount,
         'DPP': t.dpp || 0,
         'PPN': t.ppn || 0,
-        'Petugas Kasir': t.officerName || 'Petugas Kasir',
+        'Petugas Kasir': t.officerName || 'Kasir Kopontren',
         'Status Voucher': t.isVoucherUsed ? 'Sudah Digunakan' : 'Belum Digunakan',
         'Metode': t.method || 'Tunai',
         'Status Transaksi': t.status,
@@ -153,10 +153,10 @@ const List = () => {
       };
     });
 
-    const filename = `Data_Transaksi_Kantin_Nasional_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const success = exportToExcel(exportData, filename, 'Transaksi Kantin Nasional', {
-      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KANTIN NASIONAL SADEWA',
-      subtitle: 'Rekapitulasi Konsolidasi Seluruh Pembelian Paket Voucher Kantin Se-Indonesia',
+    const filename = `Data_Transaksi_Voucher_SapaKita_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const success = exportToExcel(exportData, filename, 'Transaksi Voucher SapaKita', {
+      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET VOUCHER KOPONTREN SAPAKITA',
+      subtitle: 'Rekapitulasi Konsolidasi Seluruh Pembelian Paket Voucher Kopontren Pondok Pesantren',
       metadata: {
         'Tingkat': 'Pusat / Nasional',
         'Dicetak Oleh': `${userName || 'Super Administrator'} (Super Administrator)`,
@@ -242,10 +242,10 @@ const List = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
             <input 
               type="text" 
-              placeholder="Cari ID transaksi, kode voucher, nama WBP, NIP, atau paket..." 
+              placeholder="Cari ID transaksi, kode voucher, nama santri, NIS, atau paket..." 
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full pl-10 pr-9 py-2 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+              className="w-full pl-10 pr-9 py-2 bg-slate-50/70 hover:bg-slate-50 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all shadow-2xs"
             />
             {searchInput && (
               <button 
@@ -263,7 +263,7 @@ const List = () => {
             <button 
               type="button"
               onClick={handleExport}
-              className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-primary rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
+              className="px-3.5 py-2 bg-white border border-slate-200/80 text-slate-700 hover:bg-slate-50 hover:text-[#0D7A73] rounded-xl font-bold flex items-center gap-2 shadow-2xs transition-all text-xs cursor-pointer"
               title="Export data transaksi ke Excel (.xlsx)"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" /> 
@@ -356,7 +356,7 @@ const List = () => {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[22%]">Waktu &amp; ID Transaksi</th>
-                <th className="py-3.5 px-3 whitespace-nowrap w-[19%]">Warga Binaan &amp; NIP</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[19%]">Santri &amp; NIS</th>
                 <th className="py-3.5 px-3 min-w-[140px] w-[18%]">Paket Komunikasi</th>
                 <th className="py-3.5 px-3 whitespace-nowrap w-[14%]">Kode Voucher</th>
                 <th className="py-3.5 px-3 text-center whitespace-nowrap w-[12%]">Status Voucher</th>
@@ -396,14 +396,14 @@ const List = () => {
                         </div>
                       </td>
 
-                      {/* Warga Binaan & NIP */}
+                      {/* Santri & NIS */}
                       <td className="py-3.5 px-3 max-w-[160px]">
                         <p className="font-bold text-slate-800 text-xs truncate" title={trx.inmateName}>
                           {trx.inmateName}
                         </p>
                         <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 mt-0.5">
-                          <span className="font-mono text-slate-400 truncate" title={`NIP: ${trx.inmateId}`}>
-                            NIP: {trx.inmateId && trx.inmateId.length > 15 ? `${trx.inmateId.slice(0, 13)}...` : trx.inmateId}
+                          <span className="font-mono text-slate-400 truncate" title={`NIS: ${trx.inmateId}`}>
+                            NIS: {trx.inmateId && trx.inmateId.length > 15 ? `${trx.inmateId.slice(0, 13)}...` : trx.inmateId}
                           </span>
                         </div>
                       </td>
@@ -416,7 +416,7 @@ const List = () => {
                         {(() => {
                           const dur = trx.durationMinutes || trx.package?.durationMinutes || trx.package?.durasi || trx.packageDuration || trx.durasi || (typeof trx.paket?.durasi === 'string' ? parseInt(trx.paket.durasi, 10) : trx.paket?.durasi) || 0;
                           return dur > 0 ? (
-                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/60">
+                            <span className="inline-block mt-0.5 text-[10px] font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-200/60">
                               {dur} Menit
                             </span>
                           ) : null;
@@ -458,7 +458,7 @@ const List = () => {
                             setIsCopied(false);
                             setIsDetailModalOpen(true);
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-primary text-primary hover:text-white rounded-xl text-xs font-bold transition-all border border-blue-100 cursor-pointer shadow-2xs"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-50 hover:bg-[#0D7A73] text-[#0D7A73] hover:text-white rounded-xl text-xs font-bold transition-all border border-teal-100 cursor-pointer shadow-2xs"
                           title="Lihat Rincian Lengkap & Struk"
                         >
                           <FileText className="w-3.5 h-3.5" />
@@ -470,11 +470,11 @@ const List = () => {
                 })
               ) : (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center text-slate-400">
                       <SearchX className="w-10 h-10 mb-2 text-slate-300" />
                       <p className="font-semibold text-slate-700 text-sm">Belum ada transaksi</p>
-                      <p className="text-xs text-slate-400 mt-1">Tidak ada catatan transaksi pembelian paket kantin yang tersedia.</p>
+                      <p className="text-xs text-slate-400 mt-1">Tidak ada catatan transaksi pembelian paket voucher yang tersedia.</p>
                     </div>
                   </td>
                 </tr>
@@ -561,20 +561,20 @@ const List = () => {
                 <span className="font-bold text-slate-800 font-mono text-[11px] bg-slate-100 px-2 py-0.5 rounded">{selectedTrx.id}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Warga Binaan (WBP)</span>
+                <span className="text-slate-400 font-medium">Santri</span>
                 <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Nomor Induk (NIP)</span>
+                <span className="text-slate-400 font-medium">Nomor Induk Santri (NIS)</span>
                 <span className="font-bold font-mono text-slate-700">{selectedTrx.inmateId}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Kamar / Blok</span>
+                <span className="text-slate-400 font-medium">Asrama / Kamar</span>
                 <span className="font-semibold text-slate-700">{selectedTrx.inmateBlock || '-'}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-slate-400 font-medium">Petugas Kasir</span>
-                <span className="font-bold text-slate-800">{selectedTrx.officerName || 'Petugas Kasir'}</span>
+                <span className="text-slate-400 font-medium">Kasir Kopontren</span>
+                <span className="font-bold text-slate-800">{selectedTrx.officerName || 'Kasir Kopontren'}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-slate-400 font-medium">Waktu Transaksi</span>

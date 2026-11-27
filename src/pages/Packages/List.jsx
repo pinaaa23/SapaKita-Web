@@ -69,7 +69,7 @@ export default function PackagesList() {
       setAllPackages(packageItems);
     } catch (err) {
       console.error('[PackagesList] Gagal memuat data:', err);
-      showToast('Gagal memuat data cabang dan paket komunikasi.', 'error');
+      showToast('Gagal memuat data pondok dan paket komunikasi.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -205,10 +205,10 @@ export default function PackagesList() {
                 <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
                   type="text"
-                  placeholder="Cari berdasarkan nama UPT atau kota/wilayah..."
+                  placeholder="Cari berdasarkan nama pondok atau lokasi/kabupaten..."
                   value={branchSearch}
                   onChange={(e) => setBranchSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all shadow-2xs"
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200/80 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all shadow-2xs"
                 />
               </div>
 
@@ -232,8 +232,8 @@ export default function PackagesList() {
 
             {/* Sub-info ringkas peran Superadmin */}
             <div className="pt-2.5 border-t border-slate-100 flex items-center gap-2 text-[11px] text-slate-500 font-medium">
-              <Layers className="w-3.5 h-3.5 text-primary shrink-0" />
-              <span>Tarif &amp; paket diterbitkan oleh Supervisor (SPV) cabang UPT masing-masing. Superadmin memantau seluruh katalog secara terpusat.</span>
+              <Layers className="w-3.5 h-3.5 text-[#0D7A73] shrink-0" />
+              <span>Tarif &amp; paket diterbitkan oleh Pengelola Pondok Pesantren masing-masing. Superadmin memantau seluruh katalog secara terpusat.</span>
             </div>
           </div>
 
@@ -243,7 +243,7 @@ export default function PackagesList() {
               <table className="w-full text-left border-collapse text-xs min-w-[560px]">
                 <thead>
                   <tr className="bg-slate-50/80 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                    <th className="py-3.5 px-6 text-left w-[35%]">Nama UPT</th>
+                    <th className="py-3.5 px-6 text-left w-[35%]">Nama Pondok Pesantren</th>
                     <th className="py-3.5 px-6 text-center w-[25%]">Jumlah Paket</th>
                     <th className="py-3.5 px-6 text-center w-[25%]">Rentang Harga</th>
                     <th className="py-3.5 px-6 text-center w-[15%]">Aksi</th>
@@ -254,8 +254,8 @@ export default function PackagesList() {
                     <tr>
                       <td colSpan="4" className="py-12 text-center text-slate-400">
                         <div className="flex flex-col items-center justify-center gap-2">
-                          <span className="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin"></span>
-                          <span className="font-semibold text-xs text-slate-500">Memuat data cabang dan paket...</span>
+                          <span className="w-6 h-6 border-2 border-[#0D7A73]/20 border-t-[#0D7A73] rounded-full animate-spin"></span>
+                          <span className="font-semibold text-xs text-slate-500">Memuat data pondok dan paket...</span>
                         </div>
                       </td>
                     </tr>
@@ -264,7 +264,7 @@ export default function PackagesList() {
                       <td colSpan="4" className="py-12 text-center text-slate-400">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <Building2 className="w-8 h-8 text-slate-300" />
-                          <p className="font-semibold text-xs text-slate-500">Tidak ada cabang yang sesuai dengan pencarian.</p>
+                          <p className="font-semibold text-xs text-slate-500">Tidak ada pondok pesantren yang sesuai dengan pencarian.</p>
                         </div>
                       </td>
                     </tr>
@@ -276,8 +276,8 @@ export default function PackagesList() {
                             <tr key={branch.id} className="hover:bg-slate-50/70 transition-colors">
                               <td className="py-3.5 px-6">
                                 <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center shrink-0 border border-slate-200">
-                                    <Building2 className="w-4 h-4 text-primary" />
+                                  <div className="w-9 h-9 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center shrink-0 border border-teal-100">
+                                    <Building2 className="w-4 h-4 text-[#0D7A73]" />
                                   </div>
                                   <div>
                                     <div className="font-bold text-slate-900 text-xs">{branch.name}</div>
@@ -311,7 +311,7 @@ export default function PackagesList() {
                                 <div className="flex items-center justify-center">
                                   <button
                                     onClick={() => setSelectedBranch(branch)}
-                                    className="px-3.5 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                                    className="px-3.5 py-1.5 bg-white hover:bg-teal-50 border border-slate-200 hover:border-teal-200 text-slate-700 hover:text-[#0D7A73] rounded-xl font-bold text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                                   >
                                     <Eye className="w-3.5 h-3.5 text-slate-500" />
                                     <span>Lihat</span>
@@ -343,14 +343,14 @@ export default function PackagesList() {
                       setSelectedCategory('semua');
                       setStatusFilter('semua');
                     }}
-                    className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-primary transition-colors bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200/80 cursor-pointer"
+                    className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-[#0D7A73] transition-colors bg-slate-50 hover:bg-teal-50 px-3 py-1.5 rounded-xl border border-slate-200/80 hover:border-teal-200 cursor-pointer"
                   >
-                    <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Cabang
+                    <ArrowLeft className="w-4 h-4" /> Kembali ke Daftar Pondok
                   </button>
 
                   <div className="flex items-center gap-3 pt-1">
-                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                      <Building2 className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-teal-50 text-[#0D7A73] flex items-center justify-center shrink-0 border border-teal-100">
+                      <Building2 className="w-5 h-5 text-[#0D7A73]" />
                     </div>
                     <div>
                       <h1 className="text-lg font-black text-slate-900 tracking-tight">
@@ -420,7 +420,7 @@ export default function PackagesList() {
                         placeholder="Cari nama paket..."
                         value={packageSearch}
                         onChange={(e) => setPackageSearch(e.target.value)}
-                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all"
+                        className="w-full pl-9 pr-4 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all"
                       />
                     </div>
 
@@ -428,7 +428,7 @@ export default function PackagesList() {
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="w-full sm:w-auto px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary transition-all cursor-pointer"
+                      className="w-full sm:w-auto px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-4 focus:ring-[#0D7A73]/10 focus:border-[#0D7A73] transition-all cursor-pointer"
                     >
                       <option value="semua">Semua Status</option>
                       <option value="Aktif">Aktif</option>
@@ -460,9 +460,9 @@ export default function PackagesList() {
                                 <Package className="w-6 h-6" />
                               </div>
                               <div className="space-y-1">
-                                <p className="font-bold text-sm text-slate-800">Cabang Belum Memiliki Paket</p>
+                                <p className="font-bold text-sm text-slate-800">Pondok Belum Memiliki Paket</p>
                                 <p className="text-xs text-slate-500">
-                                  Supervisor (SPV) cabang ini belum membuat atau menerapkan paket komunikasi untuk UPT-nya.
+                                  Pengelola pondok ini belum membuat atau menerapkan paket komunikasi untuk santrinya.
                                 </p>
                               </div>
                             </div>
