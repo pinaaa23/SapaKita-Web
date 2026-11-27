@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const roleLabel = useMemo(() => {
     if (!role) return '';
-    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : (role === ROLES.KEPALA_UPT ? 'Pimpinan Kampus' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
+    return ROLE_LABELS[role] || (role === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : (role === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : (role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : (role === ROLES.SUPERADMIN ? 'Super Administrator' : ''))));
   }, [role]);
 
   // Nama pengguna akun yang login (bukan label role). Fallback ke token/email jika user.name kosong.

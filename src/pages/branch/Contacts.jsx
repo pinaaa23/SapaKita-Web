@@ -233,7 +233,7 @@ const Contacts = () => {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
             <input 
               type="text" 
-              placeholder="Cari nama, WBP, atau nomor..." 
+              placeholder="Cari nama, santri, atau nomor..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-white font-medium"
@@ -303,7 +303,7 @@ const Contacts = () => {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 pl-4 pr-2 text-left whitespace-nowrap w-28">Tgl Diajukan</th>
-                <th className="py-3 px-3 text-left">Nama Narapidana</th>
+                <th className="py-3 px-3 text-left">Nama Santri</th>
                 <th className="py-3 px-3 text-left">Kontak &amp; Hubungan</th>
                 <th className="py-3 px-3 text-center whitespace-nowrap w-28">Status</th>
                 <th className="py-3 pl-2 pr-4 text-center whitespace-nowrap w-36">Aksi</th>
@@ -332,7 +332,7 @@ const Contacts = () => {
                         <span>{contact.napiName.split(' (')[0]}</span>
                       </div>
                       <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        No ID: {contact.wbpRegNumber}
+                        NIS: {contact.wbpRegNumber}
                       </div>
                     </td>
                     <td className="py-3 px-3">
@@ -449,7 +449,7 @@ const Contacts = () => {
 
           <div>
             <label className="block font-bold text-slate-700 mb-1.5">
-              Nomor Registrasi Narapidana <span className="text-rose-500">*</span>
+              NIS (Nomor Induk Santri) <span className="text-rose-500">*</span>
             </label>
             {inmatesList.length > 0 ? (
               <select
@@ -512,7 +512,7 @@ const Contacts = () => {
         onClose={() => !isSubmitting && setIsApproveModalOpen(false)}
         onConfirm={confirmApprove}
         title="Konfirmasi Persetujuan Kontak"
-        message={`Apakah Anda yakin ingin menyetujui permohonan kontak ${selectedContact?.contactName} untuk narapidana ${selectedContact?.napiName}?`}
+        message={`Apakah Anda yakin ingin menyetujui permohonan kontak ${selectedContact?.contactName} untuk santri ${selectedContact?.napiName}?`}
         confirmText={isSubmitting ? "Memproses..." : "Ya, Setujui Kontak"}
       />
 
@@ -581,7 +581,7 @@ const Contacts = () => {
                 <span className="font-bold font-mono text-slate-800">{selectedContact.phone}</span>
               </div>
               <div>
-                <span className="text-slate-400 font-medium block">Narapidana Terkait:</span>
+                <span className="text-slate-400 font-medium block">Santri Terkait:</span>
                 <span className="font-bold text-slate-800">{selectedContact.napiName}</span>
               </div>
             </div>

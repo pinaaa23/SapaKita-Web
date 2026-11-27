@@ -89,13 +89,13 @@ const BranchReports = () => {
     try {
       const periodLabel = periodFilter === '7days' ? '7 Hari Terakhir' : (periodFilter === '90days' ? '90 Hari Terakhir' : '30 Hari Terakhir');
 
-      // Buat Tabel 1: Rincian Transaksi Pendapatan Kantin UPT
+      // Buat Tabel 1: Rincian Transaksi Pendapatan Kopontren Pondok
       let revenueHeaders = ['No', 'Tanggal Transaksi', 'Kategori Layanan', 'Omzet / Pendapatan', 'Status'];
       const revenueRows = [];
 
       if (Array.isArray(reportData.transactions) && reportData.transactions.length > 0) {
-        // Tampilkan transaksi riil kantin UPT
-        revenueHeaders = ['No', 'Tanggal Transaksi', 'ID Transaksi', 'Warga Binaan & NIP', 'Paket Komunikasi', 'Total Bayar', 'Status'];
+        // Tampilkan transaksi riil kopontren pondok
+        revenueHeaders = ['No', 'Tanggal Transaksi', 'ID Transaksi', 'Santri & NIS', 'Paket Komunikasi', 'Total Bayar', 'Status'];
         reportData.transactions.forEach((t, idx) => {
           const dateStr = t.createdAt 
             ? new Date(t.createdAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
@@ -148,14 +148,14 @@ const BranchReports = () => {
           revenueRows.push([
             '1',
             periodLabel,
-            'Penjualan Paket Komunikasi UPT',
+            'Penjualan Paket Komunikasi Pondok',
             `Rp ${new Intl.NumberFormat('id-ID').format(reportData.totalRevenue || 0)}`,
             reportData.totalRevenue > 0 ? 'Tervalidasi' : 'Belum Ada Transaksi'
           ]);
         }
       }
 
-      // Buat Tabel 2: Rekapitulasi Aktivitas & Volume Panggilan Keluar UPT
+      // Buat Tabel 2: Rekapitulasi Aktivitas & Volume Panggilan Keluar Pondok
       const callRows = [];
       const activeCalls = (reportData.callVolumeTrend || []).filter(item => (item.calls || item.totalCalls || item.count || 0) > 0);
 
@@ -206,8 +206,8 @@ const BranchReports = () => {
 
       const tables = [
         {
-          title: '1. LAPORAN & TRANSAKSI PENDAPATAN KANTIN UPT',
-          subtitle: 'Rincian transaksi pembelian paket komunikasi dan penerimaan saldo warga binaan',
+          title: '1. LAPORAN & TRANSAKSI PENDAPATAN KOPONTREN PONDOK',
+          subtitle: 'Rincian transaksi pembelian paket komunikasi dan penerimaan saldo santri',
           headers: revenueHeaders,
           rows: revenueRows,
         },
@@ -226,15 +226,15 @@ const BranchReports = () => {
         { label: 'KEBERHASILAN', value: `${reportData.successRate || 0}%` },
       ];
 
-      const filename = `Laporan_Analitik_${(uptName || 'UPT').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
+      const filename = `Laporan_Analitik_${(uptName || 'Pondok').replace(/\s+/g, '_')}_${periodFilter}.pdf`;
       const success = exportToPDF({
-        title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN SADEWA',
-        subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Pemasyarakatan`,
+        title: 'LAPORAN ANALITIK & AKTIVITAS LAYANAN SAPAKITA',
+        subtitle: `Laporan Ringkasan Kinerja dan Pemakaian Layanan Komunikasi Santri Pesantren`,
         filename,
         tables,
         metadata: {
-          'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || (isSupervisor ? 'Supervisor' : 'Kepala UPT')})`,
+          'Lokasi Pondok': uptName || 'Pondok Pesantren',
+          'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || (isSupervisor ? 'Supervisor' : 'Pimpinan Pondok')})`,
           'Rentang Waktu': periodLabel,
           'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
         },
@@ -493,7 +493,7 @@ const BranchReports = () => {
             <Target className="w-5 h-5 text-primary" />
             <div>
               <h3 className="font-bold text-sm text-slate-800">Kepatuhan Operasional &amp; Keamanan</h3>
-              <p className="text-xs text-slate-400">Standar monitoring dan audit panggilan Lapas</p>
+              <p className="text-xs text-slate-400">Standar monitoring dan audit panggilan santri pondok</p>
             </div>
           </div>
         </div>

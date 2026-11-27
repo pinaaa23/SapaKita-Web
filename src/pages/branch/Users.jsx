@@ -120,7 +120,7 @@ export default function BranchUsers() {
       'Nama Petugas': u.name || '-',
       'Email Login': u.email || '-',
       'Nomor Telepon': u.phone && u.phone !== '-' ? u.phone : '-',
-      'Peran / Role': u.role === ROLES.OPERATOR_KANTIN ? 'Operator Kantin' : 'Supervisor UPT',
+      'Peran / Role': u.role === ROLES.OPERATOR_KANTIN ? 'Operator Kopontren' : 'Supervisor Kesantrian',
       'Status Akun': u.status === 'Active' || u.status === 'Aktif' ? 'Aktif' : 'Nonaktif',
       'Terakhir Login': u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB' : 'Belum Pernah Login',
       'Dibuat Pada': u.createdAt ? new Date(u.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-',
@@ -130,16 +130,16 @@ export default function BranchUsers() {
     const spvCount = users.filter(u => u.role === ROLES.SUPERVISOR).length;
     const canteenCount = users.filter(u => u.role === ROLES.OPERATOR_KANTIN).length;
 
-    const currentBranchName = uptName || user?.branch?.name || user?.branchName || 'UPT';
+    const currentBranchName = uptName || user?.branch?.name || user?.branchName || 'Pondok Pesantren';
     const filename = `Daftar_Pengguna_${currentBranchName.replace(/[^a-zA-Z0-9]+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    const success = exportToExcel(exportData, filename, 'Pengguna UPT', {
-      title: 'LAPORAN DATA PENGGUNA & STAF OPERASIONAL UPT',
-      subtitle: `Daftar Akun Supervisor dan Petugas Kantin - ${currentBranchName}`,
+    const success = exportToExcel(exportData, filename, 'Pengguna Pondok', {
+      title: 'LAPORAN DATA PENGGUNA & STAF OPERASIONAL PONDOK',
+      subtitle: `Daftar Akun Supervisor dan Petugas Kopontren - ${currentBranchName}`,
       metadata: {
-        'Unit Pelaksana Teknis': currentBranchName,
-        'Dicetak Oleh': `${user?.name || 'Kepala UPT'} (Kepala UPT)`,
-        'Filter Peran': roleFilter === 'All' ? 'Semua Role' : roleFilter === ROLES.SUPERVISOR ? 'Supervisor' : 'Operator Kantin',
+        'Pondok Pesantren': currentBranchName,
+        'Dicetak Oleh': `${user?.name || 'Pimpinan Pondok'} (Pimpinan Pondok)`,
+        'Filter Peran': roleFilter === 'All' ? 'Semua Role' : roleFilter === ROLES.SUPERVISOR ? 'Supervisor' : 'Operator Kopontren',
         'Filter Status': statusFilter === 'All' ? 'Semua Status' : statusFilter === 'Active' ? 'Aktif' : 'Nonaktif',
         'Tanggal Ekspor': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
@@ -316,7 +316,7 @@ export default function BranchUsers() {
         <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl flex items-center gap-3 text-xs text-blue-800">
           <Info className="w-5 h-5 text-blue-600 shrink-0" />
           <p className="leading-relaxed">
-            <strong>Mode Tinjauan:</strong> Pengelolaan staf (tambah, ubah, hapus, dan reset kata sandi) hanya diizinkan untuk akun Kepala UPT (Branch Admin) atau Superadmin.
+            <strong>Mode Tinjauan:</strong> Pengelolaan staf (tambah, ubah, hapus, dan reset kata sandi) hanya diizinkan untuk akun Pimpinan Pondok atau Superadmin.
           </p>
         </div>
       )}
@@ -568,7 +568,7 @@ export default function BranchUsers() {
                       </div>
                       <p className="text-slate-800 font-bold text-sm">Belum ada pengguna</p>
                       <p className="text-slate-400 text-xs mt-1">
-                        {search ? 'Tidak ditemukan data pengguna yang cocok dengan pencarian.' : 'Tambahkan akun staf Supervisor atau Operator Kantin untuk UPT Anda.'}
+                        {search ? 'Tidak ditemukan data pengguna yang cocok dengan pencarian.' : 'Tambahkan akun staf Supervisor atau Operator Kopontren untuk Pondok Anda.'}
                       </p>
                     </div>
                   </td>
@@ -591,7 +591,7 @@ export default function BranchUsers() {
                 </div>
                 <div>
                   <h3 className="font-bold text-sm text-slate-800">Detail Pengguna</h3>
-                  <p className="text-[11px] text-slate-400">Informasi akun staf UPT</p>
+                  <p className="text-[11px] text-slate-400">Informasi akun staf Pondok</p>
                 </div>
               </div>
               <button
@@ -635,8 +635,8 @@ export default function BranchUsers() {
               {/* Detail Items */}
               <div className="p-4 rounded-2xl bg-slate-50/60 border border-slate-200/80 space-y-3 text-xs">
                 <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                  <span className="text-slate-500 font-medium">UPT / Satker</span>
-                  <span className="font-bold text-slate-800">{uptName || user?.branch?.name || user?.branchName || 'Lapas Terdaftar'}</span>
+                  <span className="text-slate-500 font-medium">Pondok Pesantren</span>
+                  <span className="font-bold text-slate-800">{uptName || user?.branch?.name || user?.branchName || 'Pondok Terdaftar'}</span>
                 </div>
 
                 <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">

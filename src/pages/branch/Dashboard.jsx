@@ -457,7 +457,7 @@ const Dashboard = () => {
               color="amber"
             />
             <StatCard 
-              title="Total Narapidana" 
+              title="Total Santri" 
               value={supervisorStats.totalInmates !== null && supervisorStats.totalInmates !== undefined ? formatNumber(supervisorStats.totalInmates) : '-'} 
               icon={Users} 
               color="purple"
@@ -465,7 +465,7 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {/* Dashboard Kepala UPT / Non-Supervisor - Statistik Panggilan */}
+            {/* Dashboard Pimpinan Pondok / Non-Supervisor - Statistik Panggilan */}
             <StatCard 
               title="Total Panggilan" 
               value={summaryStats.totalCalls !== null ? formatNumber(summaryStats.totalCalls) : '-'} 
@@ -488,7 +488,7 @@ const Dashboard = () => {
               {...getTrendProps(summaryStats.missedGrowth)}
             />
             <StatCard 
-              title="Total Narapidana" 
+              title="Total Santri" 
               value={summaryStats.totalInmates !== null && summaryStats.totalInmates !== undefined ? formatNumber(summaryStats.totalInmates) : '-'} 
               icon={Users} 
               color="purple"
@@ -522,7 +522,7 @@ const Dashboard = () => {
                       </Link>
                     </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
-                      Log aktivitas panggilan suara dan video warga binaan (WBP)
+                      Log aktivitas panggilan suara dan video santri
                     </p>
                   </div>
                   
@@ -532,7 +532,7 @@ const Dashboard = () => {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                       <input 
                         type="text" 
-                        placeholder="Cari NIP / nama WBP..." 
+                        placeholder="Cari NIS / nama santri..." 
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         className={`w-full ${isSplitView ? 'sm:w-44' : 'sm:w-56'} pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50/60`}
@@ -622,7 +622,7 @@ const Dashboard = () => {
                   <div className="mt-2.5 p-2.5 bg-amber-50/70 border border-amber-200/50 rounded-xl flex items-start gap-2 text-[11px] text-amber-800 animate-in fade-in duration-200">
                     <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                     <p className="leading-relaxed">
-                      <strong>Pemberitahuan:</strong> Rekaman Video Call <strong>hanya memuat audio</strong> percakapan untuk enkripsi dan privasi Lapas.
+                      <strong>Pemberitahuan:</strong> Rekaman Video Call <strong>hanya memuat audio</strong> percakapan untuk enkripsi dan privasi pondok pesantren.
                     </p>
                   </div>
                 )}
@@ -674,6 +674,7 @@ const Dashboard = () => {
                             </td>
                             <td className="py-3.5 px-3 min-w-0 max-w-[200px]">
                               <div className="font-bold text-slate-800 truncate" title={call.inmateName}>{call.inmateName}</div>
+                              <div className="text-[10px] text-slate-400 font-mono font-medium">NIS: {call.inmateId || call.wbpRegNumber || '-'}</div>
                               <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.familyPhone || '-'}>
                                 <span>→</span>
                                 <span className="truncate">{call.familyPhone || '-'}</span>
@@ -899,28 +900,28 @@ const Dashboard = () => {
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <SearchX className="w-10 h-10 mb-2 text-slate-300" />
                     <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                    <p className="text-[11px] mt-0.5">Belum ada paket panggilan aktif di UPT ini.</p>
+                    <p className="text-[11px] mt-0.5">Belum ada paket panggilan aktif di pondok ini.</p>
                   </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Panel 2: Manajemen Data Narapidana */}
+          {/* Panel 2: Manajemen Data Santri */}
           <div className="bg-white rounded-2xl shadow-xs hover:shadow-sm border border-slate-100/90 overflow-hidden transition-all flex flex-col">
             {/* Header */}
             <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div>
-                <h2 className="text-base font-bold text-slate-800">Data Narapidana</h2>
+                <h2 className="text-base font-bold text-slate-800">Data Santri</h2>
                 <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  {uptName ? `Daftar warga binaan aktif di ${uptName}` : 'Daftar warga binaan aktif di UPT'}
+                  {uptName ? `Daftar santri aktif di ${uptName}` : 'Daftar santri aktif di pondok pesantren'}
                 </p>
               </div>
               <Link 
-                to="/branch/inmates"
+                to="/branch/santri"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-dark transition-colors px-3 py-1.5 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 shrink-0 self-start sm:self-auto"
               >
-                <span>Kelola Narapidana</span>
+                <span>Kelola Data Santri</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
@@ -944,7 +945,7 @@ const Dashboard = () => {
                 recentInmates.map((inmate) => (
                   <Link 
                     key={inmate.id} 
-                    to={`/branch/inmates/${encodeURIComponent(inmate.wbpRegNumber || inmate.identifier || inmate.id)}`}
+                    to={`/branch/santri/${encodeURIComponent(inmate.wbpRegNumber || inmate.identifier || inmate.id)}`}
                     className="py-3 px-2 flex items-center justify-between hover:bg-slate-50/60 rounded-xl transition-colors group cursor-pointer"
                   >
                     <div className="flex items-center gap-3 min-w-0">
@@ -956,7 +957,7 @@ const Dashboard = () => {
                           {inmate.name || '-'}
                         </p>
                         <p className="text-[11px] text-slate-400 font-medium truncate mt-0.5">
-                          <span className="font-mono text-slate-500 font-semibold">{inmate.wbpRegNumber || inmate.identifier || '-'}</span> • {inmate.blockRoom || 'Blok Kamar'}
+                          <span className="font-mono text-slate-500 font-semibold">{inmate.wbpRegNumber || inmate.identifier || '-'}</span> • {inmate.blockRoom || 'Kamar Santri'}
                         </p>
                       </div>
                     </div>
@@ -981,7 +982,7 @@ const Dashboard = () => {
                   <div className="flex flex-col items-center justify-center text-slate-400">
                     <SearchX className="w-10 h-10 mb-2 text-slate-300" />
                     <p className="font-semibold text-xs text-slate-600">Belum ada data</p>
-                    <p className="text-[11px] mt-0.5">Belum ada data narapidana di UPT ini.</p>
+                    <p className="text-[11px] mt-0.5">Belum ada data santri di pondok ini.</p>
                   </div>
                 </div>
               )}
@@ -1063,8 +1064,8 @@ const Dashboard = () => {
                         transcriptData: transcriptCall.transcriptData,
                         callInfo: transcriptCall,
                         inmateInfo: { name: transcriptCall.inmateName, wbpRegNumber: transcriptCall.inmateId },
-                        uptName: uptName || 'Lapas Cipinang',
-                        printedBy: `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+                        uptName: uptName || 'Pondok Pesantren',
+                        printedBy: `${userName || 'Petugas'} (${roleLabel || 'Pimpinan Pondok'})`,
                         filename: `Transkrip_${name}_${transcriptCall.id}.pdf`
                       });
                     }}

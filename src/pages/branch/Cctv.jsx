@@ -463,15 +463,15 @@ export default function BranchCctv() {
         {
           channel: 1,
           name: 'CCTV 01 - Pintu Portir / Depan',
-          location: 'Gerbang Depan Lapas',
+          location: 'Gerbang Utama Pondok',
           streamUrl: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8',
           status: 'ACTIVE',
           isRecording: true,
         },
         {
           channel: 2,
-          name: 'CCTV 02 - Ruang Kunjungan',
-          location: 'Aula Kunjungan WBP',
+          name: 'CCTV 02 - Wartel Santri',
+          location: 'Wartel & Ruang Santri',
           streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
           status: 'ACTIVE',
           isRecording: true,
@@ -718,7 +718,7 @@ export default function BranchCctv() {
                           </div>
                         ) : (
                           <p className="text-[11px] text-slate-500 mt-2 italic">
-                            Menunggu tautan stream dari Kepala UPT
+                            Menunggu tautan stream dari Pimpinan Pondok
                           </p>
                         )}
                       </div>
@@ -1141,7 +1141,7 @@ export default function BranchCctv() {
                   <SlidersHorizontal className="w-4 h-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-slate-800">Pengaturan Kamera CCTV Lapas</h2>
+                  <h2 className="text-sm font-bold text-slate-800">Pengaturan Kamera CCTV Pondok</h2>
                   <p className="text-[11px] text-slate-500">Konfigurasi nama, titik lokasi, dan tautan stream video</p>
                 </div>
               </div>
@@ -1235,7 +1235,7 @@ export default function BranchCctv() {
                           return u;
                         });
                       }}
-                      placeholder="Contoh: Gerbang Depan Lapas"
+                      placeholder="Contoh: Gerbang Utama Pondok"
                       className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition"
                     />
                   </div>

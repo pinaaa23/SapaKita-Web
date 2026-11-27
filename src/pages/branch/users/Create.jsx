@@ -334,9 +334,9 @@ const Create = () => {
             <Users className="w-8 h-8 text-white" />
           </div>
           <div className="text-center sm:text-left flex-1 space-y-1">
-            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Pengguna Baru UPT</h2>
+            <h2 className="text-xl font-black text-white tracking-tight">Pendaftaran Pengguna Baru Pondok</h2>
             <p className="text-blue-100 text-xs">
-              Daftarkan akun staf Supervisor atau Operator Kantin untuk mengelola operasional {uptName || 'Lapas'}
+              Daftarkan akun staf Supervisor Kesantrian atau Operator Kopontren untuk mengelola operasional {uptName || 'Pondok'}
             </p>
           </div>
         </div>
@@ -432,7 +432,7 @@ const Create = () => {
                       )}
                     </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      Kelola data WBP dan operasional warga binaan cabang.
+                      Kelola data santri dan operasional kesantrian pondok.
                     </p>
                   </div>
                 </button>
@@ -696,9 +696,9 @@ const Create = () => {
             {/* Credentials Card */}
             <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3.5 text-xs">
               <div className="flex justify-between items-center pb-2 border-b border-slate-200/60">
-                <span className="text-slate-500 font-medium">UPT / Cabang</span>
+                <span className="text-slate-500 font-medium">Pondok Pesantren</span>
                 <span className="font-bold text-slate-800">
-                  {createdCredentials.branchName || resolvedBranchName || uptName || 'UPT Sadewa'}
+                  {createdCredentials.branchName || resolvedBranchName || uptName || 'Pondok Pesantren'}
                 </span>
               </div>
 
@@ -768,10 +768,10 @@ const Create = () => {
               <button
                 type="button"
                 onClick={() => {
-                  const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'UPT Sadewa';
+                  const bName = createdCredentials.branchName || resolvedBranchName || uptName || 'Pondok Pesantren';
                   const roleLabel = ROLE_LABELS[createdCredentials.role] || createdCredentials.role;
                   const statusLabel = createdCredentials.status === 'Active' ? 'Aktif' : 'Nonaktif';
-                  const fullText = `*Kredensial Akun Pengguna UPT Sadewa*\nUPT / Cabang: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal Sadewa.`;
+                  const fullText = `*Kredensial Akun Pengguna SapaKita*\nPondok Pesantren: ${bName}\nNama Petugas: ${createdCredentials.name}\nRole Pengguna: ${roleLabel}\nUsername / Email: ${createdCredentials.email}\nPassword: ${createdCredentials.password}\nStatus Akun: ${statusLabel}\n\nSilakan login di portal SapaKita.`;
                   handleCopy(fullText, 'modal-all');
                 }}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"

@@ -98,13 +98,13 @@ const SantriDetail = () => {
         let resolvedBranchName = found.branchName || '-';
         if (!isSuperAdmin) {
           const sessionBranch = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null));
-          resolvedBranchName = sessionBranch || (found.branchName && found.branchName !== 'Pusat' && found.branchName !== '-' && found.branchName !== 'Cabang Terdaftar' ? found.branchName : 'Kampus Utama');
+          resolvedBranchName = sessionBranch || (found.branchName && found.branchName !== 'Pusat' && found.branchName !== '-' && found.branchName !== 'Cabang Terdaftar' ? found.branchName : 'Pondok Utama');
         } else if (found.branchId && branchesMap[found.branchId]) {
           resolvedBranchName = branchesMap[found.branchId];
         } else if (found.branchName && found.branchName !== '-' && found.branchName !== 'Cabang Terdaftar') {
           resolvedBranchName = found.branchName;
         } else {
-          resolvedBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : 'Kampus Utama';
+          resolvedBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : 'Pondok Utama';
         }
 
         const effectiveBlockRoom = (!found.blockRoom || found.blockRoom === '-') 
@@ -379,7 +379,7 @@ const SantriDetail = () => {
             <span className="font-bold font-mono text-slate-800 text-sm">{santri.wbpRegNumber}</span>
           </div>
           <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-100">
-            <span className="text-slate-400 block font-medium mb-1">Kampus Pesantren</span>
+            <span className="text-slate-400 block font-medium mb-1">Pondok Pesantren</span>
             <span className="font-semibold text-slate-800">{santri.branchName || '-'}</span>
           </div>
           <div className="p-3 bg-slate-50/70 rounded-xl border border-slate-100">

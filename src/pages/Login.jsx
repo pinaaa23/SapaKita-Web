@@ -102,8 +102,8 @@ export default function Login() {
                 email: idLower.includes('@') ? idLower : 'kopontren@sapakita.id',
                 role: 'operator_kantin',
                 branchId: 'b1',
-                branchName: 'Kampus Putra Darussalam',
-                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Kampus Putra' },
+                branchName: 'Pondok Putra Darussalam',
+                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
               },
             };
           } else if (idLower.includes('superadmin') || idLower.includes('super')) {
@@ -125,8 +125,8 @@ export default function Login() {
                 email: idLower.includes('@') ? idLower : 'supervisor@sapakita.id',
                 role: 'supervisor',
                 branchId: 'b1',
-                branchName: 'Kampus Putra Darussalam',
-                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Kampus Putra' },
+                branchName: 'Pondok Putra Darussalam',
+                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
               },
             };
           } else if (idLower.includes('kepala') || idLower.includes('pondok') || idLower.includes('pimpinan')) {
@@ -134,12 +134,12 @@ export default function Login() {
               token: 'mock-jwt-token-upt-' + Date.now(),
               user: {
                 id: 'u-upt-demo',
-                name: 'K.H. Hendra (Pimpinan Kampus)',
+                name: 'K.H. Hendra (Pimpinan Pondok)',
                 email: idLower.includes('@') ? idLower : 'kepala.pondok@sapakita.id',
                 role: 'kepala_upt',
                 branchId: 'b1',
-                branchName: 'Kampus Putra Darussalam',
-                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Kampus Putra' },
+                branchName: 'Pondok Putra Darussalam',
+                branch: { id: 'b1', name: 'Pesantren Modern Darussalam - Pondok Putra' },
               },
             };
           } else if (idLower.includes('kanwil') || idLower.includes('yayasan')) {

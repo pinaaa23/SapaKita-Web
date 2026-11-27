@@ -33,7 +33,7 @@ export const ROLES = {
 export const ROLE_LABELS = {
   [ROLES.SUPERADMIN]: 'Super Administrator',
   [ROLES.ADMIN_KANWIL]: 'Admin Yayasan',
-  [ROLES.KEPALA_UPT]: 'Pimpinan Kampus',
+  [ROLES.KEPALA_UPT]: 'Pimpinan Pondok',
   [ROLES.SUPERVISOR]: 'Supervisor Kesantrian',
   [ROLES.OPERATOR_KANTIN]: 'Operator Kopontren',
   [ROLES.FINANCE]: 'Admin Keuangan',

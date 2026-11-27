@@ -85,7 +85,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/finance/billing') || pathname === '/billing') {
       return { 
         title: 'Tagihan & Setoran', 
-        subtitle: 'Konfirmasi setoran kasir kopontren, rekapitulasi penagihan bulanan seluruh kampus, dan riwayat verifikasi' 
+        subtitle: 'Konfirmasi setoran kasir kopontren, rekapitulasi penagihan bulanan seluruh pondok, dan riwayat verifikasi' 
       };
     }
     if (pathname.startsWith('/contracts') || pathname.startsWith('/finance/contracts')) {
@@ -117,7 +117,7 @@ const Topbar = ({ toggleMobileMenu }) => {
     if (pathname.startsWith('/kopontren/status-wartel') || pathname.startsWith('/kantin/status-wartel')) {
       return {
         title: 'Status Ketersediaan Wartel',
-        subtitle: 'Pantau ketersediaan bilik wartel santri secara real-time di kampus pondok',
+        subtitle: 'Pantau ketersediaan bilik wartel santri secara real-time di pondok pesantren',
       };
     }
     if (pathname.startsWith('/kopontren/riwayat') || pathname.startsWith('/kantin/riwayat')) {
@@ -215,13 +215,13 @@ const Topbar = ({ toggleMobileMenu }) => {
       { title: 'Kelola Pengguna', category: 'Halaman', link: '/branch/users', desc: 'Kelola akun Supervisor & Operator Kopontren' },
     ] : []),
     ...(normRole === ROLES.SUPERVISOR ? [
-      { title: 'Kelola Paket', category: 'Halaman', link: '/branch/packages', desc: 'Atur tarif dan paket layanan komunikasi kampus' },
+      { title: 'Kelola Paket', category: 'Halaman', link: '/branch/packages', desc: 'Atur tarif dan paket layanan komunikasi pondok' },
     ] : []),
     { title: 'Riwayat Transaksi', category: 'Halaman', link: '/branch/transactions', desc: 'Data penjualan voucher kopontren' },
-    { title: 'Laporan & Analitik Kampus', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & analitik kampus' },
+    { title: 'Laporan & Analitik Pondok', category: 'Halaman', link: '/branch/reports', desc: 'Statistik panggilan & analitik pondok' },
     { title: 'Profil Pengguna', category: 'Pengaturan', link: '/branch/profile', desc: 'Informasi akun & keamanan pengguna' },
   ] : (isKanwilUser ? [
-    { title: 'Dashboard', category: 'Halaman', link: '/kanwil/dashboard', desc: 'Ringkasan operasional kampus binaan yayasan' },
+    { title: 'Dashboard', category: 'Halaman', link: '/kanwil/dashboard', desc: 'Ringkasan operasional pondok binaan yayasan' },
     { title: 'Daftar Pondok Pesantren', category: 'Halaman', link: '/kanwil/branches', desc: 'Daftar pondok pesantren binaan yayasan' },
     { title: 'Data Santri', category: 'Halaman', link: '/kanwil/santri', desc: 'Data seluruh santri se-yayasan' },
     { title: 'Laporan Yayasan', category: 'Halaman', link: '/kanwil/reports', desc: 'Statistik dan performa komunikasi seluruh pondok' },

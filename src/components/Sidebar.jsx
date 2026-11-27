@@ -130,7 +130,7 @@ const Sidebar = ({ isSidebarOpen, isCollapsed, toggleSidebar, isMobileMenuOpen, 
     (effectiveRole === ROLES.FINANCE ? 'Admin Keuangan' :
      effectiveRole === ROLES.ADMIN_KANWIL ? 'Admin Yayasan' : 
      effectiveRole === ROLES.SUPERVISOR ? 'Supervisor Kesantrian' : 
-     effectiveRole === ROLES.KEPALA_UPT ? 'Pimpinan Kampus' : 'Super Administrator');
+     effectiveRole === ROLES.KEPALA_UPT ? 'Pimpinan Pondok' : 'Super Administrator');
 
   const menuItems = getMenuItemsByRole(effectiveRole);
   const isExpandedView = isOpen || isMobileMenuOpen;

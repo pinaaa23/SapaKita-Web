@@ -23,7 +23,7 @@ const SantriCreate = () => {
   const { uptName } = useAuth();
   const authUser = getAuthUser();
   const isSuperadmin = authUser?.role === 'SUPERADMIN';
-  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Kampus Utama');
+  const currentBranchName = (uptName && uptName !== 'Cabang Terdaftar' && uptName !== 'UPT Anda') ? uptName : (authUser?.branch?.name || authUser?.branchName || (typeof authUser?.branch === 'string' ? authUser.branch : null) || 'Pondok Utama');
 
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState('');
@@ -110,7 +110,7 @@ const SantriCreate = () => {
       : undefined;
 
     if (isSuperadmin && !branchIdToSend) {
-      setErrorMsg('Kampus tujuan wajib dipilih atau diisi untuk Superadmin.');
+      setErrorMsg('Pondok tujuan wajib dipilih atau diisi untuk Superadmin.');
       return;
     }
 
@@ -332,7 +332,7 @@ const SantriCreate = () => {
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                Kampus Pesantren {isSuperadmin && <span className="text-rose-500">*</span>}
+                Pondok Pesantren {isSuperadmin && <span className="text-rose-500">*</span>}
               </label>
               {isSuperadmin ? (
                 branches.length > 0 ? (
@@ -353,7 +353,7 @@ const SantriCreate = () => {
                       </select>
                       <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                     </div>
-                    <p className="text-[10px] text-slate-400">Pilih kampus pondok pesantren tempat santri ini didaftarkan.</p>
+                    <p className="text-[10px] text-slate-400">Pilih pondok pesantren tempat santri ini didaftarkan.</p>
                   </div>
                 ) : (
                   <div className="space-y-1.5">
@@ -363,12 +363,12 @@ const SantriCreate = () => {
                         type="text" 
                         value={manualBranchName}
                         onChange={(e) => setManualBranchName(e.target.value)}
-                        placeholder="Contoh: Pondok Pesantren Krapyak (atau ID Kampus)"
+                        placeholder="Contoh: Pondok Pesantren Krapyak (atau ID Pondok)"
                         className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                         required
                       />
                     </div>
-                    <p className="text-[10px] text-slate-400">Daftar kampus belum tersedia dari server. Masukkan nama/ID kampus secara manual.</p>
+                    <p className="text-[10px] text-slate-400">Daftar pondok belum tersedia dari server. Masukkan nama/ID pondok secara manual.</p>
                   </div>
                 )
               ) : (
@@ -377,7 +377,7 @@ const SantriCreate = () => {
                     <Building2 className="w-4 h-4 text-teal-600" />
                     {formData.branchName}
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Kampus otomatis mengikuti lokasi Admin saat ini.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Pondok otomatis mengikuti lokasi Admin saat ini.</p>
                 </>
               )}
             </div>
@@ -412,7 +412,7 @@ const SantriCreate = () => {
               >
                 <option value="Aktif">Aktif</option>
                 <option value="Sudah Bebas">Lulus / Alumni</option>
-                <option value="Dipindahkan">Pindah Kampus</option>
+                <option value="Dipindahkan">Pindah Pondok</option>
               </select>
             </div>
           </div>

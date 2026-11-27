@@ -127,8 +127,8 @@ const Transactions = () => {
       return;
     }
 
-    // PDF Export Resmi Transaksi Kantin UPT
-    const headers = ['No', 'ID Transaksi', 'Kode Voucher', 'Nama WBP', 'NIP', 'Paket', 'Durasi', 'Nominal', 'Kasir', 'Status Voucher', 'Waktu'];
+    // PDF Export Resmi Transaksi Kopontren Pondok
+    const headers = ['No', 'ID Transaksi', 'Kode Voucher', 'Nama Santri', 'NIS', 'Paket', 'Durasi', 'Nominal', 'Kasir', 'Status Voucher', 'Waktu'];
     const rows = transactionsData.items.map((t, idx) => {
       return [
         String(idx + 1),
@@ -152,17 +152,17 @@ const Transactions = () => {
       { label: 'VOUCHER AKTIF', value: `${computedVoucherActive} Voucher` }
     ];
 
-    const filename = `Riwayat_Transaksi_Kantin_${(uptName || 'UPT').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
+    const filename = `Riwayat_Transaksi_Kopontren_${(uptName || 'Pondok').replace(/\s+/g, '_')}_${statusFilter}.pdf`;
     const success = exportToPDF({
-      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KANTIN',
-      subtitle: `Rekapitulasi riwayat pembelian voucher & paket komunikasi narapidana`,
+      title: 'LAPORAN TRANSAKSI PEMBELIAN PAKET KOPONTREN',
+      subtitle: `Rekapitulasi riwayat pembelian voucher & paket komunikasi santri`,
       filename,
       headers,
       rows,
       orientation: 'landscape',
       metadata: {
-        'Lokasi UPT': uptName || 'UPT Pemasyarakatan',
-        'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+        'Lokasi Pondok': uptName || 'Pondok Pesantren',
+        'Dicetak Oleh': `${userName || 'Petugas'} (${roleLabel || 'Pimpinan Pondok'})`,
         'Status Filter': statusFilter === 'All' ? 'Semua Status' : statusFilter,
         'Tanggal Cetak': new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }),
       },
@@ -198,14 +198,14 @@ const Transactions = () => {
             <div className="w-11 h-11 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-white shrink-0 border border-white/20">
               <Receipt className="w-5 h-5 text-white" />
             </div>
-            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Kantin UPT</span>
+            <span className="text-[10px] font-bold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Kopontren Pondok</span>
           </div>
           <div>
             <h3 className="text-blue-200 text-xs font-semibold uppercase tracking-wider mb-1">Total Transaksi Paket</h3>
             <p className="text-2xl font-extrabold text-white">
               {isLoading ? '...' : (error ? '-' : (transactionsData.total || transactionsData.items.length).toString())}
             </p>
-            <p className="text-[10px] text-blue-200 font-medium mt-1">Transaksi pembelian paket voucher oleh WBP</p>
+            <p className="text-[10px] text-blue-200 font-medium mt-1">Transaksi pembelian paket voucher oleh santri</p>
           </div>
         </div>
         
@@ -218,12 +218,12 @@ const Transactions = () => {
             <span className="text-[10px] font-extrabold bg-white/20 text-white px-2.5 py-0.5 rounded-full border border-white/30">Penerimaan Tunai</span>
           </div>
           <div>
-            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Paket Kantin</h3>
+            <h3 className="text-emerald-100 text-xs font-semibold uppercase tracking-wider mb-1">Total Omzet Paket Kopontren</h3>
             <p className="text-2xl font-extrabold text-white">
               {isLoading ? '...' : (error ? '-' : formatCurrency(computedTotalOmzet))}
             </p>
             <p className="text-[10px] text-emerald-100 font-semibold mt-1">
-              Akumulasi pembayaran tunai di kasir kantin
+              Akumulasi pembayaran tunai di kasir kopontren
             </p>
           </div>
         </div>
@@ -237,7 +237,7 @@ const Transactions = () => {
             <span className="text-[10px] font-extrabold bg-[#0B3D91]/15 text-[#0B3D91] px-2.5 py-0.5 rounded-full border border-[#0B3D91]/20">Voucher 5 Digit</span>
           </div>
           <div>
-            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Status Voucher WBP</h3>
+            <h3 className="text-[#0B3D91]/80 text-xs font-bold uppercase tracking-wider mb-1">Status Voucher Santri</h3>
             <p className="text-2xl font-extrabold text-[#0B3D91]">
               {isLoading ? '...' : `${computedVoucherUsed} Terpakai`}
             </p>
@@ -255,7 +255,7 @@ const Transactions = () => {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input 
             type="text" 
-            placeholder="Cari ID Trx, Kode Voucher, WBP, atau Paket..." 
+            placeholder="Cari ID Trx, Kode Voucher, Santri, atau Paket..." 
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all text-xs bg-slate-50/60 font-medium"
@@ -308,7 +308,7 @@ const Transactions = () => {
             <thead>
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3.5 pl-5 pr-3 whitespace-nowrap w-[24%]">Waktu &amp; ID Transaksi</th>
-                <th className="py-3.5 px-3 whitespace-nowrap w-[22%]">Warga Binaan &amp; NIP</th>
+                <th className="py-3.5 px-3 whitespace-nowrap w-[22%]">Santri &amp; NIS</th>
                 <th className="py-3.5 px-3 min-w-[150px] w-[20%]">Paket Komunikasi</th>
                 <th className="py-3.5 px-3 whitespace-nowrap w-[18%]">Kode Voucher</th>
                 <th className="py-3.5 px-3 text-right whitespace-nowrap w-[10%]">Total Bayar</th>
@@ -352,8 +352,8 @@ const Transactions = () => {
                           {trx.inmateName}
                         </p>
                         <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 mt-0.5">
-                          <span className="font-mono text-slate-400 truncate" title={`NIP: ${trx.inmateId}`}>
-                            NIP: {trx.inmateId}
+                          <span className="font-mono text-slate-400 truncate" title={`NIS: ${trx.inmateId}`}>
+                            NIS: {trx.inmateId}
                           </span>
                           {trx.inmateBlock && trx.inmateBlock !== '-' && (
                             <span className="text-slate-400">• {trx.inmateBlock}</span>
@@ -494,11 +494,11 @@ Waktu            : ${new Date(selectedTrx.date).toLocaleString('id-ID')} WIB
 Petugas Kasir    : ${selectedTrx.officerName || 'Petugas Kasir'}
 
 --------------------------------------------------
-DATA WARGA BINAAN PEMASYARAKATAN
+DATA SANTRI PESANTREN
 --------------------------------------------------
-Nama WBP         : ${selectedTrx.inmateName}
-Nomor Registrasi : ${selectedTrx.inmateId}
-Blok / Kamar     : ${selectedTrx.inmateBlock || '-'}
+Nama Santri      : ${selectedTrx.inmateName}
+NIS              : ${selectedTrx.inmateId}
+Asrama / Kamar   : ${selectedTrx.inmateBlock || '-'}
 
 --------------------------------------------------
 DETAIL VOUCHER PANGGILAN
@@ -572,15 +572,15 @@ Metode           : Tunai
                 <span className="font-bold text-slate-800 font-mono">{selectedTrx.id}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Nama WBP:</span>
+                <span className="text-slate-400 font-medium">Nama Santri:</span>
                 <span className="font-bold text-slate-800">{selectedTrx.inmateName}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">NIP / No Registrasi:</span>
+                <span className="text-slate-400 font-medium">NIS (Nomor Induk Santri):</span>
                 <span className="font-bold font-mono text-slate-800">{selectedTrx.inmateId}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400 font-medium">Kamar / Blok:</span>
+                <span className="text-slate-400 font-medium">Asrama / Kamar:</span>
                 <span className="font-semibold text-slate-700">{selectedTrx.inmateBlock || '-'}</span>
               </div>
               <div className="flex justify-between">

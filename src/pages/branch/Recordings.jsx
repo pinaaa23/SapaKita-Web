@@ -208,7 +208,7 @@ const Recordings = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5" />
                     <input 
                       type="text" 
-                      placeholder="Cari NIP / nama WBP..." 
+                      placeholder="Cari NIS / nama santri..." 
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
                       className={`w-full ${isSplitView ? 'sm:w-40' : 'sm:w-52'} pl-8 pr-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all bg-slate-50/60`}
@@ -342,7 +342,7 @@ const Recordings = () => {
                 <div className="mt-2.5 p-2.5 bg-amber-50/70 border border-amber-200/50 rounded-xl flex items-start gap-2 text-[11px] text-amber-800 animate-in fade-in duration-200">
                   <Info className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                   <p className="leading-relaxed">
-                    <strong>Pemberitahuan:</strong> Rekaman Video Call <strong>hanya memuat audio</strong> percakapan untuk enkripsi dan privasi Lapas.
+                    <strong>Pemberitahuan:</strong> Rekaman Video Call <strong>hanya memuat audio</strong> percakapan untuk enkripsi dan privasi pondok pesantren.
                   </p>
                 </div>
               )}
@@ -415,6 +415,7 @@ const Recordings = () => {
                             <div className="font-bold text-slate-800 truncate" title={call.inmateName}>
                               {call.inmateName}
                             </div>
+                            <div className="text-[10px] text-slate-400 font-mono font-medium">NIS: {call.inmateId || call.wbpRegNumber || '-'}</div>
                             <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium mt-0.5 truncate" title={call.targetPhone || call.familyPhone || '-'}>
                               <span>→</span>
                               <span className="truncate">{call.targetPhone || call.familyPhone || '-'}</span>
@@ -665,8 +666,8 @@ const Recordings = () => {
                         transcriptData: transcriptModalCall.transcriptData,
                         callInfo: transcriptModalCall,
                         inmateInfo: { name: transcriptModalCall.inmateName, wbpRegNumber: transcriptModalCall.inmateId },
-                        uptName: uptName || 'UPT Pemasyarakatan',
-                        printedBy: `${userName || 'Petugas'} (${roleLabel || 'Kepala UPT'})`,
+                        uptName: uptName || 'Pondok Pesantren',
+                        printedBy: `${userName || 'Petugas'} (${roleLabel || 'Pimpinan Pondok'})`,
                         filename: `Transkrip_${name}_${transcriptModalCall.id}.pdf`
                       });
                     }}
